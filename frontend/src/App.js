@@ -115,40 +115,142 @@ const HomePage = () => {
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full mb-6">
-              <Zap className="w-5 h-5" />
-              <span className="text-sm font-semibold">AI-Powered Solar Solutions</span>
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-full mb-6 shadow-lg">
+              <Award className="w-5 h-5" />
+              <span className="text-sm font-semibold">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6">
-              Transform Your Business with
+              Transform Your Energy Future with
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
-                5 AI-Powered Features
+                Solar Rooftop Solutions
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10">
-              Revolutionize your solar energy business with cutting-edge AI technology. 
-              From intelligent chatbots to automated marketing - everything you need in one platform.
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6 leading-relaxed">
+              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong>PM Surya Ghar Yojana</strong>.
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button
-                onClick={() => navigate('/leads')}
-                className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center space-x-2"
-                data-testid="get-started-btn"
+            <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-10">
+              Our mission: Making solar energy <strong>affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+              <a
+                href="tel:8877896889"
+                className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center space-x-2 shadow-lg"
+                data-testid="call-now-btn"
               >
-                <span>Get Started</span>
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                <Phone className="w-5 h-5" />
+                <span>Call Now: 8877896889</span>
+              </a>
+              <a
+                href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition flex items-center justify-center space-x-2 shadow-lg"
+                data-testid="whatsapp-btn"
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span>WhatsApp Us</span>
+              </a>
               <button
                 onClick={() => navigate('/calculator')}
-                className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition"
+                className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition shadow-lg"
                 data-testid="try-calculator-btn"
               >
-                Try Solar Calculator
+                Calculate Savings
               </button>
             </div>
+
+            {/* Trust Badges */}
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span>100+ Projects Completed</span>
+              </div>
+              <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full">
+                <CheckCircle className="w-4 h-4 text-blue-600" />
+                <span>MNRE Registered</span>
+              </div>
+              <div className="flex items-center space-x-2 bg-yellow-50 px-4 py-2 rounded-full">
+                <CheckCircle className="w-4 h-4 text-yellow-600" />
+                <span>PM Surya Ghar Partner</span>
+              </div>
+              <div className="flex items-center space-x-2 bg-purple-50 px-4 py-2 rounded-full">
+                <CheckCircle className="w-4 h-4 text-purple-600" />
+                <span>Free Site Survey</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Government Benefits Section */}
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white mb-4">🏛️ Government Benefits for Solar Rooftop</h2>
+            <p className="text-orange-100 text-xl">PM Surya Ghar Yojana & MNRE Subsidies Available</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-xl p-6 shadow-2xl">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <Award className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Up to 40% Subsidy</h3>
+              <p className="text-gray-600 mb-4">
+                Get <strong>₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
+              </p>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>✓ 1 kW system: ₹30,000 subsidy</li>
+                <li>✓ 2 kW system: ₹60,000 subsidy</li>
+                <li>✓ 3 kW system: ₹78,000 subsidy</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-2xl">
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <TrendingUp className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Net Metering Benefits</h3>
+              <p className="text-gray-600 mb-4">
+                Sell excess solar power back to the grid and earn credits on your electricity bill.
+              </p>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>✓ Reduce bills up to 90%</li>
+                <li>✓ Earn from surplus energy</li>
+                <li>✓ 25-year panel warranty</li>
+              </ul>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-2xl">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
+                <Zap className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Tax Benefits & Loans</h3>
+              <p className="text-gray-600 mb-4">
+                Enjoy depreciation benefits and easy financing options at low interest rates.
+              </p>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>✓ 80% accelerated depreciation</li>
+                <li>✓ Low-interest bank loans</li>
+                <li>✓ 3-5 year payback period</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-white text-lg font-semibold mb-4">
+              🎯 ASR Enterprises handles complete subsidy documentation & approval process!
+            </p>
+            <Link
+              to="/leads"
+              className="inline-block bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg"
+            >
+              Apply for Subsidy Now →
+            </Link>
           </div>
         </div>
       </div>

@@ -5,8 +5,12 @@ import axios from "axios";
 import { 
   MessageSquare, Calculator, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
-  Send, Loader2, CheckCircle, AlertCircle
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User
 } from "lucide-react";
+import { WhatsAppChatPage } from "@/components/WhatsAppChat";
+import { MarketingPage } from "@/components/Marketing";
+import { AdsPage } from "@/components/Ads";
+import { DashboardPage } from "@/components/Dashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

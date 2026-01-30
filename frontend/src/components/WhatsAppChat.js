@@ -2,7 +2,206 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Send, Loader2, Bot, User, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
+
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
 export const WhatsAppChatPage = () => {
-  const [messages, setMessages] = useState([]);\n  const [inputMessage, setInputMessage] = useState(\"\");\n  const [loading, setLoading] = useState(false);\n  const [userPhone, setUserPhone] = useState(\"\");\n  const [sessionId, setSessionId] = useState(\"\");\n  const [chatStarted, setChatStarted] = useState(false);\n  const messagesEndRef = useRef(null);\n\n  const scrollToBottom = () => {\n    messagesEndRef.current?.scrollIntoView({ behavior: \"smooth\" });\n  };\n\n  useEffect(() => {\n    scrollToBottom();\n  }, [messages]);\n\n  const startChat = () => {\n    if (userPhone.trim()) {\n      setChatStarted(true);\n      setMessages([{\n        type: \"bot\",\n        text: \"Hello! Welcome to ASR Enterprises. I'm your AI assistant. How can I help you with solar energy solutions today?\"\n      }]);\n    }\n  };\n\n  const sendMessage = async (e) => {\n    e.preventDefault();\n    if (!inputMessage.trim()) return;\n\n    const userMsg = inputMessage;\n    setMessages(prev => [...prev, { type: \"user\", text: userMsg }]);\n    setInputMessage(\"\");\n    setLoading(true);\n\n    try {\n      const response = await axios.post(`${API}/chat/whatsapp`, {\n        user_phone: userPhone,\n        message: userMsg,\n        session_id: sessionId || undefined\n      });\n\n      if (!sessionId) {\n        setSessionId(response.data.session_id);\n      }\n\n      setMessages(prev => [...prev, {\n        type: \"bot\",\n        text: response.data.response\n      }]);\n    } catch (error) {\n      setMessages(prev => [...prev, {\n        type: \"bot\",\n        text: \"Sorry, I'm having trouble connecting. Please try again.\"\n      }]);\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  if (!chatStarted) {\n    return (\n      <div className=\"min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4\">\n        <div className=\"max-w-md mx-auto\">\n          <Link to=\"/\" className=\"inline-flex items-center text-blue-600 hover:text-blue-700 mb-6\">\n            <ChevronRight className=\"w-5 h-5 rotate-180\" />\n            <span>Back to Home</span>\n          </Link>\n\n          <div className=\"bg-white rounded-2xl shadow-2xl p-8\">\n            <div className=\"text-center mb-8\">\n              <div className=\"inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4\">\n                <Bot className=\"w-10 h-10 text-green-600\" />\n              </div>\n              <h1 className=\"text-3xl font-bold text-gray-900 mb-2\">AI WhatsApp Chatbot</h1>\n              <p className=\"text-gray-600\">Get instant answers to your solar energy questions</p>\n            </div>\n\n            <div className=\"space-y-6\">\n              <div>\n                <label className=\"block text-sm font-semibold text-gray-700 mb-2\">Enter Your Phone Number</label>\n                <input\n                  type=\"tel\"\n                  value={userPhone}\n                  onChange={(e) => setUserPhone(e.target.value)}\n                  placeholder=\"+91XXXXXXXXXX\"\n                  className=\"w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent\"\n                  data-testid=\"chat-phone-input\"\n                />\n              </div>\n\n              <button\n                onClick={startChat}\n                disabled={!userPhone.trim()}\n                className=\"w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed\"\n                data-testid=\"start-chat-btn\"\n              >\n                Start Chatting\n              </button>\n\n              <div className=\"bg-blue-50 p-4 rounded-lg\">\n                <h3 className=\"font-semibold text-gray-900 mb-2\">What you can ask:</h3>\n                <ul className=\"text-sm text-gray-700 space-y-1\">\n                  <li>\u2022 Solar panel costs and installation</li>\n                  <li>\u2022 Government subsidies and incentives</li>\n                  <li>\u2022 ROI and savings calculations</li>\n                  <li>\u2022 Maintenance and warranty information</li>\n                  <li>\u2022 System sizing and requirements</li>\n                </ul>\n              </div>\n            </div>\n          </div>\n        </div>\n      </div>\n    );\n  }\n\n  return (\n    <div className=\"min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4\">\n      <div className=\"max-w-4xl mx-auto\">\n        <Link to=\"/\" className=\"inline-flex items-center text-blue-600 hover:text-blue-700 mb-6\">\n          <ChevronRight className=\"w-5 h-5 rotate-180\" />\n          <span>Back to Home</span>\n        </Link>\n\n        <div className=\"bg-white rounded-2xl shadow-2xl overflow-hidden\">\n          {/* Header */}\n          <div className=\"bg-green-600 text-white p-6\">\n            <div className=\"flex items-center space-x-3\">\n              <div className=\"w-12 h-12 bg-white rounded-full flex items-center justify-center\">\n                <Bot className=\"w-6 h-6 text-green-600\" />\n              </div>\n              <div>\n                <h2 className=\"text-xl font-bold\">ASR Solar AI Assistant</h2>\n                <p className=\"text-green-100 text-sm\">Online • Powered by AI</p>\n              </div>\n            </div>\n          </div>\n\n          {/* Messages */}\n          <div className=\"h-[500px] overflow-y-auto p-6 space-y-4 bg-gray-50\" data-testid=\"chat-messages-container\">\n            {messages.map((msg, index) => (\n              <div\n                key={index}\n                className={`flex items-start space-x-3 ${msg.type === \"user\" ? \"flex-row-reverse space-x-reverse\" : \"\"}`}\n                data-testid={`chat-message-${index}`}\n              >\n                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${\n                  msg.type === \"user\" ? \"bg-blue-500\" : \"bg-green-500\"\n                }`}>\n                  {msg.type === \"user\" ? <User className=\"w-5 h-5 text-white\" /> : <Bot className=\"w-5 h-5 text-white\" />}\n                </div>\n                <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${\n                  msg.type === \"user\" \n                    ? \"bg-blue-500 text-white rounded-tr-none\" \n                    : \"bg-white text-gray-800 shadow-md rounded-tl-none\"\n                }`}>\n                  <p className=\"text-sm leading-relaxed\">{msg.text}</p>\n                </div>\n              </div>\n            ))}\n            {loading && (\n              <div className=\"flex items-start space-x-3\">\n                <div className=\"w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-500\">\n                  <Bot className=\"w-5 h-5 text-white\" />\n                </div>\n                <div className=\"bg-white px-4 py-3 rounded-2xl rounded-tl-none shadow-md\">\n                  <Loader2 className=\"w-5 h-5 text-green-600 animate-spin\" />\n                </div>\n              </div>\n            )}\n            <div ref={messagesEndRef} />\n          </div>\n\n          {/* Input */}\n          <form onSubmit={sendMessage} className=\"p-6 bg-white border-t\">\n            <div className=\"flex space-x-3\">\n              <input\n                type=\"text\"\n                value={inputMessage}\n                onChange={(e) => setInputMessage(e.target.value)}\n                placeholder=\"Type your message...\"\n                className=\"flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent\"\n                disabled={loading}\n                data-testid=\"chat-input\"\n              />\n              <button\n                type=\"submit\"\n                disabled={loading || !inputMessage.trim()}\n                className=\"bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2\"\n                data-testid=\"send-message-btn\"\n              >\n                <Send className=\"w-5 h-5\" />\n              </button>\n            </div>\n          </form>\n        </div>\n      </div>\n    </div>\n  );\n};\n
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [userPhone, setUserPhone] = useState("");
+  const [sessionId, setSessionId] = useState("");
+  const [chatStarted, setChatStarted] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const startChat = () => {
+    if (userPhone.trim()) {
+      setChatStarted(true);
+      setMessages([{
+        type: "bot",
+        text: "Hello! Welcome to ASR Enterprises. I'm your AI assistant. How can I help you with solar energy solutions today?"
+      }]);
+    }
+  };
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!inputMessage.trim()) return;
+
+    const userMsg = inputMessage;
+    setMessages(prev => [...prev, { type: "user", text: userMsg }]);
+    setInputMessage("");
+    setLoading(true);
+
+    try {
+      const response = await axios.post(`${API}/chat/whatsapp`, {
+        user_phone: userPhone,
+        message: userMsg,
+        session_id: sessionId || undefined
+      });
+
+      if (!sessionId) {
+        setSessionId(response.data.session_id);
+      }
+
+      setMessages(prev => [...prev, {
+        type: "bot",
+        text: response.data.response
+      }]);
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        type: "bot",
+        text: "Sorry, I'm having trouble connecting. Please try again."
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!chatStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4">
+        <div className="max-w-md mx-auto">
+          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+            <ChevronRight className="w-5 h-5 rotate-180" />
+            <span>Back to Home</span>
+          </Link>
+
+          <div className="bg-white rounded-2xl shadow-2xl p-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                <Bot className="w-10 h-10 text-green-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">AI WhatsApp Chatbot</h1>
+              <p className="text-gray-600">Get instant answers to your solar energy questions</p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Enter Your Phone Number</label>
+                <input
+                  type="tel"
+                  value={userPhone}
+                  onChange={(e) => setUserPhone(e.target.value)}
+                  placeholder="+91XXXXXXXXXX"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  data-testid="chat-phone-input"
+                />
+              </div>
+
+              <button
+                onClick={startChat}
+                disabled={!userPhone.trim()}
+                className="w-full bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="start-chat-btn"
+              >
+                Start Chatting
+              </button>
+
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-2">What you can ask:</h3>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  <li>• Solar panel costs and installation</li>
+                  <li>• Government subsidies and incentives</li>
+                  <li>• ROI and savings calculations</li>
+                  <li>• Maintenance and warranty information</li>
+                  <li>• System sizing and requirements</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+          <ChevronRight className="w-5 h-5 rotate-180" />
+          <span>Back to Home</span>
+        </Link>
+
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-green-600 text-white p-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                <Bot className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">ASR Solar AI Assistant</h2>
+                <p className="text-green-100 text-sm">Online • Powered by AI</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-[500px] overflow-y-auto p-6 space-y-4 bg-gray-50" data-testid="chat-messages-container">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`flex items-start space-x-3 ${msg.type === "user" ? "flex-row-reverse space-x-reverse" : ""}`}
+                data-testid={`chat-message-${index}`}
+              >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  msg.type === "user" ? "bg-blue-500" : "bg-green-500"
+                }`}>
+                  {msg.type === "user" ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-white" />}
+                </div>
+                <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                  msg.type === "user" 
+                    ? "bg-blue-500 text-white rounded-tr-none" 
+                    : "bg-white text-gray-800 shadow-md rounded-tl-none"
+                }`}>
+                  <p className="text-sm leading-relaxed">{msg.text}</p>
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-green-500">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none shadow-md">
+                  <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <form onSubmit={sendMessage} className="p-6 bg-white border-t">
+            <div className="flex space-x-3">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                disabled={loading}
+                data-testid="chat-input"
+              />
+              <button
+                type="submit"
+                disabled={loading || !inputMessage.trim()}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                data-testid="send-message-btn"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};

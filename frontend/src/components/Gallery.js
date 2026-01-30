@@ -98,16 +98,16 @@ export const GalleryPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-white text-center">
             <div>
-              <div className="text-4xl font-bold mb-1">100+</div>
-              <div className="text-yellow-100 text-sm">Projects Completed</div>
+              <div className="text-4xl font-bold mb-1">25+</div>
+              <div className="text-yellow-100 text-sm">Happy Customers</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-1">500kW+</div>
+              <div className="text-4xl font-bold mb-1">100kW+</div>
               <div className="text-yellow-100 text-sm">Total Capacity</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-1">200+</div>
-              <div className="text-yellow-100 text-sm">Happy Customers</div>
+              <div className="text-4xl font-bold mb-1">MNRE</div>
+              <div className="text-yellow-100 text-sm">Registered Vendor</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-1">5★</div>

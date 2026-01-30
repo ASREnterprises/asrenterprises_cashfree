@@ -428,6 +428,92 @@ const HomePage = () => {
       {/* Why Choose ASR Enterprises */}
       <div className="bg-gradient-to-br from-blue-50 to-green-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Residential & Commercial Services */}
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">We Install All Types of Solar Rooftop Systems</h2>
+            <p className="text-xl text-gray-600">Residential & Commercial Solutions Across Bihar</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-16">
+            <div className="bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-blue-100">
+              <div className="flex items-center mb-6">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-3xl font-bold text-gray-900">Residential Solutions</h3>
+              </div>
+              <p className="text-gray-600 mb-4">Perfect solar rooftop systems for homes and apartments</p>
+              <ul className="text-sm text-gray-700 space-y-3 mb-6">
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>1-10 kW Systems:</strong> Ideal for houses, villas, and bungalows</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>On-Grid & Off-Grid:</strong> Choose based on your requirements</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>PM Surya Ghar Subsidy:</strong> Up to 40% subsidy available</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Easy EMI:</strong> Starting ₹3,000/month from banks</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Net Metering:</strong> Sell excess power back to grid</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Quick Installation:</strong> 3-5 days complete setup</span>
+                </li>
+              </ul>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm font-semibold text-blue-900">💡 Save 85-90% on electricity bills!</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-green-100">
+              <div className="flex items-center mb-6">
+                <div className="bg-gradient-to-r from-green-500 to-green-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
+                  <BarChart3 className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-3xl font-bold text-gray-900">Commercial Solutions</h3>
+              </div>
+              <p className="text-gray-600 mb-4">High-capacity solar systems for businesses and industries</p>
+              <ul className="text-sm text-gray-700 space-y-3 mb-6">
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>10-100+ kW Systems:</strong> For factories, offices, hospitals, schools</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Industrial Scale:</strong> Custom solutions for large power requirements</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Tax Benefits:</strong> 80% accelerated depreciation available</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Bank Financing:</strong> Up to ₹1 Crore loans at 7-9% interest</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>ROI:</strong> 3-4 years payback period with savings</span>
+                </li>
+                <li className="flex items-start">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <span><strong>Maintenance:</strong> AMC contracts with 24/7 support</span>
+                </li>
+              </ul>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm font-semibold text-green-900">📈 Reduce operational costs by 70%!</p>
+              </div>
+            </div>
+          </div>
+
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose ASR Enterprises?</h2>
             <p className="text-xl text-gray-600">Your trusted partner for solar energy in Bihar</p>

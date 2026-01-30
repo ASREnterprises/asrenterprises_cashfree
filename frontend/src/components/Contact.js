@@ -143,20 +143,20 @@ export const ContactPage = () => {
             <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-2xl shadow-2xl p-8 text-white">
               <h2 className="text-3xl font-bold mb-4">ASR ENTERPRISES</h2>
               <p className="text-blue-100 mb-6 text-lg">
-                Leading solar energy solutions provider in Patna, Bihar. Trusted by 200+ customers across the region.
+                Leading solar energy solutions provider in Patna, Bihar. Trusted by 25+ customers across the region.
               </p>
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div className="bg-white bg-opacity-20 rounded-lg p-4">
-                  <div className="text-3xl font-bold">100+</div>
-                  <div className="text-blue-100 text-sm">Projects</div>
+                  <div className="text-3xl font-bold">25+</div>
+                  <div className="text-blue-100 text-sm">Customers</div>
                 </div>
                 <div className="bg-white bg-opacity-20 rounded-lg p-4">
-                  <div className="text-3xl font-bold">500kW+</div>
+                  <div className="text-3xl font-bold">100kW+</div>
                   <div className="text-blue-100 text-sm">Capacity</div>
                 </div>
                 <div className="bg-white bg-opacity-20 rounded-lg p-4">
-                  <div className="text-3xl font-bold">200+</div>
-                  <div className="text-blue-100 text-sm">Customers</div>
+                  <div className="text-3xl font-bold">MNRE</div>
+                  <div className="text-blue-100 text-sm">Registered</div>
                 </div>
                 <div className="bg-white bg-opacity-20 rounded-lg p-4">
                   <div className="text-3xl font-bold">5★</div>

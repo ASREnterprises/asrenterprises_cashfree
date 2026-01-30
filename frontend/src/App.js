@@ -15,6 +15,10 @@ import { GalleryPage } from "@/components/Gallery";
 import { ContactPage } from "@/components/Contact";
 import { TestimonialsSection } from "@/components/Testimonials";
 import { AIMarketingHub } from "@/components/AIMarketing";
+import { AdminLogin } from "@/components/AdminLogin";
+import { AdminDashboard } from "@/components/AdminDashboard";
+import { StaffManagement } from "@/components/StaffManagement";
+import { QuotationSystem } from "@/components/QuotationSystem";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

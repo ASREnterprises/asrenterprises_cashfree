@@ -262,20 +262,54 @@ const HomePage = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <Sun className="w-8 h-8 text-yellow-500" />
                 <span className="text-xl font-bold">ASR Enterprises</span>
               </div>
-              <p className="text-gray-400">Leading solar energy solutions in Patna, Bihar</p>
+              <p className="text-gray-400 mb-4">Leading solar energy solutions in Patna, Bihar</p>
+              
+              {/* Social Media Links */}
+              <div className="flex space-x-4">
+                <a
+                  href="https://instagram.com/asr_enterprises_patna"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full hover:scale-110 transition-transform"
+                  data-testid="instagram-link"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://facebook.com/asr_enterprises_patna"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-blue-600 p-2 rounded-full hover:scale-110 transition-transform"
+                  data-testid="facebook-link"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+              </div>
             </div>
             <div>
               <h4 className="font-bold mb-4">Quick Links</h4>
               <div className="space-y-2 text-gray-400">
+                <div><Link to="/" className="hover:text-white transition">Home</Link></div>
+                <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
                 <div><Link to="/leads" className="hover:text-white transition">Lead Capture</Link></div>
                 <div><Link to="/calculator" className="hover:text-white transition">Solar Calculator</Link></div>
                 <div><Link to="/dashboard" className="hover:text-white transition">Dashboard</Link></div>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-bold mb-4">AI Features</h4>
+              <div className="space-y-2 text-gray-400">
+                <div><Link to="/chat" className="hover:text-white transition">WhatsApp Bot</Link></div>
+                <div><Link to="/leads" className="hover:text-white transition">Smart Leads</Link></div>
+                <div><Link to="/calculator" className="hover:text-white transition">AI Calculator</Link></div>
+                <div><Link to="/marketing" className="hover:text-white transition">Marketing Auto</Link></div>
+                <div><Link to="/ads" className="hover:text-white transition">Ads Analytics</Link></div>
               </div>
             </div>
             <div>
@@ -293,11 +327,16 @@ const HomePage = () => {
                   <MapPin className="w-4 h-4" />
                   <span>Patna, Bihar</span>
                 </div>
+                <div className="flex items-center space-x-2 text-yellow-400">
+                  <Instagram className="w-4 h-4" />
+                  <span>@asr_enterprises_patna</span>
+                </div>
               </div>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>© 2025 ASR Enterprises. All rights reserved. Powered by AI.</p>
+            <p>© 2025 ASR Enterprises Patna. All rights reserved. Powered by AI.</p>
+            <p className="text-sm mt-2">Follow us on social media: @asr_enterprises_patna</p>
           </div>
         </div>
       </footer>

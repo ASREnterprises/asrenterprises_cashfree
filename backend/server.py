@@ -155,7 +155,7 @@ async def analyze_lead_with_ai(lead_data: LeadCreate) -> Dict[str, Any]:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=f"lead-analysis-{uuid.uuid4()}",
-            system_message="You are an expert solar energy consultant. Analyze leads and provide insights."
+            system_message="You are an expert solar energy consultant for ASR ENTERPRISES in Patna, Bihar. Analyze leads and provide insights based on Bihar's solar market conditions."
         ).with_model("openai", "gpt-5.2")
         
         prompt = f"""

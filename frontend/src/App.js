@@ -65,9 +65,16 @@ const HomePage = () => {
       <nav className="bg-white shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Sun className="w-8 h-8 text-yellow-500" />
-              <span className="text-xl font-bold text-gray-800">ASR Enterprises</span>
+            <div className="flex items-center space-x-3">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                alt="ASR Enterprises Patna" 
+                className="h-12 w-auto"
+              />
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-gray-800">ASR ENTERPRISES</span>
+                <span className="text-xs text-gray-600">Solar Solutions, Patna</span>
+              </div>
             </div>
             
             {/* Desktop Menu */}

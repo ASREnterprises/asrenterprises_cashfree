@@ -274,15 +274,16 @@ const HomePage = () => {
             <div className="bg-white bg-opacity-95 rounded-xl p-6 shadow-xl">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <TrendingUp className="w-6 h-6 text-green-600 mr-2" />
-                Easy EMI Facilities from Banks
+                Easy EMI Facilities Available
               </h3>
               <ul className="text-sm text-gray-700 space-y-2">
-                <li>✓ <strong>SBI Green Loan:</strong> Up to ₹10 Lakhs @ 7.5% interest</li>
-                <li>✓ <strong>HDFC Solar Loan:</strong> Tenure up to 10 years</li>
-                <li>✓ <strong>ICICI Bank:</strong> Quick approval in 48 hours</li>
-                <li>✓ <strong>Punjab National Bank:</strong> Pradhan Mantri Solar Panel Yojana</li>
+                <li>✓ <strong>Green Loans:</strong> Up to ₹10 Lakhs at competitive rates</li>
+                <li>✓ <strong>Solar Financing:</strong> Tenure up to 10 years</li>
+                <li>✓ <strong>Quick Approval:</strong> Loans approved in 48-72 hours</li>
+                <li>✓ <strong>Government Schemes:</strong> PM Solar Panel financing available</li>
                 <li>✓ <strong>Zero Processing Fee:</strong> Available for residential customers</li>
                 <li>✓ <strong>Flexible Repayment:</strong> Monthly/Quarterly options</li>
+                <li>✓ <strong>Interest Rates:</strong> Starting from 7% per annum</li>
               </ul>
             </div>
           </div>

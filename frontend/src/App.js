@@ -579,13 +579,42 @@ const HomePage = () => {
       </footer>
 
       {/* Floating WhatsApp Button */}
-      <button
-        onClick={() => navigate('/chat')}
-        className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition-all hover:scale-110 z-50"
-        data-testid="whatsapp-float-btn"
-      >
-        <MessageSquare className="w-6 h-6" />
-      </button>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col space-y-3">
+        <a
+          href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 transition-all hover:scale-110 group relative"
+          data-testid="whatsapp-float-btn"
+        >
+          <MessageSquare className="w-6 h-6" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+            Chat on WhatsApp
+          </span>
+        </a>
+        
+        <a
+          href="tel:8877896889"
+          className="bg-blue-500 text-white p-4 rounded-full shadow-2xl hover:bg-blue-600 transition-all hover:scale-110 group relative"
+          data-testid="call-float-btn"
+        >
+          <Phone className="w-6 h-6" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+            Call: 8877896889
+          </span>
+        </a>
+        
+        <a
+          href="mailto:asrenterprisespatna@gmail.com?subject=Solar Inquiry&body=Hi ASR Enterprises, I'm interested in solar rooftop installation."
+          className="bg-red-500 text-white p-4 rounded-full shadow-2xl hover:bg-red-600 transition-all hover:scale-110 group relative"
+          data-testid="email-float-btn"
+        >
+          <Mail className="w-6 h-6" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+            Email Us
+          </span>
+        </a>
+      </div>
     </div>
   );
 };

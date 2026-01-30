@@ -250,7 +250,7 @@ const HomePage = () => {
                 <li>✓ Zero down payment options</li>
               </ul>
               <div className="bg-purple-50 p-3 rounded-lg">
-                <p className="text-xs text-purple-800 font-semibold">🏦 Partner banks: SBI, HDFC, ICICI, Punjab National Bank</p>
+                <p className="text-xs text-purple-800 font-semibold">🏦 Partner with all major banks for easy financing</p>
               </div>
             </div>
           </div>

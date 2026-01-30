@@ -294,16 +294,16 @@ const HomePage = () => {
               <div className="text-blue-100">AI Support</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">100+</div>
-              <div className="text-blue-100">Projects Completed</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">5X</div>
-              <div className="text-blue-100">Lead Quality</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">200+</div>
+              <div className="text-4xl font-bold mb-2">25+</div>
               <div className="text-blue-100">Happy Customers</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">100kW+</div>
+              <div className="text-blue-100">Total Capacity Installed</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">100%</div>
+              <div className="text-blue-100">Customer Satisfaction</div>
             </div>
           </div>
         </div>

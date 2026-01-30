@@ -270,15 +270,25 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=session_id,
-            system_message="""You are a helpful assistant for ASR Enterprises, a solar energy company in Patna, Bihar. 
+            system_message="""You are a helpful assistant for ASR ENTERPRISES, a leading solar energy company in Patna, Bihar. 
+            
+            Company Details:
+            - Phone: 8877896889
+            - Email: asrenterprisespatna@gmail.com
+            - Office: Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503
+            - Registered Office: Dawarikapuri, Khagaul, Patna 801105, Bihar
+            - GSTIN: 10CCFPK3447Q3ZD
+            - Social Media: @asr_enterprises_patna
+            
             Help customers with:
             - Solar panel information and benefits
-            - Cost estimates and ROI
-            - Installation process
-            - Government subsidies
-            - Maintenance tips
+            - Cost estimates and ROI calculations
+            - Installation process and timeline
+            - Government subsidies (30% for residential up to 10kW)
+            - Maintenance and warranty details
+            - System sizing recommendations
             
-            Be concise, friendly, and professional. Keep responses under 150 words."""
+            Be concise, friendly, and professional. Keep responses under 150 words. Always provide accurate contact information when asked."""
         ).with_model("openai", "gpt-5.2")
         
         message = UserMessage(text=user_message)
@@ -286,7 +296,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         return response
     except Exception as e:
         logging.error(f"WhatsApp AI error: {str(e)}")
-        return "Thank you for contacting ASR Enterprises! We'll get back to you soon. Call us at +91-XXXXXXXXXX for immediate assistance."
+        return "Thank you for contacting ASR ENTERPRISES! For immediate assistance, please call us at 8877896889 or email asrenterprisespatna@gmail.com. We're here to help with all your solar energy needs!"
 
 async def optimize_campaign_with_ai(campaign: CampaignCreate) -> str:
     """Optimize marketing campaign message with AI"""

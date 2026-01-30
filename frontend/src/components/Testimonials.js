@@ -3,36 +3,36 @@ import { Star, Quote } from "lucide-react";
 export const TestimonialsSection = () => {
   const testimonials = [
     {
-      name: "Rajesh Kumar",
-      location: "Patna, Bihar",
+      name: "Rubi Devi",
+      location: "Hajipur, Bihar",
       rating: 5,
-      text: "ASR Enterprises installed a 3kW system at my home. The team was professional, and they handled all the subsidy paperwork. My electricity bill has reduced by 85%! Highly recommended.",
-      system: "3 kW Residential System",
-      savings: "₹4,500/month"
+      text: "ASR Enterprises installed a 3.5kW solar system at my home in Hajipur. The team was very professional and completed the work on time. My electricity bill has reduced significantly and I'm very happy with the quality of the installation.",
+      system: "3.5 kW Solar System",
+      savings: "₹4,200/month"
     },
     {
-      name: "Priya Singh",
-      location: "Vaishali, Bihar",
-      rating: 5,
-      text: "Best solar company in Bihar! They completed the installation in just 4 days and the quality of panels is excellent. The AI calculator on their website helped me understand my savings before investing.",
-      system: "5 kW Residential System",
-      savings: "₹7,200/month"
-    },
-    {
-      name: "Amit Sharma",
+      name: "Sikandar Yadav",
       location: "Khagaul, Patna",
       rating: 5,
-      text: "Very satisfied with ASR Enterprises! From site survey to installation, everything was smooth. They're MNRE registered and helped me get ₹78,000 subsidy. Great after-sales support too!",
-      system: "3 kW Rooftop System",
-      savings: "₹4,800/month"
+      text: "Excellent service by ASR Enterprises! They installed a 5.6kW solar system at my property in Khagaul. The subsidy process was handled smoothly and the panels are working perfectly. Highly recommend them for solar installation.",
+      system: "5.6 kW Solar System",
+      savings: "₹6,800/month"
     },
     {
-      name: "Sunita Devi",
-      location: "Danapur, Bihar",
+      name: "Bansi Kumar",
+      location: "Danapur, Patna",
       rating: 5,
-      text: "I was worried about the high electricity bills. ASR Enterprises made solar installation so easy! They explained everything clearly and now I'm saving thousands every month. Thank you!",
-      system: "2 kW System",
-      savings: "₹3,000/month"
+      text: "Very satisfied with ASR Enterprises! They installed a 4.6kW solar system at my home in Danapur. The quality of panels is excellent and they provided complete guidance on PM Surya Ghar subsidy. Great after-sales support!",
+      system: "4.6 kW Solar System",
+      savings: "₹5,500/month"
+    },
+    {
+      name: "Gracy Martin",
+      location: "Jagdevpath, Patna",
+      rating: 5,
+      text: "Best solar company in Patna! ASR Enterprises installed a 4.6kW system at my home in Jagdevpath. From site survey to final installation, everything was professional. My electricity bills have reduced drastically. Thank you ASR Enterprises!",
+      system: "4.6 kW Solar System",
+      savings: "₹5,600/month"
     }
   ];
 

@@ -734,6 +734,85 @@ async def start_ai_marketing(request: Dict[str, Any]):
             }
         }
 
+# Staff Management APIs
+@api_router.get("/admin/staff")
+async def get_staff():
+    """Get all staff members"""
+    staff = await db.staff.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    for member in staff:
+        if isinstance(member['timestamp'], str):
+            member['timestamp'] = datetime.fromisoformat(member['timestamp'])
+    return staff
+
+@api_router.post("/admin/staff")
+async def create_staff(staff_data: StaffMember):
+    """Create new staff member"""
+    try:
+        doc = staff_data.model_dump()
+        doc['timestamp'] = doc['timestamp'].isoformat()
+        await db.staff.insert_one(doc)
+        return staff_data
+    except Exception as e:
+        logging.error(f"Staff creation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/admin/staff/{staff_id}")
+async def update_staff(staff_id: str, staff_data: Dict[str, Any]):
+    """Update staff member"""
+    try:
+        await db.staff.update_one({"id": staff_id}, {"$set": staff_data})
+        return {"success": True}
+    except Exception as e:
+        logging.error(f"Staff update error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/staff/{staff_id}")
+async def delete_staff(staff_id: str):
+    """Delete staff member"""
+    try:
+        await db.staff.delete_one({"id": staff_id})
+        return {"success": True}
+    except Exception as e:
+        logging.error(f"Staff deletion error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Quotation APIs
+@api_router.get("/admin/quotations")
+async def get_quotations():
+    """Get all quotations"""
+    quotations = await db.quotations.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    for quote in quotations:
+        if isinstance(quote['timestamp'], str):
+            quote['timestamp'] = datetime.fromisoformat(quote['timestamp'])
+        if isinstance(quote.get('date'), str):
+            quote['date'] = datetime.fromisoformat(quote['date'])
+    return quotations
+
+@api_router.post("/admin/quotations")
+async def create_quotation(quotation_data: Quotation):
+    """Create new quotation"""
+    try:
+        doc = quotation_data.model_dump()
+        doc['timestamp'] = doc['timestamp'].isoformat()
+        if isinstance(doc['date'], datetime):
+            doc['date'] = doc['date'].isoformat()
+        await db.quotations.insert_one(doc)
+        return quotation_data
+    except Exception as e:
+        logging.error(f"Quotation creation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Health check endpoint for Kubernetes
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint for deployment"""
+    return {"status": "healthy", "service": "ASR Enterprises API"}
+
+@app.get("/health")
+async def root_health_check():
+    """Root health check endpoint"""
+    return {"status": "healthy", "service": "ASR Enterprises API"}
+
 # Health check
 @api_router.get("/")
 async def root():

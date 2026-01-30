@@ -82,8 +82,8 @@ const HomePage = () => {
             <div className="hidden md:flex space-x-6">
               <Link to="/" className="text-gray-700 hover:text-blue-600 transition">Home</Link>
               <Link to="/gallery" className="text-gray-700 hover:text-blue-600 transition">Gallery</Link>
-              <Link to="/leads" className="text-gray-700 hover:text-blue-600 transition">Leads</Link>
               <Link to="/calculator" className="text-gray-700 hover:text-blue-600 transition">Calculator</Link>
+              <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition">Contact</Link>
               <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 transition">Dashboard</Link>
             </div>
 

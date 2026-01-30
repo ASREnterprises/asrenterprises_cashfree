@@ -669,6 +669,14 @@ const LeadCapturePage = () => {
       setSuccess(true);
       setAiAnalysis(response.data);
       
+      // Automatically open WhatsApp with lead details
+      const whatsappMessage = `New Lead Inquiry:\nName: ${formData.name}\nPhone: ${formData.phone}\nLocation: ${formData.location}\nInterest: ${formData.interest}\nMonthly Bill: ₹${formData.monthly_electricity_bill || 'N/A'}`;
+      
+      // Open WhatsApp notification (for business owner)
+      setTimeout(() => {
+        window.open(`https://wa.me/918877896889?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+      }, 2000);
+      
       // Reset form
       setTimeout(() => {
         setFormData({
@@ -682,7 +690,7 @@ const LeadCapturePage = () => {
         });
         setSuccess(false);
         setAiAnalysis(null);
-      }, 5000);
+      }, 8000);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to submit lead");
     } finally {

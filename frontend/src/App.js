@@ -314,8 +314,44 @@ const HomePage = () => {
       {/* Features Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">5 Powerful AI Features</h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">5 Powerful AI Features + Auto Marketing</h2>
           <p className="text-xl text-gray-600">Everything you need to scale your solar business</p>
+        </div>
+
+        {/* NEW: AI Marketing Automation Highlight */}
+        <div className="mb-12">
+          <Link
+            to="/ai-marketing"
+            className="block bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-2xl shadow-2xl p-8 hover:shadow-3xl transition-all transform hover:-translate-y-2"
+            data-testid="ai-marketing-highlight"
+          >
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="flex items-center space-x-6 mb-4 md:mb-0">
+                <div className="bg-white bg-opacity-20 p-4 rounded-full backdrop-blur">
+                  <Zap className="w-12 h-12 text-white" />
+                </div>
+                <div className="text-white">
+                  <div className="inline-block bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-xs font-bold mb-2">
+                    🔥 NEW - AUTO PILOT MODE
+                  </div>
+                  <h3 className="text-3xl font-extrabold mb-2">AI Marketing Automation Hub</h3>
+                  <p className="text-white text-opacity-90 text-lg">
+                    Let AI automatically advertise ASR Enterprises 24/7 across all platforms and generate leads while you focus on installations!
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm backdrop-blur">Auto Social Posts</span>
+                    <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm backdrop-blur">Auto Ads</span>
+                    <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm backdrop-blur">Auto Leads</span>
+                    <span className="bg-white bg-opacity-20 px-3 py-1 rounded-full text-sm backdrop-blur">Auto SEO</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 bg-white bg-opacity-20 px-6 py-4 rounded-xl backdrop-blur">
+                <span className="text-white font-bold text-lg">Launch AI Marketing</span>
+                <ChevronRight className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </Link>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

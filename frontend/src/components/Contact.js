@@ -238,8 +238,8 @@ export const ContactPage = () => {
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">100+ Projects</h3>
-              <p className="text-sm text-gray-600">Proven track record across Bihar</p>
+              <h3 className="font-bold text-gray-900 mb-2">25+ Projects</h3>
+              <p className="text-sm text-gray-600">Growing track record across Bihar</p>
             </div>
             <div className="text-center">
               <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">

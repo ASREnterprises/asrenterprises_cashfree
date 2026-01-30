@@ -369,6 +369,111 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Why Choose ASR Enterprises */}
+      <div className="bg-gradient-to-br from-blue-50 to-green-50 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose ASR Enterprises?</h2>
+            <p className="text-xl text-gray-600">Your trusted partner for solar energy in Bihar</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Award className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">MNRE Registered</h3>
+              <p className="text-gray-600">Official MNRE Bihar vendor ensuring quality and compliance</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">End-to-End Support</h3>
+              <p className="text-gray-600">From site survey to after-sales service - we handle everything</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+              <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Subsidy Guidance</h3>
+              <p className="text-gray-600">Complete documentation and approval support for PM Surya Ghar</p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Trusted Brands</h3>
+              <p className="text-gray-600">High-quality panels with 25-year performance warranty</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
+            <h3 className="text-3xl font-bold text-gray-900 text-center mb-8">Our Installation Process</h3>
+            <div className="grid md:grid-cols-5 gap-6">
+              <div className="text-center">
+                <div className="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">1</div>
+                <h4 className="font-bold text-gray-900 mb-2">Free Site Survey</h4>
+                <p className="text-sm text-gray-600">Expert assessment of your property</p>
+              </div>
+              <div className="text-center">
+                <div className="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">2</div>
+                <h4 className="font-bold text-gray-900 mb-2">System Design</h4>
+                <p className="text-sm text-gray-600">Customized solar solution proposal</p>
+              </div>
+              <div className="text-center">
+                <div className="bg-yellow-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">3</div>
+                <h4 className="font-bold text-gray-900 mb-2">Subsidy Approval</h4>
+                <p className="text-sm text-gray-600">Complete documentation support</p>
+              </div>
+              <div className="text-center">
+                <div className="bg-purple-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">4</div>
+                <h4 className="font-bold text-gray-900 mb-2">Installation</h4>
+                <p className="text-sm text-gray-600">Professional setup in 3-5 days</p>
+              </div>
+              <div className="text-center">
+                <div className="bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">5</div>
+                <h4 className="font-bold text-gray-900 mb-2">After-Sales</h4>
+                <p className="text-sm text-gray-600">Ongoing maintenance & support</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Referral Program */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
+          <h2 className="text-4xl font-bold mb-4">🎁 Referral Rewards Program</h2>
+          <p className="text-xl text-purple-100 mb-8">Refer friends & family and earn attractive rewards!</p>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
+              <div className="text-5xl font-bold mb-2">₹5,000</div>
+              <p className="text-purple-100">For each successful referral</p>
+            </div>
+            <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
+              <div className="text-5xl font-bold mb-2">FREE</div>
+              <p className="text-purple-100">AMC for 1 year on 3+ referrals</p>
+            </div>
+            <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
+              <div className="text-5xl font-bold mb-2">10%</div>
+              <p className="text-purple-100">Discount for your next upgrade</p>
+            </div>
+          </div>
+          <a
+            href="https://wa.me/918877896889?text=I%20want%20to%20join%20the%20referral%20program"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition shadow-lg mt-8"
+          >
+            Join Referral Program →
+          </a>
+        </div>
+      </div>
+
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

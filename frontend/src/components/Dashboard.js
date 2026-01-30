@@ -37,16 +37,21 @@ export const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-12 px-4" style={{
+      backgroundImage: "url('https://images.unsplash.com/photo-1509391366360-2e959784a276?w=1200&q=80')",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundBlendMode: "overlay"
+    }}>
       <div className="max-w-7xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6 bg-white px-4 py-2 rounded-lg shadow">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Overview of all your AI-powered features</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2 bg-white inline-block px-6 py-3 rounded-lg shadow-lg">Dashboard</h1>
+          <p className="text-gray-600 bg-white inline-block px-4 py-2 rounded-lg shadow mt-2">Overview of all your AI-powered features</p>
         </div>
 
         {/* Stats Grid */}

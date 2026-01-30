@@ -94,6 +94,7 @@ const HomePage = () => {
           <div className="md:hidden bg-white border-t">
             <div className="px-4 py-2 space-y-2">
               <Link to="/" className="block py-2 text-gray-700">Home</Link>
+              <Link to="/gallery" className="block py-2 text-gray-700">Gallery</Link>
               <Link to="/leads" className="block py-2 text-gray-700">Leads</Link>
               <Link to="/calculator" className="block py-2 text-gray-700">Calculator</Link>
               <Link to="/dashboard" className="block py-2 text-gray-700">Dashboard</Link>

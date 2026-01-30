@@ -41,15 +41,15 @@ export const TestimonialsSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
-          <p className="text-xl text-gray-600">Trusted by 200+ happy customers across Bihar</p>
+          <p className="text-xl text-gray-600">Trusted by 25+ happy customers across Bihar</p>
           <div className="flex justify-center items-center space-x-2 mt-4">
             <div className="flex">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-6 h-6 text-yellow-400 fill-yellow-400" />
               ))}
             </div>
-            <span className="text-2xl font-bold text-gray-900">4.9/5.0</span>
-            <span className="text-gray-600">(200+ reviews)</span>
+            <span className="text-2xl font-bold text-gray-900">5.0/5.0</span>
+            <span className="text-gray-600">(25+ reviews)</span>
           </div>
         </div>
 

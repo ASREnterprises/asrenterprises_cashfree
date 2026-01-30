@@ -496,7 +496,7 @@ const HomePage = () => {
                 </li>
                 <li className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
-                  <span><strong>Bank Financing:</strong> Up to ₹1 Crore loans at 7-9% interest</span>
+                  <span><strong>Bank Financing:</strong> Loans available up to ₹1 Crore at 7-9% interest</span>
                 </li>
                 <li className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />

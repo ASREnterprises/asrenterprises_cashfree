@@ -69,6 +69,13 @@ export const GalleryPage = () => {
           </Link>
           
           <div className="text-center">
+            <div className="flex justify-center mb-4">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                alt="ASR Enterprises Patna" 
+                className="h-16 w-auto"
+              />
+            </div>
             <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
               Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">Solar Projects</span>
             </h1>
@@ -76,6 +83,11 @@ export const GalleryPage = () => {
             <div className="flex items-center justify-center space-x-2 text-blue-600">
               <Award className="w-5 h-5" />
               <span className="font-semibold">Follow us: @asr_enterprises_patna</span>
+            </div>
+            <div className="text-gray-600 text-sm mt-2">
+              <a href="tel:8877896889" className="hover:text-blue-600">📞 8877896889</a>
+              <span className="mx-2">|</span>
+              <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-blue-600">✉️ asrenterprisespatna@gmail.com</a>
             </div>
           </div>
         </div>

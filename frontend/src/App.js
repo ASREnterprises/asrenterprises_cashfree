@@ -200,16 +200,14 @@ const HomePage = () => {
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Award className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Up to 40% Subsidy</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Up to ₹78,000 Subsidy</h3>
               <p className="text-gray-600 mb-4">
                 Get <strong>₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
               </p>
               <ul className="text-sm text-gray-700 space-y-2 mb-4">
                 <li>✓ 1 kW system: ₹30,000 subsidy</li>
                 <li>✓ 2 kW system: ₹60,000 subsidy</li>
-                <li>✓ 3 kW system: ₹78,000 subsidy</li>
-                <li>✓ 4 kW system: ₹96,000 subsidy</li>
-                <li>✓ 5 kW system: ₹1,14,000 subsidy</li>
+                <li>✓ 3 kW system: ₹78,000 subsidy (Maximum)</li>
               </ul>
               <div className="bg-green-50 p-3 rounded-lg">
                 <p className="text-xs text-green-800 font-semibold">📋 ASR Enterprises handles complete subsidy documentation & approval!</p>

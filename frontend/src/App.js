@@ -191,11 +191,11 @@ const HomePage = () => {
       <div className="bg-gradient-to-r from-orange-500 to-red-500 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">🏛️ Government Benefits for Solar Rooftop</h2>
-            <p className="text-orange-100 text-xl">PM Surya Ghar Yojana & MNRE Subsidies Available</p>
+            <h2 className="text-4xl font-bold text-white mb-4">🏛️ Government Benefits for Solar Rooftop Installation</h2>
+            <p className="text-orange-100 text-xl">PM Surya Ghar Yojana, MNRE Subsidies & Easy Bank EMI Available</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div className="bg-white rounded-xl p-6 shadow-2xl">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Award className="w-8 h-8 text-green-600" />
@@ -204,11 +204,16 @@ const HomePage = () => {
               <p className="text-gray-600 mb-4">
                 Get <strong>₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
               </p>
-              <ul className="text-sm text-gray-700 space-y-2">
+              <ul className="text-sm text-gray-700 space-y-2 mb-4">
                 <li>✓ 1 kW system: ₹30,000 subsidy</li>
                 <li>✓ 2 kW system: ₹60,000 subsidy</li>
                 <li>✓ 3 kW system: ₹78,000 subsidy</li>
+                <li>✓ 4 kW system: ₹96,000 subsidy</li>
+                <li>✓ 5 kW system: ₹1,14,000 subsidy</li>
               </ul>
+              <div className="bg-green-50 p-3 rounded-lg">
+                <p className="text-xs text-green-800 font-semibold">📋 ASR Enterprises handles complete subsidy documentation & approval!</p>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-2xl">
@@ -219,39 +224,89 @@ const HomePage = () => {
               <p className="text-gray-600 mb-4">
                 Sell excess solar power back to the grid and earn credits on your electricity bill.
               </p>
-              <ul className="text-sm text-gray-700 space-y-2">
+              <ul className="text-sm text-gray-700 space-y-2 mb-4">
                 <li>✓ Reduce bills up to 90%</li>
                 <li>✓ Earn from surplus energy</li>
                 <li>✓ 25-year panel warranty</li>
+                <li>✓ 5-year inverter warranty</li>
+                <li>✓ Grid synchronization support</li>
               </ul>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-xs text-blue-800 font-semibold">⚡ Start saving from day one with net metering!</p>
+              </div>
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-2xl">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Zap className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Tax Benefits & Loans</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Tax Benefits & Easy EMI</h3>
               <p className="text-gray-600 mb-4">
-                Enjoy depreciation benefits and easy financing options at low interest rates.
+                Enjoy depreciation benefits and easy financing options at low interest rates from leading banks.
               </p>
-              <ul className="text-sm text-gray-700 space-y-2">
+              <ul className="text-sm text-gray-700 space-y-2 mb-4">
                 <li>✓ 80% accelerated depreciation</li>
-                <li>✓ Low-interest bank loans</li>
+                <li>✓ Low-interest bank loans (7-9%)</li>
+                <li>✓ Easy EMI starting ₹3,000/month</li>
                 <li>✓ 3-5 year payback period</li>
+                <li>✓ Zero down payment options</li>
+              </ul>
+              <div className="bg-purple-50 p-3 rounded-lg">
+                <p className="text-xs text-purple-800 font-semibold">🏦 Partner banks: SBI, HDFC, ICICI, Punjab National Bank</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Government Schemes */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            <div className="bg-white bg-opacity-95 rounded-xl p-6 shadow-xl">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Award className="w-6 h-6 text-orange-600 mr-2" />
+                MNRE Rooftop Solar Programme
+              </h3>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>✓ <strong>Grid-Connected Systems:</strong> Central Financial Assistance (CFA) up to 40%</li>
+                <li>✓ <strong>Residential Sector:</strong> Priority for subsidy under PM Surya Ghar scheme</li>
+                <li>✓ <strong>Commercial Sector:</strong> Accelerated depreciation benefits</li>
+                <li>✓ <strong>Industrial Sector:</strong> Custom duty exemptions on solar equipment</li>
+                <li>✓ <strong>Institutional Sector:</strong> Special rates and incentives</li>
+              </ul>
+            </div>
+
+            <div className="bg-white bg-opacity-95 rounded-xl p-6 shadow-xl">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <TrendingUp className="w-6 h-6 text-green-600 mr-2" />
+                Easy EMI Facilities from Banks
+              </h3>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li>✓ <strong>SBI Green Loan:</strong> Up to ₹10 Lakhs @ 7.5% interest</li>
+                <li>✓ <strong>HDFC Solar Loan:</strong> Tenure up to 10 years</li>
+                <li>✓ <strong>ICICI Bank:</strong> Quick approval in 48 hours</li>
+                <li>✓ <strong>Punjab National Bank:</strong> Pradhan Mantri Solar Panel Yojana</li>
+                <li>✓ <strong>Zero Processing Fee:</strong> Available for residential customers</li>
+                <li>✓ <strong>Flexible Repayment:</strong> Monthly/Quarterly options</li>
               </ul>
             </div>
           </div>
 
-          <div className="text-center mt-8">
+          <div className="text-center">
             <p className="text-white text-lg font-semibold mb-4">
-              🎯 ASR Enterprises handles complete subsidy documentation & approval process!
+              🎯 ASR Enterprises - Your One-Stop Solution for Residential & Commercial Solar Installations!
             </p>
-            <Link
-              to="/leads"
-              className="inline-block bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg"
-            >
-              Apply for Subsidy Now →
-            </Link>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link
+                to="/leads"
+                className="inline-block bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg"
+              >
+                Apply for Subsidy Now →
+              </Link>
+              <a
+                href="tel:8877896889"
+                className="inline-block bg-green-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-green-700 transition shadow-lg"
+              >
+                Call for EMI Details →
+              </a>
+            </div>
           </div>
         </div>
       </div>

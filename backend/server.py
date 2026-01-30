@@ -129,7 +129,38 @@ class Campaign(BaseModel):
     click_rate: float = 0.0
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-# Ads Analytics Models
+# Staff Management Models
+class StaffMember(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    phone: str
+    role: str
+    reportingTo: str
+    joiningDate: str
+    status: str = "active"
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Quotation Models
+class Quotation(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customerName: str
+    customerPhone: str
+    customerEmail: Optional[str] = ""
+    location: str
+    systemSize: str
+    brand: str
+    panelType: str
+    installationType: str
+    includeSubsidy: bool
+    additionalNotes: Optional[str] = ""
+    calculation: Dict[str, Any]
+    date: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 class AdAnalytics(BaseModel):
     model_config = ConfigDict(extra="ignore")
     

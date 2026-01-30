@@ -168,7 +168,7 @@ const HomePage = () => {
             <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
               <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full">
                 <CheckCircle className="w-4 h-4 text-green-600" />
-                <span>100+ Projects Completed</span>
+                <span>25+ Happy Customers</span>
               </div>
               <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full">
                 <CheckCircle className="w-4 h-4 text-blue-600" />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Link, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
 import { 
   MessageSquare, Calculator, Users, TrendingUp, BarChart3, 
@@ -22,6 +22,12 @@ import { QuotationSystem } from "@/components/QuotationSystem";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = localStorage.getItem("asrAdminAuth") === "true";
+  return isAuthenticated ? children : <Navigate to="/admin/login" replace />;
+};
 
 // HomePage Component
 const HomePage = () => {

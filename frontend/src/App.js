@@ -271,20 +271,26 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Sun className="w-8 h-8 text-yellow-500" />
-                <span className="text-xl font-bold">ASR Enterprises</span>
+              <div className="flex items-center space-x-3 mb-4">
+                <img 
+                  src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                  alt="ASR Enterprises Patna" 
+                  className="h-12 w-auto"
+                />
               </div>
-              <p className="text-gray-400 mb-4">Leading solar energy solutions in Patna, Bihar</p>
+              <h3 className="text-xl font-bold mb-2">ASR ENTERPRISES</h3>
+              <p className="text-gray-400 text-sm mb-4">Leading solar energy solutions provider in Patna, Bihar</p>
+              <p className="text-gray-400 text-xs mb-2">GSTIN: 10CCFPK3447Q3ZD</p>
               
               {/* Social Media Links */}
-              <div className="flex space-x-4">
+              <div className="flex space-x-4 mt-4">
                 <a
                   href="https://instagram.com/asr_enterprises_patna"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full hover:scale-110 transition-transform"
                   data-testid="instagram-link"
+                  aria-label="Instagram"
                 >
                   <Instagram className="w-5 h-5" />
                 </a>
@@ -294,6 +300,7 @@ const HomePage = () => {
                   rel="noopener noreferrer"
                   className="bg-blue-600 p-2 rounded-full hover:scale-110 transition-transform"
                   data-testid="facebook-link"
+                  aria-label="Facebook"
                 >
                   <Facebook className="w-5 h-5" />
                 </a>
@@ -320,30 +327,45 @@ const HomePage = () => {
               </div>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Contact</h4>
-              <div className="space-y-2 text-gray-400">
-                <div className="flex items-center space-x-2">
-                  <Phone className="w-4 h-4" />
-                  <span>+91-XXXXXXXXXX</span>
+              <h4 className="font-bold mb-4">Contact Us</h4>
+              <div className="space-y-3 text-gray-400 text-sm">
+                <div className="flex items-start space-x-2">
+                  <Phone className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <a href="tel:8877896889" className="hover:text-white transition">8877896889</a>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Mail className="w-4 h-4" />
-                  <span>info@asrenterprises.com</span>
+                <div className="flex items-start space-x-2">
+                  <Mail className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-white transition break-all">asrenterprisespatna@gmail.com</a>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>Patna, Bihar</span>
+                <div className="flex items-start space-x-2">
+                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white mb-1">Office:</p>
+                    <p>Shop no 10, AMAN SKS COMPLEX<br/>Khagaul Saguna Road<br/>Patna 801503, Bihar</p>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2 text-yellow-400">
+                <div className="flex items-start space-x-2">
+                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-white mb-1">Registered:</p>
+                    <p>Dawarikapuri, Khagaul<br/>Patna 801105, Bihar</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-yellow-400 pt-2">
                   <Instagram className="w-4 h-4" />
-                  <span>@asr_enterprises_patna</span>
+                  <span className="font-semibold">@asr_enterprises_patna</span>
                 </div>
               </div>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>© 2025 ASR Enterprises Patna. All rights reserved. Powered by AI.</p>
-            <p className="text-sm mt-2">Follow us on social media: @asr_enterprises_patna</p>
+            <p className="text-sm">© 2025 ASR ENTERPRISES. All rights reserved.</p>
+            <p className="text-xs mt-2">GSTIN: 10CCFPK3447Q3ZD | Patna, Bihar</p>
+            <p className="text-xs mt-1">Powered by AI | Follow us: @asr_enterprises_patna</p>
           </div>
         </div>
       </footer>

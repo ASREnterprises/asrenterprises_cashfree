@@ -183,18 +183,79 @@ const HomePage = () => {
               <div className="text-blue-100">AI Support</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">100%</div>
-              <div className="text-blue-100">Automated</div>
+              <div className="text-4xl font-bold mb-2">100+</div>
+              <div className="text-blue-100">Projects Completed</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-2">5X</div>
               <div className="text-blue-100">Lead Quality</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">50%</div>
-              <div className="text-blue-100">Cost Savings</div>
+              <div className="text-4xl font-bold mb-2">200+</div>
+              <div className="text-blue-100">Happy Customers</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Our Work Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Recent Solar Installations</h2>
+          <p className="text-xl text-gray-600">Proudly serving Bihar with quality solar solutions</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+            <img
+              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/xgz3s4do_IMG-20250826-WA0065.jpg"
+              alt="Solar Installation in Vaishali"
+              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+              <h3 className="font-bold text-lg">Vaishali Solar Project</h3>
+              <p className="text-sm text-gray-200">Residential Installation</p>
+            </div>
+          </div>
+
+          <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+            <img
+              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/q85yfc91_IMG-20250826-WA0070.jpg"
+              alt="Solar Installation in Chak Bhoj"
+              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+              <h3 className="font-bold text-lg">Chak Bhoj Installation</h3>
+              <p className="text-sm text-gray-200">Complete Solar Setup</p>
+            </div>
+          </div>
+
+          <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
+            <img
+              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/ftxdhwd0_IMG-20250826-WA0064.jpg"
+              alt="Solar Panel System"
+              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+              <h3 className="font-bold text-lg">Rooftop Solar System</h3>
+              <p className="text-sm text-gray-200">High Efficiency Panels</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <Link
+            to="/gallery"
+            className="inline-flex items-center space-x-2 bg-yellow-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-yellow-700 transition"
+            data-testid="view-gallery-btn"
+          >
+            <Image className="w-5 h-5" />
+            <span>View Full Gallery</span>
+            <ChevronRight className="w-5 h-5" />
+          </Link>
         </div>
       </div>
 

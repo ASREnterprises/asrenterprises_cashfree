@@ -358,6 +358,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/leads" element={<LeadCapturePage />} />
         <Route path="/calculator" element={<SolarCalculatorPage />} />
         <Route path="/chat" element={<WhatsAppChatPage />} />

@@ -13,6 +13,7 @@ import { AdsPage } from "@/components/Ads";
 import { DashboardPage } from "@/components/Dashboard";
 import { GalleryPage } from "@/components/Gallery";
 import { ContactPage } from "@/components/Contact";
+import { TestimonialsSection } from "@/components/Testimonials";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

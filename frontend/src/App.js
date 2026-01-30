@@ -12,6 +12,7 @@ import { MarketingPage } from "@/components/Marketing";
 import { AdsPage } from "@/components/Ads";
 import { DashboardPage } from "@/components/Dashboard";
 import { GalleryPage } from "@/components/Gallery";
+import { ContactPage } from "@/components/Contact";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

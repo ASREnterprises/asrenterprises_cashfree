@@ -777,6 +777,7 @@ export default function App() {
         <Route path="/marketing" element={<MarketingPage />} />
         <Route path="/ads" element={<AdsPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/ai-marketing" element={<AIMarketingHub />} />
       </Routes>
     </BrowserRouter>
   );

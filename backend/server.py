@@ -253,9 +253,10 @@ async def get_dashboard_stats():
 @api_router.post("/admin/send-otp")
 async def send_otp(request: Dict[str, Any]):
     email = request.get("email", "").lower()
-    registered = ["asrenterprisespatna@gmail.com", "admin@asrenterprises.com", "manager@asrenterprises.com"]
-    if email not in registered:
-        raise HTTPException(status_code=403, detail="Email not registered")
+    # Only admin email is allowed
+    registered_admin = "asrenterprisespatna@gmail.com"
+    if email != registered_admin:
+        raise HTTPException(status_code=403, detail="Email not registered. Only admin can access.")
     otp = str(random.randint(100000, 999999))
     otp_storage[email] = otp
     logging.info(f"OTP for {email}: {otp}")
@@ -265,9 +266,12 @@ async def send_otp(request: Dict[str, Any]):
 async def verify_otp(request: Dict[str, Any]):
     email = request.get("email", "").lower()
     otp = request.get("otp", "")
+    # Only allow admin email
+    registered_admin = "asrenterprisespatna@gmail.com"
+    if email != registered_admin:
+        raise HTTPException(status_code=403, detail="Access denied")
     if otp == "123456" or otp_storage.get(email) == otp:
-        role = "admin" if "admin" in email else "manager"
-        return {"success": True, "role": role, "email": email}
+        return {"success": True, "role": "admin", "email": email}
     raise HTTPException(status_code=401, detail="Invalid OTP")
 
 # Staff Management

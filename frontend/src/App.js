@@ -708,6 +708,146 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* AI-Powered Special Offers & Promotions */}
+      <div className="bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 py-16 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-72 h-72 bg-yellow-400 rounded-full filter blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-400 rounded-full filter blur-3xl animate-pulse"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 px-4 py-2 rounded-full text-sm font-bold mb-4">
+              <Zap className="w-4 h-4" />
+              <span>AI-POWERED SMART DEALS</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+              Limited Time Offers Just For You!
+            </h2>
+            <p className="text-xl text-blue-200">Don't miss these exclusive deals - Calculated based on current market rates</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            {/* Offer 1 - Flash Sale */}
+            <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-4 py-1 text-xs font-bold rounded-bl-lg">
+                FLASH SALE
+              </div>
+              <div className="mb-4">
+                <Sun className="w-12 h-12 text-yellow-300" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">3kW Solar System</h3>
+              <div className="flex items-baseline space-x-2 mb-3">
+                <span className="text-gray-300 line-through text-lg">₹2,10,000</span>
+                <span className="text-4xl font-extrabold">₹1,32,000</span>
+              </div>
+              <p className="text-pink-100 text-sm mb-4">After ₹78,000 govt subsidy • Save ₹8,500/month on bills</p>
+              <ul className="text-sm space-y-1 mb-4 text-pink-100">
+                <li>✓ Free installation worth ₹15,000</li>
+                <li>✓ 25-year warranty included</li>
+                <li>✓ Net metering setup FREE</li>
+              </ul>
+              <a
+                href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%203kW%20Flash%20Sale%20offer!"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full bg-white text-red-600 py-3 rounded-lg font-bold text-center hover:bg-red-50 transition"
+              >
+                Grab This Deal →
+              </a>
+            </div>
+
+            {/* Offer 2 - Best Seller */}
+            <div className="bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-2xl relative overflow-hidden border-4 border-yellow-400">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-4 py-1 text-xs font-bold rounded-bl-lg">
+                BEST SELLER
+              </div>
+              <div className="mb-4">
+                <Award className="w-12 h-12 text-yellow-300" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">5kW Solar System</h3>
+              <div className="flex items-baseline space-x-2 mb-3">
+                <span className="text-gray-300 line-through text-lg">₹3,40,000</span>
+                <span className="text-4xl font-extrabold">₹2,62,000</span>
+              </div>
+              <p className="text-teal-100 text-sm mb-4">After ₹78,000 govt subsidy • Power your entire home!</p>
+              <ul className="text-sm space-y-1 mb-4 text-teal-100">
+                <li>✓ Premium TATA/Adani panels</li>
+                <li>✓ FREE battery backup worth ₹25,000</li>
+                <li>✓ 5-year FREE maintenance</li>
+                <li>✓ Zero electricity bills guarantee</li>
+              </ul>
+              <a
+                href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%205kW%20Best%20Seller%20offer!"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full bg-yellow-400 text-gray-900 py-3 rounded-lg font-bold text-center hover:bg-yellow-300 transition"
+              >
+                Most Popular Choice →
+              </a>
+            </div>
+
+            {/* Offer 3 - Commercial */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-4 py-1 text-xs font-bold rounded-bl-lg">
+                COMMERCIAL
+              </div>
+              <div className="mb-4">
+                <BarChart3 className="w-12 h-12 text-yellow-300" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">10kW+ Business Solar</h3>
+              <div className="flex items-baseline space-x-2 mb-3">
+                <span className="text-4xl font-extrabold">₹64-68/W</span>
+              </div>
+              <p className="text-blue-200 text-sm mb-4">Custom solutions • 80% tax depreciation benefit</p>
+              <ul className="text-sm space-y-1 mb-4 text-blue-200">
+                <li>✓ ROI in 3-4 years</li>
+                <li>✓ Reduce opex by 70%</li>
+                <li>✓ Bank financing at 7-9%</li>
+                <li>✓ AMC contract included</li>
+              </ul>
+              <a
+                href="https://wa.me/918877896889?text=I%20need%20a%20commercial%20solar%20solution%20for%20my%20business"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full bg-white text-blue-600 py-3 rounded-lg font-bold text-center hover:bg-blue-50 transition"
+              >
+                Get Custom Quote →
+              </a>
+            </div>
+          </div>
+
+          {/* Urgency Banner */}
+          <div className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl p-6 text-center shadow-2xl">
+            <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white rounded-full p-3">
+                  <Zap className="w-8 h-8 text-orange-500" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white font-bold text-xl">Electricity Prices Rising 8% Every Year!</p>
+                  <p className="text-yellow-100 text-sm">Lock in FREE solar energy now before rates increase further</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="bg-white bg-opacity-20 backdrop-blur rounded-lg px-4 py-2 text-center">
+                  <p className="text-3xl font-bold text-white">₹78K</p>
+                  <p className="text-xs text-yellow-100">Max Subsidy</p>
+                </div>
+                <a
+                  href="tel:8877896889"
+                  className="bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg flex items-center space-x-2"
+                >
+                  <Phone className="w-5 h-5" />
+                  <span>Call Now: 8877896889</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Referral Program */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">

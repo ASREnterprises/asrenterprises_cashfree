@@ -1115,27 +1115,27 @@ export default function App() {
             <QuotationSystem />
           </ProtectedRoute>
         } />
-        <Route path="/leads" element={
+        <Route path="/admin/leads" element={
           <ProtectedRoute>
             <LeadCapturePage />
           </ProtectedRoute>
         } />
-        <Route path="/dashboard" element={
+        <Route path="/admin/analytics" element={
           <ProtectedRoute>
             <DashboardPage />
           </ProtectedRoute>
         } />
-        <Route path="/marketing" element={
+        <Route path="/admin/marketing" element={
           <ProtectedRoute>
             <MarketingPage />
           </ProtectedRoute>
         } />
-        <Route path="/ads" element={
+        <Route path="/admin/ads" element={
           <ProtectedRoute>
             <AdsPage />
           </ProtectedRoute>
         } />
-        <Route path="/ai-marketing" element={
+        <Route path="/admin/ai-marketing" element={
           <ProtectedRoute>
             <AIMarketingHub />
           </ProtectedRoute>

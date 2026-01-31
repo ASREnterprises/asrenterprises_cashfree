@@ -453,22 +453,38 @@ async def send_otp(request: Dict[str, Any]):
     registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
         raise HTTPException(status_code=403, detail="Email not registered. Only admin can access.")
-    otp = str(random.randint(100000, 999999))
-    otp_storage[email] = otp
-    logging.info(f"OTP for {email}: {otp}")
-    return {"success": True, "message": "OTP sent (Demo: 123456)"}
+    
+    # Generate and store secure OTP
+    otp = generate_secure_otp()
+    store_otp(email, otp)
+    logger.info(f"OTP generated for {email}")
+    return {"success": True, "message": "OTP sent to your registered email"}
 
 @api_router.post("/admin/verify-otp")
-async def verify_otp(request: Dict[str, Any]):
-    email = request.get("email", "").lower()
-    otp = request.get("otp", "")
+async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
+    client_ip = get_client_ip(request)
+    
+    # Check login rate limit
+    if not check_login_rate_limit(client_ip):
+        logger.warning(f"Login rate limit exceeded for IP: {client_ip}")
+        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
+    
+    email = data.get("email", "").lower().strip()
+    otp = data.get("otp", "").strip()
+    
     # Only allow admin email
     registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
+        logger.warning(f"Unauthorized login attempt for email: {email} from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Access denied")
-    if otp == "131993" or otp_storage.get(email) == otp:
+    
+    # Verify OTP
+    if verify_otp(email, otp):
+        logger.info(f"Successful admin login for {email} from IP: {client_ip}")
         return {"success": True, "role": "admin", "email": email}
-    raise HTTPException(status_code=401, detail="Invalid OTP")
+    
+    logger.warning(f"Failed OTP verification for {email} from IP: {client_ip}")
+    raise HTTPException(status_code=401, detail="Invalid or expired OTP")
 
 # Staff Management
 @api_router.get("/admin/staff")

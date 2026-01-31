@@ -71,8 +71,12 @@ export const AdminLogin = ({ onLogin }) => {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl">
-            <Shield className="w-10 h-10 text-blue-600" />
+          <div className="bg-white rounded-2xl p-4 mx-auto mb-4 shadow-2xl inline-block">
+            <img 
+              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+              alt="ASR Enterprises" 
+              className="h-16 w-auto"
+            />
           </div>
           <h1 className="text-4xl font-extrabold text-white mb-2">ASR ENTERPRISES</h1>
           <p className="text-blue-100">Secure Admin Panel Login</p>
@@ -181,10 +185,6 @@ export const AdminLogin = ({ onLogin }) => {
               >
                 ← Back to Email
               </button>
-
-              <div className="mt-4 text-center text-xs text-gray-600 bg-yellow-50 p-3 rounded">
-                <p className="font-semibold">For Demo: Use OTP <span className="font-mono text-lg">123456</span></p>
-              </div>
             </form>
           )}
         </div>

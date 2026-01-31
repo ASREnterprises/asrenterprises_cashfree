@@ -10,37 +10,44 @@ const SOLAR_BRANDS = [
   {
     name: "TATA Power Solar",
     panels: ["330W Poly", "340W Poly", "380W Mono PERC", "540W Mono PERC"],
-    pricePerWatt: 48,
+    pricePerWatt: 68,
     warranty: "25 years performance, 10 years product",
     efficiency: "17-21%"
   },
   {
     name: "Adani Solar",
     panels: ["335W Poly", "390W Mono PERC", "440W Mono PERC", "540W Bifacial"],
-    pricePerWatt: 46,
+    pricePerWatt: 66,
     warranty: "25 years performance, 12 years product",
     efficiency: "18-21.5%"
   },
   {
     name: "Loom Solar",
     panels: ["375W Mono PERC", "440W Mono PERC", "550W Bifacial"],
-    pricePerWatt: 45,
+    pricePerWatt: 64,
     warranty: "25 years performance, 10 years product",
     efficiency: "19-22%"
   },
   {
     name: "Luminous Solar",
     panels: ["335W Poly", "375W Mono", "440W Mono PERC", "500W Mono"],
-    pricePerWatt: 47,
+    pricePerWatt: 66,
     warranty: "25 years performance, 10 years product",
     efficiency: "17-20%"
   },
   {
     name: "Waaree Solar",
     panels: ["340W Poly", "375W Mono", "440W Mono PERC", "550W Bifacial"],
-    pricePerWatt: 44,
+    pricePerWatt: 65,
     warranty: "25 years performance, 12 years product",
     efficiency: "18-21%"
+  },
+  {
+    name: "Vikram Solar",
+    panels: ["340W Poly", "400W Mono PERC", "450W Mono PERC", "550W Bifacial"],
+    pricePerWatt: 67,
+    warranty: "25 years performance, 10 years product",
+    efficiency: "18-21.5%"
   }
 ];
 

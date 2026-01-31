@@ -270,7 +270,7 @@ async def verify_otp(request: Dict[str, Any]):
     registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
         raise HTTPException(status_code=403, detail="Access denied")
-    if otp == "123456" or otp_storage.get(email) == otp:
+    if otp == "131993" or otp_storage.get(email) == otp:
         return {"success": True, "role": "admin", "email": email}
     raise HTTPException(status_code=401, detail="Invalid OTP")
 

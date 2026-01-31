@@ -811,19 +811,75 @@ const HomePage = () => {
 };
 
 export default function App() {
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const authStatus = localStorage.getItem("asrAdminAuth") === "true";
+    setIsAdminAuthenticated(authStatus);
+  }, []);
+
+  const handleLogin = () => {
+    setIsAdminAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAdminAuthenticated(false);
+  };
+
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/leads" element={<LeadCapturePage />} />
         <Route path="/calculator" element={<SolarCalculatorPage />} />
         <Route path="/chat" element={<WhatsAppChatPage />} />
-        <Route path="/marketing" element={<MarketingPage />} />
-        <Route path="/ads" element={<AdsPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/ai-marketing" element={<AIMarketingHub />} />
+        
+        {/* Admin Login */}
+        <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />
+        
+        {/* Protected Admin Routes */}
+        <Route path="/admin/dashboard" element={
+          <ProtectedRoute>
+            <AdminDashboard onLogout={handleLogout} />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/staff" element={
+          <ProtectedRoute>
+            <StaffManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/quotations" element={
+          <ProtectedRoute>
+            <QuotationSystem />
+          </ProtectedRoute>
+        } />
+        <Route path="/leads" element={
+          <ProtectedRoute>
+            <LeadCapturePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/marketing" element={
+          <ProtectedRoute>
+            <MarketingPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/ads" element={
+          <ProtectedRoute>
+            <AdsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/ai-marketing" element={
+          <ProtectedRoute>
+            <AIMarketingHub />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );

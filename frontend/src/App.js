@@ -143,20 +143,26 @@ const HomePage = () => {
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
                   </span>
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
+                    🛠️ 5 Year FREE Maintenance Included!
                   </span>
                   <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-                    🏆 MNRE Bihar Registered Vendor - PM Surya Ghar Yojana Partner
+                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
                   </span>
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    🏆 MNRE Bihar Registered Vendor - PM Surya Ghar Yojana Partner
+                  </span>
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
                     🎁 SPECIAL: Easy EMI Starting ₹3,000/Month - Zero Down Payment!
                   </span>
                   {/* Duplicate for seamless loop */}
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
                     🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
                   </span>
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
+                  </span>
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    🛠️ 5 Year FREE Maintenance Included!
                   </span>
                   <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
                     📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
@@ -783,8 +789,8 @@ const HomePage = () => {
               <p className="text-pink-100 text-sm mb-4">After ₹78,000 govt subsidy • Save ₹8,500/month on bills</p>
               <ul className="text-sm space-y-1 mb-4 text-pink-100">
                 <li>✓ 25-year warranty included</li>
+                <li>✓ 5-year FREE maintenance</li>
                 <li>✓ MNRE approved panels</li>
-                <li>✓ Professional installation</li>
               </ul>
               <a
                 href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%203kW%20Flash%20Sale%20offer!"
@@ -813,8 +819,8 @@ const HomePage = () => {
               <ul className="text-sm space-y-1 mb-4 text-teal-100">
                 <li>✓ Premium TATA/Adani panels</li>
                 <li>✓ 25-year performance warranty</li>
+                <li>✓ 5-year FREE maintenance</li>
                 <li>✓ Zero electricity bills guarantee</li>
-                <li>✓ Expert installation team</li>
               </ul>
               <a
                 href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%205kW%20Best%20Seller%20offer!"

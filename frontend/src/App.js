@@ -91,12 +91,12 @@ const HomePage = () => {
             </div>
             
             {/* Desktop Menu */}
-            <div className="hidden md:flex space-x-6">
+            <div className="hidden md:flex space-x-6 items-center">
               <Link to="/" className="text-gray-700 hover:text-blue-600 transition">Home</Link>
               <Link to="/gallery" className="text-gray-700 hover:text-blue-600 transition">Gallery</Link>
               <Link to="/calculator" className="text-gray-700 hover:text-blue-600 transition">Calculator</Link>
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition">Contact</Link>
-              <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 transition">Dashboard</Link>
+              <Link to="/admin/login" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold">Admin Login</Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -117,7 +117,7 @@ const HomePage = () => {
               <Link to="/gallery" className="block py-2 text-gray-700">Gallery</Link>
               <Link to="/calculator" className="block py-2 text-gray-700">Calculator</Link>
               <Link to="/contact" className="block py-2 text-gray-700">Contact</Link>
-              <Link to="/dashboard" className="block py-2 text-gray-700">Dashboard</Link>
+              <Link to="/admin/login" className="block py-2 text-blue-600 font-semibold">Admin Login</Link>
             </div>
           </div>
         )}
@@ -194,6 +194,66 @@ const HomePage = () => {
                 <span>Free Site Survey</span>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Brands We Offer Section */}
+      <div className="bg-white py-12 border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Top Solar Brands We Offer</h2>
+            <p className="text-gray-600">Premium quality solar panels from India's leading manufacturers</p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Sun className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">TATA Power Solar</h3>
+              <p className="text-xs text-gray-500 mt-1">Premium Quality</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Zap className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">Adani Power</h3>
+              <p className="text-xs text-gray-500 mt-1">High Efficiency</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Sun className="w-8 h-8 text-yellow-600" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">Luminous</h3>
+              <p className="text-xs text-gray-500 mt-1">Trusted Brand</p>
+            </div>
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Zap className="w-8 h-8 text-orange-600" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">Loom Solar</h3>
+              <p className="text-xs text-gray-500 mt-1">Made in India</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Sun className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">Waaree</h3>
+              <p className="text-xs text-gray-500 mt-1">Industry Leader</p>
+            </div>
+            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
+              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
+                <Zap className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm">Vikram Solar</h3>
+              <p className="text-xs text-gray-500 mt-1">Global Standard</p>
+            </div>
+          </div>
+          <div className="text-center mt-8">
+            <p className="text-sm text-gray-600 bg-green-50 inline-block px-6 py-2 rounded-full">
+              <CheckCircle className="w-4 h-4 inline mr-2 text-green-600" />
+              All brands come with 25-year performance warranty
+            </p>
           </div>
         </div>
       </div>

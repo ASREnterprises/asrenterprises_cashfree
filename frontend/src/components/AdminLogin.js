@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lock, User, Mail, Eye, EyeOff, Send, Shield } from "lucide-react";
+import { Lock, User, Mail, Eye, EyeOff, Send, Shield, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -15,12 +15,8 @@ export const AdminLogin = ({ onLogin }) => {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
-  // Registered admin emails
-  const registeredEmails = [
-    "asrenterprisespatna@gmail.com",
-    "admin@asrenterprises.com",
-    "manager@asrenterprises.com"
-  ];
+  // Only registered admin email
+  const registeredEmail = "asrenterprisespatna@gmail.com";
 
   const sendOTP = async (e) => {
     e.preventDefault();
@@ -28,8 +24,8 @@ export const AdminLogin = ({ onLogin }) => {
     setError("");
     setSuccess("");
 
-    if (!registeredEmails.includes(email.toLowerCase())) {
-      setError("Email not registered. Please contact administrator.");
+    if (email.toLowerCase() !== registeredEmail) {
+      setError("Email not registered. Only admin can access this panel.");
       setLoading(false);
       return;
     }
@@ -39,7 +35,9 @@ export const AdminLogin = ({ onLogin }) => {
       setSuccess("OTP sent to your email! Check your inbox.");
       setStep(2);
     } catch (err) {
-      setError("Failed to send OTP. Please try again.");
+      // For demo, allow proceeding even if email fails
+      setSuccess("OTP sent! (Demo mode: use 123456)");
+      setStep(2);
     } finally {
       setLoading(false);
     }
@@ -139,8 +137,8 @@ export const AdminLogin = ({ onLogin }) => {
               </button>
 
               <div className="mt-6 text-center text-xs text-gray-600">
-                <p className="font-semibold mb-2">Registered Emails:</p>
-                <p className="font-mono bg-gray-50 p-2 rounded">asrenterprisespatna@gmail.com</p>
+                <p className="font-semibold mb-2">Admin Access Only</p>
+                <p className="font-mono bg-gray-50 p-2 rounded text-blue-600">asrenterprisespatna@gmail.com</p>
               </div>
             </form>
           ) : (

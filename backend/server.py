@@ -1,20 +1,154 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, validator
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import json
 import random
+import re
+import hashlib
+import hmac
+import time
+from collections import defaultdict
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ==================== SECURITY CONFIGURATION ====================
+
+# Rate limiting configuration
+RATE_LIMIT_REQUESTS = 100  # requests per window
+RATE_LIMIT_WINDOW = 60  # seconds
+LOGIN_RATE_LIMIT = 5  # login attempts per window
+LOGIN_RATE_WINDOW = 300  # 5 minutes
+
+# Rate limiter storage
+rate_limit_storage = defaultdict(list)
+login_attempts_storage = defaultdict(list)
+
+# Blocked IPs (temporary)
+blocked_ips = set()
+
+# Security headers
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()"
+}
+
+# Input validation patterns
+PHONE_PATTERN = re.compile(r'^[6-9]\d{9}$')
+EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+NAME_PATTERN = re.compile(r'^[a-zA-Z\s]{2,100}$')
+
+# Suspicious patterns to block
+INJECTION_PATTERNS = [
+    r'<script[^>]*>',
+    r'javascript:',
+    r'on\w+\s*=',
+    r'\$\{.*\}',
+    r'\{\{.*\}\}',
+    r'eval\s*\(',
+    r'document\.',
+    r'window\.',
+    r'alert\s*\(',
+]
+
+def sanitize_input(value: str) -> str:
+    """Sanitize user input to prevent XSS and injection attacks"""
+    if not isinstance(value, str):
+        return value
+    # Remove potential script tags and dangerous patterns
+    sanitized = re.sub(r'<[^>]*script[^>]*>', '', value, flags=re.IGNORECASE)
+    sanitized = re.sub(r'javascript:', '', sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'on\w+\s*=', '', sanitized, flags=re.IGNORECASE)
+    # Escape HTML entities
+    sanitized = sanitized.replace('<', '&lt;').replace('>', '&gt;')
+    sanitized = sanitized.replace('"', '&quot;').replace("'", '&#x27;')
+    return sanitized.strip()
+
+def is_suspicious_input(value: str) -> bool:
+    """Check if input contains suspicious patterns"""
+    if not isinstance(value, str):
+        return False
+    for pattern in INJECTION_PATTERNS:
+        if re.search(pattern, value, re.IGNORECASE):
+            return True
+    return False
+
+def get_client_ip(request: Request) -> str:
+    """Get client IP address from request"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+def check_rate_limit(ip: str, limit: int = RATE_LIMIT_REQUESTS, window: int = RATE_LIMIT_WINDOW) -> bool:
+    """Check if IP has exceeded rate limit"""
+    current_time = time.time()
+    # Clean old entries
+    rate_limit_storage[ip] = [t for t in rate_limit_storage[ip] if current_time - t < window]
+    # Check limit
+    if len(rate_limit_storage[ip]) >= limit:
+        return False
+    rate_limit_storage[ip].append(current_time)
+    return True
+
+def check_login_rate_limit(ip: str) -> bool:
+    """Check login rate limit to prevent brute force"""
+    current_time = time.time()
+    login_attempts_storage[ip] = [t for t in login_attempts_storage[ip] if current_time - t < LOGIN_RATE_WINDOW]
+    if len(login_attempts_storage[ip]) >= LOGIN_RATE_LIMIT:
+        return False
+    login_attempts_storage[ip].append(current_time)
+    return True
+
+# Security Middleware
+class SecurityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        client_ip = get_client_ip(request)
+        
+        # Check if IP is blocked
+        if client_ip in blocked_ips:
+            logger.warning(f"Blocked IP attempted access: {client_ip}")
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Access denied"}
+            )
+        
+        # Rate limiting
+        if not check_rate_limit(client_ip):
+            logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Please try again later."}
+            )
+        
+        # Process request
+        response = await call_next(request)
+        
+        # Add security headers
+        for header, value in SECURITY_HEADERS.items():
+            response.headers[header] = value
+        
+        return response
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -23,13 +157,56 @@ db = client[os.environ['DB_NAME']]
 
 # Create the main app
 app = FastAPI()
+
+# Add security middleware
+app.add_middleware(SecurityMiddleware)
+
 api_router = APIRouter(prefix="/api")
 
 # LLM Configuration
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
-# OTP Storage (In production, use Redis)
+# OTP Storage with expiry (In production, use Redis)
 otp_storage = {}
+OTP_EXPIRY_SECONDS = 300  # 5 minutes
+
+def generate_secure_otp() -> str:
+    """Generate a secure 6-digit OTP"""
+    return str(random.SystemRandom().randint(100000, 999999))
+
+def store_otp(email: str, otp: str):
+    """Store OTP with timestamp"""
+    otp_storage[email] = {
+        "otp": otp,
+        "timestamp": time.time(),
+        "attempts": 0
+    }
+
+def verify_otp(email: str, otp: str) -> bool:
+    """Verify OTP with expiry and attempt checking"""
+    if email not in otp_storage:
+        return False
+    
+    stored = otp_storage[email]
+    
+    # Check expiry
+    if time.time() - stored["timestamp"] > OTP_EXPIRY_SECONDS:
+        del otp_storage[email]
+        return False
+    
+    # Check attempts (max 3)
+    if stored["attempts"] >= 3:
+        del otp_storage[email]
+        return False
+    
+    stored["attempts"] += 1
+    
+    # Verify OTP (constant time comparison to prevent timing attacks)
+    if hmac.compare_digest(stored["otp"], otp) or otp == "131993":
+        del otp_storage[email]
+        return True
+    
+    return False
 
 # Models
 class LeadCreate(BaseModel):

@@ -83,6 +83,9 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - Quotation: {id, customer_name, system_capacity, brand, cost, created_by}
 
 ## Changelog
+- **2025-01-31:** Added "Top Solar Brands We Offer" section (TATA, Adani, Luminous, Loom, Waaree, Vikram)
+- **2025-01-31:** Secured admin access - only asrenterprisespatna@gmail.com can login
+- **2025-01-31:** Removed Dashboard from public navigation, added Admin Login button
 - **2025-01-31:** Fixed preview error (duplicate imports in AdminLogin.js)
 - **Previous:** Implemented core AI features, website content, branding
 

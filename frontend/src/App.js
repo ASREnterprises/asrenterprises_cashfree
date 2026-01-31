@@ -782,9 +782,9 @@ const HomePage = () => {
               </div>
               <p className="text-pink-100 text-sm mb-4">After ₹78,000 govt subsidy • Save ₹8,500/month on bills</p>
               <ul className="text-sm space-y-1 mb-4 text-pink-100">
-                <li>✓ Free installation worth ₹15,000</li>
                 <li>✓ 25-year warranty included</li>
-                <li>✓ Net metering setup FREE</li>
+                <li>✓ MNRE approved panels</li>
+                <li>✓ Professional installation</li>
               </ul>
               <a
                 href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%203kW%20Flash%20Sale%20offer!"

@@ -208,7 +208,7 @@ def verify_otp(email: str, otp: str) -> bool:
     
     return False
 
-# Models
+# Models with enhanced validation
 class LeadCreate(BaseModel):
     name: str
     email: EmailStr
@@ -217,6 +217,25 @@ class LeadCreate(BaseModel):
     interest: str
     message: Optional[str] = ""
     monthly_electricity_bill: Optional[float] = None
+
+    @validator('name')
+    def validate_name(cls, v):
+        if is_suspicious_input(v):
+            raise ValueError('Invalid input detected')
+        return sanitize_input(v)
+    
+    @validator('phone')
+    def validate_phone(cls, v):
+        cleaned = re.sub(r'[\s\-\+]', '', v)
+        if not PHONE_PATTERN.match(cleaned):
+            raise ValueError('Invalid phone number format')
+        return cleaned
+    
+    @validator('location', 'interest', 'message')
+    def sanitize_fields(cls, v):
+        if v and is_suspicious_input(v):
+            raise ValueError('Invalid input detected')
+        return sanitize_input(v) if v else v
 
 class Lead(BaseModel):
     model_config = ConfigDict(extra="ignore")

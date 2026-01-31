@@ -140,26 +140,20 @@ const HomePage = () => {
                     🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
                   </span>
                   <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-                    ⚡ FREE Installation Worth ₹15,000 + FREE Net Metering Setup!
-                  </span>
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
                   </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
                     📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
                   </span>
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
                     🏆 MNRE Bihar Registered Vendor - PM Surya Ghar Yojana Partner
                   </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
                     🎁 SPECIAL: Easy EMI Starting ₹3,000/Month - Zero Down Payment!
                   </span>
                   {/* Duplicate for seamless loop */}
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
-                  </span>
                   <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-                    ⚡ FREE Installation Worth ₹15,000 + FREE Net Metering Setup!
+                    🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
                   </span>
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!

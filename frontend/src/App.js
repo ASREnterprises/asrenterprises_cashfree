@@ -812,9 +812,9 @@ const HomePage = () => {
               <p className="text-teal-100 text-sm mb-4">After ₹78,000 govt subsidy • Power your entire home!</p>
               <ul className="text-sm space-y-1 mb-4 text-teal-100">
                 <li>✓ Premium TATA/Adani panels</li>
-                <li>✓ FREE battery backup worth ₹25,000</li>
-                <li>✓ 5-year FREE maintenance</li>
+                <li>✓ 25-year performance warranty</li>
                 <li>✓ Zero electricity bills guarantee</li>
+                <li>✓ Expert installation team</li>
               </ul>
               <a
                 href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%205kW%20Best%20Seller%20offer!"

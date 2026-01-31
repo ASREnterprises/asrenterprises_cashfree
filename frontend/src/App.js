@@ -74,50 +74,6 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Running Flash Advertisement Banner */}
-      <div className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 py-2 relative overflow-hidden">
-        <a
-          href="https://wa.me/918877896889?text=Hi!%20I%20saw%20your%20flash%20offer%20and%20I'm%20interested%20in%20solar%20installation!"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block"
-        >
-          <div className="animate-marquee whitespace-nowrap flex items-center">
-            <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-              🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
-            </span>
-            <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-              ⚡ FREE Installation Worth ₹15,000 + FREE Net Metering Setup!
-            </span>
-            <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-              💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
-            </span>
-            <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-              📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
-            </span>
-            <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-              🏆 MNRE Bihar Registered Vendor - PM Surya Ghar Yojana Partner
-            </span>
-            <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-              🎁 SPECIAL: Easy EMI Starting ₹3,000/Month - Zero Down Payment!
-            </span>
-            {/* Duplicate for seamless loop */}
-            <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-              🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
-            </span>
-            <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-              ⚡ FREE Installation Worth ₹15,000 + FREE Net Metering Setup!
-            </span>
-            <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-              💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
-            </span>
-            <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-              📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
-            </span>
-          </div>
-        </a>
-      </div>
-
       {/* Navigation */}
       <nav className="bg-white shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -171,6 +127,50 @@ const HomePage = () => {
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
+            {/* Running Flash Advertisement Banner */}
+            <div className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 py-3 rounded-xl mb-6 relative overflow-hidden shadow-lg">
+              <a
+                href="https://wa.me/918877896889?text=Hi!%20I%20saw%20your%20flash%20offer%20and%20I'm%20interested%20in%20solar%20installation!"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <div className="animate-marquee whitespace-nowrap flex items-center">
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
+                  </span>
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                    ⚡ FREE Installation Worth ₹15,000 + FREE Net Metering Setup!
+                  </span>
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
+                  </span>
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
+                  </span>
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    🏆 MNRE Bihar Registered Vendor - PM Surya Ghar Yojana Partner
+                  </span>
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                    🎁 SPECIAL: Easy EMI Starting ₹3,000/Month - Zero Down Payment!
+                  </span>
+                  {/* Duplicate for seamless loop */}
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
+                  </span>
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                    ⚡ FREE Installation Worth ₹15,000 + FREE Net Metering Setup!
+                  </span>
+                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                    💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
+                  </span>
+                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
+                  </span>
+                </div>
+              </a>
+            </div>
+
             {/* Attractive Quote */}
             <p className="text-lg md:text-xl text-gray-700 italic mb-4 max-w-3xl mx-auto">
               "Powering Bihar's Future with Clean, Affordable Solar Energy"

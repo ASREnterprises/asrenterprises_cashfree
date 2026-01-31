@@ -205,48 +205,59 @@ const HomePage = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Top Solar Brands We Offer</h2>
             <p className="text-gray-600">Premium quality solar panels from India's leading manufacturers</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Sun className="w-8 h-8 text-blue-600" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* TATA Power Solar - Blue theme */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-blue-200 transition-all hover:-translate-y-1 group">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg p-3 mb-3 mx-auto w-fit">
+                <span className="text-white font-black text-lg tracking-tight">TATA</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">TATA Power Solar</h3>
-              <p className="text-xs text-gray-500 mt-1">Premium Quality</p>
+              <p className="text-xs text-blue-600 mt-1 font-medium">Premium Quality</p>
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Zap className="w-8 h-8 text-green-600" />
+            
+            {/* Adani Solar - Green theme */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-green-200 transition-all hover:-translate-y-1 group">
+              <div className="bg-gradient-to-br from-green-600 to-green-800 rounded-lg p-3 mb-3 mx-auto w-fit">
+                <span className="text-white font-black text-lg tracking-tight">ADANI</span>
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Adani Power</h3>
-              <p className="text-xs text-gray-500 mt-1">High Efficiency</p>
+              <h3 className="font-bold text-gray-900 text-sm">Adani Solar</h3>
+              <p className="text-xs text-green-600 mt-1 font-medium">High Efficiency</p>
             </div>
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Sun className="w-8 h-8 text-yellow-600" />
+            
+            {/* Luminous - Red/Orange theme */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-red-200 transition-all hover:-translate-y-1 group">
+              <div className="bg-gradient-to-br from-red-500 to-orange-500 rounded-lg p-3 mb-3 mx-auto w-fit">
+                <span className="text-white font-black text-lg tracking-tight">LUMINOUS</span>
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Luminous</h3>
-              <p className="text-xs text-gray-500 mt-1">Trusted Brand</p>
+              <h3 className="font-bold text-gray-900 text-sm">Luminous Solar</h3>
+              <p className="text-xs text-red-600 mt-1 font-medium">Trusted Brand</p>
             </div>
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Zap className="w-8 h-8 text-orange-600" />
+            
+            {/* Loom Solar - Orange theme */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-orange-200 transition-all hover:-translate-y-1 group">
+              <div className="bg-gradient-to-br from-orange-500 to-yellow-500 rounded-lg p-3 mb-3 mx-auto w-fit">
+                <span className="text-white font-black text-lg tracking-tight">LOOM</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Loom Solar</h3>
-              <p className="text-xs text-gray-500 mt-1">Made in India</p>
+              <p className="text-xs text-orange-600 mt-1 font-medium">Made in India</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Sun className="w-8 h-8 text-purple-600" />
+            
+            {/* Waaree - Blue theme */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-sky-200 transition-all hover:-translate-y-1 group">
+              <div className="bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg p-3 mb-3 mx-auto w-fit">
+                <span className="text-white font-black text-lg tracking-tight">WAAREE</span>
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Waaree</h3>
-              <p className="text-xs text-gray-500 mt-1">Industry Leader</p>
+              <h3 className="font-bold text-gray-900 text-sm">Waaree Solar</h3>
+              <p className="text-xs text-sky-600 mt-1 font-medium">Industry Leader</p>
             </div>
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-6 text-center hover:shadow-lg transition-all hover:-translate-y-1">
-              <div className="bg-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 shadow-md">
-                <Zap className="w-8 h-8 text-red-600" />
+            
+            {/* Vikram Solar - Dark Blue theme */}
+            <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-indigo-200 transition-all hover:-translate-y-1 group">
+              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg p-3 mb-3 mx-auto w-fit">
+                <span className="text-white font-black text-lg tracking-tight">VIKRAM</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Vikram Solar</h3>
-              <p className="text-xs text-gray-500 mt-1">Global Standard</p>
+              <p className="text-xs text-indigo-600 mt-1 font-medium">Global Standard</p>
             </div>
           </div>
           <div className="text-center mt-8">

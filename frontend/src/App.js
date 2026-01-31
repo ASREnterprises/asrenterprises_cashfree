@@ -47,7 +47,7 @@ const HomePage = () => {
       title: "Smart Lead Capture",
       description: "AI-powered form that analyzes and scores leads automatically",
       color: "bg-blue-500",
-      link: "/leads"
+      link: "/contact"
     },
     {
       icon: <Calculator className="w-12 h-12" />,
@@ -55,20 +55,6 @@ const HomePage = () => {
       description: "Calculate costs, savings, and ROI with AI recommendations",
       color: "bg-yellow-500",
       link: "/calculator"
-    },
-    {
-      icon: <TrendingUp className="w-12 h-12" />,
-      title: "Marketing Automation",
-      description: "AI-optimized campaigns across email, SMS, and WhatsApp",
-      color: "bg-purple-500",
-      link: "/marketing"
-    },
-    {
-      icon: <BarChart3 className="w-12 h-12" />,
-      title: "Ads Optimization",
-      description: "AI insights for Google & Facebook ad performance",
-      color: "bg-red-500",
-      link: "/ads"
     }
   ];
 

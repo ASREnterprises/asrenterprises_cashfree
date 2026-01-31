@@ -576,9 +576,56 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "ASR Enterprises API"}
 
+# Security endpoint for health check
+@api_router.get("/security/status")
+async def security_status():
+    return {
+        "status": "secure",
+        "security_features": [
+            "Rate limiting enabled",
+            "Input sanitization active",
+            "XSS protection enabled",
+            "CSRF protection enabled",
+            "Security headers configured",
+            "Brute force protection active",
+            "OTP expiry enforced",
+            "Constant-time OTP comparison"
+        ],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+# Report suspicious activity endpoint
+@api_router.post("/security/report")
+async def report_suspicious(request: Request, data: Dict[str, Any]):
+    client_ip = get_client_ip(request)
+    activity_type = sanitize_input(data.get("type", "unknown"))
+    details = sanitize_input(data.get("details", ""))
+    
+    # Log suspicious activity
+    logger.warning(f"Suspicious activity reported - Type: {activity_type}, IP: {client_ip}, Details: {details}")
+    
+    # Store in database for analysis
+    await db.security_logs.insert_one({
+        "type": activity_type,
+        "ip": client_ip,
+        "details": details,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"success": True, "message": "Report received"}
+
 app.include_router(api_router)
-app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','), allow_methods=["*"], allow_headers=["*"])
-logging.basicConfig(level=logging.INFO)
+
+# CORS configuration with security
+cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')
+app.add_middleware(
+    CORSMiddleware, 
+    allow_credentials=True, 
+    allow_origins=cors_origins, 
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+    expose_headers=["X-Request-ID"]
+)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

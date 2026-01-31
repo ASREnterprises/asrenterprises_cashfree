@@ -135,11 +135,6 @@ export const AdminLogin = ({ onLogin }) => {
                   </>
                 )}
               </button>
-
-              <div className="mt-6 text-center text-xs text-gray-600">
-                <p className="font-semibold mb-2">Admin Access Only</p>
-                <p className="font-mono bg-gray-50 p-2 rounded text-blue-600">asrenterprisespatna@gmail.com</p>
-              </div>
             </form>
           ) : (
             <form onSubmit={verifyOTP} className="space-y-6">

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Users, FileText, LogOut, BarChart3, Settings, Calendar } from "lucide-react";
+import { Users, FileText, LogOut, BarChart3, Calendar, TrendingUp, ClipboardList } from "lucide-react";
 
 export const AdminDashboard = ({ onLogout }) => {
   const handleLogout = () => {
@@ -10,6 +10,14 @@ export const AdminDashboard = ({ onLogout }) => {
 
   const modules = [
     {
+      title: "Leads Management",
+      description: "View and manage all customer leads",
+      icon: <ClipboardList className="w-12 h-12" />,
+      link: "/leads",
+      color: "from-green-500 to-emerald-600",
+      count: "View Leads"
+    },
+    {
       title: "Staff Management",
       description: "Manage team members and reporting structure",
       icon: <Users className="w-12 h-12" />,
@@ -19,7 +27,7 @@ export const AdminDashboard = ({ onLogout }) => {
     },
     {
       title: "Solar Quotations",
-      description: "Create quotes with TATA, Adani, Loom, Luminous, Waaree",
+      description: "Generate quotations for customers",
       icon: <FileText className="w-12 h-12" />,
       link: "/admin/quotations",
       color: "from-yellow-500 to-orange-500",
@@ -44,18 +52,34 @@ export const AdminDashboard = ({ onLogout }) => {
             <h1 className="text-5xl font-extrabold text-gray-900 mb-2">Admin Dashboard</h1>
             <p className="text-xl text-gray-600">ASR ENTERPRISES Management Panel</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition flex items-center space-x-2"
-            data-testid="admin-logout-btn"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Logout</span>
-          </button>
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/"
+              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
+            >
+              View Website
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition flex items-center space-x-2"
+              data-testid="admin-logout-btn"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
 
         {/* Quick Stats */}
         <div className="grid md:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <ClipboardList className="w-8 h-8 text-green-600" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">25+</div>
+            <div className="text-sm text-gray-600">Total Leads</div>
+          </div>
+
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <Users className="w-8 h-8 text-blue-600" />
@@ -74,15 +98,7 @@ export const AdminDashboard = ({ onLogout }) => {
 
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <Calendar className="w-8 h-8 text-green-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">12</div>
-            <div className="text-sm text-gray-600">This Month</div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <BarChart3 className="w-8 h-8 text-purple-600" />
+              <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>
             <div className="text-3xl font-bold text-gray-900 mb-1">₹45L</div>
             <div className="text-sm text-gray-600">Total Value</div>
@@ -90,7 +106,7 @@ export const AdminDashboard = ({ onLogout }) => {
         </div>
 
         {/* Module Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {modules.map((module, idx) => (
             <Link
               key={idx}
@@ -98,7 +114,7 @@ export const AdminDashboard = ({ onLogout }) => {
               className="group"
               data-testid={`module-${idx}`}
             >
-              <div className={`bg-gradient-to-br ${module.color} rounded-2xl shadow-2xl p-8 text-white hover:shadow-3xl transition-all transform hover:-translate-y-2`}>
+              <div className={`bg-gradient-to-br ${module.color} rounded-2xl shadow-2xl p-8 text-white hover:shadow-3xl transition-all transform hover:-translate-y-2 h-full`}>
                 <div className="mb-6">{module.icon}</div>
                 <h2 className="text-2xl font-bold mb-2">{module.title}</h2>
                 <p className="text-white text-opacity-90 mb-4">{module.description}</p>
@@ -109,19 +125,6 @@ export const AdminDashboard = ({ onLogout }) => {
               </div>
             </Link>
           ))}
-        </div>
-
-        {/* Brand Information */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Solar Brands We Offer</h2>
-          <div className="grid md:grid-cols-5 gap-4">
-            {["TATA Power Solar", "Adani Solar", "Loom Solar", "Luminous Solar", "Waaree Solar"].map((brand) => (
-              <div key={brand} className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg p-4 text-center">
-                <div className="font-bold text-gray-900 text-sm">{brand}</div>
-                <div className="text-xs text-gray-600 mt-1">Premium Quality</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

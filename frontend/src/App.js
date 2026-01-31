@@ -127,6 +127,11 @@ const HomePage = () => {
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
+            {/* Attractive Quote */}
+            <p className="text-lg md:text-xl text-gray-700 italic mb-4 max-w-3xl mx-auto">
+              "Powering Bihar's Future with Clean, Affordable Solar Energy"
+            </p>
+            
             <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-full mb-6 shadow-lg">
               <Award className="w-5 h-5" />
               <span className="text-sm font-semibold">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>

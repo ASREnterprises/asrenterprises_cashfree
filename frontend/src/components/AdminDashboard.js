@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Users, FileText, LogOut, BarChart3, Calendar, TrendingUp, ClipboardList } from "lucide-react";
+import { Users, FileText, LogOut, BarChart3, TrendingUp, ClipboardList, Megaphone, Target, Sparkles } from "lucide-react";
 
 export const AdminDashboard = ({ onLogout }) => {
   const handleLogout = () => {
@@ -13,7 +13,7 @@ export const AdminDashboard = ({ onLogout }) => {
       title: "Leads Management",
       description: "View and manage all customer leads",
       icon: <ClipboardList className="w-12 h-12" />,
-      link: "/leads",
+      link: "/admin/leads",
       color: "from-green-500 to-emerald-600",
       count: "View Leads"
     },
@@ -34,10 +34,34 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "Generate Quotes"
     },
     {
+      title: "AI Marketing Hub",
+      description: "AI-powered marketing automation tools",
+      icon: <Sparkles className="w-12 h-12" />,
+      link: "/admin/ai-marketing",
+      color: "from-pink-500 to-rose-600",
+      count: "AI Tools"
+    },
+    {
+      title: "Marketing Automation",
+      description: "Automate your marketing campaigns",
+      icon: <Megaphone className="w-12 h-12" />,
+      link: "/admin/marketing",
+      color: "from-indigo-500 to-purple-600",
+      count: "Campaigns"
+    },
+    {
+      title: "Ads Optimizer",
+      description: "Optimize your ad performance",
+      icon: <Target className="w-12 h-12" />,
+      link: "/admin/ads",
+      color: "from-cyan-500 to-blue-600",
+      count: "View Ads"
+    },
+    {
       title: "Analytics",
       description: "View business performance and reports",
       icon: <BarChart3 className="w-12 h-12" />,
-      link: "/dashboard",
+      link: "/admin/analytics",
       color: "from-purple-500 to-pink-500",
       count: "View Stats"
     }

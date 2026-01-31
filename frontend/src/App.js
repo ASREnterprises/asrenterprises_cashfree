@@ -86,7 +86,7 @@ const HomePage = () => {
               />
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-gray-800">ASR ENTERPRISES</span>
-                <span className="text-xs text-gray-600">Solar Solutions, Patna</span>
+                <span className="text-xs text-green-600 font-medium">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </div>
             

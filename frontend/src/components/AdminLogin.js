@@ -1,8 +1,4 @@
 import { useState } from "react";
-import { Lock, User, Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-import { useState } from "react";
 import { Lock, User, Mail, Eye, EyeOff, Send, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";

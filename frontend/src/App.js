@@ -1290,11 +1290,6 @@ export default function App() {
             <StaffManagement />
           </ProtectedRoute>
         } />
-        <Route path="/admin/quotations" element={
-          <ProtectedRoute>
-            <QuotationSystem />
-          </ProtectedRoute>
-        } />
         <Route path="/admin/leads" element={
           <ProtectedRoute>
             <LeadsManagement />

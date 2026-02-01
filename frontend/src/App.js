@@ -475,55 +475,79 @@ const HomePage = () => {
             <p className="text-gray-600">Premium quality solar panels from India's leading manufacturers</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {/* TATA Power Solar - Blue theme */}
+            {/* TATA Power Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-blue-200 transition-all hover:-translate-y-1 group">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg p-3 mb-3 mx-auto w-fit">
-                <span className="text-white font-black text-lg tracking-tight">TATA</span>
+              <div className="h-16 flex items-center justify-center mb-3">
+                <img 
+                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/0d2af6b7df3260436770e617b16f6a0f2a50009bdc77c1142fdef729103d9c16.png" 
+                  alt="TATA Power Solar" 
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">TATA Power Solar</h3>
               <p className="text-xs text-blue-600 mt-1 font-medium">Premium Quality</p>
             </div>
             
-            {/* Adani Solar - Green theme */}
+            {/* Adani Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-green-200 transition-all hover:-translate-y-1 group">
-              <div className="bg-gradient-to-br from-green-600 to-green-800 rounded-lg p-3 mb-3 mx-auto w-fit">
-                <span className="text-white font-black text-lg tracking-tight">ADANI</span>
+              <div className="h-16 flex items-center justify-center mb-3">
+                <img 
+                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/7e44fb0664f7ca880a98a7e30257809e7e7b0553758016335bffc2cf9b7e4b5c.png" 
+                  alt="Adani Solar" 
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Adani Solar</h3>
               <p className="text-xs text-green-600 mt-1 font-medium">High Efficiency</p>
             </div>
             
-            {/* Luminous - Red/Orange theme */}
+            {/* Luminous Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-red-200 transition-all hover:-translate-y-1 group">
-              <div className="bg-gradient-to-br from-red-500 to-orange-500 rounded-lg p-3 mb-3 mx-auto w-fit">
-                <span className="text-white font-black text-lg tracking-tight">LUMINOUS</span>
+              <div className="h-16 flex items-center justify-center mb-3">
+                <img 
+                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/e4ff69a2db2ddd77e3eadf9b88c272f3b1d794b4dd1ecdb67c78587f032b23c7.png" 
+                  alt="Luminous Solar" 
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Luminous Solar</h3>
               <p className="text-xs text-red-600 mt-1 font-medium">Trusted Brand</p>
             </div>
             
-            {/* Loom Solar - Orange theme */}
+            {/* Loom Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-orange-200 transition-all hover:-translate-y-1 group">
-              <div className="bg-gradient-to-br from-orange-500 to-yellow-500 rounded-lg p-3 mb-3 mx-auto w-fit">
-                <span className="text-white font-black text-lg tracking-tight">LOOM</span>
+              <div className="h-16 flex items-center justify-center mb-3">
+                <img 
+                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/e30a70af5d97a874062d545fc21bd6b326738e16a76b3e1d0262f262369af6a7.png" 
+                  alt="Loom Solar" 
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Loom Solar</h3>
               <p className="text-xs text-orange-600 mt-1 font-medium">Made in India</p>
             </div>
             
-            {/* Waaree - Blue theme */}
+            {/* Waaree Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-sky-200 transition-all hover:-translate-y-1 group">
-              <div className="bg-gradient-to-br from-sky-500 to-blue-600 rounded-lg p-3 mb-3 mx-auto w-fit">
-                <span className="text-white font-black text-lg tracking-tight">WAAREE</span>
+              <div className="h-16 flex items-center justify-center mb-3">
+                <img 
+                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/dce4136cedddd5ce257d8420a8073457e3e8d6d12169c4450b7964138730eedc.png" 
+                  alt="Waaree Solar" 
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Waaree Solar</h3>
               <p className="text-xs text-sky-600 mt-1 font-medium">Industry Leader</p>
             </div>
             
-            {/* Vikram Solar - Dark Blue theme */}
+            {/* Vikram Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-indigo-200 transition-all hover:-translate-y-1 group">
-              <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg p-3 mb-3 mx-auto w-fit">
-                <span className="text-white font-black text-lg tracking-tight">VIKRAM</span>
+              <div className="h-16 flex items-center justify-center mb-3">
+                <img 
+                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/1fdd77d311f60a7f0f9c175883d6656d0bf2f6a73a555802a44938d308abbc8b.png" 
+                  alt="Vikram Solar" 
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Vikram Solar</h3>
               <p className="text-xs text-indigo-600 mt-1 font-medium">Global Standard</p>

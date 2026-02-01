@@ -1319,6 +1319,31 @@ export default function App() {
             <AIMarketingHub />
           </ProtectedRoute>
         } />
+        <Route path="/admin/photos" element={
+          <ProtectedRoute>
+            <PhotosManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/reviews" element={
+          <ProtectedRoute>
+            <ReviewsManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/festivals" element={
+          <ProtectedRoute>
+            <FestivalsManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/govt-news" element={
+          <ProtectedRoute>
+            <GovtNewsManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/security" element={
+          <ProtectedRoute>
+            <SecurityCenter />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );

@@ -638,8 +638,12 @@ const HomePage = () => {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
-                to="/leads"
-                className="inline-block bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg"
+                to="/#inquiry-form"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="inline-block bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg cursor-pointer"
               >
                 Apply for Subsidy Now →
               </Link>

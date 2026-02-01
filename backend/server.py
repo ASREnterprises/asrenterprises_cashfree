@@ -1059,7 +1059,11 @@ async def generate_social_post(request: Dict[str, Any]):
     post_type = request.get("type", "promotion")
     
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are a social media marketing specialist for ASR Enterprises, a solar installation company in Bihar, India."
+        )
         
         prompts = {
             "promotion": "Create a promotional social media post for ASR Enterprises, a solar installation company in Bihar. Mention PM Surya Ghar Yojana subsidy up to ₹78,000, 25-year warranty, and contact number 8877896889. Use emojis and hashtags.",

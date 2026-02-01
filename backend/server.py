@@ -213,10 +213,13 @@ class LeadCreate(BaseModel):
     name: str
     email: EmailStr
     phone: str
-    location: str
-    interest: str
+    district: str
+    address: Optional[str] = ""
+    property_type: str = "residential"
+    roof_type: str = "rcc"
+    monthly_bill: Optional[float] = None
+    roof_area: Optional[float] = None
     message: Optional[str] = ""
-    monthly_electricity_bill: Optional[float] = None
 
     @validator('name')
     def validate_name(cls, v):
@@ -231,7 +234,7 @@ class LeadCreate(BaseModel):
             raise ValueError('Invalid phone number format')
         return cleaned
     
-    @validator('location', 'interest', 'message')
+    @validator('district', 'address', 'message', 'property_type', 'roof_type')
     def sanitize_fields(cls, v):
         if v and is_suspicious_input(v):
             raise ValueError('Invalid input detected')
@@ -243,14 +246,95 @@ class Lead(BaseModel):
     name: str
     email: str
     phone: str
-    location: str
-    interest: str
-    message: str
-    monthly_electricity_bill: Optional[float] = None
+    district: str
+    address: str = ""
+    property_type: str = "residential"
+    roof_type: str = "rcc"
+    monthly_bill: Optional[float] = None
+    roof_area: Optional[float] = None
+    message: str = ""
     ai_analysis: Optional[str] = None
     lead_score: Optional[int] = None
     recommended_system: Optional[str] = None
+    status: str = "new"
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Photo Upload Model
+class WorkPhoto(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    description: str
+    image_url: str
+    location: str
+    system_size: str
+    category: str = "installation"
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Customer Review Model
+class CustomerReview(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    customer_name: str
+    location: str
+    rating: int = 5
+    review_text: str
+    system_installed: str
+    photo_url: Optional[str] = None
+    verified: bool = True
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Festival Post Model
+class FestivalPost(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    message: str
+    image_url: Optional[str] = None
+    is_active: bool = True
+    start_date: str
+    end_date: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Government News Model
+class GovtNews(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    summary: str
+    source: str
+    url: Optional[str] = None
+    category: str = "scheme"
+    is_active: bool = True
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Staff Model with AI features
+class StaffMember(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    phone: str
+    role: str
+    reportingTo: str
+    joiningDate: str
+    status: str = "active"
+    performance_score: int = 80
+    tasks_completed: int = 0
+    tasks_pending: int = 0
+    attendance_percentage: float = 95.0
+    ai_performance_insights: Optional[str] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Bihar Districts
+BIHAR_DISTRICTS = [
+    "Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", 
+    "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", 
+    "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", 
+    "Nawada", "Bagaha", "Buxar", "Kishanganj", "Sitamarhi", "Jamalpur", 
+    "Jehanabad", "Aurangabad", "Samastipur", "Madhubani", "Vaishali",
+    "Nalanda", "Rohtas", "Saran", "East Champaran", "West Champaran"
+]
 
 class ChatMessage(BaseModel):
     model_config = ConfigDict(extra="ignore")

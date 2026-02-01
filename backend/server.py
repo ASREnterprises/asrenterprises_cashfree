@@ -483,7 +483,11 @@ async def analyze_lead_with_ai(lead_data: LeadCreate) -> Dict[str, Any]:
 
 async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=session_id,
+            system_message="You are AI assistant for ASR ENTERPRISES, a solar installation company in Patna, Bihar."
+        )
         response = await chat.send_message(
             model="gpt-4o-mini",
             messages=[UserMessage(content=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.

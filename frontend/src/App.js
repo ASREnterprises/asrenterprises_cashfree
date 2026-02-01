@@ -18,10 +18,24 @@ import { AIMarketingHub } from "@/components/AIMarketing";
 import { AdminLogin } from "@/components/AdminLogin";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { StaffManagement } from "@/components/StaffManagement";
-import { QuotationSystem } from "@/components/QuotationSystem";
+import { PhotosManagement } from "@/components/PhotosManagement";
+import { ReviewsManagement } from "@/components/ReviewsManagement";
+import { FestivalsManagement } from "@/components/FestivalsManagement";
+import { GovtNewsManagement } from "@/components/GovtNewsManagement";
+import { SecurityCenter } from "@/components/SecurityCenter";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Bihar Districts
+const BIHAR_DISTRICTS = [
+  "Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", 
+  "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", 
+  "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", 
+  "Nawada", "Bagaha", "Buxar", "Kishanganj", "Sitamarhi", "Jamalpur", 
+  "Jehanabad", "Aurangabad", "Samastipur", "Madhubani", "Vaishali",
+  "Nalanda", "Rohtas", "Saran", "East Champaran", "West Champaran"
+];
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {

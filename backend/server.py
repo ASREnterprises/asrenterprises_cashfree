@@ -641,7 +641,11 @@ async def get_govt_news():
 async def refresh_govt_news():
     """AI-powered government news refresh for PM Surya Ghar Yojana Bihar"""
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are an AI assistant that generates news updates about government solar schemes in India."
+        )
         response = await chat.send_message(
             model="gpt-4o-mini",
             messages=[UserMessage(content="""Generate 3 latest realistic news updates about PM Surya Ghar Yojana for Bihar state. 

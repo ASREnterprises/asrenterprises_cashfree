@@ -1297,7 +1297,7 @@ export default function App() {
         } />
         <Route path="/admin/leads" element={
           <ProtectedRoute>
-            <LeadCapturePage />
+            <LeadsManagement />
           </ProtectedRoute>
         } />
         <Route path="/admin/analytics" element={

@@ -429,6 +429,13 @@ const HomePage = () => {
                 <span>WhatsApp Us</span>
               </a>
               <button
+                onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600 transition shadow-lg"
+                data-testid="free-consultation-btn"
+              >
+                Request Free Consultation
+              </button>
+              <button
                 onClick={() => navigate('/calculator')}
                 className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition shadow-lg"
                 data-testid="try-calculator-btn"

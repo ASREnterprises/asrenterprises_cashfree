@@ -1352,6 +1352,11 @@ export default function App() {
             <AIMarketingHub />
           </ProtectedRoute>
         } />
+        <Route path="/admin/social-media" element={
+          <ProtectedRoute>
+            <SocialMediaIntegration />
+          </ProtectedRoute>
+        } />
         <Route path="/admin/photos" element={
           <ProtectedRoute>
             <PhotosManagement />

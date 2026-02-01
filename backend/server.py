@@ -462,7 +462,7 @@ async def analyze_lead_with_ai(lead_data: LeadCreate) -> Dict[str, Any]:
         
         Return JSON only: {{"lead_score": 1-100, "recommended_system": "X kW System", "ai_analysis": "brief analysis"}}"""
         
-        response = await chat.send_message(model="gpt-4o-mini", messages=[UserMessage(content=prompt)])
+        response = await chat.send_message(model="gpt-4o-mini", messages=[UserMessage(text=prompt)])
         result = json.loads(response.replace("```json", "").replace("```", "").strip())
         return {
             "lead_score": result.get("lead_score", 75),
@@ -490,7 +490,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         )
         response = await chat.send_message(
             model="gpt-4o-mini",
-            messages=[UserMessage(content=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.
+            messages=[UserMessage(text=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.
             Phone: 8877896889, Email: asrenterprisespatna@gmail.com
             Office: Shop 10 AMAN SKS COMPLEX Khagaul Saguna Road Patna 801503
             
@@ -648,7 +648,7 @@ async def refresh_govt_news():
         )
         response = await chat.send_message(
             model="gpt-4o-mini",
-            messages=[UserMessage(content="""Generate 3 latest realistic news updates about PM Surya Ghar Yojana for Bihar state. 
+            messages=[UserMessage(text="""Generate 3 latest realistic news updates about PM Surya Ghar Yojana for Bihar state. 
             Include subsidy updates, new guidelines, or implementation news.
             Format as JSON array with fields: title, summary, category (scheme/subsidy/guideline/update)
             Make it realistic and helpful for Bihar residents interested in solar installation.
@@ -955,7 +955,7 @@ async def analyze_staff_performance(staff_id: str):
         )
         response = await chat.send_message(
             model="gpt-4o-mini",
-            messages=[UserMessage(content=f"""Analyze this staff member's performance and provide insights:
+            messages=[UserMessage(text=f"""Analyze this staff member's performance and provide insights:
             Name: {staff.get('name')}
             Role: {staff.get('role')}
             Tasks Completed: {completed}
@@ -1075,7 +1075,7 @@ async def generate_social_post(request: Dict[str, Any]):
         prompt = prompts.get(post_type, prompts["promotion"])
         response = await chat.send_message(
             model="gpt-4o-mini",
-            messages=[UserMessage(content=f"{prompt}\n\nKeep it under 280 characters for Twitter compatibility. Return just the post content, no explanations.")]
+            messages=[UserMessage(text=f"{prompt}\n\nKeep it under 280 characters for Twitter compatibility. Return just the post content, no explanations.")]
         )
         
         return {"success": True, "suggestions": [response.strip()]}

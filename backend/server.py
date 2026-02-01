@@ -1009,6 +1009,67 @@ async def get_ad_analytics():
 async def start_ai_marketing(request: Dict[str, Any]):
     return {"success": True, "content": [], "stats": {"postsGenerated": 5, "adsCreated": 3, "leadsGenerated": 12, "platformsActive": 6}}
 
+# Social Media Post Model
+class SocialPost(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    content: str
+    platforms: List[str] = []
+    status: str = "draft"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Social Media Integration APIs
+@api_router.get("/admin/social-posts")
+async def get_social_posts():
+    posts = await db.social_posts.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    return posts
+
+@api_router.post("/admin/social-posts")
+async def create_social_post(post_data: Dict[str, Any]):
+    post = SocialPost(
+        content=sanitize_input(post_data.get("content", "")),
+        platforms=post_data.get("platforms", []),
+        status=post_data.get("status", "draft")
+    )
+    doc = post.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.social_posts.insert_one(doc)
+    return post
+
+@api_router.post("/admin/social-posts/generate")
+async def generate_social_post(request: Dict[str, Any]):
+    """AI-powered social media post generator"""
+    post_type = request.get("type", "promotion")
+    
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        
+        prompts = {
+            "promotion": "Create a promotional social media post for ASR Enterprises, a solar installation company in Bihar. Mention PM Surya Ghar Yojana subsidy up to ₹78,000, 25-year warranty, and contact number 8877896889. Use emojis and hashtags.",
+            "project": "Create a social media post celebrating a successful solar installation project by ASR Enterprises in Bihar. Mention energy savings, professional installation, and invite others to contact 8877896889. Use emojis and hashtags.",
+            "festival": "Create a festive greeting social media post for ASR Enterprises, Bihar's trusted solar company. Make it warm, add solar energy reference, and mention contact 8877896889. Use emojis and hashtags.",
+            "scheme": "Create an informative social media post about PM Surya Ghar Muft Bijli Yojana government scheme for solar rooftop. Mention subsidy details (up to ₹78,000), how ASR Enterprises can help, and contact 8877896889. Use emojis and hashtags."
+        }
+        
+        prompt = prompts.get(post_type, prompts["promotion"])
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(content=f"{prompt}\n\nKeep it under 280 characters for Twitter compatibility. Return just the post content, no explanations.")]
+        )
+        
+        return {"success": True, "suggestions": [response.strip()]}
+    except Exception as e:
+        logger.error(f"Error generating social post: {e}")
+        # Return fallback content
+        fallback = {
+            "promotion": "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy. 25-year warranty + 5 years FREE maintenance! 📞 8877896889 #SolarPower #BiharSolar",
+            "project": "✨ Another successful installation! Our team completed a rooftop solar system in Bihar. Save 90% on bills! 📱 8877896889 #SolarInstallation",
+            "festival": "🎉 Warm wishes from ASR Enterprises! Go solar, save money, protect the environment! 🌞 #GreenEnergy #SolarBihar",
+            "scheme": "📢 PM Surya Ghar Yojana: Up to ₹78,000 subsidy for rooftop solar! ASR Enterprises can help you apply. 📞 8877896889 #GovtScheme"
+        }
+        return {"success": True, "suggestions": [fallback.get(post_type, fallback["promotion"])]}
+
 @api_router.get("/")
 async def root():
     return {"message": "ASR Enterprises Solar AI Platform API", "status": "active"}

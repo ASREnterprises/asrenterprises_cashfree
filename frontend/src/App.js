@@ -1333,7 +1333,7 @@ export default function App() {
         } />
         <Route path="/admin/analytics" element={
           <ProtectedRoute>
-            <DashboardPage />
+            <AnalyticsPage />
           </ProtectedRoute>
         } />
         <Route path="/admin/marketing" element={

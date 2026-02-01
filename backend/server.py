@@ -444,28 +444,55 @@ class Quotation(BaseModel):
 # AI Helper Functions
 async def analyze_lead_with_ai(lead_data: LeadCreate) -> Dict[str, Any]:
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"lead-analysis-{uuid.uuid4()}",
-            system_message="You are an expert solar energy consultant for ASR ENTERPRISES in Patna, Bihar."
-        ).with_model("openai", "gpt-5.2")
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        prompt = f"""Analyze this solar installation lead for ASR ENTERPRISES, Bihar:
+        Name: {lead_data.name}
+        District: {lead_data.district}
+        Property: {lead_data.property_type}
+        Roof: {lead_data.roof_type}
+        Monthly Bill: ₹{lead_data.monthly_bill or 'N/A'}
+        Roof Area: {lead_data.roof_area or 'N/A'} sq ft
         
-        prompt = f"""Analyze lead: {lead_data.name}, Location: {lead_data.location}, Interest: {lead_data.interest}, Bill: ₹{lead_data.monthly_electricity_bill or 'N/A'}. Return JSON: {{"lead_score": int, "recommended_system": "string", "analysis": "string"}}"""
-        response = await chat.send_message(UserMessage(text=prompt))
-        return json.loads(response)
-    except:
-        return {"lead_score": 75, "recommended_system": "3-5 kW System", "analysis": "Potential solar customer"}
+        Return JSON only: {{"lead_score": 1-100, "recommended_system": "X kW System", "ai_analysis": "brief analysis"}}"""
+        
+        response = await chat.send_message(model="gpt-4o-mini", messages=[UserMessage(content=prompt)])
+        result = json.loads(response.replace("```json", "").replace("```", "").strip())
+        return {
+            "lead_score": result.get("lead_score", 75),
+            "recommended_system": result.get("recommended_system", "3-5 kW System"),
+            "ai_analysis": result.get("ai_analysis", "Potential solar customer in Bihar")
+        }
+    except Exception as e:
+        logger.error(f"Lead analysis error: {e}")
+        # Calculate basic score based on bill
+        bill = lead_data.monthly_bill or 2000
+        score = min(95, 50 + int(bill / 100))
+        system = "2-3 kW" if bill < 2000 else "3-5 kW" if bill < 4000 else "5-10 kW"
+        return {
+            "lead_score": score,
+            "recommended_system": f"{system} System",
+            "ai_analysis": f"Customer from {lead_data.district}, Bihar. Suitable for {system} solar system based on usage."
+        }
 
 async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=session_id,
-            system_message="""You are AI assistant for ASR ENTERPRISES, Patna, Bihar. Phone: 8877896889, Email: asrenterprisespatna@gmail.com, Office: Shop 10 AMAN SKS COMPLEX Khagaul Saguna Road Patna 801503. Help with solar panels, PM Surya Ghar subsidy (max ₹78,000), EMI options. Keep under 150 words."""
-        ).with_model("openai", "gpt-5.2")
-        return await chat.send_message(UserMessage(text=user_message))
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(content=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.
+            Phone: 8877896889, Email: asrenterprisespatna@gmail.com
+            Office: Shop 10 AMAN SKS COMPLEX Khagaul Saguna Road Patna 801503
+            
+            Help with: Solar panels, PM Surya Ghar subsidy (max ₹78,000), EMI options, installation.
+            Brands: TATA Power Solar, Adani, Luminous, Loom Solar, Waaree, Vikram Solar (₹64-68/W)
+            
+            User message: {user_message}
+            
+            Keep response under 150 words. Be helpful and professional.""")]
+        )
+        return response
     except:
-        return "Thank you for contacting ASR ENTERPRISES! Call 8877896889 or email asrenterprisespatna@gmail.com"
+        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 8877896889 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
 
 # API Routes
 @api_router.get("/districts")

@@ -43,6 +43,218 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/admin/login" replace />;
 };
 
+// Solar Inquiry Form Component
+const SolarInquiryForm = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    district: "",
+    address: "",
+    property_type: "residential",
+    roof_type: "rcc",
+    monthly_bill: "",
+    roof_area: "",
+    message: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    
+    try {
+      const res = await axios.post(`${API}/leads`, {
+        ...formData,
+        monthly_bill: parseFloat(formData.monthly_bill) || null,
+        roof_area: parseFloat(formData.roof_area) || null
+      });
+      setSuccess(true);
+      setFormData({
+        name: "", email: "", phone: "", district: "", address: "",
+        property_type: "residential", roof_type: "rcc", monthly_bill: "", roof_area: "", message: ""
+      });
+      setTimeout(() => setSuccess(false), 5000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error submitting inquiry. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-orange-50 via-yellow-50 to-green-50 py-20" id="inquiry-form">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">Get Free Solar Consultation</h2>
+          <p className="text-xl text-gray-600">Fill the form below and our team will contact you within 24 hours</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Thank you! Your inquiry has been submitted. Our team will contact you soon.
+            </div>
+          )}
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center">
+              <AlertCircle className="w-5 h-5 mr-2" />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Full Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Phone Number *</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="10-digit mobile number"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Email Address *</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">District (Bihar) *</label>
+                <select
+                  value={formData.district}
+                  onChange={(e) => setFormData({...formData, district: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select your district</option>
+                  {BIHAR_DISTRICTS.map((dist) => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Property Type *</label>
+                <select
+                  value={formData.property_type}
+                  onChange={(e) => setFormData({...formData, property_type: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="agricultural">Agricultural</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Roof Type *</label>
+                <select
+                  value={formData.roof_type}
+                  onChange={(e) => setFormData({...formData, roof_type: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="rcc">RCC (Concrete)</option>
+                  <option value="tin">Tin/Metal Sheet</option>
+                  <option value="asbestos">Asbestos</option>
+                  <option value="tile">Tile</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Monthly Electricity Bill (₹)</label>
+                <input
+                  type="number"
+                  value={formData.monthly_bill}
+                  onChange={(e) => setFormData({...formData, monthly_bill: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="e.g., 3000"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Roof Area (sq ft)</label>
+                <input
+                  type="number"
+                  value={formData.roof_area}
+                  onChange={(e) => setFormData({...formData, roof_area: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Approximate available roof area"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 font-semibold mb-2">Address</label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="Your complete address"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 font-semibold mb-2">Additional Message</label>
+              <textarea
+                value={formData.message}
+                onChange={(e) => setFormData({...formData, message: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                rows={3}
+                placeholder="Any specific requirements or questions?"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-4 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-yellow-600 transition disabled:opacity-50 flex items-center justify-center"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  Submit Solar Inquiry
+                </>
+              )}
+            </button>
+
+            <p className="text-center text-gray-500 text-sm">
+              By submitting, you agree to be contacted by ASR Enterprises for solar consultation.
+            </p>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // HomePage Component
 const HomePage = () => {
   const navigate = useNavigate();

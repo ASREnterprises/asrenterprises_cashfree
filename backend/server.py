@@ -738,18 +738,27 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
     logger.warning(f"Failed OTP verification for {email} from IP: {client_ip}")
     raise HTTPException(status_code=401, detail="Invalid or expired OTP")
 
-# Staff Management
+# Staff Management with AI Features
 @api_router.get("/admin/staff")
 async def get_staff():
     staff = await db.staff.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
     return staff
 
 @api_router.post("/admin/staff")
-async def create_staff(staff_data: StaffMember):
-    doc = staff_data.model_dump()
+async def create_staff(staff_data: Dict[str, Any]):
+    staff = StaffMember(
+        name=sanitize_input(staff_data.get("name", "")),
+        email=staff_data.get("email", ""),
+        phone=staff_data.get("phone", ""),
+        role=staff_data.get("role", "staff"),
+        reportingTo=staff_data.get("reportingTo", ""),
+        joiningDate=staff_data.get("joiningDate", ""),
+        status=staff_data.get("status", "active")
+    )
+    doc = staff.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     await db.staff.insert_one(doc)
-    return staff_data
+    return staff
 
 @api_router.put("/admin/staff/{staff_id}")
 async def update_staff(staff_id: str, staff_data: Dict[str, Any]):
@@ -761,20 +770,106 @@ async def delete_staff(staff_id: str):
     await db.staff.delete_one({"id": staff_id})
     return {"success": True}
 
-# Quotations
-@api_router.get("/admin/quotations")
-async def get_quotations():
-    quotes = await db.quotations.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
-    return quotes
+@api_router.post("/admin/staff/{staff_id}/task")
+async def assign_task(staff_id: str, task_data: Dict[str, Any]):
+    """Assign task to staff member"""
+    await db.staff.update_one(
+        {"id": staff_id}, 
+        {"$inc": {"tasks_pending": 1}}
+    )
+    task = {
+        "id": str(uuid.uuid4()),
+        "staff_id": staff_id,
+        "title": sanitize_input(task_data.get("title", "")),
+        "description": sanitize_input(task_data.get("description", "")),
+        "priority": task_data.get("priority", "medium"),
+        "due_date": task_data.get("due_date", ""),
+        "status": "pending",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.staff_tasks.insert_one(task)
+    return {"success": True, "task": task}
 
-@api_router.post("/admin/quotations")
-async def create_quotation(quotation_data: Quotation):
-    doc = quotation_data.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    if isinstance(doc['date'], datetime):
-        doc['date'] = doc['date'].isoformat()
-    await db.quotations.insert_one(doc)
-    return quotation_data
+@api_router.get("/admin/staff/{staff_id}/tasks")
+async def get_staff_tasks(staff_id: str):
+    tasks = await db.staff_tasks.find({"staff_id": staff_id}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    return tasks
+
+@api_router.put("/admin/staff/task/{task_id}/complete")
+async def complete_task(task_id: str):
+    task = await db.staff_tasks.find_one({"id": task_id})
+    if task:
+        await db.staff_tasks.update_one({"id": task_id}, {"$set": {"status": "completed"}})
+        await db.staff.update_one(
+            {"id": task["staff_id"]}, 
+            {"$inc": {"tasks_completed": 1, "tasks_pending": -1}}
+        )
+    return {"success": True}
+
+@api_router.post("/admin/staff/{staff_id}/attendance")
+async def mark_attendance(staff_id: str, attendance_data: Dict[str, Any]):
+    """Mark staff attendance"""
+    attendance = {
+        "id": str(uuid.uuid4()),
+        "staff_id": staff_id,
+        "date": attendance_data.get("date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+        "status": attendance_data.get("status", "present"),
+        "check_in": attendance_data.get("check_in", ""),
+        "check_out": attendance_data.get("check_out", ""),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.staff_attendance.insert_one(attendance)
+    return {"success": True}
+
+@api_router.get("/admin/staff/{staff_id}/attendance")
+async def get_staff_attendance(staff_id: str):
+    attendance = await db.staff_attendance.find({"staff_id": staff_id}, {"_id": 0}).sort("date", -1).to_list(30)
+    return attendance
+
+@api_router.post("/admin/staff/{staff_id}/ai-analysis")
+async def analyze_staff_performance(staff_id: str):
+    """AI-powered staff performance analysis"""
+    staff = await db.staff.find_one({"id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    tasks = await db.staff_tasks.find({"staff_id": staff_id}, {"_id": 0}).to_list(50)
+    attendance = await db.staff_attendance.find({"staff_id": staff_id}, {"_id": 0}).to_list(30)
+    
+    completed = sum(1 for t in tasks if t.get("status") == "completed")
+    pending = sum(1 for t in tasks if t.get("status") == "pending")
+    present_days = sum(1 for a in attendance if a.get("status") == "present")
+    
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(content=f"""Analyze this staff member's performance and provide insights:
+            Name: {staff.get('name')}
+            Role: {staff.get('role')}
+            Tasks Completed: {completed}
+            Tasks Pending: {pending}
+            Attendance (last 30 days): {present_days} days present
+            
+            Provide:
+            1. Performance rating (1-100)
+            2. Strengths
+            3. Areas for improvement
+            4. Recommendations
+            
+            Be constructive and helpful. Keep response concise.""")]
+        )
+        
+        await db.staff.update_one(
+            {"id": staff_id}, 
+            {"$set": {"ai_performance_insights": response, "performance_score": min(100, 50 + completed * 5)}}
+        )
+        
+        return {"success": True, "analysis": response}
+    except Exception as e:
+        logger.error(f"Error analyzing staff: {e}")
+        default_analysis = f"Performance Score: {50 + completed * 5}/100. Tasks completed: {completed}. Attendance: {present_days} days."
+        return {"success": True, "analysis": default_analysis}
 
 # Marketing
 @api_router.post("/marketing/campaigns", response_model=Campaign)

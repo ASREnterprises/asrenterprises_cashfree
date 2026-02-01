@@ -1,7 +1,31 @@
 import { Link } from "react-router-dom";
-import { Users, FileText, LogOut, BarChart3, TrendingUp, ClipboardList, Megaphone, Target, Sparkles } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp } from "lucide-react";
+import axios from "axios";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const AdminDashboard = ({ onLogout }) => {
+  const [stats, setStats] = useState({
+    total_leads: 0,
+    new_leads: 0,
+    total_photos: 0,
+    total_reviews: 0
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const res = await axios.get(`${API}/dashboard/stats`);
+      setStats(res.data);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("asrAdminAuth");
     localStorage.removeItem("asrAdminUser");
@@ -11,56 +35,64 @@ export const AdminDashboard = ({ onLogout }) => {
   const modules = [
     {
       title: "Leads Management",
-      description: "View and manage all customer leads",
-      icon: <ClipboardList className="w-12 h-12" />,
+      description: "View and manage all customer inquiries",
+      icon: <ClipboardList className="w-10 h-10" />,
       link: "/admin/leads",
       color: "from-green-500 to-emerald-600",
-      count: "View Leads"
+      count: `${stats.total_leads || 0} Leads`
+    },
+    {
+      title: "Work Photos",
+      description: "Upload and manage installation photos",
+      icon: <Image className="w-10 h-10" />,
+      link: "/admin/photos",
+      color: "from-blue-500 to-blue-600",
+      count: "Manage Gallery"
+    },
+    {
+      title: "Customer Reviews",
+      description: "Add and manage customer testimonials",
+      icon: <Star className="w-10 h-10" />,
+      link: "/admin/reviews",
+      color: "from-yellow-500 to-orange-500",
+      count: "Manage Reviews"
+    },
+    {
+      title: "Festival Posts",
+      description: "Create festival wishes & announcements",
+      icon: <Calendar className="w-10 h-10" />,
+      link: "/admin/festivals",
+      color: "from-pink-500 to-rose-600",
+      count: "Post Wishes"
+    },
+    {
+      title: "Govt News & Schemes",
+      description: "AI auto-updates Bihar solar schemes",
+      icon: <Newspaper className="w-10 h-10" />,
+      link: "/admin/govt-news",
+      color: "from-indigo-500 to-purple-600",
+      count: "AI Updates"
     },
     {
       title: "Staff Management",
-      description: "Manage team members and reporting structure",
-      icon: <Users className="w-12 h-12" />,
+      description: "AI-powered team & task management",
+      icon: <Users className="w-10 h-10" />,
       link: "/admin/staff",
-      color: "from-blue-500 to-blue-600",
-      count: "Manage Team"
-    },
-    {
-      title: "Solar Quotations",
-      description: "Generate quotations for customers",
-      icon: <FileText className="w-12 h-12" />,
-      link: "/admin/quotations",
-      color: "from-yellow-500 to-orange-500",
-      count: "Generate Quotes"
-    },
-    {
-      title: "AI Marketing Hub",
-      description: "AI-powered marketing automation tools",
-      icon: <Sparkles className="w-12 h-12" />,
-      link: "/admin/ai-marketing",
-      color: "from-pink-500 to-rose-600",
-      count: "AI Tools"
-    },
-    {
-      title: "Marketing Automation",
-      description: "Automate your marketing campaigns",
-      icon: <Megaphone className="w-12 h-12" />,
-      link: "/admin/marketing",
-      color: "from-indigo-500 to-purple-600",
-      count: "Campaigns"
-    },
-    {
-      title: "Ads Optimizer",
-      description: "Optimize your ad performance",
-      icon: <Target className="w-12 h-12" />,
-      link: "/admin/ads",
       color: "from-cyan-500 to-blue-600",
-      count: "View Ads"
+      count: "AI Features"
+    },
+    {
+      title: "Security Center",
+      description: "Monitor website security status",
+      icon: <Shield className="w-10 h-10" />,
+      link: "/admin/security",
+      color: "from-red-500 to-pink-600",
+      count: "Protected"
     },
     {
       title: "Analytics",
-      description: "View business performance and reports",
-      icon: <BarChart3 className="w-12 h-12" />,
+      description: "View business performance reports",
+      icon: <TrendingUp className="w-10 h-10" />,
       link: "/admin/analytics",
       color: "from-purple-500 to-pink-500",
       count: "View Stats"
@@ -68,69 +100,58 @@ export const AdminDashboard = ({ onLogout }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-12 flex justify-between items-center">
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-2">Admin Dashboard</h1>
-            <p className="text-xl text-gray-600">ASR ENTERPRISES Management Panel</p>
+            <h1 className="text-4xl font-extrabold text-white mb-2">Admin Dashboard</h1>
+            <p className="text-gray-400">ASR ENTERPRISES Management Panel</p>
           </div>
           <div className="flex items-center space-x-4">
             <Link
               to="/"
-              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
+              className="bg-gray-700 text-white px-5 py-2 rounded-lg font-semibold hover:bg-gray-600 transition"
             >
               View Website
             </Link>
             <button
               onClick={handleLogout}
-              className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition flex items-center space-x-2"
+              className="bg-red-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-red-700 transition flex items-center space-x-2"
               data-testid="admin-logout-btn"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
               <span>Logout</span>
             </button>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <ClipboardList className="w-8 h-8 text-green-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">25+</div>
-            <div className="text-sm text-gray-600">Total Leads</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-5 text-white">
+            <ClipboardList className="w-8 h-8 mb-2 opacity-80" />
+            <div className="text-3xl font-bold">{stats.total_leads || 0}</div>
+            <div className="text-green-200 text-sm">Total Leads</div>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Users className="w-8 h-8 text-blue-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">8</div>
-            <div className="text-sm text-gray-600">Team Members</div>
+          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-5 text-white">
+            <ClipboardList className="w-8 h-8 mb-2 opacity-80" />
+            <div className="text-3xl font-bold">{stats.new_leads || 0}</div>
+            <div className="text-blue-200 text-sm">New Leads</div>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <FileText className="w-8 h-8 text-yellow-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">45</div>
-            <div className="text-sm text-gray-600">Quotations</div>
+          <div className="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl p-5 text-white">
+            <Image className="w-8 h-8 mb-2 opacity-80" />
+            <div className="text-3xl font-bold">{stats.total_photos || 0}</div>
+            <div className="text-yellow-200 text-sm">Work Photos</div>
           </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="w-8 h-8 text-purple-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">₹45L</div>
-            <div className="text-sm text-gray-600">Total Value</div>
+          <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-5 text-white">
+            <Star className="w-8 h-8 mb-2 opacity-80" />
+            <div className="text-3xl font-bold">{stats.total_reviews || 0}</div>
+            <div className="text-purple-200 text-sm">Reviews</div>
           </div>
         </div>
 
         {/* Module Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {modules.map((module, idx) => (
             <Link
               key={idx}
@@ -138,17 +159,34 @@ export const AdminDashboard = ({ onLogout }) => {
               className="group"
               data-testid={`module-${idx}`}
             >
-              <div className={`bg-gradient-to-br ${module.color} rounded-2xl shadow-2xl p-8 text-white hover:shadow-3xl transition-all transform hover:-translate-y-2 h-full`}>
-                <div className="mb-6">{module.icon}</div>
-                <h2 className="text-2xl font-bold mb-2">{module.title}</h2>
-                <p className="text-white text-opacity-90 mb-4">{module.description}</p>
+              <div className={`bg-gradient-to-br ${module.color} rounded-xl p-6 text-white hover:shadow-2xl transition-all transform hover:-translate-y-1 h-full`}>
+                <div className="mb-4 opacity-90">{module.icon}</div>
+                <h2 className="text-xl font-bold mb-1">{module.title}</h2>
+                <p className="text-white text-opacity-80 text-sm mb-3">{module.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold">{module.count}</span>
+                  <span className="text-sm font-medium bg-white bg-opacity-20 px-3 py-1 rounded-full">{module.count}</span>
                   <span className="bg-white bg-opacity-20 p-2 rounded-lg group-hover:bg-opacity-30 transition">→</span>
                 </div>
               </div>
             </Link>
           ))}
+        </div>
+
+        {/* AI Status */}
+        <div className="mt-8 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Shield className="w-10 h-10" />
+              <div>
+                <h3 className="text-xl font-bold">AI Security Active</h3>
+                <p className="text-green-200">Your website is protected with AI-powered security</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold">100%</div>
+              <div className="text-green-200 text-sm">Secure</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

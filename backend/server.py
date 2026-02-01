@@ -246,11 +246,14 @@ class Lead(BaseModel):
     name: str
     email: str
     phone: str
-    district: str
+    district: str = ""
+    location: str = ""
+    interest: str = ""
     address: str = ""
     property_type: str = "residential"
     roof_type: str = "rcc"
     monthly_bill: Optional[float] = None
+    monthly_electricity_bill: Optional[float] = None
     roof_area: Optional[float] = None
     message: str = ""
     ai_analysis: Optional[str] = None

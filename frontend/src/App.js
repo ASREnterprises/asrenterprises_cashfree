@@ -25,6 +25,7 @@ import { GovtNewsManagement } from "@/components/GovtNewsManagement";
 import { SecurityCenter } from "@/components/SecurityCenter";
 import { LeadsManagement } from "@/components/LeadsManagement";
 import { AnalyticsPage } from "@/components/AnalyticsPage";
+import { SocialMediaIntegration } from "@/components/SocialMediaIntegration";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

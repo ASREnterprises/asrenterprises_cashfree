@@ -72,14 +72,25 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - FestivalPost: {title, message, image_url, start_date, end_date, is_active}
 - GovtNews: {title, summary, source, category, is_active}
 - StaffMember: {name, email, phone, role, reportingTo, tasks_completed, performance_score, ai_insights}
+- SocialPost: {content, platforms, status, created_at} (NEW)
 
 ## Changelog
+- **2026-02-01:** Fixed Analytics page (was broken - route existed but component missing). Added Social Media Hub with AI post generator. Fixed LlmChat initialization with session_id and system_message.
 - **2025-02-01:** Major update - Added 8 admin modules, solar inquiry form, AI security, removed quotation
 - **2025-01-31:** Added brands section, admin login security, flash banner
 - **2025-01-31:** Fixed preview error, implemented initial features
 
 ## Future Enhancements
-- Real email OTP integration
+- Real email OTP integration (user chose to keep mock OTP 131993 for now)
 - Deployment to www.asrenterprisespatna.com
-- Real brand logo images
+- Connect real social media accounts (Facebook, Instagram, Google Business)
 - SMS notifications for leads
+
+## API Endpoints
+### Analytics
+- GET `/api/admin/analytics` - Comprehensive analytics with leads by district, status, property type
+
+### Social Media
+- GET `/api/admin/social-posts` - Get all scheduled/published posts
+- POST `/api/admin/social-posts` - Create new social post
+- POST `/api/admin/social-posts/generate` - AI-generate post content (types: promotion, project, festival, scheme)

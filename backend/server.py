@@ -468,6 +468,11 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         return "Thank you for contacting ASR ENTERPRISES! Call 8877896889 or email asrenterprisespatna@gmail.com"
 
 # API Routes
+@api_router.get("/districts")
+async def get_districts():
+    """Get list of Bihar districts"""
+    return {"districts": BIHAR_DISTRICTS}
+
 @api_router.post("/leads", response_model=Lead)
 async def create_lead(lead_data: LeadCreate):
     ai_result = await analyze_lead_with_ai(lead_data)
@@ -481,9 +486,169 @@ async def create_lead(lead_data: LeadCreate):
 async def get_leads():
     leads = await db.leads.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
     for lead in leads:
-        if isinstance(lead['timestamp'], str):
+        if isinstance(lead.get('timestamp'), str):
             lead['timestamp'] = datetime.fromisoformat(lead['timestamp'])
     return leads
+
+@api_router.put("/leads/{lead_id}/status")
+async def update_lead_status(lead_id: str, data: Dict[str, Any]):
+    status = data.get("status", "new")
+    await db.leads.update_one({"id": lead_id}, {"$set": {"status": status}})
+    return {"success": True}
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str):
+    await db.leads.delete_one({"id": lead_id})
+    return {"success": True}
+
+# Work Photos Management
+@api_router.get("/photos")
+async def get_photos():
+    photos = await db.work_photos.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    return photos
+
+@api_router.post("/admin/photos")
+async def upload_photo(photo_data: Dict[str, Any]):
+    photo = WorkPhoto(
+        title=sanitize_input(photo_data.get("title", "")),
+        description=sanitize_input(photo_data.get("description", "")),
+        image_url=photo_data.get("image_url", ""),
+        location=sanitize_input(photo_data.get("location", "")),
+        system_size=photo_data.get("system_size", ""),
+        category=photo_data.get("category", "installation")
+    )
+    doc = photo.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.work_photos.insert_one(doc)
+    return photo
+
+@api_router.delete("/admin/photos/{photo_id}")
+async def delete_photo(photo_id: str):
+    await db.work_photos.delete_one({"id": photo_id})
+    return {"success": True}
+
+# Customer Reviews Management
+@api_router.get("/reviews")
+async def get_reviews():
+    reviews = await db.customer_reviews.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    return reviews
+
+@api_router.post("/admin/reviews")
+async def add_review(review_data: Dict[str, Any]):
+    review = CustomerReview(
+        customer_name=sanitize_input(review_data.get("customer_name", "")),
+        location=sanitize_input(review_data.get("location", "")),
+        rating=int(review_data.get("rating", 5)),
+        review_text=sanitize_input(review_data.get("review_text", "")),
+        system_installed=review_data.get("system_installed", ""),
+        photo_url=review_data.get("photo_url", "")
+    )
+    doc = review.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.customer_reviews.insert_one(doc)
+    return review
+
+@api_router.delete("/admin/reviews/{review_id}")
+async def delete_review(review_id: str):
+    await db.customer_reviews.delete_one({"id": review_id})
+    return {"success": True}
+
+# Festival Posts Management
+@api_router.get("/festivals")
+async def get_festivals():
+    festivals = await db.festival_posts.find({"is_active": True}, {"_id": 0}).sort("timestamp", -1).to_list(10)
+    return festivals
+
+@api_router.get("/festivals/active")
+async def get_active_festival():
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    festival = await db.festival_posts.find_one(
+        {"is_active": True, "start_date": {"$lte": today}, "end_date": {"$gte": today}},
+        {"_id": 0}
+    )
+    return festival
+
+@api_router.post("/admin/festivals")
+async def create_festival(festival_data: Dict[str, Any]):
+    festival = FestivalPost(
+        title=sanitize_input(festival_data.get("title", "")),
+        message=sanitize_input(festival_data.get("message", "")),
+        image_url=festival_data.get("image_url", ""),
+        start_date=festival_data.get("start_date", ""),
+        end_date=festival_data.get("end_date", "")
+    )
+    doc = festival.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.festival_posts.insert_one(doc)
+    return festival
+
+@api_router.put("/admin/festivals/{festival_id}")
+async def update_festival(festival_id: str, festival_data: Dict[str, Any]):
+    update_data = {k: sanitize_input(v) if isinstance(v, str) else v for k, v in festival_data.items()}
+    await db.festival_posts.update_one({"id": festival_id}, {"$set": update_data})
+    return {"success": True}
+
+@api_router.delete("/admin/festivals/{festival_id}")
+async def delete_festival(festival_id: str):
+    await db.festival_posts.delete_one({"id": festival_id})
+    return {"success": True}
+
+# Government News - AI Auto-fetch
+@api_router.get("/govt-news")
+async def get_govt_news():
+    news = await db.govt_news.find({"is_active": True}, {"_id": 0}).sort("timestamp", -1).to_list(10)
+    return news
+
+@api_router.post("/admin/govt-news/refresh")
+async def refresh_govt_news():
+    """AI-powered government news refresh for PM Surya Ghar Yojana Bihar"""
+    try:
+        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(content="""Generate 3 latest realistic news updates about PM Surya Ghar Yojana for Bihar state. 
+            Include subsidy updates, new guidelines, or implementation news.
+            Format as JSON array with fields: title, summary, category (scheme/subsidy/guideline/update)
+            Make it realistic and helpful for Bihar residents interested in solar installation.
+            Example format: [{"title": "...", "summary": "...", "category": "scheme"}]""")]
+        )
+        
+        # Parse AI response
+        import ast
+        news_items = json.loads(response.replace("```json", "").replace("```", "").strip())
+        
+        # Store in database
+        for item in news_items:
+            news = GovtNews(
+                title=item.get("title", ""),
+                summary=item.get("summary", ""),
+                source="PM Surya Ghar Yojana - Bihar",
+                category=item.get("category", "update")
+            )
+            doc = news.model_dump()
+            doc['timestamp'] = doc['timestamp'].isoformat()
+            await db.govt_news.insert_one(doc)
+        
+        return {"success": True, "message": f"Added {len(news_items)} news updates"}
+    except Exception as e:
+        logger.error(f"Error refreshing govt news: {e}")
+        # Add default news if AI fails
+        default_news = [
+            {"title": "PM Surya Ghar Yojana: ₹78,000 Maximum Subsidy Available", "summary": "Bihar residents can avail up to ₹78,000 subsidy for rooftop solar installation under PM Surya Ghar Muft Bijli Yojana. Apply through official portal.", "category": "subsidy"},
+            {"title": "Free Electricity for 1 Crore Homes Target", "summary": "Government aims to provide free electricity to 1 crore households through rooftop solar. Bihar allocation increased for FY 2025-26.", "category": "scheme"},
+            {"title": "Simplified Application Process for Bihar", "summary": "BREDA has simplified the solar subsidy application process. Residents can now apply online with minimal documentation.", "category": "update"}
+        ]
+        for item in default_news:
+            news = GovtNews(title=item["title"], summary=item["summary"], source="PM Surya Ghar Yojana - Bihar", category=item["category"])
+            doc = news.model_dump()
+            doc['timestamp'] = doc['timestamp'].isoformat()
+            await db.govt_news.insert_one(doc)
+        return {"success": True, "message": "Added default news updates"}
+
+@api_router.delete("/admin/govt-news/{news_id}")
+async def delete_govt_news(news_id: str):
+    await db.govt_news.delete_one({"id": news_id})
+    return {"success": True}
 
 @api_router.post("/chat/whatsapp")
 async def whatsapp_chat(chat_request: ChatRequest):
@@ -499,7 +664,7 @@ async def whatsapp_chat(chat_request: ChatRequest):
 async def calculate_solar(calc_request: SolarCalculationRequest):
     avg_daily = (calc_request.monthly_bill / calc_request.electricity_rate) / 30
     capacity = avg_daily / 4
-    cost = capacity * 50000
+    cost = capacity * 65000  # Updated to ₹64-68/W average
     subsidy = min(78000, capacity * 30000 if capacity <= 2 else 60000 + ((capacity - 2) * 18000)) if capacity <= 3 else 78000
     final_cost = cost - subsidy
     monthly_savings = calc_request.monthly_bill * 0.85
@@ -526,7 +691,10 @@ async def get_dashboard_stats():
         "total_calculations": await db.solar_calculations.count_documents({}),
         "total_campaigns": await db.campaigns.count_documents({}),
         "high_score_leads": await db.leads.count_documents({"lead_score": {"$gte": 80}}),
-        "recent_leads": await db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5)
+        "recent_leads": await db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5),
+        "new_leads": await db.leads.count_documents({"status": "new"}),
+        "total_photos": await db.work_photos.count_documents({}),
+        "total_reviews": await db.customer_reviews.count_documents({})
     }
 
 # Admin OTP APIs

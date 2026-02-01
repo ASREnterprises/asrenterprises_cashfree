@@ -948,7 +948,11 @@ async def analyze_staff_performance(staff_id: str):
     present_days = sum(1 for a in attendance if a.get("status") == "present")
     
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are an HR analytics AI assistant that provides performance insights for staff members."
+        )
         response = await chat.send_message(
             model="gpt-4o-mini",
             messages=[UserMessage(content=f"""Analyze this staff member's performance and provide insights:

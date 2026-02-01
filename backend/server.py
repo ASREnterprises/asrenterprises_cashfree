@@ -447,7 +447,11 @@ class Quotation(BaseModel):
 # AI Helper Functions
 async def analyze_lead_with_ai(lead_data: LeadCreate) -> Dict[str, Any]:
     try:
-        chat = LlmChat(api_key=EMERGENT_LLM_KEY)
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are an AI assistant for ASR Enterprises, a solar installation company in Bihar, India."
+        )
         prompt = f"""Analyze this solar installation lead for ASR ENTERPRISES, Bihar:
         Name: {lead_data.name}
         District: {lead_data.district}

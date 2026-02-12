@@ -6,7 +6,7 @@ import {
   Phone, Mail, MapPin, DollarSign, CheckCircle, Clock, 
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
-  Send, ChevronRight, Edit, Trash2, Eye, MessageSquare
+  Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -26,19 +26,22 @@ export const CRMDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardData, setDashboardData] = useState(null);
   const [leads, setLeads] = useState([]);
-  const [employees, setEmployees] = useState([]);
+  const [staffAccounts, setStaffAccounts] = useState([]);
   const [followups, setFollowups] = useState([]);
   const [projects, setProjects] = useState([]);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
-  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showFollowupModal, setShowFollowupModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [filterStage, setFilterStage] = useState("");
+  const [newStaffForm, setNewStaffForm] = useState({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123' });
 
   useEffect(() => {
     fetchAllData();
@@ -47,7 +50,7 @@ export const CRMDashboard = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [dashRes, leadsRes, empRes, followRes, projRes, payRes] = await Promise.all([
+      const [dashRes, leadsRes, staffRes, followRes, projRes, payRes] = await Promise.all([
         axios.get(`${API}/crm/dashboard`),
         axios.get(`${API}/crm/leads`),
         axios.get(`${API}/crm/employees`),

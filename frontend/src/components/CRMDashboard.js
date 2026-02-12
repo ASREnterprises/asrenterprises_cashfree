@@ -586,20 +586,73 @@ export const CRMDashboard = () => {
                       <span className="truncate">{staff.email}</span>
                     </div>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-700">
-                    <button
-                      onClick={async () => {
-                        const newPass = prompt('Enter new password:', 'asr@123');
-                        if (newPass) {
-                          await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass });
-                          alert(`Password reset to: ${newPass}`);
-                        }
-                      }}
-                      className="text-blue-400 hover:text-blue-300 text-sm flex items-center space-x-1"
-                    >
-                      <Key className="w-3 h-3" />
-                      <span>Reset Password</span>
-                    </button>
+                  
+                  {/* Admin Actions */}
+                  <div className="mt-4 pt-4 border-t border-gray-700 space-y-2">
+                    {/* Toggle Active Status */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-sm">Account Status</span>
+                      <button
+                        onClick={async () => {
+                          const newStatus = !staff.is_active;
+                          await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: newStatus });
+                          fetchAllData();
+                          alert(newStatus ? 'Staff activated' : 'Staff deactivated');
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                          staff.is_active 
+                            ? 'bg-green-600 hover:bg-green-700 text-white' 
+                            : 'bg-red-600 hover:bg-red-700 text-white'
+                        }`}
+                      >
+                        {staff.is_active ? 'Active' : 'Inactive'}
+                      </button>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <button
+                        onClick={() => {
+                          setEditStaffForm({
+                            staff_id: staff.staff_id,
+                            name: staff.name,
+                            email: staff.email,
+                            phone: staff.phone,
+                            role: staff.role
+                          });
+                          setShowEditStaffModal(true);
+                        }}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1"
+                      >
+                        <Edit className="w-3 h-3" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const newPass = prompt('Enter new password for ' + staff.name + ':', 'asr@123');
+                          if (newPass) {
+                            await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass });
+                            alert(`Password updated to: ${newPass}\nShare this with ${staff.name}`);
+                          }
+                        }}
+                        className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1"
+                      >
+                        <Key className="w-3 h-3" />
+                        <span>Password</span>
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (window.confirm(`Are you sure you want to DELETE ${staff.name}'s account?\n\nThis will unassign all their leads and cannot be undone.`)) {
+                            await axios.delete(`${API}/admin/staff-accounts/${staff.staff_id}`);
+                            fetchAllData();
+                            alert('Staff account deleted');
+                          }
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -608,6 +661,90 @@ export const CRMDashboard = () => {
                   No staff accounts created yet. Click "Create Staff Account" to add your first team member.
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Edit Staff Modal */}
+        {showEditStaffModal && editStaffForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Edit className="w-5 h-5 text-blue-400" />
+                  <span>Edit Staff: {editStaffForm.staff_id}</span>
+                </h2>
+                <button onClick={() => setShowEditStaffModal(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={editStaffForm.name}
+                    onChange={(e) => setEditStaffForm({...editStaffForm, name: e.target.value})}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    value={editStaffForm.phone}
+                    onChange={(e) => setEditStaffForm({...editStaffForm, phone: e.target.value})}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={editStaffForm.email}
+                    onChange={(e) => setEditStaffForm({...editStaffForm, email: e.target.value})}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Role</label>
+                  <select
+                    value={editStaffForm.role}
+                    onChange={(e) => setEditStaffForm({...editStaffForm, role: e.target.value})}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  >
+                    <option value="sales">Sales Executive</option>
+                    <option value="survey">Survey Team</option>
+                    <option value="installation">Installation Team</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={async () => {
+                    await axios.put(`${API}/admin/staff-accounts/${editStaffForm.staff_id}/update`, {
+                      name: editStaffForm.name,
+                      email: editStaffForm.email,
+                      phone: editStaffForm.phone,
+                      role: editStaffForm.role
+                    });
+                    setShowEditStaffModal(false);
+                    setEditStaffForm(null);
+                    fetchAllData();
+                    alert('Staff details updated');
+                  }}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+                <button
+                  onClick={() => setShowEditStaffModal(false)}
+                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}

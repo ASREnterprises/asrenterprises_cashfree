@@ -1600,6 +1600,206 @@ async def get_staff_details(staff_id: str):
         "pending_followups": len([f for f in followups if f.get("status") == "pending"])
     }
 
+# ==================== TASK MANAGEMENT APIs ====================
+
+@api_router.get("/crm/tasks")
+async def get_all_tasks(staff_id: Optional[str] = None, status: Optional[str] = None, date: Optional[str] = None):
+    """Get all tasks with optional filters"""
+    query = {}
+    if staff_id:
+        query["staff_id"] = staff_id
+    if status:
+        query["status"] = status
+    if date:
+        query["due_date"] = date
+    tasks = await db.crm_tasks.find(query, {"_id": 0}).sort("due_date", 1).to_list(200)
+    return tasks
+
+@api_router.post("/crm/tasks")
+async def create_task(data: Dict[str, Any]):
+    """Admin creates task for staff"""
+    # Get staff name
+    staff = await db.crm_staff_accounts.find_one({"id": data.get("staff_id")}, {"_id": 0})
+    staff_name = staff.get("name", "") if staff else ""
+    
+    # Get lead name if lead_id provided
+    lead_name = ""
+    if data.get("lead_id"):
+        lead = await db.crm_leads.find_one({"id": data.get("lead_id")}, {"_id": 0})
+        lead_name = lead.get("name", "") if lead else ""
+    
+    task = StaffTask(
+        staff_id=data.get("staff_id", ""),
+        staff_name=staff_name,
+        title=sanitize_input(data.get("title", "")),
+        description=sanitize_input(data.get("description", "")),
+        task_type=data.get("task_type", "call"),
+        lead_id=data.get("lead_id"),
+        lead_name=lead_name,
+        priority=data.get("priority", "medium"),
+        due_date=data.get("due_date", ""),
+        due_time=data.get("due_time", "10:00"),
+        created_by=data.get("created_by", "admin")
+    )
+    doc = task.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_tasks.insert_one(doc)
+    return task
+
+@api_router.put("/crm/tasks/{task_id}")
+async def update_task(task_id: str, data: Dict[str, Any]):
+    """Update task status or details"""
+    update_fields = {}
+    for key in ["status", "notes", "priority", "due_date", "due_time"]:
+        if key in data:
+            update_fields[key] = data[key]
+    
+    if data.get("status") == "completed":
+        update_fields["completed_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.crm_tasks.update_one({"id": task_id}, {"$set": update_fields})
+    return {"success": True}
+
+@api_router.delete("/crm/tasks/{task_id}")
+async def delete_task(task_id: str):
+    await db.crm_tasks.delete_one({"id": task_id})
+    return {"success": True}
+
+@api_router.get("/staff/{staff_id}/tasks")
+async def get_staff_tasks(staff_id: str, date: Optional[str] = None):
+    """Get tasks for a specific staff member"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    query = {"staff_id": staff.get("id")}
+    if date:
+        query["due_date"] = date
+    
+    tasks = await db.crm_tasks.find(query, {"_id": 0}).sort("due_time", 1).to_list(100)
+    return tasks
+
+@api_router.get("/staff/{staff_id}/tasks/today")
+async def get_staff_today_tasks(staff_id: str):
+    """Get today's tasks for staff"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    tasks = await db.crm_tasks.find(
+        {"staff_id": staff.get("id"), "due_date": today},
+        {"_id": 0}
+    ).sort("due_time", 1).to_list(50)
+    return tasks
+
+# ==================== ACTIVITY TIMELINE APIs ====================
+
+@api_router.get("/crm/leads/{lead_id}/activities")
+async def get_lead_activities(lead_id: str):
+    """Get activity timeline for a lead"""
+    activities = await db.crm_activities.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(100)
+    return activities
+
+@api_router.post("/crm/leads/{lead_id}/activities")
+async def add_lead_activity(lead_id: str, data: Dict[str, Any]):
+    """Add activity/note to lead timeline"""
+    # Get staff info if staff_id provided
+    staff_name = ""
+    if data.get("staff_id"):
+        staff = await db.crm_staff_accounts.find_one({"staff_id": data.get("staff_id")}, {"_id": 0})
+        staff_name = staff.get("name", "") if staff else data.get("staff_name", "")
+    
+    activity = ActivityLog(
+        lead_id=lead_id,
+        staff_id=data.get("staff_id"),
+        staff_name=staff_name or data.get("staff_name", "Admin"),
+        activity_type=data.get("activity_type", "note"),
+        title=sanitize_input(data.get("title", "")),
+        description=sanitize_input(data.get("description", "")),
+        old_value=data.get("old_value"),
+        new_value=data.get("new_value")
+    )
+    doc = activity.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_activities.insert_one(doc)
+    return activity
+
+# ==================== INTERNAL MESSAGING APIs ====================
+
+@api_router.get("/crm/messages")
+async def get_all_messages(user_id: Optional[str] = None, lead_id: Optional[str] = None):
+    """Get messages - admin sees all, staff sees their own"""
+    query = {}
+    if user_id:
+        query["$or"] = [{"sender_id": user_id}, {"receiver_id": user_id}, {"receiver_id": None}]
+    if lead_id:
+        query["lead_id"] = lead_id
+    
+    messages = await db.crm_messages.find(query, {"_id": 0}).sort("timestamp", -1).limit(100).to_list(100)
+    return messages
+
+@api_router.post("/crm/messages")
+async def send_message(data: Dict[str, Any]):
+    """Send internal message"""
+    # Get receiver name if receiver_id provided
+    receiver_name = "All Staff"
+    if data.get("receiver_id"):
+        receiver = await db.crm_staff_accounts.find_one({"id": data.get("receiver_id")}, {"_id": 0})
+        receiver_name = receiver.get("name", "") if receiver else ""
+    
+    message = CRMMessage(
+        sender_id=data.get("sender_id", "admin"),
+        sender_name=data.get("sender_name", "Admin"),
+        sender_type=data.get("sender_type", "admin"),
+        receiver_id=data.get("receiver_id"),
+        receiver_name=receiver_name,
+        lead_id=data.get("lead_id"),
+        message=sanitize_input(data.get("message", ""))
+    )
+    doc = message.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_messages.insert_one(doc)
+    return message
+
+@api_router.put("/crm/messages/{message_id}/read")
+async def mark_message_read(message_id: str):
+    """Mark message as read"""
+    await db.crm_messages.update_one({"id": message_id}, {"$set": {"is_read": True}})
+    return {"success": True}
+
+@api_router.get("/staff/{staff_id}/messages")
+async def get_staff_messages(staff_id: str):
+    """Get messages for staff member"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    internal_id = staff.get("id")
+    messages = await db.crm_messages.find(
+        {"$or": [{"sender_id": internal_id}, {"receiver_id": internal_id}, {"receiver_id": None}]},
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(50).to_list(50)
+    return messages
+
+@api_router.get("/staff/{staff_id}/messages/unread")
+async def get_unread_messages(staff_id: str):
+    """Get unread message count for staff"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        return {"count": 0}
+    
+    internal_id = staff.get("id")
+    count = await db.crm_messages.count_documents({
+        "$or": [{"receiver_id": internal_id}, {"receiver_id": None}],
+        "sender_id": {"$ne": internal_id},
+        "is_read": False
+    })
+    return {"count": count}
+
 # CRM Employee Management
 @api_router.get("/crm/employees")
 async def get_crm_employees():

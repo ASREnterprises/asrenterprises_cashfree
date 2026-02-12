@@ -312,7 +312,6 @@ const HomePage = () => {
               <Link to="/gallery" className="text-gray-700 hover:text-blue-600 transition">Gallery</Link>
               <Link to="/calculator" className="text-gray-700 hover:text-blue-600 transition">Calculator</Link>
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition">Contact</Link>
-              <Link to="/admin/login" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold">Admin Login</Link>
             </div>
 
             {/* Mobile Menu Button */}

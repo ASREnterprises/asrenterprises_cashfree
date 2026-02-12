@@ -31,6 +31,7 @@ export const CRMDashboard = () => {
   const [followups, setFollowups] = useState([]);
   const [projects, setProjects] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [showLeadModal, setShowLeadModal] = useState(false);
@@ -39,10 +40,13 @@ export const CRMDashboard = () => {
   const [showFollowupModal, setShowFollowupModal] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [filterStage, setFilterStage] = useState("");
   const [newStaffForm, setNewStaffForm] = useState({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123' });
+  const [photoForm, setPhotoForm] = useState({ title: '', description: '', location: '', system_size: '', image_url: '' });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchAllData();
@@ -51,13 +55,14 @@ export const CRMDashboard = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [dashRes, leadsRes, staffRes, followRes, projRes, payRes] = await Promise.all([
+      const [dashRes, leadsRes, staffRes, followRes, projRes, payRes, photosRes] = await Promise.all([
         axios.get(`${API}/crm/dashboard`),
         axios.get(`${API}/crm/leads`),
         axios.get(`${API}/admin/staff-accounts`),
         axios.get(`${API}/crm/followups`),
         axios.get(`${API}/crm/projects`),
-        axios.get(`${API}/crm/payments`)
+        axios.get(`${API}/crm/payments`),
+        axios.get(`${API}/admin/photos`)
       ]);
       setDashboardData(dashRes.data);
       setLeads(leadsRes.data);

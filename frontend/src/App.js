@@ -1317,6 +1317,10 @@ export default function App() {
         {/* Admin Login */}
         <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />
         
+        {/* Staff Portal Routes */}
+        <Route path="/staff/login" element={<StaffLogin />} />
+        <Route path="/staff/portal" element={<StaffPortal />} />
+
         {/* Protected Admin Routes */}
         <Route path="/admin/dashboard" element={
           <ProtectedRoute>

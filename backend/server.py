@@ -427,6 +427,117 @@ class StaffMember(BaseModel):
     status: str = "active"
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# ==================== CRM MODELS ====================
+
+# CRM Employee Model
+class CRMEmployee(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    phone: str
+    role: str  # sales, survey, installation, manager
+    department: str = "sales"
+    is_active: bool = True
+    leads_assigned: int = 0
+    leads_converted: int = 0
+    total_revenue: float = 0.0
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# CRM Lead with Pipeline
+class CRMLead(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str
+    phone: str
+    district: str = ""
+    address: str = ""
+    property_type: str = "residential"
+    monthly_bill: Optional[float] = None
+    roof_area: Optional[float] = None
+    source: str = "website"  # website, whatsapp, call, facebook, instagram
+    # Pipeline stage
+    stage: str = "new"  # new, follow_up, survey, quotation, installation, completed, lost
+    # Assignment
+    assigned_to: Optional[str] = None  # employee id
+    assigned_by: Optional[str] = None
+    # Follow-up
+    next_follow_up: Optional[str] = None
+    follow_up_notes: str = ""
+    # Quotation
+    quoted_amount: Optional[float] = None
+    system_size: Optional[str] = None
+    # Payment
+    advance_paid: float = 0.0
+    total_amount: float = 0.0
+    pending_amount: float = 0.0
+    # AI
+    lead_score: int = 50
+    ai_priority: str = "medium"  # high, medium, low
+    ai_suggestions: Optional[str] = None
+    # History
+    status_history: List[Dict[str, Any]] = []
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# CRM Follow-up Reminder
+class CRMFollowUp(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    lead_id: str
+    employee_id: str
+    reminder_date: str
+    reminder_time: str = "10:00"
+    reminder_type: str = "call"  # call, visit, quotation, payment
+    notes: str = ""
+    status: str = "pending"  # pending, completed, missed
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# CRM Project/Installation
+class CRMProject(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    lead_id: str
+    customer_name: str
+    customer_phone: str
+    location: str
+    system_size: str
+    brand: str
+    total_amount: float
+    advance_received: float = 0.0
+    pending_amount: float = 0.0
+    # Installation
+    installation_date: Optional[str] = None
+    installation_status: str = "pending"  # pending, in_progress, completed
+    assigned_team: List[str] = []
+    # Progress
+    survey_done: bool = False
+    material_delivered: bool = False
+    structure_installed: bool = False
+    panels_installed: bool = False
+    wiring_done: bool = False
+    inverter_installed: bool = False
+    meter_installed: bool = False
+    testing_done: bool = False
+    handover_done: bool = False
+    # Photos
+    installation_photos: List[str] = []
+    completion_photos: List[str] = []
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# CRM Payment
+class CRMPayment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    project_id: str
+    lead_id: str
+    amount: float
+    payment_type: str = "advance"  # advance, partial, final
+    payment_mode: str = "cash"  # cash, upi, bank_transfer, cheque
+    received_by: str
+    notes: str = ""
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class Quotation(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

@@ -49,8 +49,12 @@ export const StaffLogin = () => {
         <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-10 h-10 text-white" />
+            <div className="bg-white rounded-xl p-3 inline-block mb-4">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                alt="ASR Enterprises" 
+                className="h-14 w-auto"
+              />
             </div>
             <h1 className="text-2xl font-bold text-white">Staff Portal</h1>
             <p className="text-gray-400 mt-2">ASR Enterprises CRM</p>

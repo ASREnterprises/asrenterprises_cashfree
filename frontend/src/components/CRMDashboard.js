@@ -41,6 +41,8 @@ export const CRMDashboard = () => {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
+  const [showEditStaffModal, setShowEditStaffModal] = useState(false);
+  const [editStaffForm, setEditStaffForm] = useState(null);
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [filterStage, setFilterStage] = useState("");

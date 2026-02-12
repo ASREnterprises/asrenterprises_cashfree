@@ -1201,6 +1201,440 @@ async def generate_social_post(request: Dict[str, Any]):
         }
         return {"success": True, "suggestions": [fallback.get(post_type, fallback["promotion"])]}
 
+# ==================== CRM API ENDPOINTS ====================
+
+# CRM Employee Management
+@api_router.get("/crm/employees")
+async def get_crm_employees():
+    employees = await db.crm_employees.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return employees
+
+@api_router.post("/crm/employees")
+async def create_crm_employee(data: Dict[str, Any]):
+    employee = CRMEmployee(
+        name=sanitize_input(data.get("name", "")),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+        role=data.get("role", "sales"),
+        department=data.get("department", "sales")
+    )
+    doc = employee.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_employees.insert_one(doc)
+    return employee
+
+@api_router.put("/crm/employees/{employee_id}")
+async def update_crm_employee(employee_id: str, data: Dict[str, Any]):
+    update_data = {k: sanitize_input(v) if isinstance(v, str) else v for k, v in data.items()}
+    await db.crm_employees.update_one({"id": employee_id}, {"$set": update_data})
+    return {"success": True}
+
+@api_router.delete("/crm/employees/{employee_id}")
+async def delete_crm_employee(employee_id: str):
+    await db.crm_employees.delete_one({"id": employee_id})
+    return {"success": True}
+
+# CRM Lead Management with Pipeline
+@api_router.get("/crm/leads")
+async def get_crm_leads(stage: Optional[str] = None, assigned_to: Optional[str] = None):
+    query = {}
+    if stage:
+        query["stage"] = stage
+    if assigned_to:
+        query["assigned_to"] = assigned_to
+    leads = await db.crm_leads.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    return leads
+
+@api_router.post("/crm/leads")
+async def create_crm_lead(data: Dict[str, Any]):
+    # AI lead scoring and priority
+    monthly_bill = data.get("monthly_bill") or 0
+    lead_score = min(100, 40 + int(monthly_bill / 100))
+    ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
+    
+    lead = CRMLead(
+        name=sanitize_input(data.get("name", "")),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+        district=data.get("district", ""),
+        address=sanitize_input(data.get("address", "")),
+        property_type=data.get("property_type", "residential"),
+        monthly_bill=data.get("monthly_bill"),
+        roof_area=data.get("roof_area"),
+        source=data.get("source", "website"),
+        stage="new",
+        lead_score=lead_score,
+        ai_priority=ai_priority,
+        status_history=[{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Lead created"}]
+    )
+    doc = lead.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_leads.insert_one(doc)
+    return lead
+
+@api_router.put("/crm/leads/{lead_id}")
+async def update_crm_lead(lead_id: str, data: Dict[str, Any]):
+    # Get current lead
+    current_lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not current_lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Track stage changes
+    if "stage" in data and data["stage"] != current_lead.get("stage"):
+        history_entry = {
+            "stage": data["stage"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "notes": data.get("notes", f"Stage changed to {data['stage']}")
+        }
+        status_history = current_lead.get("status_history", [])
+        status_history.append(history_entry)
+        data["status_history"] = status_history
+    
+    # Calculate pending amount
+    if "total_amount" in data or "advance_paid" in data:
+        total = data.get("total_amount", current_lead.get("total_amount", 0))
+        advance = data.get("advance_paid", current_lead.get("advance_paid", 0))
+        data["pending_amount"] = total - advance
+    
+    update_data = {k: sanitize_input(v) if isinstance(v, str) and k not in ["status_history"] else v for k, v in data.items()}
+    await db.crm_leads.update_one({"id": lead_id}, {"$set": update_data})
+    return {"success": True}
+
+@api_router.post("/crm/leads/{lead_id}/assign")
+async def assign_lead(lead_id: str, data: Dict[str, Any]):
+    employee_id = data.get("employee_id")
+    assigned_by = data.get("assigned_by", "admin")
+    
+    await db.crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {"assigned_to": employee_id, "assigned_by": assigned_by}}
+    )
+    
+    # Update employee stats
+    await db.crm_employees.update_one(
+        {"id": employee_id},
+        {"$inc": {"leads_assigned": 1}}
+    )
+    
+    return {"success": True}
+
+# CRM Follow-up Reminders
+@api_router.get("/crm/followups")
+async def get_followups(employee_id: Optional[str] = None, status: Optional[str] = None):
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if status:
+        query["status"] = status
+    followups = await db.crm_followups.find(query, {"_id": 0}).sort("reminder_date", 1).to_list(200)
+    return followups
+
+@api_router.post("/crm/followups")
+async def create_followup(data: Dict[str, Any]):
+    followup = CRMFollowUp(
+        lead_id=data.get("lead_id", ""),
+        employee_id=data.get("employee_id", ""),
+        reminder_date=data.get("reminder_date", ""),
+        reminder_time=data.get("reminder_time", "10:00"),
+        reminder_type=data.get("reminder_type", "call"),
+        notes=sanitize_input(data.get("notes", ""))
+    )
+    doc = followup.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_followups.insert_one(doc)
+    
+    # Update lead's next follow-up
+    await db.crm_leads.update_one(
+        {"id": data.get("lead_id")},
+        {"$set": {"next_follow_up": data.get("reminder_date")}}
+    )
+    
+    return followup
+
+@api_router.put("/crm/followups/{followup_id}")
+async def update_followup(followup_id: str, data: Dict[str, Any]):
+    await db.crm_followups.update_one({"id": followup_id}, {"$set": data})
+    return {"success": True}
+
+# CRM Projects/Installations
+@api_router.get("/crm/projects")
+async def get_projects(status: Optional[str] = None):
+    query = {}
+    if status:
+        query["installation_status"] = status
+    projects = await db.crm_projects.find(query, {"_id": 0}).sort("timestamp", -1).to_list(200)
+    return projects
+
+@api_router.post("/crm/projects")
+async def create_project(data: Dict[str, Any]):
+    project = CRMProject(
+        lead_id=data.get("lead_id", ""),
+        customer_name=sanitize_input(data.get("customer_name", "")),
+        customer_phone=data.get("customer_phone", ""),
+        location=sanitize_input(data.get("location", "")),
+        system_size=data.get("system_size", ""),
+        brand=data.get("brand", ""),
+        total_amount=data.get("total_amount", 0),
+        advance_received=data.get("advance_received", 0),
+        pending_amount=data.get("total_amount", 0) - data.get("advance_received", 0)
+    )
+    doc = project.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_projects.insert_one(doc)
+    
+    # Update lead stage to installation
+    if data.get("lead_id"):
+        await db.crm_leads.update_one(
+            {"id": data.get("lead_id")},
+            {"$set": {"stage": "installation"}}
+        )
+    
+    return project
+
+@api_router.put("/crm/projects/{project_id}")
+async def update_project(project_id: str, data: Dict[str, Any]):
+    # Calculate pending
+    if "total_amount" in data or "advance_received" in data:
+        project = await db.crm_projects.find_one({"id": project_id}, {"_id": 0})
+        if project:
+            total = data.get("total_amount", project.get("total_amount", 0))
+            advance = data.get("advance_received", project.get("advance_received", 0))
+            data["pending_amount"] = total - advance
+    
+    await db.crm_projects.update_one({"id": project_id}, {"$set": data})
+    return {"success": True}
+
+@api_router.post("/crm/projects/{project_id}/photos")
+async def add_project_photos(project_id: str, data: Dict[str, Any]):
+    photo_url = data.get("photo_url", "")
+    photo_type = data.get("type", "installation")  # installation or completion
+    
+    field = "installation_photos" if photo_type == "installation" else "completion_photos"
+    await db.crm_projects.update_one(
+        {"id": project_id},
+        {"$push": {field: photo_url}}
+    )
+    
+    # Also add to gallery
+    photo = {
+        "id": str(uuid.uuid4()),
+        "title": f"Installation at {data.get('location', 'Bihar')}",
+        "description": data.get("description", "Solar installation by ASR Enterprises"),
+        "image_url": photo_url,
+        "location": data.get("location", ""),
+        "system_size": data.get("system_size", ""),
+        "category": "installation",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.work_photos.insert_one(photo)
+    
+    return {"success": True}
+
+# CRM Payments
+@api_router.get("/crm/payments")
+async def get_payments(project_id: Optional[str] = None):
+    query = {}
+    if project_id:
+        query["project_id"] = project_id
+    payments = await db.crm_payments.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    return payments
+
+@api_router.post("/crm/payments")
+async def create_payment(data: Dict[str, Any]):
+    payment = CRMPayment(
+        project_id=data.get("project_id", ""),
+        lead_id=data.get("lead_id", ""),
+        amount=data.get("amount", 0),
+        payment_type=data.get("payment_type", "advance"),
+        payment_mode=data.get("payment_mode", "cash"),
+        received_by=data.get("received_by", ""),
+        notes=sanitize_input(data.get("notes", ""))
+    )
+    doc = payment.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_payments.insert_one(doc)
+    
+    # Update project payment
+    if data.get("project_id"):
+        await db.crm_projects.update_one(
+            {"id": data.get("project_id")},
+            {"$inc": {"advance_received": data.get("amount", 0), "pending_amount": -data.get("amount", 0)}}
+        )
+    
+    # Update employee revenue
+    if data.get("received_by"):
+        await db.crm_employees.update_one(
+            {"id": data.get("received_by")},
+            {"$inc": {"total_revenue": data.get("amount", 0)}}
+        )
+    
+    return payment
+
+# CRM Dashboard Stats
+@api_router.get("/crm/dashboard")
+async def get_crm_dashboard():
+    # Lead stats by stage
+    pipeline_stats = await db.crm_leads.aggregate([
+        {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
+    ]).to_list(20)
+    
+    # Today's follow-ups
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    todays_followups = await db.crm_followups.count_documents({"reminder_date": today, "status": "pending"})
+    
+    # Employee performance
+    employees = await db.crm_employees.find({}, {"_id": 0}).to_list(50)
+    
+    # Recent leads
+    recent_leads = await db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
+    
+    # Revenue stats
+    total_payments = await db.crm_payments.aggregate([
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    # Project stats
+    projects_pending = await db.crm_projects.count_documents({"installation_status": "pending"})
+    projects_progress = await db.crm_projects.count_documents({"installation_status": "in_progress"})
+    projects_completed = await db.crm_projects.count_documents({"installation_status": "completed"})
+    
+    return {
+        "pipeline_stats": {item["_id"]: item["count"] for item in pipeline_stats if item["_id"]},
+        "total_leads": await db.crm_leads.count_documents({}),
+        "todays_followups": todays_followups,
+        "employees": employees,
+        "recent_leads": recent_leads,
+        "total_revenue": total_payments[0]["total"] if total_payments else 0,
+        "projects": {
+            "pending": projects_pending,
+            "in_progress": projects_progress,
+            "completed": projects_completed
+        }
+    }
+
+# CRM AI Features
+@api_router.post("/crm/ai/lead-priority")
+async def ai_lead_priority(data: Dict[str, Any]):
+    """AI-powered lead prioritization"""
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are a sales AI assistant for a solar company."
+        )
+        
+        leads = await db.crm_leads.find({"stage": {"$in": ["new", "follow_up"]}}, {"_id": 0}).limit(20).to_list(20)
+        
+        leads_summary = "\n".join([
+            f"- {l.get('name')}: ₹{l.get('monthly_bill', 0)} bill, {l.get('district')}, {l.get('property_type')}"
+            for l in leads
+        ])
+        
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(text=f"""Analyze these solar leads and rank them by priority:
+{leads_summary}
+
+Return top 5 leads to focus on today with reasons. Format: Name - Priority (High/Medium) - Reason""")]
+        )
+        
+        return {"success": True, "recommendations": response}
+    except Exception as e:
+        logger.error(f"AI lead priority error: {e}")
+        return {"success": True, "recommendations": "Focus on leads with high monthly bills (>₹3000) and residential properties first."}
+
+@api_router.post("/crm/ai/followup-suggestions")
+async def ai_followup_suggestions(data: Dict[str, Any]):
+    """AI-powered follow-up suggestions"""
+    lead_id = data.get("lead_id")
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    
+    if not lead:
+        return {"success": False, "error": "Lead not found"}
+    
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are a sales coach for a solar company in Bihar."
+        )
+        
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(text=f"""Suggest follow-up approach for this lead:
+Name: {lead.get('name')}
+Stage: {lead.get('stage')}
+Monthly Bill: ₹{lead.get('monthly_bill', 'Unknown')}
+Property: {lead.get('property_type')}
+District: {lead.get('district')}
+Last Follow-up Notes: {lead.get('follow_up_notes', 'None')}
+
+Suggest: 1) Best time to call 2) Key talking points 3) Offer to make 4) Objection handling. Keep it brief.""")]
+        )
+        
+        return {"success": True, "suggestions": response}
+    except Exception as e:
+        logger.error(f"AI followup error: {e}")
+        return {"success": True, "suggestions": f"Call between 10 AM - 12 PM or 4 PM - 6 PM. Highlight PM Surya Ghar subsidy of ₹78,000 and 25-year warranty. Offer free site survey."}
+
+@api_router.get("/crm/reports/monthly")
+async def get_monthly_report():
+    """Monthly business growth report"""
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_str = month_start.isoformat()
+    
+    # Leads this month
+    leads_this_month = await db.crm_leads.count_documents({"timestamp": {"$gte": month_str}})
+    
+    # Conversions
+    conversions = await db.crm_leads.count_documents({"stage": "completed", "timestamp": {"$gte": month_str}})
+    
+    # Revenue this month
+    revenue_result = await db.crm_payments.aggregate([
+        {"$match": {"timestamp": {"$gte": month_str}}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    # Employee performance
+    employees = await db.crm_employees.find({}, {"_id": 0}).to_list(50)
+    
+    # Source breakdown
+    source_stats = await db.crm_leads.aggregate([
+        {"$match": {"timestamp": {"$gte": month_str}}},
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}}
+    ]).to_list(10)
+    
+    return {
+        "month": now.strftime("%B %Y"),
+        "total_leads": leads_this_month,
+        "conversions": conversions,
+        "conversion_rate": round((conversions / leads_this_month * 100) if leads_this_month > 0 else 0, 1),
+        "total_revenue": revenue_result[0]["total"] if revenue_result else 0,
+        "employee_performance": [
+            {"name": e.get("name"), "leads": e.get("leads_assigned", 0), "converted": e.get("leads_converted", 0), "revenue": e.get("total_revenue", 0)}
+            for e in employees
+        ],
+        "lead_sources": {item["_id"]: item["count"] for item in source_stats if item["_id"]}
+    }
+
+# Gallery Photo Upload (direct)
+@api_router.post("/gallery/upload")
+async def upload_gallery_photo(data: Dict[str, Any]):
+    """Direct photo upload to gallery"""
+    photo = {
+        "id": str(uuid.uuid4()),
+        "title": sanitize_input(data.get("title", "Solar Installation")),
+        "description": sanitize_input(data.get("description", "")),
+        "image_url": data.get("image_url", ""),
+        "location": sanitize_input(data.get("location", "")),
+        "system_size": data.get("system_size", ""),
+        "category": data.get("category", "installation"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.work_photos.insert_one(photo)
+    return {"success": True, "photo": photo}
+
 @api_router.get("/")
 async def root():
     return {"message": "ASR Enterprises Solar AI Platform API", "status": "active"}

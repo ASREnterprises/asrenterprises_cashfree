@@ -454,56 +454,200 @@ export const CRMDashboard = () => {
         {/* Employees Tab */}
         {activeTab === "employees" && (
           <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">Staff Accounts</h2>
               <button
-                onClick={() => setShowEmployeeModal(true)}
+                onClick={() => setShowStaffModal(true)}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>Add Employee</span>
+                <span>Create Staff Account</span>
               </button>
             </div>
 
+            {/* New Staff Credentials Alert */}
+            {newStaffCredentials && (
+              <div className="bg-green-600 bg-opacity-20 border border-green-500 rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-green-400 font-bold mb-2">New Staff Account Created!</h3>
+                    <div className="text-white">
+                      <p><strong>Staff ID:</strong> {newStaffCredentials.staff_id}</p>
+                      <p><strong>Password:</strong> {newStaffCredentials.password}</p>
+                    </div>
+                    <p className="text-gray-400 text-sm mt-2">Share these credentials with the staff member</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`Staff ID: ${newStaffCredentials.staff_id}\nPassword: ${newStaffCredentials.password}`);
+                      alert('Credentials copied!');
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    <span>Copy</span>
+                  </button>
+                </div>
+                <button
+                  onClick={() => setNewStaffCredentials(null)}
+                  className="text-gray-400 hover:text-white text-sm mt-2"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {employees.map((emp) => (
-                <div key={emp.id} className="bg-gray-800 rounded-xl p-5">
+              {staffAccounts.map((staff) => (
+                <div key={staff.id} className="bg-gray-800 rounded-xl p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        {emp.name?.[0]}
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                        {staff.name?.[0]}
                       </div>
                       <div>
-                        <div className="text-white font-bold">{emp.name}</div>
-                        <div className="text-gray-400 text-sm capitalize">{emp.role}</div>
+                        <div className="text-white font-bold">{staff.name}</div>
+                        <div className="text-cyan-400 text-sm font-mono">{staff.staff_id}</div>
+                        <div className="text-gray-400 text-xs capitalize">{staff.role}</div>
                       </div>
                     </div>
+                    <span className={`px-2 py-1 rounded text-xs ${staff.is_active ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+                      {staff.is_active ? 'Active' : 'Inactive'}
+                    </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-gray-700 rounded-lg p-2 text-center">
-                      <div className="text-blue-400 font-bold">{emp.leads_assigned || 0}</div>
+                      <div className="text-blue-400 font-bold">{staff.leads_assigned || 0}</div>
                       <div className="text-gray-500 text-xs">Assigned</div>
                     </div>
                     <div className="bg-gray-700 rounded-lg p-2 text-center">
-                      <div className="text-green-400 font-bold">{emp.leads_converted || 0}</div>
+                      <div className="text-green-400 font-bold">{staff.leads_converted || 0}</div>
                       <div className="text-gray-500 text-xs">Converted</div>
                     </div>
                     <div className="bg-gray-700 rounded-lg p-2 text-center">
-                      <div className="text-yellow-400 font-bold">₹{((emp.total_revenue || 0) / 1000).toFixed(0)}K</div>
+                      <div className="text-yellow-400 font-bold">₹{((staff.total_revenue || 0) / 1000).toFixed(0)}K</div>
                       <div className="text-gray-500 text-xs">Revenue</div>
                     </div>
                   </div>
                   <div className="text-gray-400 text-sm">
                     <div className="flex items-center space-x-2 mb-1">
                       <Phone className="w-3 h-3" />
-                      <span>{emp.phone}</span>
+                      <span>{staff.phone}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Mail className="w-3 h-3" />
-                      <span className="truncate">{emp.email}</span>
+                      <span className="truncate">{staff.email}</span>
                     </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <button
+                      onClick={async () => {
+                        const newPass = prompt('Enter new password:', 'asr@123');
+                        if (newPass) {
+                          await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass });
+                          alert(`Password reset to: ${newPass}`);
+                        }
+                      }}
+                      className="text-blue-400 hover:text-blue-300 text-sm flex items-center space-x-1"
+                    >
+                      <Key className="w-3 h-3" />
+                      <span>Reset Password</span>
+                    </button>
                   </div>
                 </div>
               ))}
+              {staffAccounts.length === 0 && (
+                <div className="col-span-3 text-center py-12 text-gray-400">
+                  No staff accounts created yet. Click "Create Staff Account" to add your first team member.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Create Staff Modal */}
+        {showStaffModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+              <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+                <UserPlus className="w-5 h-5 text-green-400" />
+                <span>Create Staff Account</span>
+              </h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={newStaffForm.name}
+                    onChange={(e) => setNewStaffForm({...newStaffForm, name: e.target.value})}
+                    placeholder="Staff name"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    value={newStaffForm.phone}
+                    onChange={(e) => setNewStaffForm({...newStaffForm, phone: e.target.value})}
+                    placeholder="Phone number"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={newStaffForm.email}
+                    onChange={(e) => setNewStaffForm({...newStaffForm, email: e.target.value})}
+                    placeholder="Email address"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Role</label>
+                  <select
+                    value={newStaffForm.role}
+                    onChange={(e) => setNewStaffForm({...newStaffForm, role: e.target.value})}
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  >
+                    <option value="sales">Sales Executive</option>
+                    <option value="survey">Survey Team</option>
+                    <option value="installation">Installation Team</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Initial Password</label>
+                  <input
+                    type="text"
+                    value={newStaffForm.password}
+                    onChange={(e) => setNewStaffForm({...newStaffForm, password: e.target.value})}
+                    placeholder="Initial password"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    createStaffAccount();
+                    setShowStaffModal(false);
+                  }}
+                  disabled={!newStaffForm.name || !newStaffForm.phone}
+                  className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+                >
+                  Create Account
+                </button>
+                <button
+                  onClick={() => setShowStaffModal(false)}
+                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -189,6 +189,17 @@ export const AdminLogin = ({ onLogin }) => {
           )}
         </div>
 
+        {/* Staff Login Link */}
+        <div className="bg-white bg-opacity-20 rounded-xl p-4 mt-6 text-center">
+          <p className="text-white text-sm mb-2">Are you a staff member?</p>
+          <button
+            onClick={() => navigate("/staff/login")}
+            className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+          >
+            Staff Login →
+          </button>
+        </div>
+
         <div className="text-center mt-6 text-white text-sm">
           <p>© 2025 ASR Enterprises. Secure Admin Access.</p>
         </div>

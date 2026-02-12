@@ -125,6 +125,9 @@ export const CRMDashboard = () => {
     window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  // ASR Logo URL
+  const ASR_LOGO = "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png";
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -146,6 +149,7 @@ export const CRMDashboard = () => {
               <Link to="/admin/dashboard" className="text-gray-400 hover:text-white">
                 <ArrowLeft className="w-6 h-6" />
               </Link>
+              <img src={ASR_LOGO} alt="ASR Enterprises" className="h-12 w-auto bg-white rounded-lg p-1" />
               <div>
                 <h1 className="text-2xl font-bold text-white">ASR CRM System</h1>
                 <p className="text-gray-400 text-sm">Manage leads, sales & installations</p>

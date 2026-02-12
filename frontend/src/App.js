@@ -1192,17 +1192,16 @@ const HomePage = () => {
                 <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
                 <div><Link to="/leads" className="hover:text-white transition">Lead Capture</Link></div>
                 <div><Link to="/calculator" className="hover:text-white transition">Solar Calculator</Link></div>
-                <div><Link to="/dashboard" className="hover:text-white transition">Dashboard</Link></div>
+                <div><Link to="/admin/dashboard" className="hover:text-white transition">Dashboard</Link></div>
               </div>
             </div>
             <div>
-              <h4 className="font-bold mb-4">AI Features</h4>
+              <h4 className="font-bold mb-4">Services</h4>
               <div className="space-y-2 text-gray-400">
-                <div><Link to="/chat" className="hover:text-white transition">WhatsApp Bot</Link></div>
-                <div><Link to="/leads" className="hover:text-white transition">Smart Leads</Link></div>
-                <div><Link to="/calculator" className="hover:text-white transition">AI Calculator</Link></div>
-                <div><Link to="/marketing" className="hover:text-white transition">Marketing Auto</Link></div>
-                <div><Link to="/ads" className="hover:text-white transition">Ads Analytics</Link></div>
+                <div><Link to="/chat" className="hover:text-white transition">WhatsApp Support</Link></div>
+                <div><Link to="/calculator" className="hover:text-white transition">Solar Calculator</Link></div>
+                <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
+                <div><Link to="/contact" className="hover:text-white transition">Get Quote</Link></div>
               </div>
             </div>
             <div>

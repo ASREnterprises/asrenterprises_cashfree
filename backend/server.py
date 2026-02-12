@@ -664,6 +664,11 @@ async def get_photos():
     photos = await db.work_photos.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
     return photos
 
+@api_router.get("/admin/photos")
+async def get_admin_photos():
+    photos = await db.work_photos.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return photos
+
 @api_router.post("/admin/photos")
 async def upload_photo(photo_data: Dict[str, Any]):
     photo = WorkPhoto(

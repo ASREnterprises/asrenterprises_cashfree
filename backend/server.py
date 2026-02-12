@@ -208,6 +208,14 @@ def verify_otp(email: str, otp: str) -> bool:
     
     return False
 
+# Staff Authentication Storage
+staff_sessions = {}
+
+# Staff Login Model
+class StaffLogin(BaseModel):
+    staff_id: str
+    password: str
+
 # Models with enhanced validation
 class LeadCreate(BaseModel):
     name: str

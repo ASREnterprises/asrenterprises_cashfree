@@ -1358,6 +1358,11 @@ export default function App() {
             <SocialMediaIntegration />
           </ProtectedRoute>
         } />
+        <Route path="/admin/crm" element={
+          <ProtectedRoute>
+            <CRMDashboard />
+          </ProtectedRoute>
+        } />
         <Route path="/admin/photos" element={
           <ProtectedRoute>
             <PhotosManagement />

@@ -70,10 +70,46 @@ export const CRMDashboard = () => {
       setFollowups(followRes.data);
       setProjects(projRes.data);
       setPayments(payRes.data);
+      setGalleryPhotos(photosRes.data || []);
     } catch (err) {
       console.error("Error fetching CRM data:", err);
     }
     setLoading(false);
+  };
+
+  const uploadPhoto = async () => {
+    if (!photoForm.title || !photoForm.image_url) {
+      alert("Please provide title and image URL");
+      return;
+    }
+    setUploading(true);
+    try {
+      await axios.post(`${API}/gallery/upload`, {
+        title: photoForm.title,
+        description: photoForm.description,
+        location: photoForm.location,
+        system_size: photoForm.system_size,
+        image_url: photoForm.image_url,
+        category: "installation"
+      });
+      setPhotoForm({ title: '', description: '', location: '', system_size: '', image_url: '' });
+      setShowPhotoUploadModal(false);
+      fetchAllData();
+      alert("Photo uploaded successfully! It will appear in the website gallery.");
+    } catch (err) {
+      alert("Error uploading photo");
+    }
+    setUploading(false);
+  };
+
+  const deletePhoto = async (photoId) => {
+    if (!window.confirm("Delete this photo from gallery?")) return;
+    try {
+      await axios.delete(`${API}/admin/photos/${photoId}`);
+      fetchAllData();
+    } catch (err) {
+      alert("Error deleting photo");
+    }
   };
 
   const createStaffAccount = async () => {

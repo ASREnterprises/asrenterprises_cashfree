@@ -482,12 +482,8 @@ const HomePage = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {/* TATA Power Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-blue-200 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
-                <img 
-                  src="https://upload.wikimedia.org/wikipedia/commons/8/8e/Tata_logo.svg" 
-                  alt="TATA Power Solar" 
-                  className="h-12 w-auto object-contain"
-                />
+              <div className="h-16 flex items-center justify-center mb-3 bg-blue-50 rounded-lg">
+                <span className="text-2xl font-bold text-blue-800">TATA</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">TATA Power Solar</h3>
               <p className="text-xs text-blue-600 mt-1 font-medium">Premium Quality</p>
@@ -495,12 +491,8 @@ const HomePage = () => {
             
             {/* Adani Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-green-200 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
-                <img 
-                  src="https://upload.wikimedia.org/wikipedia/commons/f/ff/Adani_2012_logo.png" 
-                  alt="Adani Solar" 
-                  className="h-10 w-auto object-contain"
-                />
+              <div className="h-16 flex items-center justify-center mb-3 bg-green-50 rounded-lg">
+                <span className="text-2xl font-bold text-green-700">adani</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Adani Solar</h3>
               <p className="text-xs text-green-600 mt-1 font-medium">High Efficiency</p>
@@ -508,12 +500,8 @@ const HomePage = () => {
             
             {/* Luminous Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-red-200 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
-                <img 
-                  src="https://www.luminousindia.com/pub/media/logo/default/luminous_logo.svg" 
-                  alt="Luminous Solar" 
-                  className="h-10 w-auto object-contain"
-                />
+              <div className="h-16 flex items-center justify-center mb-3 bg-red-50 rounded-lg">
+                <span className="text-xl font-bold text-red-600">LUMINOUS</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Luminous Solar</h3>
               <p className="text-xs text-red-600 mt-1 font-medium">Trusted Brand</p>
@@ -521,12 +509,8 @@ const HomePage = () => {
             
             {/* Loom Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-orange-200 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
-                <img 
-                  src="https://www.loomsolar.com/cdn/shop/files/loom-solar-logo.png" 
-                  alt="Loom Solar" 
-                  className="h-10 w-auto object-contain"
-                />
+              <div className="h-16 flex items-center justify-center mb-3 bg-orange-50 rounded-lg">
+                <span className="text-xl font-bold text-orange-600">LOOM</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Loom Solar</h3>
               <p className="text-xs text-orange-600 mt-1 font-medium">Made in India</p>
@@ -534,12 +518,8 @@ const HomePage = () => {
             
             {/* Waaree Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-sky-200 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
-                <img 
-                  src="https://www.waaree.com/public/front/images/logo.png" 
-                  alt="Waaree Solar" 
-                  className="h-10 w-auto object-contain"
-                />
+              <div className="h-16 flex items-center justify-center mb-3 bg-sky-50 rounded-lg">
+                <span className="text-xl font-bold text-sky-600">WAAREE</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Waaree Solar</h3>
               <p className="text-xs text-sky-600 mt-1 font-medium">Industry Leader</p>
@@ -547,12 +527,8 @@ const HomePage = () => {
             
             {/* Vikram Solar */}
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-indigo-200 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
-                <img 
-                  src="https://www.vikramsolar.com/wp-content/uploads/2023/03/vikram-solar-logo.svg" 
-                  alt="Vikram Solar" 
-                  className="h-10 w-auto object-contain"
-                />
+              <div className="h-16 flex items-center justify-center mb-3 bg-indigo-50 rounded-lg">
+                <span className="text-xl font-bold text-indigo-600">VIKRAM</span>
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Vikram Solar</h3>
               <p className="text-xs text-indigo-600 mt-1 font-medium">Global Standard</p>

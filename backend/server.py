@@ -1467,6 +1467,84 @@ async def reset_staff_password(staff_id: str, data: Dict[str, Any]):
     )
     return {"success": True, "new_password": new_password}
 
+@api_router.put("/admin/staff-accounts/{staff_id}/toggle-status")
+async def toggle_staff_status(staff_id: str, data: Dict[str, Any]):
+    """Admin activates/deactivates staff account"""
+    is_active = data.get("is_active", False)
+    
+    await db.crm_staff_accounts.update_one(
+        {"staff_id": staff_id},
+        {"$set": {"is_active": is_active}}
+    )
+    
+    status = "activated" if is_active else "deactivated"
+    return {"success": True, "message": f"Staff account {status}"}
+
+@api_router.put("/admin/staff-accounts/{staff_id}/update")
+async def update_staff_account(staff_id: str, data: Dict[str, Any]):
+    """Admin updates staff account details"""
+    update_fields = {}
+    
+    if "name" in data:
+        update_fields["name"] = sanitize_input(data["name"])
+    if "email" in data:
+        update_fields["email"] = data["email"]
+    if "phone" in data:
+        update_fields["phone"] = data["phone"]
+    if "role" in data:
+        update_fields["role"] = data["role"]
+    if "department" in data:
+        update_fields["department"] = data["department"]
+    
+    if update_fields:
+        await db.crm_staff_accounts.update_one(
+            {"staff_id": staff_id},
+            {"$set": update_fields}
+        )
+    
+    return {"success": True, "message": "Staff account updated"}
+
+@api_router.delete("/admin/staff-accounts/{staff_id}")
+async def delete_staff_account(staff_id: str):
+    """Admin deletes staff account permanently"""
+    # First unassign all leads from this staff
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if staff:
+        await db.crm_leads.update_many(
+            {"assigned_to": staff.get("id")},
+            {"$set": {"assigned_to": None, "assigned_by": None}}
+        )
+    
+    await db.crm_staff_accounts.delete_one({"staff_id": staff_id})
+    return {"success": True, "message": "Staff account deleted"}
+
+@api_router.get("/admin/staff-accounts/{staff_id}/details")
+async def get_staff_details(staff_id: str):
+    """Admin gets detailed staff info including assigned leads"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0, "password_hash": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    # Get assigned leads
+    leads = await db.crm_leads.find(
+        {"assigned_to": staff.get("id")},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get follow-ups
+    followups = await db.crm_followups.find(
+        {"employee_id": staff.get("id")},
+        {"_id": 0}
+    ).to_list(50)
+    
+    return {
+        "staff": staff,
+        "assigned_leads": leads,
+        "followups": followups,
+        "total_leads": len(leads),
+        "pending_followups": len([f for f in followups if f.get("status") == "pending"])
+    }
+
 # CRM Employee Management
 @api_router.get("/crm/employees")
 async def get_crm_employees():

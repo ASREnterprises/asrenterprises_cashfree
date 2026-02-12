@@ -73,18 +73,68 @@ export const StaffPortal = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [dashRes, leadsRes, followupsRes] = await Promise.all([
+      const [dashRes, leadsRes, followupsRes, tasksRes, todayTasksRes, msgRes, unreadRes] = await Promise.all([
         axios.get(`${API}/staff/${staffData.staff_id}/dashboard`),
         axios.get(`${API}/staff/${staffData.staff_id}/leads`),
-        axios.get(`${API}/staff/${staffData.staff_id}/followups`)
+        axios.get(`${API}/staff/${staffData.staff_id}/followups`),
+        axios.get(`${API}/staff/${staffData.staff_id}/tasks`),
+        axios.get(`${API}/staff/${staffData.staff_id}/tasks/today`),
+        axios.get(`${API}/staff/${staffData.staff_id}/messages`),
+        axios.get(`${API}/staff/${staffData.staff_id}/messages/unread`)
       ]);
       setDashboard(dashRes.data);
       setLeads(leadsRes.data);
       setFollowups(followupsRes.data);
+      setTasks(tasksRes.data || []);
+      setTodayTasks(todayTasksRes.data || []);
+      setMessages(msgRes.data || []);
+      setUnreadCount(unreadRes.data?.count || 0);
     } catch (err) {
       console.error("Error fetching data:", err);
     }
     setLoading(false);
+  };
+
+  const updateTaskStatus = async (taskId, status) => {
+    try {
+      await axios.put(`${API}/crm/tasks/${taskId}`, { status });
+      fetchAllData();
+    } catch (err) {
+      alert("Error updating task");
+    }
+  };
+
+  const addActivity = async () => {
+    if (!selectedLead || !activityForm.title) return;
+    try {
+      await axios.post(`${API}/crm/leads/${selectedLead.id}/activities`, {
+        ...activityForm,
+        staff_id: staffData.staff_id,
+        staff_name: staffData.name
+      });
+      setShowActivityModal(false);
+      setActivityForm({ activity_type: "note", title: "", description: "" });
+      alert("Activity added!");
+    } catch (err) {
+      alert("Error adding activity");
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim()) return;
+    try {
+      await axios.post(`${API}/crm/messages`, {
+        sender_id: staffData.id,
+        sender_name: staffData.name,
+        sender_type: "staff",
+        receiver_id: null, // To admin
+        message: newMessage
+      });
+      setNewMessage("");
+      fetchAllData();
+    } catch (err) {
+      alert("Error sending message");
+    }
   };
 
   const handleLogout = () => {

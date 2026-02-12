@@ -18,7 +18,7 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 ## Implemented Features
 
 ### ✅ Homepage Features
-1. **ASR ENTERPRISES** branding in dark orange (larger size)
+1. **ASR ENTERPRISES** branding in dark orange
 2. Running Flash Advertisement Banner with WhatsApp integration
 3. Trust badges (MNRE Registered, PM Surya Ghar Partner)
 4. Solar Brands Section (TATA, Adani, Luminous, Loom, Waaree, Vikram)
@@ -26,77 +26,75 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 6. AI-powered features section
 7. Government schemes information (₹78,000 max subsidy)
 8. 5-year FREE maintenance offers
-9. **No Admin Login button** in navigation (removed for security)
+9. **Login button** in navigation (links to Admin/Staff login)
 
-### ✅ Admin Dashboard (10 Modules)
-1. **CRM System** - Complete lead & sales management
-2. **Leads Management** - View, filter, update status, WhatsApp integration
-3. **Work Photos** - Upload/manage installation photos for gallery
-4. **Customer Reviews** - Add/manage customer testimonials
+### ✅ Admin Panel (10 Modules)
+1. **CRM System** - Complete lead & sales management with ASR logo
+2. **Leads Management** - View, filter, update status
+3. **Work Photos** - Upload/manage installation photos
+4. **Customer Reviews** - Add/manage testimonials
 5. **Festival Posts** - Create/edit/delete festival wishes
 6. **Govt News & Schemes** - AI auto-updates Bihar solar news
 7. **Staff Management** - AI-powered performance analysis
 8. **Social Media Hub** - AI-powered social media management
-9. **Security Center** - Website security status monitoring
+9. **Security Center** - Website security monitoring
 10. **Analytics** - Business performance reports
 
-### ✅ CRM System Features (NEW)
+### ✅ CRM System Features (with ASR Logo)
 **Admin CRM (/admin/crm):**
+- ASR Enterprises original logo in header
 - View all leads with pipeline stages
 - Assign leads to staff members
 - Create staff accounts with unique IDs
 - View reports and analytics
 - Track payments and projects
 - AI lead prioritization
+- **Gallery Tab** - Upload work photos (auto-updates website gallery)
 
 **Staff Portal (/staff/portal):**
+- ASR Enterprises logo
 - Unique Staff ID & password login
 - View only assigned leads
-- Update lead status (New → Follow-up → Survey → Quotation → Installation → Completed)
+- Update lead status
 - Set follow-up reminders
 - Survey status update
 - WhatsApp integration
 
-### ✅ AI Features
-- Lead scoring and analysis
-- Lead prioritization recommendations
-- Smart follow-up suggestions
-- Social media post generation
-- Government news auto-refresh
-- Staff performance analysis
+### ✅ Login Flow
+- Homepage → "Login" button → Admin Login page
+- Admin Login → Email OTP verification (131993)
+- Admin Login → "Staff Login →" button → Staff Login page
+- Staff Login → Staff ID + Password → Staff Portal
 
-### ✅ Security Features
-- Rate limiting (100 req/min)
-- Input sanitization (XSS/injection protection)
-- Security headers (CORS, CSP, HSTS)
-- Brute force protection (5 login attempts/5 min)
+### ✅ Gallery Photo Upload (NEW)
+- Admin can upload work photos via CRM → Gallery tab
+- Photos auto-update on website gallery
+- Fields: Title, Image URL, Location, System Size, Description
+- Delete photos with confirmation
 
 ## Data Models
-- **CRMLead:** {name, email, phone, district, stage, assigned_to, lead_score, ai_priority, status_history}
-- **CRMStaffAccount:** {staff_id, password_hash, name, phone, role, leads_assigned, leads_converted, total_revenue}
-- **CRMProject:** {customer_name, location, system_size, total_amount, installation_status, progress}
+- **CRMLead:** {name, email, phone, district, stage, assigned_to, lead_score, ai_priority}
+- **CRMStaffAccount:** {staff_id, password_hash, name, phone, role, leads_assigned, leads_converted}
+- **CRMProject:** {customer_name, location, system_size, total_amount, installation_status}
 - **CRMPayment:** {project_id, amount, payment_type, payment_mode, received_by}
-- **CRMFollowUp:** {lead_id, employee_id, reminder_date, reminder_type, status}
+- **WorkPhoto:** {title, image_url, location, system_size, description, category}
 
 ## API Endpoints
 ### Staff Authentication
-- POST `/api/staff/register` - Create staff account (admin only)
-- POST `/api/staff/login` - Staff login with ID/password
-- GET `/api/staff/{staff_id}/dashboard` - Staff dashboard data
+- POST `/api/staff/register` - Create staff account
+- POST `/api/staff/login` - Staff login
+- GET `/api/staff/{staff_id}/dashboard` - Staff dashboard
 - GET `/api/staff/{staff_id}/leads` - Staff assigned leads
-- PUT `/api/staff/{staff_id}/leads/{lead_id}` - Update lead
-- POST `/api/staff/{staff_id}/followups` - Create follow-up
 
-### Admin CRM
-- GET `/api/admin/staff-accounts` - All staff accounts
-- POST `/api/crm/leads/{lead_id}/assign` - Assign lead to staff
-- GET `/api/crm/dashboard` - CRM dashboard stats
-- GET `/api/crm/reports/monthly` - Monthly business report
+### Gallery
+- POST `/api/gallery/upload` - Upload photo to gallery
+- GET `/api/admin/photos` - Get all gallery photos
+- DELETE `/api/admin/photos/{id}` - Delete photo
 
 ## Changelog
-- **2026-02-12:** Implemented complete CRM system with separate Admin and Staff logins. Staff get unique IDs (ASR1001+). Removed Admin Login from homepage. Updated Facebook link.
-- **2026-02-01:** Fixed Analytics page. Added Social Media Hub. Fixed LlmChat initialization.
-- **2025-02-01:** Added 8 admin modules, solar inquiry form, AI security
+- **2026-02-12:** Added Login button to homepage, ASR logo to CRM/Staff pages, Gallery tab for photo upload
+- **2026-02-12:** Implemented CRM with separate Admin and Staff logins
+- **2026-02-01:** Fixed Analytics page, Added Social Media Hub
 
 ## Test Credentials
 - **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (MOCKED)
@@ -105,6 +103,5 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 ## Future Enhancements
 - Real email OTP integration
 - Deployment to www.asrenterprisespatna.com
-- Connect real social media accounts (Facebook API, Instagram API)
-- SMS notifications for leads
+- Direct file upload (currently uses image URLs)
 - WhatsApp Business API integration

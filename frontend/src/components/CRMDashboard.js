@@ -727,7 +727,7 @@ export const CRMDashboard = () => {
                 <tbody>
                   {followups.map((fu) => {
                     const lead = leads.find(l => l.id === fu.lead_id);
-                    const emp = employees.find(e => e.id === fu.employee_id);
+                    const emp = staffAccounts.find(e => e.id === fu.employee_id);
                     return (
                       <tr key={fu.id} className="border-t border-gray-700">
                         <td className="px-4 py-3 text-white">{fu.reminder_date}</td>

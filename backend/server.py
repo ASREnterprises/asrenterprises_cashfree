@@ -1211,6 +1211,262 @@ async def generate_social_post(request: Dict[str, Any]):
 
 # ==================== CRM API ENDPOINTS ====================
 
+# ==================== STAFF AUTHENTICATION ====================
+
+@api_router.post("/staff/register")
+async def register_staff(data: Dict[str, Any]):
+    """Admin creates staff account with unique ID and password"""
+    import hashlib
+    
+    # Generate unique staff ID (ASR + 4 digits)
+    staff_count = await db.crm_staff_accounts.count_documents({})
+    staff_id = f"ASR{1001 + staff_count}"
+    
+    # Hash password
+    password = data.get("password", "asr@123")
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    staff_account = {
+        "id": str(uuid.uuid4()),
+        "staff_id": staff_id,
+        "password_hash": password_hash,
+        "name": sanitize_input(data.get("name", "")),
+        "email": data.get("email", ""),
+        "phone": data.get("phone", ""),
+        "role": data.get("role", "sales"),
+        "department": data.get("department", "sales"),
+        "is_active": True,
+        "leads_assigned": 0,
+        "leads_converted": 0,
+        "total_revenue": 0.0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.crm_staff_accounts.insert_one(staff_account)
+    
+    return {
+        "success": True,
+        "staff_id": staff_id,
+        "password": password,
+        "message": f"Staff account created. Login ID: {staff_id}"
+    }
+
+@api_router.post("/staff/login")
+async def staff_login(data: Dict[str, Any]):
+    """Staff login with unique ID and password"""
+    import hashlib
+    
+    staff_id = data.get("staff_id", "").strip().upper()
+    password = data.get("password", "")
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    staff = await db.crm_staff_accounts.find_one(
+        {"staff_id": staff_id, "password_hash": password_hash, "is_active": True},
+        {"_id": 0, "password_hash": 0}
+    )
+    
+    if not staff:
+        raise HTTPException(status_code=401, detail="Invalid Staff ID or Password")
+    
+    # Create session token
+    session_token = str(uuid.uuid4())
+    staff_sessions[session_token] = {
+        "staff_id": staff_id,
+        "id": staff.get("id"),
+        "name": staff.get("name"),
+        "role": staff.get("role"),
+        "timestamp": time.time()
+    }
+    
+    return {
+        "success": True,
+        "token": session_token,
+        "staff": staff
+    }
+
+@api_router.get("/staff/profile/{staff_id}")
+async def get_staff_profile(staff_id: str):
+    """Get staff profile and stats"""
+    staff = await db.crm_staff_accounts.find_one(
+        {"staff_id": staff_id},
+        {"_id": 0, "password_hash": 0}
+    )
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    return staff
+
+@api_router.get("/staff/{staff_id}/leads")
+async def get_staff_assigned_leads(staff_id: str):
+    """Get leads assigned to this staff member"""
+    # Get internal ID from staff_id
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    leads = await db.crm_leads.find(
+        {"assigned_to": staff.get("id")},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(200)
+    
+    return leads
+
+@api_router.put("/staff/{staff_id}/leads/{lead_id}")
+async def staff_update_lead(staff_id: str, lead_id: str, data: Dict[str, Any]):
+    """Staff updates their assigned lead"""
+    # Verify staff owns this lead
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    lead = await db.crm_leads.find_one({"id": lead_id, "assigned_to": staff.get("id")}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=403, detail="Not authorized to update this lead")
+    
+    # Track stage changes
+    update_fields = {}
+    if "stage" in data:
+        history_entry = {
+            "stage": data["stage"],
+            "updated_by": staff_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "notes": data.get("notes", f"Status changed to {data['stage']}")
+        }
+        status_history = lead.get("status_history", [])
+        status_history.append(history_entry)
+        update_fields["status_history"] = status_history
+        update_fields["stage"] = data["stage"]
+    
+    if "follow_up_notes" in data:
+        update_fields["follow_up_notes"] = sanitize_input(data["follow_up_notes"])
+    if "next_follow_up" in data:
+        update_fields["next_follow_up"] = data["next_follow_up"]
+    if "survey_done" in data:
+        update_fields["survey_done"] = data["survey_done"]
+    if "quoted_amount" in data:
+        update_fields["quoted_amount"] = data["quoted_amount"]
+    
+    await db.crm_leads.update_one({"id": lead_id}, {"$set": update_fields})
+    
+    # If converted, update staff stats
+    if data.get("stage") == "completed":
+        await db.crm_staff_accounts.update_one(
+            {"staff_id": staff_id},
+            {"$inc": {"leads_converted": 1}}
+        )
+    
+    return {"success": True}
+
+@api_router.get("/staff/{staff_id}/followups")
+async def get_staff_followups(staff_id: str):
+    """Get follow-up reminders for staff"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    followups = await db.crm_followups.find(
+        {"employee_id": staff.get("id")},
+        {"_id": 0}
+    ).sort("reminder_date", 1).to_list(100)
+    
+    return followups
+
+@api_router.post("/staff/{staff_id}/followups")
+async def staff_create_followup(staff_id: str, data: Dict[str, Any]):
+    """Staff creates follow-up reminder"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    followup = CRMFollowUp(
+        lead_id=data.get("lead_id", ""),
+        employee_id=staff.get("id"),
+        reminder_date=data.get("reminder_date", ""),
+        reminder_time=data.get("reminder_time", "10:00"),
+        reminder_type=data.get("reminder_type", "call"),
+        notes=sanitize_input(data.get("notes", ""))
+    )
+    doc = followup.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_followups.insert_one(doc)
+    
+    # Update lead's next follow-up
+    await db.crm_leads.update_one(
+        {"id": data.get("lead_id")},
+        {"$set": {"next_follow_up": data.get("reminder_date")}}
+    )
+    
+    return followup
+
+@api_router.put("/staff/{staff_id}/followups/{followup_id}")
+async def staff_update_followup(staff_id: str, followup_id: str, data: Dict[str, Any]):
+    """Staff marks follow-up as done"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    await db.crm_followups.update_one(
+        {"id": followup_id, "employee_id": staff.get("id")},
+        {"$set": {"status": data.get("status", "completed")}}
+    )
+    return {"success": True}
+
+@api_router.get("/staff/{staff_id}/dashboard")
+async def get_staff_dashboard(staff_id: str):
+    """Staff dashboard with their stats"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0, "password_hash": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    internal_id = staff.get("id")
+    
+    # Get assigned leads count by stage
+    pipeline_stats = await db.crm_leads.aggregate([
+        {"$match": {"assigned_to": internal_id}},
+        {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
+    ]).to_list(20)
+    
+    # Today's follow-ups
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    todays_followups = await db.crm_followups.find(
+        {"employee_id": internal_id, "reminder_date": today, "status": "pending"},
+        {"_id": 0}
+    ).to_list(20)
+    
+    # Recent leads
+    recent_leads = await db.crm_leads.find(
+        {"assigned_to": internal_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(5).to_list(5)
+    
+    return {
+        "staff": staff,
+        "pipeline_stats": {item["_id"]: item["count"] for item in pipeline_stats if item["_id"]},
+        "total_assigned": staff.get("leads_assigned", 0),
+        "total_converted": staff.get("leads_converted", 0),
+        "todays_followups": todays_followups,
+        "recent_leads": recent_leads
+    }
+
+# Admin - Get all staff accounts
+@api_router.get("/admin/staff-accounts")
+async def get_all_staff_accounts():
+    """Admin gets all staff accounts"""
+    staff = await db.crm_staff_accounts.find({}, {"_id": 0, "password_hash": 0}).to_list(100)
+    return staff
+
+@api_router.put("/admin/staff-accounts/{staff_id}/reset-password")
+async def reset_staff_password(staff_id: str, data: Dict[str, Any]):
+    """Admin resets staff password"""
+    import hashlib
+    new_password = data.get("password", "asr@123")
+    password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+    
+    await db.crm_staff_accounts.update_one(
+        {"staff_id": staff_id},
+        {"$set": {"password_hash": password_hash}}
+    )
+    return {"success": True, "new_password": new_password}
+
 # CRM Employee Management
 @api_router.get("/crm/employees")
 async def get_crm_employees():

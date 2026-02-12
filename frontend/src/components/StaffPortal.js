@@ -4,7 +4,8 @@ import axios from "axios";
 import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
-  ChevronRight, FileText, TrendingUp, Bell, Plus, Edit
+  ChevronRight, FileText, TrendingUp, Bell, Plus, Edit,
+  Send, Briefcase, ListTodo, MessageCircle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -20,17 +21,35 @@ const PIPELINE_STAGES = [
   { id: "lost", label: "Lost", color: "bg-red-500" }
 ];
 
+// Task Types
+const TASK_TYPES = [
+  { id: "call", label: "📞 Call", color: "bg-blue-500" },
+  { id: "visit", label: "🏠 Site Visit", color: "bg-green-500" },
+  { id: "survey", label: "📋 Survey", color: "bg-purple-500" },
+  { id: "installation", label: "🔧 Installation", color: "bg-orange-500" },
+  { id: "follow_up", label: "🔄 Follow Up", color: "bg-yellow-500" },
+  { id: "other", label: "📝 Other", color: "bg-gray-500" }
+];
+
 export const StaffPortal = () => {
   const [staffData, setStaffData] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [leads, setLeads] = useState([]);
   const [followups, setFollowups] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [todayTasks, setTodayTasks] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showFollowupModal, setShowFollowupModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
   const [updateData, setUpdateData] = useState({});
+  const [newMessage, setNewMessage] = useState("");
+  const [activityForm, setActivityForm] = useState({ activity_type: "note", title: "", description: "" });
   const navigate = useNavigate();
 
   useEffect(() => {

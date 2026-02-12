@@ -335,6 +335,7 @@ const HomePage = () => {
               <Link to="/gallery" className="block py-2 text-gray-700">Gallery</Link>
               <Link to="/calculator" className="block py-2 text-gray-700">Calculator</Link>
               <Link to="/contact" className="block py-2 text-gray-700">Contact</Link>
+              <Link to="/admin/login" className="block py-2 text-blue-600 font-semibold">Login (Admin/Staff)</Link>
             </div>
           </div>
         )}

@@ -926,6 +926,169 @@ export const CRMDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Gallery Tab */}
+        {activeTab === "gallery" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-bold text-white">Work Photos Gallery</h2>
+                <p className="text-gray-400 text-sm">Upload completed work photos - auto-updates website gallery</p>
+              </div>
+              <button
+                onClick={() => setShowPhotoUploadModal(true)}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 font-semibold hover:from-green-600 hover:to-emerald-700"
+              >
+                <Upload className="w-5 h-5" />
+                <span>Upload New Photo</span>
+              </button>
+            </div>
+
+            {/* Photo Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {galleryPhotos.map((photo) => (
+                <div key={photo.id} className="bg-gray-800 rounded-xl overflow-hidden group">
+                  <div className="relative aspect-video">
+                    <img 
+                      src={photo.image_url || photo.imageUrl} 
+                      alt={photo.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center">
+                      <button
+                        onClick={() => deletePhoto(photo.id)}
+                        className="opacity-0 group-hover:opacity-100 bg-red-600 text-white p-2 rounded-lg transition"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-white font-semibold truncate">{photo.title}</h3>
+                    <p className="text-gray-400 text-sm truncate">{photo.location || photo.description}</p>
+                    {photo.system_size && (
+                      <span className="text-green-400 text-xs">{photo.system_size}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {galleryPhotos.length === 0 && (
+                <div className="col-span-4 text-center py-16">
+                  <Camera className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-400 mb-2">No Photos Yet</h3>
+                  <p className="text-gray-500 mb-4">Upload your completed work photos to showcase on the website gallery</p>
+                  <button
+                    onClick={() => setShowPhotoUploadModal(true)}
+                    className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+                  >
+                    Upload First Photo
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Photo Upload Modal */}
+        {showPhotoUploadModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl p-6 max-w-lg w-full">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+                  <Camera className="w-5 h-5 text-green-400" />
+                  <span>Upload Work Photo</span>
+                </h2>
+                <button onClick={() => setShowPhotoUploadModal(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Photo Title *</label>
+                  <input
+                    type="text"
+                    value={photoForm.title}
+                    onChange={(e) => setPhotoForm({...photoForm, title: e.target.value})}
+                    placeholder="e.g., 5kW Installation at Patna"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Image URL *</label>
+                  <input
+                    type="url"
+                    value={photoForm.image_url}
+                    onChange={(e) => setPhotoForm({...photoForm, image_url: e.target.value})}
+                    placeholder="https://example.com/photo.jpg"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">Paste image URL from Google Drive, Imgur, or any image host</p>
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Location</label>
+                  <input
+                    type="text"
+                    value={photoForm.location}
+                    onChange={(e) => setPhotoForm({...photoForm, location: e.target.value})}
+                    placeholder="e.g., Patna, Bihar"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">System Size</label>
+                  <input
+                    type="text"
+                    value={photoForm.system_size}
+                    onChange={(e) => setPhotoForm({...photoForm, system_size: e.target.value})}
+                    placeholder="e.g., 5kW Solar System"
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-400 text-sm mb-2">Description</label>
+                  <textarea
+                    value={photoForm.description}
+                    onChange={(e) => setPhotoForm({...photoForm, description: e.target.value})}
+                    placeholder="Brief description of the installation..."
+                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-20 resize-none"
+                  />
+                </div>
+              </div>
+
+              {photoForm.image_url && (
+                <div className="mt-4">
+                  <p className="text-gray-400 text-sm mb-2">Preview:</p>
+                  <img 
+                    src={photoForm.image_url} 
+                    alt="Preview" 
+                    className="w-full h-40 object-cover rounded-lg"
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                </div>
+              )}
+
+              <div className="flex space-x-3 mt-6">
+                <button
+                  onClick={uploadPhoto}
+                  disabled={uploading || !photoForm.title || !photoForm.image_url}
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {uploading ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5" />
+                  )}
+                  <span>{uploading ? "Uploading..." : "Upload to Gallery"}</span>
+                </button>
+                <button
+                  onClick={() => setShowPhotoUploadModal(false)}
+                  className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI Suggestions Modal */}

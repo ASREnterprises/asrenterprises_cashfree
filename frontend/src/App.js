@@ -27,6 +27,8 @@ import { LeadsManagement } from "@/components/LeadsManagement";
 import { AnalyticsPage } from "@/components/AnalyticsPage";
 import { SocialMediaIntegration } from "@/components/SocialMediaIntegration";
 import { CRMDashboard } from "@/components/CRMDashboard";
+import { StaffLogin } from "@/components/StaffLogin";
+import { StaffPortal } from "@/components/StaffPortal";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

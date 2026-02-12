@@ -351,7 +351,21 @@ export const CRMDashboard = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-400 text-sm">
-                        {employees.find(e => e.id === lead.assigned_to)?.name || '-'}
+                        <select
+                          value={lead.assigned_to || ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const staff = staffAccounts.find(s => s.id === e.target.value);
+                              if (staff) assignLeadToStaff(lead.id, staff.staff_id);
+                            }
+                          }}
+                          className="bg-gray-700 text-white text-sm px-2 py-1 rounded"
+                        >
+                          <option value="">Assign Staff</option>
+                          {staffAccounts.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.staff_id})</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">

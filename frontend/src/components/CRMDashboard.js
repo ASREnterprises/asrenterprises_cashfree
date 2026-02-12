@@ -179,6 +179,7 @@ export const CRMDashboard = () => {
               { id: "followups", label: "Follow-ups", icon: <Calendar className="w-4 h-4" /> },
               { id: "projects", label: "Projects", icon: <Wrench className="w-4 h-4" /> },
               { id: "payments", label: "Payments", icon: <CreditCard className="w-4 h-4" /> },
+              { id: "gallery", label: "Gallery", icon: <Camera className="w-4 h-4" /> },
               { id: "reports", label: "Reports", icon: <FileText className="w-4 h-4" /> }
             ].map((tab) => (
               <button

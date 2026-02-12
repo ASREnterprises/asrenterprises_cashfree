@@ -484,9 +484,9 @@ const HomePage = () => {
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-blue-200 transition-all hover:-translate-y-1 group">
               <div className="h-16 flex items-center justify-center mb-3">
                 <img 
-                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/0d2af6b7df3260436770e617b16f6a0f2a50009bdc77c1142fdef729103d9c16.png" 
+                  src="https://upload.wikimedia.org/wikipedia/commons/8/8e/Tata_logo.svg" 
                   alt="TATA Power Solar" 
-                  className="h-14 w-auto object-contain"
+                  className="h-12 w-auto object-contain"
                 />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">TATA Power Solar</h3>
@@ -497,9 +497,9 @@ const HomePage = () => {
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-green-200 transition-all hover:-translate-y-1 group">
               <div className="h-16 flex items-center justify-center mb-3">
                 <img 
-                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/7e44fb0664f7ca880a98a7e30257809e7e7b0553758016335bffc2cf9b7e4b5c.png" 
+                  src="https://upload.wikimedia.org/wikipedia/commons/f/ff/Adani_2012_logo.png" 
                   alt="Adani Solar" 
-                  className="h-14 w-auto object-contain"
+                  className="h-10 w-auto object-contain"
                 />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Adani Solar</h3>
@@ -510,9 +510,9 @@ const HomePage = () => {
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-red-200 transition-all hover:-translate-y-1 group">
               <div className="h-16 flex items-center justify-center mb-3">
                 <img 
-                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/e4ff69a2db2ddd77e3eadf9b88c272f3b1d794b4dd1ecdb67c78587f032b23c7.png" 
+                  src="https://www.luminousindia.com/pub/media/logo/default/luminous_logo.svg" 
                   alt="Luminous Solar" 
-                  className="h-14 w-auto object-contain"
+                  className="h-10 w-auto object-contain"
                 />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Luminous Solar</h3>
@@ -523,9 +523,9 @@ const HomePage = () => {
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-orange-200 transition-all hover:-translate-y-1 group">
               <div className="h-16 flex items-center justify-center mb-3">
                 <img 
-                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/e30a70af5d97a874062d545fc21bd6b326738e16a76b3e1d0262f262369af6a7.png" 
+                  src="https://www.loomsolar.com/cdn/shop/files/loom-solar-logo.png" 
                   alt="Loom Solar" 
-                  className="h-14 w-auto object-contain"
+                  className="h-10 w-auto object-contain"
                 />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Loom Solar</h3>
@@ -536,9 +536,9 @@ const HomePage = () => {
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-sky-200 transition-all hover:-translate-y-1 group">
               <div className="h-16 flex items-center justify-center mb-3">
                 <img 
-                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/dce4136cedddd5ce257d8420a8073457e3e8d6d12169c4450b7964138730eedc.png" 
+                  src="https://www.waaree.com/public/front/images/logo.png" 
                   alt="Waaree Solar" 
-                  className="h-14 w-auto object-contain"
+                  className="h-10 w-auto object-contain"
                 />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Waaree Solar</h3>
@@ -549,9 +549,9 @@ const HomePage = () => {
             <div className="bg-white border-2 border-gray-100 rounded-xl p-4 text-center hover:shadow-xl hover:border-indigo-200 transition-all hover:-translate-y-1 group">
               <div className="h-16 flex items-center justify-center mb-3">
                 <img 
-                  src="https://static.prod-images.emergentagent.com/jobs/9e47ee83-7f54-4a27-93fd-3d2e3c67da73/images/1fdd77d311f60a7f0f9c175883d6656d0bf2f6a73a555802a44938d308abbc8b.png" 
+                  src="https://www.vikramsolar.com/wp-content/uploads/2023/03/vikram-solar-logo.svg" 
                   alt="Vikram Solar" 
-                  className="h-14 w-auto object-contain"
+                  className="h-10 w-auto object-contain"
                 />
               </div>
               <h3 className="font-bold text-gray-900 text-sm">Vikram Solar</h3>

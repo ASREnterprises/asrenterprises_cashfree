@@ -314,6 +314,7 @@ const HomePage = () => {
               <Link to="/gallery" className="text-gray-700 hover:text-blue-600 transition">Gallery</Link>
               <Link to="/calculator" className="text-gray-700 hover:text-blue-600 transition">Calculator</Link>
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition">Contact</Link>
+              <Link to="/admin/login" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition text-sm font-semibold">Login</Link>
             </div>
 
             {/* Mobile Menu Button */}

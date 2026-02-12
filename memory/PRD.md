@@ -1,7 +1,7 @@
 # ASR Enterprises Solar Website - Product Requirements Document
 
 ## Original Problem Statement
-Build a feature-rich website for "ASR Enterprises" - a solar energy business in Patna, Bihar with AI-powered features, admin panel, and comprehensive business management.
+Build a feature-rich website for "ASR Enterprises" - a solar energy business in Patna, Bihar with AI-powered features, admin panel, and comprehensive CRM system for managing leads, staff, and business operations.
 
 ## Company Information
 - **Name:** ASR Enterprises
@@ -9,7 +9,11 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - **GSTIN:** 10CCFPK3447Q3ZD
 - **Phone:** 8877896889
 - **Email:** asrenterprisespatna@gmail.com
+- **Facebook:** https://www.facebook.com/share/1876swUqxu/
+
+## Authentication
 - **Admin Login:** asrenterprisespatna@gmail.com (OTP: 131993 - MOCKED)
+- **Staff Login:** Unique Staff IDs (ASR1001, ASR1002...) with passwords
 
 ## Implemented Features
 
@@ -22,75 +26,85 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 6. AI-powered features section
 7. Government schemes information (₹78,000 max subsidy)
 8. 5-year FREE maintenance offers
+9. **No Admin Login button** in navigation (removed for security)
 
-### ✅ Admin Dashboard (9 Modules)
-1. **Leads Management** - View, filter, update status, WhatsApp integration
-2. **Work Photos** - Upload/manage installation photos for gallery
-3. **Customer Reviews** - Add/manage customer testimonials
-4. **Festival Posts** - Create/edit/delete festival wishes (with templates)
-5. **Govt News & Schemes** - AI auto-updates Bihar solar news
-6. **Staff Management** - AI-powered with task assignment, attendance, performance analysis
-7. **Social Media Hub** - AI-powered social media management, auto-post suggestions (NEW)
-8. **Security Center** - Website security status monitoring
-9. **Analytics** - Business performance reports with leads by district, status, property type (FIXED)
+### ✅ Admin Dashboard (10 Modules)
+1. **CRM System** - Complete lead & sales management
+2. **Leads Management** - View, filter, update status, WhatsApp integration
+3. **Work Photos** - Upload/manage installation photos for gallery
+4. **Customer Reviews** - Add/manage customer testimonials
+5. **Festival Posts** - Create/edit/delete festival wishes
+6. **Govt News & Schemes** - AI auto-updates Bihar solar news
+7. **Staff Management** - AI-powered performance analysis
+8. **Social Media Hub** - AI-powered social media management
+9. **Security Center** - Website security status monitoring
+10. **Analytics** - Business performance reports
+
+### ✅ CRM System Features (NEW)
+**Admin CRM (/admin/crm):**
+- View all leads with pipeline stages
+- Assign leads to staff members
+- Create staff accounts with unique IDs
+- View reports and analytics
+- Track payments and projects
+- AI lead prioritization
+
+**Staff Portal (/staff/portal):**
+- Unique Staff ID & password login
+- View only assigned leads
+- Update lead status (New → Follow-up → Survey → Quotation → Installation → Completed)
+- Set follow-up reminders
+- Survey status update
+- WhatsApp integration
 
 ### ✅ AI Features
 - Lead scoring and analysis
-- Recommended system size calculation
-- WhatsApp chatbot
-- Solar cost calculator
+- Lead prioritization recommendations
+- Smart follow-up suggestions
+- Social media post generation
 - Government news auto-refresh
 - Staff performance analysis
-- Social media post generation (promotion, project, festival, scheme types)
 
 ### ✅ Security Features
 - Rate limiting (100 req/min)
 - Input sanitization (XSS/injection protection)
 - Security headers (CORS, CSP, HSTS)
 - Brute force protection (5 login attempts/5 min)
-- OTP expiry (5 minutes)
-- Constant-time comparison
-
-## Quotation Rates
-- TATA Power Solar: ₹68/W
-- Adani Solar: ₹66/W
-- Loom Solar: ₹64/W
-- Luminous Solar: ₹66/W
-- Waaree Solar: ₹65/W
-- Vikram Solar: ₹67/W
-
-## Technical Stack
-- **Frontend:** React, Tailwind CSS
-- **Backend:** FastAPI (Python)
-- **Database:** MongoDB
-- **AI:** emergentintegrations with GPT-4o-mini
 
 ## Data Models
-- Lead: {name, email, phone, district, property_type, roof_type, monthly_bill, roof_area, status, ai_analysis, lead_score}
-- WorkPhoto: {title, description, image_url, location, system_size, category}
-- CustomerReview: {customer_name, location, rating, review_text, system_installed}
-- FestivalPost: {title, message, image_url, start_date, end_date, is_active}
-- GovtNews: {title, summary, source, category, is_active}
-- StaffMember: {name, email, phone, role, reportingTo, tasks_completed, performance_score, ai_insights}
-- SocialPost: {content, platforms, status, created_at} (NEW)
-
-## Changelog
-- **2026-02-01:** Fixed Analytics page (was broken - route existed but component missing). Added Social Media Hub with AI post generator. Fixed LlmChat initialization with session_id and system_message.
-- **2025-02-01:** Major update - Added 8 admin modules, solar inquiry form, AI security, removed quotation
-- **2025-01-31:** Added brands section, admin login security, flash banner
-- **2025-01-31:** Fixed preview error, implemented initial features
-
-## Future Enhancements
-- Real email OTP integration (user chose to keep mock OTP 131993 for now)
-- Deployment to www.asrenterprisespatna.com
-- Connect real social media accounts (Facebook, Instagram, Google Business)
-- SMS notifications for leads
+- **CRMLead:** {name, email, phone, district, stage, assigned_to, lead_score, ai_priority, status_history}
+- **CRMStaffAccount:** {staff_id, password_hash, name, phone, role, leads_assigned, leads_converted, total_revenue}
+- **CRMProject:** {customer_name, location, system_size, total_amount, installation_status, progress}
+- **CRMPayment:** {project_id, amount, payment_type, payment_mode, received_by}
+- **CRMFollowUp:** {lead_id, employee_id, reminder_date, reminder_type, status}
 
 ## API Endpoints
-### Analytics
-- GET `/api/admin/analytics` - Comprehensive analytics with leads by district, status, property type
+### Staff Authentication
+- POST `/api/staff/register` - Create staff account (admin only)
+- POST `/api/staff/login` - Staff login with ID/password
+- GET `/api/staff/{staff_id}/dashboard` - Staff dashboard data
+- GET `/api/staff/{staff_id}/leads` - Staff assigned leads
+- PUT `/api/staff/{staff_id}/leads/{lead_id}` - Update lead
+- POST `/api/staff/{staff_id}/followups` - Create follow-up
 
-### Social Media
-- GET `/api/admin/social-posts` - Get all scheduled/published posts
-- POST `/api/admin/social-posts` - Create new social post
-- POST `/api/admin/social-posts/generate` - AI-generate post content (types: promotion, project, festival, scheme)
+### Admin CRM
+- GET `/api/admin/staff-accounts` - All staff accounts
+- POST `/api/crm/leads/{lead_id}/assign` - Assign lead to staff
+- GET `/api/crm/dashboard` - CRM dashboard stats
+- GET `/api/crm/reports/monthly` - Monthly business report
+
+## Changelog
+- **2026-02-12:** Implemented complete CRM system with separate Admin and Staff logins. Staff get unique IDs (ASR1001+). Removed Admin Login from homepage. Updated Facebook link.
+- **2026-02-01:** Fixed Analytics page. Added Social Media Hub. Fixed LlmChat initialization.
+- **2025-02-01:** Added 8 admin modules, solar inquiry form, AI security
+
+## Test Credentials
+- **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (MOCKED)
+- **Staff:** ASR1001 / asr@123
+
+## Future Enhancements
+- Real email OTP integration
+- Deployment to www.asrenterprisespatna.com
+- Connect real social media accounts (Facebook API, Instagram API)
+- SMS notifications for leads
+- WhatsApp Business API integration

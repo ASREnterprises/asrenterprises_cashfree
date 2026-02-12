@@ -860,7 +860,7 @@ export const CRMDashboard = () => {
                       <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_type}</td>
                       <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_mode}</td>
                       <td className="px-4 py-3 text-gray-300">
-                        {employees.find(e => e.id === pay.received_by)?.name || '-'}
+                        {staffAccounts.find(e => e.id === pay.received_by)?.name || '-'}
                       </td>
                     </tr>
                   ))}

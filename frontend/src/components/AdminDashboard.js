@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2 } from "lucide-react";
+import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -33,6 +33,14 @@ export const AdminDashboard = ({ onLogout }) => {
   };
 
   const modules = [
+    {
+      title: "CRM System",
+      description: "Complete lead & sales management",
+      icon: <LayoutDashboard className="w-10 h-10" />,
+      link: "/admin/crm",
+      color: "from-indigo-500 to-purple-600",
+      count: "Full CRM"
+    },
     {
       title: "Leads Management",
       description: "View and manage all customer inquiries",

@@ -423,6 +423,56 @@ class AdAnalytics(BaseModel):
     ai_recommendations: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# ==================== TASK & COMMUNICATION MODELS ====================
+
+# Task Model for Employee Work Assignment
+class StaffTask(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    staff_id: str
+    staff_name: str = ""
+    title: str
+    description: str = ""
+    task_type: str = "call"  # call, visit, survey, installation, follow_up, other
+    lead_id: Optional[str] = None
+    lead_name: Optional[str] = None
+    priority: str = "medium"  # high, medium, low
+    due_date: str
+    due_time: str = "10:00"
+    status: str = "pending"  # pending, in_progress, completed, cancelled
+    completed_at: Optional[str] = None
+    notes: str = ""
+    created_by: str = "admin"
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Activity Log for Lead Timeline
+class ActivityLog(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    lead_id: str
+    staff_id: Optional[str] = None
+    staff_name: str = ""
+    activity_type: str  # call, visit, note, status_change, quotation, payment, message
+    title: str
+    description: str = ""
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# Internal Chat/Message Model
+class CRMMessage(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    sender_id: str
+    sender_name: str
+    sender_type: str  # admin, staff
+    receiver_id: Optional[str] = None  # None = broadcast to all
+    receiver_name: str = ""
+    lead_id: Optional[str] = None  # If message is about a specific lead
+    message: str
+    is_read: bool = False
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class StaffMember(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

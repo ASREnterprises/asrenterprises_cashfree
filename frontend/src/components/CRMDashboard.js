@@ -6,7 +6,8 @@ import {
   Phone, Mail, MapPin, DollarSign, CheckCircle, Clock, 
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
-  Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy
+  Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy,
+  Image, Upload, Camera
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;

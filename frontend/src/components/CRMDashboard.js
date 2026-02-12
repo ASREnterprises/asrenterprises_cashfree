@@ -53,14 +53,14 @@ export const CRMDashboard = () => {
       const [dashRes, leadsRes, staffRes, followRes, projRes, payRes] = await Promise.all([
         axios.get(`${API}/crm/dashboard`),
         axios.get(`${API}/crm/leads`),
-        axios.get(`${API}/crm/employees`),
+        axios.get(`${API}/admin/staff-accounts`),
         axios.get(`${API}/crm/followups`),
         axios.get(`${API}/crm/projects`),
         axios.get(`${API}/crm/payments`)
       ]);
       setDashboardData(dashRes.data);
       setLeads(leadsRes.data);
-      setEmployees(empRes.data);
+      setStaffAccounts(staffRes.data);
       setFollowups(followRes.data);
       setProjects(projRes.data);
       setPayments(payRes.data);
@@ -68,6 +68,37 @@ export const CRMDashboard = () => {
       console.error("Error fetching CRM data:", err);
     }
     setLoading(false);
+  };
+
+  const createStaffAccount = async () => {
+    try {
+      const res = await axios.post(`${API}/staff/register`, newStaffForm);
+      setNewStaffCredentials({
+        staff_id: res.data.staff_id,
+        password: res.data.password
+      });
+      setNewStaffForm({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123' });
+      fetchAllData();
+    } catch (err) {
+      alert("Error creating staff account");
+    }
+  };
+
+  const assignLeadToStaff = async (leadId, staffId) => {
+    try {
+      // Get staff internal ID
+      const staff = staffAccounts.find(s => s.staff_id === staffId);
+      if (!staff) return;
+      
+      await axios.post(`${API}/crm/leads/${leadId}/assign`, {
+        employee_id: staff.id,
+        assigned_by: "admin"
+      });
+      fetchAllData();
+      alert(`Lead assigned to ${staff.name}`);
+    } catch (err) {
+      alert("Error assigning lead");
+    }
   };
 
   const getAISuggestions = async (leadId) => {

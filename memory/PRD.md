@@ -1,277 +1,95 @@
-# ASR Enterprises Solar Website - Product Requirements Document
+# ASR Enterprises - Solar Business Platform
 
 ## Original Problem Statement
-Build a feature-rich website for "ASR Enterprises" - a solar energy business in Patna, Bihar with AI-powered features, admin panel, and comprehensive CRM system.
+Build a feature-rich website for ASR Enterprises solar energy business including:
+- Customer-facing website with inquiry forms
+- Comprehensive admin/CRM panel
+- AI-powered features for lead management
+- Payment integration for service registration
 
-## Company Information
-- **Name:** ASR Enterprises
-- **Location:** Patna, Bihar
-- **Phone:** 8877896889
-- **Email:** asrenterprisespatna@gmail.com
-- **Facebook:** https://www.facebook.com/share/1ALVBDkYKe/
+## Core Requirements
+1. **Customer Website:** Homepage, gallery, calculator, contact forms
+2. **CRM Dashboard:** Lead management, staff management, task tracking
+3. **Payment System:** Service registration with fee payment
+4. **Social Media Integration:** WhatsApp/Facebook lead capture
 
-## Test Credentials
-- **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (or check email)
+## Tech Stack
+- **Frontend:** React, React Router, Tailwind CSS, Axios
+- **Backend:** FastAPI (Python), Pydantic
+- **Database:** MongoDB (Motor async driver)
+- **Payments:** Razorpay (payment link redirect)
+- **AI:** OpenAI GPT-4o (Emergent LLM Key)
+- **Email:** Resend (OTP authentication)
+
+## What's Been Implemented
+
+### Phase 1: Core Platform (Complete)
+- Homepage with hero section, services, testimonials
+- Solar calculator with savings estimation
+- Gallery page with project photos
+- Contact form with lead capture
+- Admin login with OTP authentication
+- Staff login with password authentication
+
+### Phase 2: CRM System (Complete)
+- Lead management with pipeline stages
+- Staff account management
+- Task assignment and tracking
+- Activity logging
+- Multiple photo upload to gallery
+- AI-powered lead scoring and suggestions
+
+### Phase 3: Payment Integration (Complete - Feb 2025)
+- Service registration form at /register
+- Razorpay payment link integration (https://razorpay.me/@asrenterprises9465)
+- Admin configurable registration fee
+- Lead creation from registrations
+
+### Phase 4: Social Media Integration (Infra Complete)
+- WhatsApp webhook endpoint ready
+- Facebook Messenger webhook endpoint ready
+- Bulk CSV lead import
+- Quick Add lead modal
+- Fetch Social Leads button
+**Status:** Awaiting Meta credentials to activate
+
+## Bug Fixes Applied (Feb 2025)
+- [FIXED] Mobile photo upload only opening camera - removed `capture` attribute
+- [FIXED] Stripe to Razorpay payment gateway replacement
+
+## Pending Tasks
+
+### P0 - Critical
+- None currently
+
+### P1 - High Priority
+- Verify Quick Add lead form simplicity
+- Test mobile photo upload on actual device
+
+### P2 - Medium Priority
+- Configure Meta credentials for social lead capture
+- Persist staff notifications in MongoDB
+- Add domain to Resend for OTP emails
+
+### P3 - Low Priority (Refactoring)
+- Break server.py into modular routers (crm_routes, auth_routes, payment_routes)
+- Refactor CRMDashboard.js into smaller components
+- Organize App.js routing
+
+## Key API Endpoints
+- `POST /api/registration/save-details` - Save registration before Razorpay redirect
+- `GET /api/registration/fee` - Get current registration fee
+- `POST /api/registration/update-fee` - Admin update fee
+- `POST /api/crm/leads` - Create new lead
+- `POST /api/crm/leads/bulk` - Bulk CSV import
+- `POST /api/webhooks/whatsapp` - WhatsApp lead capture
+- `POST /api/webhooks/facebook` - Facebook lead capture
+
+## Credentials
+- **Admin:** asrenterprisespatna@gmail.com (OTP: 131993 fallback)
 - **Staff:** ASR1001 / asr@123
-- **Webhook Verify Token:** asr_solar_verify_2024
 
----
-
-## COMPLETE FEATURE LIST
-
-### 🏠 Homepage
-- Running flash advertisement banner
-- Solar inquiry form (auto-creates CRM lead)
-- Festive banner (auto-displays from admin)
-- AI-generated brand logos
-- Trust badges (MNRE, PM Surya Ghar)
-- **NEW: "Book Now @ ₹1500" button for paid registration**
-
-### 📊 CRM System (/admin/crm)
-- Lead management with AI scoring
-- **Quick Add Lead** - Fast entry with basic details
-- **Full Form Lead** - Detailed customer information
-- **CSV Bulk Import** - Import multiple leads at once
-- **Fetch Social Leads** - Pull WhatsApp/Facebook leads
-- Staff account management (custom Staff IDs)
-- Task management
-- Internal messaging
-- Work photo gallery (multiple photo upload support)
-- Project tracking
-- Payment management with registration fee control
-- Auto-capture leads from WhatsApp & Facebook
-- Lead source tracking with colored badges
-
-### 📱 Social Media Lead Auto-Capture
-- WhatsApp Business API webhook integration
-- Facebook Messenger webhook integration
-- Auto-creates lead when customer messages
-- Updates existing lead on repeat messages
-- Stores conversation history in follow-up notes
-- Source marked as "whatsapp" or "facebook"
-
-### 💳 Service Registration with Payment (/register)
-- Customer registration form
-- ₹1500 registration fee (admin configurable)
-- Stripe payment integration
-- Auto-creates high-priority lead on payment success
-- Registration fee reflected in CRM
-
-### 👨‍💼 Staff Portal (/staff/portal)
-- Assigned leads view
-- Follow-up management
-- Task management
-- Notifications bell with dropdown
-- Email OTP login option
-
-### 🚀 Business Intelligence Dashboard (/admin/business-dashboard)
-
-#### 1. Daily Digest
-- Personalized greeting with date
-- AI-powered daily tip
-- New leads count (vs yesterday)
-- Today's revenue
-- Follow-ups scheduled/completed
-- Hot leads to focus (with WhatsApp/Call buttons)
-
-#### 2. Staff Leaderboard
-- Performance rankings with scores
-- Top 3 podium display (🥇🥈🥉)
-- Metrics: Conversions, Revenue, Conversion Rate
-- Gamification badges
-
-#### 3. Revenue Dashboard
-- Monthly revenue vs target
-- Progress bar visualization
-- Pipeline value (potential revenue)
-- Revenue by payment type
-- Set monthly target feature
-
-#### 4. Lead Analytics
-- Total leads & this month count
-- Conversion funnel visualization
-- Leads by source
-- Top performing districts
-- Average lead score
-
-#### 5. Overdue Lead Alerts
-- Critical (5+ days) - RED
-- 72+ hours - ORANGE
-- 48+ hours - YELLOW
-- 24+ hours - BLUE
-- Quick WhatsApp/Call buttons
-
-#### 6. AI Business Insights
-- Conversion rate analysis
-- Top performing district
-- Best lead source
-- Average deal value
-- Top performer recognition
-- Actionable recommendations
-
-#### 7. Commission Calculator
-- Staff commission report
-- Commission rates: Sales 2%, Survey ₹500, Installation 1%, Manager 0.5%
-- Total commission payable
-
-### 🔔 Notifications & Reminders
-- In-app notifications (bell icon)
-- Follow-up reminders
-- Lead assignment alerts
-- WhatsApp notification URLs
-
-### 📱 WhatsApp Integration
-- Send quotes via WhatsApp (pre-filled message)
-- Follow-up customer via WhatsApp
-- Notify staff via WhatsApp
-- Forward leads to staff WhatsApp
-
-### 🤖 AI Features
-- Lead scoring & prioritization
-- Auto lead assignment (location + round-robin)
-- Daily business tips
-- Business insights & recommendations
-
-### 🔐 Authentication
-- Admin Email OTP (via Resend)
-- Staff Password login
-- Staff Email OTP login
-- Fallback OTP: 131993
-
----
-
-## API Endpoints Summary
-
-### Business Intelligence APIs
-```
-GET  /api/crm/daily-digest        - Daily summary
-GET  /api/crm/leaderboard         - Staff rankings
-GET  /api/crm/revenue-dashboard   - Revenue analytics
-POST /api/crm/set-target          - Set monthly target
-GET  /api/crm/lead-analytics      - Lead analytics
-GET  /api/crm/overdue-leads       - Overdue alerts
-GET  /api/crm/leads/{id}/timeline - Customer journey
-GET  /api/crm/commissions         - Commission report
-GET  /api/crm/insights            - AI insights
-```
-
-### CRM APIs
-```
-POST /api/crm/leads/{id}/auto-assign     - AI auto-assign
-POST /api/crm/leads/auto-assign-all      - Bulk auto-assign
-POST /api/crm/leads/{id}/send-quote-whatsapp - Quote via WhatsApp
-GET  /api/staff/{id}/notifications       - Staff notifications
-POST /api/crm/followups                  - Create follow-up
-GET  /api/crm/followups/today            - Today's follow-ups
-```
-
-### Social Media Webhook APIs (NEW)
-```
-GET  /api/webhook/whatsapp              - WhatsApp verification
-POST /api/webhook/whatsapp              - Receive WhatsApp messages
-GET  /api/webhook/facebook              - Facebook verification
-POST /api/webhook/facebook              - Receive Messenger messages
-GET  /api/webhook/status                - Webhook configuration status
-GET  /api/webhook/recent-social-leads   - Recent social media leads
-```
-
-### Auth APIs
-```
-POST /api/admin/send-otp    - Send admin OTP
-POST /api/admin/verify-otp  - Verify admin OTP
-POST /api/staff/send-otp    - Send staff OTP
-POST /api/staff/verify-otp  - Verify staff OTP
-POST /api/staff/login       - Staff password login
-```
-
----
-
-## Testing Status
-- **Total Tests:** 44/44 passed (100%)
-- **Test Reports:** /app/test_reports/iteration_1-5.json
-
-## Environment Variables
-```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
-EMERGENT_LLM_KEY=sk-emergent-xxx
-RESEND_API_KEY=re_xxx (configured)
-SENDER_EMAIL=onboarding@resend.dev
-WEBHOOK_VERIFY_TOKEN=asr_solar_verify_2024
-WHATSAPP_PHONE_NUMBER_ID=        # Add from Meta Dashboard
-WHATSAPP_ACCESS_TOKEN=           # Add from Meta Dashboard
-FACEBOOK_APP_ID=                 # Add from Meta Dashboard
-FACEBOOK_APP_SECRET=             # Add from Meta Dashboard
-FACEBOOK_PAGE_ACCESS_TOKEN=      # Add from Meta Dashboard
-```
-
----
-
-## Session Changelog
-
-### Session 6 (2026-02-13) - Social Media Auto-Capture & Major CRM Updates
-- ✅ WhatsApp Business API webhook integration
-- ✅ Facebook Messenger webhook integration
-- ✅ Auto-creates leads from incoming messages
-- ✅ Duplicate detection (updates existing lead)
-- ✅ Multiple photo upload from mobile storage
-- ✅ Quick Add Lead form (simplified entry)
-- ✅ CSV Bulk Import for leads
-- ✅ Fetch Social Leads button
-- ✅ Lead source badges (WhatsApp/Facebook/Website)
-- ✅ Service Registration with Stripe payment (₹1500)
-- ✅ Admin configurable registration fee
-- ✅ Facebook page URL updated
-- ✅ Removed Business Intelligence from CRM header
-
-### Session 4-5 (2026-02-13)
-- ✅ Staff Performance Leaderboard with rankings
-- ✅ Revenue & Target Dashboard with goal tracking
-- ✅ Lead Analytics with conversion funnel
-- ✅ Overdue Lead Alerts (24h/48h/72h/critical)
-- ✅ Customer Journey Timeline
-- ✅ Commission Calculator
-- ✅ Daily Business Digest with AI tips
-- ✅ Smart Business Insights
-- ✅ Real Email OTP via Resend
-- ✅ WhatsApp Quote Integration
-- ✅ AI Auto Lead Assignment
-- ✅ Follow-up Reminder System
-- ✅ Staff Notifications
-
-### Previous Sessions
-- CRM with Admin & Staff portals
-- Gallery sync to website
-- Custom Staff ID support
-- Mobile gallery upload
-
----
-
-## Future Roadmap
-- P1: Persist notifications to MongoDB
-- P1: Configure Meta credentials for full social integration
-- P2: WebSocket real-time updates
-- P2: Deployment to production
-- P2: Refactor server.py into smaller routers
-- P3: Mobile app for staff
-
----
-
-## How to Configure WhatsApp & Facebook Integration
-
-### WhatsApp Business API Setup:
-1. Go to [Meta for Developers](https://developers.facebook.com)
-2. Create/select your app → WhatsApp → API Setup
-3. Get: Phone Number ID, Business Account ID, Access Token
-4. Add webhook URL: `YOUR_DOMAIN/api/webhook/whatsapp`
-5. Use verify token: `asr_solar_verify_2024`
-6. Subscribe to "messages" events
-7. Add credentials to `/app/backend/.env`
-
-### Facebook Messenger Setup:
-1. In your app → Messenger → Settings
-2. Generate Page Access Token for your business page
-3. Add webhook URL: `YOUR_DOMAIN/api/webhook/facebook`
-4. Use verify token: `asr_solar_verify_2024`
-5. Subscribe to "messages" events
-6. Add credentials to `/app/backend/.env`
+## Files Reference
+- `/app/backend/server.py` - Monolithic backend (needs refactoring)
+- `/app/frontend/src/components/CRMDashboard.js` - CRM interface
+- `/app/frontend/src/App.js` - Main app with ServiceRegistration component

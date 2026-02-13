@@ -72,6 +72,13 @@ export const CRMDashboard = () => {
     roof_area: '', source: 'manual', notes: ''
   });
   const [districts, setDistricts] = useState([]);
+  
+  // Bulk Import State
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [bulkImportFile, setBulkImportFile] = useState(null);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState(null);
+  const bulkFileInputRef = useRef(null);
 
   useEffect(() => { fetchAllData(); fetchDistricts(); }, []);
   

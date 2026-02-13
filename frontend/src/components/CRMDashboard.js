@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -7,12 +7,11 @@ import {
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy,
-  Image, Upload, Camera
+  Image, Upload, Camera, ListTodo, MessageCircle, Activity
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Pipeline Stages
 const PIPELINE_STAGES = [
   { id: "new", label: "New Lead", color: "bg-blue-500" },
   { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },
@@ -23,44 +22,59 @@ const PIPELINE_STAGES = [
   { id: "lost", label: "Lost", color: "bg-red-500" }
 ];
 
+const TASK_TYPES = [
+  { id: "call", label: "📞 Call" },
+  { id: "visit", label: "🏠 Site Visit" },
+  { id: "survey", label: "📋 Survey" },
+  { id: "installation", label: "🔧 Installation" },
+  { id: "follow_up", label: "🔄 Follow Up" },
+  { id: "other", label: "📝 Other" }
+];
+
 export const CRMDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardData, setDashboardData] = useState(null);
   const [leads, setLeads] = useState([]);
   const [staffAccounts, setStaffAccounts] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [followups, setFollowups] = useState([]);
   const [projects, setProjects] = useState([]);
   const [payments, setPayments] = useState([]);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [showLeadModal, setShowLeadModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showFollowupModal, setShowFollowupModal] = useState(false);
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState(null);
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
-  const [aiSuggestions, setAiSuggestions] = useState("");
   const [filterStage, setFilterStage] = useState("");
   const [newStaffForm, setNewStaffForm] = useState({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123' });
-  const [photoForm, setPhotoForm] = useState({ title: '', description: '', location: '', system_size: '', image_url: '' });
+  const [taskForm, setTaskForm] = useState({ staff_id: '', title: '', description: '', task_type: 'call', lead_id: '', priority: 'medium', due_date: '', due_time: '10:00' });
+  const [messageForm, setMessageForm] = useState({ receiver_id: '', message: '' });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoForm, setPhotoForm] = useState({ title: '', description: '', location: '', system_size: '' });
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const ASR_LOGO = "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png";
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  useEffect(() => { fetchAllData(); }, []);
 
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [dashRes, leadsRes, staffRes, followRes, projRes, payRes, photosRes] = await Promise.all([
+      const [dashRes, leadsRes, staffRes, tasksRes, msgRes, followRes, projRes, payRes, photosRes] = await Promise.all([
         axios.get(`${API}/crm/dashboard`),
         axios.get(`${API}/crm/leads`),
         axios.get(`${API}/admin/staff-accounts`),
+        axios.get(`${API}/crm/tasks`).catch(() => ({ data: [] })),
+        axios.get(`${API}/crm/messages`).catch(() => ({ data: [] })),
         axios.get(`${API}/crm/followups`),
         axios.get(`${API}/crm/projects`),
         axios.get(`${API}/crm/payments`),
@@ -69,98 +83,96 @@ export const CRMDashboard = () => {
       setDashboardData(dashRes.data);
       setLeads(leadsRes.data);
       setStaffAccounts(staffRes.data);
+      setTasks(tasksRes.data || []);
+      setMessages(msgRes.data || []);
       setFollowups(followRes.data);
       setProjects(projRes.data);
       setPayments(payRes.data);
       setGalleryPhotos(photosRes.data || []);
-    } catch (err) {
-      console.error("Error fetching CRM data:", err);
-    }
+    } catch (err) { console.error("Error:", err); }
     setLoading(false);
-  };
-
-  const uploadPhoto = async () => {
-    if (!photoForm.title || !photoForm.image_url) {
-      alert("Please provide title and image URL");
-      return;
-    }
-    setUploading(true);
-    try {
-      await axios.post(`${API}/gallery/upload`, {
-        title: photoForm.title,
-        description: photoForm.description,
-        location: photoForm.location,
-        system_size: photoForm.system_size,
-        image_url: photoForm.image_url,
-        category: "installation"
-      });
-      setPhotoForm({ title: '', description: '', location: '', system_size: '', image_url: '' });
-      setShowPhotoUploadModal(false);
-      fetchAllData();
-      alert("Photo uploaded successfully! It will appear in the website gallery.");
-    } catch (err) {
-      alert("Error uploading photo");
-    }
-    setUploading(false);
-  };
-
-  const deletePhoto = async (photoId) => {
-    if (!window.confirm("Delete this photo from gallery?")) return;
-    try {
-      await axios.delete(`${API}/admin/photos/${photoId}`);
-      fetchAllData();
-    } catch (err) {
-      alert("Error deleting photo");
-    }
   };
 
   const createStaffAccount = async () => {
     try {
       const res = await axios.post(`${API}/staff/register`, newStaffForm);
-      setNewStaffCredentials({
-        staff_id: res.data.staff_id,
-        password: res.data.password
-      });
+      setNewStaffCredentials({ staff_id: res.data.staff_id, password: res.data.password });
       setNewStaffForm({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123' });
+      setShowStaffModal(false);
       fetchAllData();
-    } catch (err) {
-      alert("Error creating staff account");
-    }
+    } catch (err) { alert("Error creating staff"); }
   };
 
-  const assignLeadToStaff = async (leadId, staffId) => {
+  const assignLeadToStaff = async (leadId, staffInternalId) => {
     try {
-      // Get staff internal ID
-      const staff = staffAccounts.find(s => s.staff_id === staffId);
-      if (!staff) return;
-      
-      await axios.post(`${API}/crm/leads/${leadId}/assign`, {
-        employee_id: staff.id,
-        assigned_by: "admin"
+      await axios.post(`${API}/crm/leads/${leadId}/assign`, { employee_id: staffInternalId, assigned_by: "admin" });
+      fetchAllData();
+      alert("Lead assigned!");
+    } catch (err) { alert("Error assigning lead"); }
+  };
+
+  const createTask = async () => {
+    if (!taskForm.staff_id || !taskForm.title || !taskForm.due_date) { alert("Fill required fields"); return; }
+    try {
+      await axios.post(`${API}/crm/tasks`, taskForm);
+      setTaskForm({ staff_id: '', title: '', description: '', task_type: 'call', lead_id: '', priority: 'medium', due_date: '', due_time: '10:00' });
+      setShowTaskModal(false);
+      fetchAllData();
+      alert("Task assigned!");
+    } catch (err) { alert("Error creating task"); }
+  };
+
+  const sendMessage = async () => {
+    if (!messageForm.message.trim()) return;
+    try {
+      await axios.post(`${API}/crm/messages`, {
+        sender_id: "admin",
+        sender_name: "Admin",
+        sender_type: "admin",
+        receiver_id: messageForm.receiver_id || null,
+        message: messageForm.message
       });
+      setMessageForm({ receiver_id: '', message: '' });
       fetchAllData();
-      alert(`Lead assigned to ${staff.name}`);
-    } catch (err) {
-      alert("Error assigning lead");
+    } catch (err) { alert("Error sending message"); }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPhotoPreview(reader.result);
+      reader.readAsDataURL(file);
     }
   };
 
-  const getAISuggestions = async (leadId) => {
+  const uploadPhoto = async () => {
+    if (!photoForm.title) { alert("Please add title"); return; }
+    if (!photoPreview && !photoForm.image_url) { alert("Please select image"); return; }
+    setUploading(true);
     try {
-      const res = await axios.post(`${API}/crm/ai/followup-suggestions`, { lead_id: leadId });
-      setAiSuggestions(res.data.suggestions);
-    } catch (err) {
-      setAiSuggestions("Focus on PM Surya Ghar subsidy benefits and free site survey.");
-    }
-  };
-
-  const updateLeadStage = async (leadId, newStage) => {
-    try {
-      await axios.put(`${API}/crm/leads/${leadId}`, { stage: newStage });
+      let imageUrl = photoForm.image_url;
+      if (photoPreview && !photoForm.image_url) {
+        // For demo, using base64 directly or URL
+        imageUrl = photoPreview;
+      }
+      await axios.post(`${API}/gallery/upload`, {
+        title: photoForm.title,
+        description: photoForm.description,
+        location: photoForm.location,
+        system_size: photoForm.system_size,
+        image_url: imageUrl,
+        category: "installation"
+      });
+      setPhotoForm({ title: '', description: '', location: '', system_size: '', image_url: '' });
+      setPhotoFile(null);
+      setPhotoPreview('');
+      setShowPhotoUploadModal(false);
       fetchAllData();
-    } catch (err) {
-      alert("Error updating lead");
-    }
+      alert("Photo uploaded to gallery!");
+    } catch (err) { alert("Error uploading"); }
+    setUploading(false);
   };
 
   const sendWhatsApp = (phone, message) => {
@@ -169,16 +181,22 @@ export const CRMDashboard = () => {
     window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
-  // ASR Logo URL
-  const ASR_LOGO = "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png";
+  const forwardLeadToStaffWhatsApp = async (lead, staff) => {
+    const msg = `🔔 *New Lead Assigned*\n\n👤 Name: ${lead.name}\n📞 Phone: ${lead.phone}\n📍 District: ${lead.district}\n💰 Monthly Bill: ₹${lead.monthly_bill}\n🏠 Property: ${lead.property_type}\n\n_Please contact within 24 hours_\n\n- ASR Enterprises Admin`;
+    sendWhatsApp(staff.phone, msg);
+  };
+
+  const updateLeadStage = async (leadId, newStage) => {
+    try {
+      await axios.put(`${API}/crm/leads/${leadId}`, { stage: newStage });
+      fetchAllData();
+    } catch (err) { alert("Error updating"); }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">Loading CRM...</p>
-        </div>
+        <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
       </div>
     );
   }
@@ -190,52 +208,37 @@ export const CRMDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link to="/admin/dashboard" className="text-gray-400 hover:text-white">
-                <ArrowLeft className="w-6 h-6" />
-              </Link>
-              <img src={ASR_LOGO} alt="ASR Enterprises" className="h-12 w-auto bg-white rounded-lg p-1" />
+              <Link to="/admin/dashboard" className="text-gray-400 hover:text-white"><ArrowLeft className="w-6 h-6" /></Link>
+              <img src={ASR_LOGO} alt="ASR" className="h-12 bg-white rounded-lg p-1" />
               <div>
                 <h1 className="text-2xl font-bold text-white">ASR CRM System</h1>
-                <p className="text-gray-400 text-sm">Manage leads, sales & installations</p>
+                <p className="text-gray-400 text-sm">Manage leads, staff & operations</p>
               </div>
             </div>
-            <button
-              onClick={fetchAllData}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Refresh</span>
+            <button onClick={fetchAllData} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+              <RefreshCw className="w-4 h-4" /><span>Refresh</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation */}
       <div className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex space-x-1 overflow-x-auto py-2">
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
-              { id: "pipeline", label: "Pipeline", icon: <TrendingUp className="w-4 h-4" /> },
-              { id: "employees", label: "Team", icon: <Users className="w-4 h-4" /> },
-              { id: "followups", label: "Follow-ups", icon: <Calendar className="w-4 h-4" /> },
-              { id: "projects", label: "Projects", icon: <Wrench className="w-4 h-4" /> },
-              { id: "payments", label: "Payments", icon: <CreditCard className="w-4 h-4" /> },
+              { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
+              { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
+              { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> },
               { id: "gallery", label: "Gallery", icon: <Camera className="w-4 h-4" /> },
-              { id: "reports", label: "Reports", icon: <FileText className="w-4 h-4" /> }
+              { id: "projects", label: "Projects", icon: <Wrench className="w-4 h-4" /> },
+              { id: "payments", label: "Payments", icon: <CreditCard className="w-4 h-4" /> }
             ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-400 hover:text-white hover:bg-gray-700"
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${activeTab === tab.id ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-700"}`}>
+                {tab.icon}<span>{tab.label}</span>
               </button>
             ))}
           </div>
@@ -243,10 +246,9 @@ export const CRMDashboard = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Dashboard Tab */}
+        {/* Dashboard */}
         {activeTab === "dashboard" && dashboardData && (
           <div className="space-y-6">
-            {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-5 text-white">
                 <ClipboardList className="w-8 h-8 mb-2 opacity-80" />
@@ -259,34 +261,35 @@ export const CRMDashboard = () => {
                 <div className="text-green-200 text-sm">Completed</div>
               </div>
               <div className="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl p-5 text-white">
-                <Calendar className="w-8 h-8 mb-2 opacity-80" />
-                <div className="text-3xl font-bold">{dashboardData.todays_followups || 0}</div>
-                <div className="text-yellow-200 text-sm">Today's Follow-ups</div>
+                <Users className="w-8 h-8 mb-2 opacity-80" />
+                <div className="text-3xl font-bold">{staffAccounts.length}</div>
+                <div className="text-yellow-200 text-sm">Staff Members</div>
               </div>
               <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-5 text-white">
                 <DollarSign className="w-8 h-8 mb-2 opacity-80" />
                 <div className="text-3xl font-bold">₹{((dashboardData.total_revenue || 0) / 1000).toFixed(0)}K</div>
-                <div className="text-purple-200 text-sm">Total Revenue</div>
+                <div className="text-purple-200 text-sm">Revenue</div>
               </div>
             </div>
 
-            {/* Pipeline Overview */}
-            <div className="bg-gray-800 rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Sales Pipeline</h2>
-              <div className="grid grid-cols-7 gap-2">
-                {PIPELINE_STAGES.map((stage) => (
-                  <div key={stage.id} className="text-center">
-                    <div className={`${stage.color} rounded-lg p-4 text-white mb-2`}>
-                      <div className="text-2xl font-bold">{dashboardData.pipeline_stats?.[stage.id] || 0}</div>
-                    </div>
-                    <div className="text-gray-400 text-xs">{stage.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Recent Leads & Projects */}
             <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-gray-800 rounded-xl p-6">
+                <h2 className="text-xl font-bold text-white mb-4">Pipeline Overview</h2>
+                <div className="space-y-3">
+                  {PIPELINE_STAGES.map((stage) => (
+                    <div key={stage.id} className="flex items-center justify-between">
+                      <span className="text-gray-300">{stage.label}</span>
+                      <div className="flex items-center space-x-3">
+                        <div className="w-32 bg-gray-700 rounded-full h-2">
+                          <div className={`${stage.color} h-2 rounded-full`} style={{ width: `${Math.min(100, ((dashboardData.pipeline_stats?.[stage.id] || 0) / Math.max(1, dashboardData.total_leads)) * 100)}%` }} />
+                        </div>
+                        <span className="text-white font-bold w-8">{dashboardData.pipeline_stats?.[stage.id] || 0}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="bg-gray-800 rounded-xl p-6">
                 <h2 className="text-xl font-bold text-white mb-4">Recent Leads</h2>
                 <div className="space-y-3">
@@ -294,35 +297,13 @@ export const CRMDashboard = () => {
                     <div key={lead.id} className="flex items-center justify-between bg-gray-700 rounded-lg p-3">
                       <div>
                         <div className="text-white font-medium">{lead.name}</div>
-                        <div className="text-gray-400 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
+                        <div className="text-gray-400 text-sm">{lead.district}</div>
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        lead.ai_priority === 'high' ? 'bg-red-600 text-white' :
-                        lead.ai_priority === 'medium' ? 'bg-yellow-600 text-white' :
-                        'bg-gray-600 text-white'
-                      }`}>
+                      <span className={`px-2 py-1 rounded text-xs ${lead.ai_priority === 'high' ? 'bg-red-600' : lead.ai_priority === 'medium' ? 'bg-yellow-600' : 'bg-gray-600'} text-white`}>
                         {lead.ai_priority?.toUpperCase()}
                       </span>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              <div className="bg-gray-800 rounded-xl p-6">
-                <h2 className="text-xl font-bold text-white mb-4">Project Status</h2>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Pending</span>
-                    <span className="text-yellow-400 font-bold">{dashboardData.projects?.pending || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">In Progress</span>
-                    <span className="text-blue-400 font-bold">{dashboardData.projects?.in_progress || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Completed</span>
-                    <span className="text-green-400 font-bold">{dashboardData.projects?.completed || 0}</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -333,27 +314,11 @@ export const CRMDashboard = () => {
         {activeTab === "leads" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <div className="flex space-x-2">
-                <select
-                  value={filterStage}
-                  onChange={(e) => setFilterStage(e.target.value)}
-                  className="bg-gray-700 text-white px-4 py-2 rounded-lg"
-                >
-                  <option value="">All Stages</option>
-                  {PIPELINE_STAGES.map((s) => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={() => setShowLeadModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Lead</span>
-              </button>
+              <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <option value="">All Stages</option>
+                {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
+              </select>
             </div>
-
             <div className="bg-gray-800 rounded-xl overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-700">
@@ -361,84 +326,39 @@ export const CRMDashboard = () => {
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Lead</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Contact</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Stage</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Priority</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Assigned</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Assign To</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leads
-                    .filter((l) => !filterStage || l.stage === filterStage)
-                    .map((lead) => (
-                    <tr key={lead.id} className="border-t border-gray-700 hover:bg-gray-750">
+                  {leads.filter(l => !filterStage || l.stage === filterStage).map((lead) => (
+                    <tr key={lead.id} className="border-t border-gray-700">
                       <td className="px-4 py-3">
                         <div className="text-white font-medium">{lead.name}</div>
-                        <div className="text-gray-400 text-sm">{lead.district}</div>
+                        <div className="text-gray-400 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
                       </td>
+                      <td className="px-4 py-3 text-gray-300 text-sm">{lead.phone}</td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-300 text-sm">{lead.phone}</div>
-                        <div className="text-gray-400 text-xs">{lead.email}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={lead.stage}
-                          onChange={(e) => updateLeadStage(lead.id, e.target.value)}
-                          className="bg-gray-700 text-white text-sm px-2 py-1 rounded"
-                        >
-                          {PIPELINE_STAGES.map((s) => (
-                            <option key={s.id} value={s.id}>{s.label}</option>
-                          ))}
+                        <select value={lead.stage} onChange={(e) => updateLeadStage(lead.id, e.target.value)} className="bg-gray-700 text-white text-sm px-2 py-1 rounded">
+                          {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
                         </select>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          lead.ai_priority === 'high' ? 'bg-red-600 text-white' :
-                          lead.ai_priority === 'medium' ? 'bg-yellow-600 text-white' :
-                          'bg-gray-600 text-white'
-                        }`}>
-                          {lead.ai_priority?.toUpperCase() || 'MEDIUM'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 text-sm">
-                        <select
-                          value={lead.assigned_to || ''}
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              const staff = staffAccounts.find(s => s.id === e.target.value);
-                              if (staff) assignLeadToStaff(lead.id, staff.staff_id);
-                            }
-                          }}
-                          className="bg-gray-700 text-white text-sm px-2 py-1 rounded"
-                        >
+                        <select value={lead.assigned_to || ''} onChange={(e) => { if(e.target.value) assignLeadToStaff(lead.id, e.target.value); }} className="bg-gray-700 text-white text-sm px-2 py-1 rounded">
                           <option value="">Assign Staff</option>
-                          {staffAccounts.map((s) => (
-                            <option key={s.id} value={s.id}>{s.name} ({s.staff_id})</option>
-                          ))}
+                          {staffAccounts.map((s) => (<option key={s.id} value={s.id}>{s.name} ({s.staff_id})</option>))}
                         </select>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
-                          <button
-                            onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ASR Enterprises. We wanted to follow up on your solar inquiry.`)}
-                            className="text-green-400 hover:text-green-300"
-                            title="WhatsApp"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => { setSelectedLead(lead); getAISuggestions(lead.id); }}
-                            className="text-purple-400 hover:text-purple-300"
-                            title="AI Suggestions"
-                          >
-                            <Sparkles className="w-4 h-4" />
-                          </button>
-                          <a
-                            href={`tel:${lead.phone}`}
-                            className="text-blue-400 hover:text-blue-300"
-                            title="Call"
-                          >
-                            <Phone className="w-4 h-4" />
-                          </a>
+                          <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ASR Enterprises...`)} className="text-green-400 hover:text-green-300"><MessageSquare className="w-4 h-4" /></button>
+                          <a href={`tel:${lead.phone}`} className="text-blue-400 hover:text-blue-300"><Phone className="w-4 h-4" /></a>
+                          {lead.assigned_to && (
+                            <button onClick={() => {
+                              const staff = staffAccounts.find(s => s.id === lead.assigned_to);
+                              if(staff) forwardLeadToStaffWhatsApp(lead, staff);
+                            }} className="text-yellow-400 hover:text-yellow-300" title="Forward to Staff WhatsApp"><Send className="w-4 h-4" /></button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -449,120 +369,86 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Pipeline Tab */}
-        {activeTab === "pipeline" && (
-          <div className="overflow-x-auto">
-            <div className="flex space-x-4 min-w-max pb-4">
-              {PIPELINE_STAGES.map((stage) => (
-                <div key={stage.id} className="w-72 flex-shrink-0">
-                  <div className={`${stage.color} rounded-t-xl px-4 py-3`}>
-                    <div className="flex justify-between items-center text-white">
-                      <span className="font-bold">{stage.label}</span>
-                      <span className="bg-white bg-opacity-20 px-2 py-1 rounded text-sm">
-                        {leads.filter(l => l.stage === stage.id).length}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="bg-gray-800 rounded-b-xl p-3 space-y-3 min-h-96">
-                    {leads.filter(l => l.stage === stage.id).map((lead) => (
-                      <div key={lead.id} className="bg-gray-700 rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="text-white font-medium">{lead.name}</div>
-                          <span className={`px-1.5 py-0.5 rounded text-xs ${
-                            lead.ai_priority === 'high' ? 'bg-red-600' :
-                            lead.ai_priority === 'medium' ? 'bg-yellow-600' : 'bg-gray-600'
-                          } text-white`}>
-                            {lead.ai_priority?.[0]?.toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="text-gray-400 text-sm mb-2">{lead.district}</div>
-                        <div className="text-gray-400 text-xs mb-3">₹{lead.monthly_bill || 0}/mo</div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}!`)}
-                            className="flex-1 bg-green-600 text-white text-xs py-1.5 rounded hover:bg-green-700"
-                          >
-                            WhatsApp
-                          </button>
-                          <a
-                            href={`tel:${lead.phone}`}
-                            className="flex-1 bg-blue-600 text-white text-xs py-1.5 rounded hover:bg-blue-700 text-center"
-                          >
-                            Call
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+        {/* Tasks Tab */}
+        {activeTab === "tasks" && (
+          <div className="space-y-4">
+            <div className="flex justify-end">
+              <button onClick={() => setShowTaskModal(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                <Plus className="w-4 h-4" /><span>Assign Task</span>
+              </button>
+            </div>
+            <div className="bg-gray-800 rounded-xl overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-700">
+                  <tr>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Task</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Assigned To</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Due Date</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Priority</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tasks.map((task) => (
+                    <tr key={task.id} className="border-t border-gray-700">
+                      <td className="px-4 py-3">
+                        <div className="text-white font-medium">{task.title}</div>
+                        <div className="text-gray-400 text-sm">{task.task_type} {task.lead_name && `• ${task.lead_name}`}</div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-300">{task.staff_name}</td>
+                      <td className="px-4 py-3 text-gray-300">{task.due_date} {task.due_time}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-xs ${task.priority === 'high' ? 'bg-red-600' : task.priority === 'medium' ? 'bg-yellow-600' : 'bg-green-600'} text-white`}>{task.priority}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-xs ${task.status === 'completed' ? 'bg-green-600' : task.status === 'in_progress' ? 'bg-blue-600' : 'bg-gray-600'} text-white`}>{task.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {tasks.length === 0 && <div className="text-center py-12 text-gray-400">No tasks assigned yet</div>}
             </div>
           </div>
         )}
 
-        {/* Employees Tab */}
-        {activeTab === "employees" && (
+        {/* Team Tab */}
+        {activeTab === "team" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-white">Staff Accounts</h2>
-              <button
-                onClick={() => setShowStaffModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>Create Staff Account</span>
+              <button onClick={() => setShowStaffModal(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                <UserPlus className="w-4 h-4" /><span>Add Staff</span>
               </button>
             </div>
-
-            {/* New Staff Credentials Alert */}
             {newStaffCredentials && (
               <div className="bg-green-600 bg-opacity-20 border border-green-500 rounded-xl p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-green-400 font-bold mb-2">New Staff Account Created!</h3>
-                    <div className="text-white">
-                      <p><strong>Staff ID:</strong> {newStaffCredentials.staff_id}</p>
-                      <p><strong>Password:</strong> {newStaffCredentials.password}</p>
-                    </div>
-                    <p className="text-gray-400 text-sm mt-2">Share these credentials with the staff member</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`Staff ID: ${newStaffCredentials.staff_id}\nPassword: ${newStaffCredentials.password}`);
-                      alert('Credentials copied!');
-                    }}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                    <span>Copy</span>
-                  </button>
-                </div>
-                <button
-                  onClick={() => setNewStaffCredentials(null)}
-                  className="text-gray-400 hover:text-white text-sm mt-2"
-                >
-                  Dismiss
-                </button>
+                <h3 className="text-green-400 font-bold">New Staff Created!</h3>
+                <p className="text-white">Staff ID: <strong>{newStaffCredentials.staff_id}</strong></p>
+                <p className="text-white">Password: <strong>{newStaffCredentials.password}</strong></p>
+                <button onClick={() => { navigator.clipboard.writeText(`ID: ${newStaffCredentials.staff_id}\nPassword: ${newStaffCredentials.password}`); alert('Copied!'); }} className="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm">Copy</button>
+                <button onClick={() => setNewStaffCredentials(null)} className="ml-2 text-gray-400 text-sm">Dismiss</button>
               </div>
             )}
-
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {staffAccounts.map((staff) => (
                 <div key={staff.id} className="bg-gray-800 rounded-xl p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        {staff.name?.[0]}
-                      </div>
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl">{staff.name?.[0]}</div>
                       <div>
                         <div className="text-white font-bold">{staff.name}</div>
                         <div className="text-cyan-400 text-sm font-mono">{staff.staff_id}</div>
                         <div className="text-gray-400 text-xs capitalize">{staff.role}</div>
                       </div>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs ${staff.is_active ? 'bg-green-600' : 'bg-red-600'} text-white`}>
+                    <button onClick={async () => {
+                      const newStatus = !staff.is_active;
+                      await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: newStatus });
+                      fetchAllData();
+                    }} className={`px-2 py-1 rounded text-xs ${staff.is_active ? 'bg-green-600' : 'bg-red-600'} text-white`}>
                       {staff.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-gray-700 rounded-lg p-2 text-center">
@@ -578,387 +464,15 @@ export const CRMDashboard = () => {
                       <div className="text-gray-500 text-xs">Revenue</div>
                     </div>
                   </div>
-                  <div className="text-gray-400 text-sm">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <Phone className="w-3 h-3" />
-                      <span>{staff.phone}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-3 h-3" />
-                      <span className="truncate">{staff.email}</span>
-                    </div>
-                  </div>
-                  
-                  {/* Admin Actions */}
-                  <div className="mt-4 pt-4 border-t border-gray-700 space-y-2">
-                    {/* Toggle Active Status */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 text-sm">Account Status</span>
-                      <button
-                        onClick={async () => {
-                          const newStatus = !staff.is_active;
-                          await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: newStatus });
-                          fetchAllData();
-                          alert(newStatus ? 'Staff activated' : 'Staff deactivated');
-                        }}
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                          staff.is_active 
-                            ? 'bg-green-600 hover:bg-green-700 text-white' 
-                            : 'bg-red-600 hover:bg-red-700 text-white'
-                        }`}
-                      >
-                        {staff.is_active ? 'Active' : 'Inactive'}
-                      </button>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      <button
-                        onClick={() => {
-                          setEditStaffForm({
-                            staff_id: staff.staff_id,
-                            name: staff.name,
-                            email: staff.email,
-                            phone: staff.phone,
-                            role: staff.role
-                          });
-                          setShowEditStaffModal(true);
-                        }}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1"
-                      >
-                        <Edit className="w-3 h-3" />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const newPass = prompt('Enter new password for ' + staff.name + ':', 'asr@123');
-                          if (newPass) {
-                            await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass });
-                            alert(`Password updated to: ${newPass}\nShare this with ${staff.name}`);
-                          }
-                        }}
-                        className="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1"
-                      >
-                        <Key className="w-3 h-3" />
-                        <span>Password</span>
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (window.confirm(`Are you sure you want to DELETE ${staff.name}'s account?\n\nThis will unassign all their leads and cannot be undone.`)) {
-                            await axios.delete(`${API}/admin/staff-accounts/${staff.staff_id}`);
-                            fetchAllData();
-                            alert('Staff account deleted');
-                          }
-                        }}
-                        className="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {staffAccounts.length === 0 && (
-                <div className="col-span-3 text-center py-12 text-gray-400">
-                  No staff accounts created yet. Click "Create Staff Account" to add your first team member.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Edit Staff Modal */}
-        {showEditStaffModal && editStaffForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                  <Edit className="w-5 h-5 text-blue-400" />
-                  <span>Edit Staff: {editStaffForm.staff_id}</span>
-                </h2>
-                <button onClick={() => setShowEditStaffModal(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Name</label>
-                  <input
-                    type="text"
-                    value={editStaffForm.name}
-                    onChange={(e) => setEditStaffForm({...editStaffForm, name: e.target.value})}
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    value={editStaffForm.phone}
-                    onChange={(e) => setEditStaffForm({...editStaffForm, phone: e.target.value})}
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={editStaffForm.email}
-                    onChange={(e) => setEditStaffForm({...editStaffForm, email: e.target.value})}
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Role</label>
-                  <select
-                    value={editStaffForm.role}
-                    onChange={(e) => setEditStaffForm({...editStaffForm, role: e.target.value})}
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  >
-                    <option value="sales">Sales Executive</option>
-                    <option value="survey">Survey Team</option>
-                    <option value="installation">Installation Team</option>
-                    <option value="manager">Manager</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={async () => {
-                    await axios.put(`${API}/admin/staff-accounts/${editStaffForm.staff_id}/update`, {
-                      name: editStaffForm.name,
-                      email: editStaffForm.email,
-                      phone: editStaffForm.phone,
-                      role: editStaffForm.role
-                    });
-                    setShowEditStaffModal(false);
-                    setEditStaffForm(null);
-                    fetchAllData();
-                    alert('Staff details updated');
-                  }}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => setShowEditStaffModal(false)}
-                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Create Staff Modal */}
-        {showStaffModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
-                <UserPlus className="w-5 h-5 text-green-400" />
-                <span>Create Staff Account</span>
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Name</label>
-                  <input
-                    type="text"
-                    value={newStaffForm.name}
-                    onChange={(e) => setNewStaffForm({...newStaffForm, name: e.target.value})}
-                    placeholder="Staff name"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    value={newStaffForm.phone}
-                    onChange={(e) => setNewStaffForm({...newStaffForm, phone: e.target.value})}
-                    placeholder="Phone number"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={newStaffForm.email}
-                    onChange={(e) => setNewStaffForm({...newStaffForm, email: e.target.value})}
-                    placeholder="Email address"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Role</label>
-                  <select
-                    value={newStaffForm.role}
-                    onChange={(e) => setNewStaffForm({...newStaffForm, role: e.target.value})}
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  >
-                    <option value="sales">Sales Executive</option>
-                    <option value="survey">Survey Team</option>
-                    <option value="installation">Installation Team</option>
-                    <option value="manager">Manager</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Initial Password</label>
-                  <input
-                    type="text"
-                    value={newStaffForm.password}
-                    onChange={(e) => setNewStaffForm({...newStaffForm, password: e.target.value})}
-                    placeholder="Initial password"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={() => {
-                    createStaffAccount();
-                    setShowStaffModal(false);
-                  }}
-                  disabled={!newStaffForm.name || !newStaffForm.phone}
-                  className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
-                >
-                  Create Account
-                </button>
-                <button
-                  onClick={() => setShowStaffModal(false)}
-                  className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Follow-ups Tab */}
-        {activeTab === "followups" && (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowFollowupModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Follow-up</span>
-              </button>
-            </div>
-
-            <div className="bg-gray-800 rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-700">
-                  <tr>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Lead</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Type</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Employee</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Status</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {followups.map((fu) => {
-                    const lead = leads.find(l => l.id === fu.lead_id);
-                    const emp = staffAccounts.find(e => e.id === fu.employee_id);
-                    return (
-                      <tr key={fu.id} className="border-t border-gray-700">
-                        <td className="px-4 py-3 text-white">{fu.reminder_date}</td>
-                        <td className="px-4 py-3 text-gray-300">{lead?.name || '-'}</td>
-                        <td className="px-4 py-3 text-gray-300 capitalize">{fu.reminder_type}</td>
-                        <td className="px-4 py-3 text-gray-300">{emp?.name || '-'}</td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            fu.status === 'completed' ? 'bg-green-600' :
-                            fu.status === 'missed' ? 'bg-red-600' : 'bg-yellow-600'
-                          } text-white`}>
-                            {fu.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={async () => {
-                              await axios.put(`${API}/crm/followups/${fu.id}`, { status: 'completed' });
-                              fetchAllData();
-                            }}
-                            className="text-green-400 hover:text-green-300 text-sm"
-                          >
-                            Mark Done
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Projects Tab */}
-        {activeTab === "projects" && (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowProjectModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Project</span>
-              </button>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {projects.map((proj) => (
-                <div key={proj.id} className="bg-gray-800 rounded-xl p-5">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <div className="text-white font-bold">{proj.customer_name}</div>
-                      <div className="text-gray-400 text-sm">{proj.location}</div>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      proj.installation_status === 'completed' ? 'bg-green-600' :
-                      proj.installation_status === 'in_progress' ? 'bg-blue-600' : 'bg-yellow-600'
-                    } text-white`}>
-                      {proj.installation_status}
-                    </span>
-                  </div>
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">System</span>
-                      <span className="text-white">{proj.system_size} - {proj.brand}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Total</span>
-                      <span className="text-white">₹{proj.total_amount?.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Received</span>
-                      <span className="text-green-400">₹{proj.advance_received?.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Pending</span>
-                      <span className="text-red-400">₹{proj.pending_amount?.toLocaleString()}</span>
-                    </div>
-                  </div>
                   <div className="flex space-x-2">
-                    <button
-                      onClick={() => sendWhatsApp(proj.customer_phone, `Hello ${proj.customer_name}, update on your solar installation...`)}
-                      className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm"
-                    >
-                      WhatsApp
+                    <button onClick={async () => {
+                      const newPass = prompt('New password:', 'asr@123');
+                      if(newPass) { await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass }); alert('Password updated!'); }
+                    }} className="flex-1 bg-yellow-600 text-white py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
+                      <Key className="w-3 h-3" /><span>Password</span>
                     </button>
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm"
-                    >
-                      Add Payment
+                    <button onClick={() => sendWhatsApp(staff.phone, 'Hi, this is Admin from ASR Enterprises...')} className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
+                      <MessageSquare className="w-3 h-3" /><span>WhatsApp</span>
                     </button>
                   </div>
                 </div>
@@ -967,293 +481,222 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Payments Tab */}
-        {activeTab === "payments" && (
+        {/* Messages Tab */}
+        {activeTab === "messages" && (
           <div className="space-y-4">
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Record Payment</span>
-              </button>
-            </div>
-
-            <div className="bg-gray-800 rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-700">
-                  <tr>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Amount</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Type</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Mode</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Received By</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((pay) => (
-                    <tr key={pay.id} className="border-t border-gray-700">
-                      <td className="px-4 py-3 text-white">{pay.timestamp?.split('T')[0]}</td>
-                      <td className="px-4 py-3 text-green-400 font-bold">₹{pay.amount?.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_type}</td>
-                      <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_mode}</td>
-                      <td className="px-4 py-3 text-gray-300">
-                        {staffAccounts.find(e => e.id === pay.received_by)?.name || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Reports Tab */}
-        {activeTab === "reports" && (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
-              <div className="flex items-center space-x-4 mb-4">
-                <Sparkles className="w-10 h-10" />
-                <div>
-                  <h2 className="text-2xl font-bold">AI Business Insights</h2>
-                  <p className="text-purple-200">Powered by AI analytics</p>
-                </div>
+            <div className="bg-gray-800 rounded-xl p-4">
+              <div className="flex space-x-3 mb-4">
+                <select value={messageForm.receiver_id} onChange={(e) => setMessageForm({...messageForm, receiver_id: e.target.value})} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
+                  <option value="">Send to All Staff</option>
+                  {staffAccounts.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                </select>
+                <input type="text" value={messageForm.message} onChange={(e) => setMessageForm({...messageForm, message: e.target.value})} placeholder="Type message..." className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
+                <button onClick={sendMessage} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"><Send className="w-4 h-4" /><span>Send</span></button>
               </div>
-              <button
-                onClick={async () => {
-                  const res = await axios.post(`${API}/crm/ai/lead-priority`, {});
-                  setAiSuggestions(res.data.recommendations);
-                }}
-                className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold"
-              >
-                Get AI Recommendations
-              </button>
-              {aiSuggestions && (
-                <div className="mt-4 bg-white bg-opacity-20 rounded-lg p-4">
-                  <pre className="text-sm whitespace-pre-wrap">{aiSuggestions}</pre>
-                </div>
-              )}
             </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-gray-800 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Lead Sources</h3>
+            <div className="bg-gray-800 rounded-xl p-4 max-h-96 overflow-y-auto">
+              {messages.length > 0 ? (
                 <div className="space-y-3">
-                  {['website', 'whatsapp', 'call', 'facebook', 'instagram'].map((src) => (
-                    <div key={src} className="flex items-center justify-between">
-                      <span className="text-gray-300 capitalize">{src}</span>
-                      <span className="text-white font-bold">
-                        {leads.filter(l => l.source === src).length}
-                      </span>
+                  {messages.map((msg) => (
+                    <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'admin' ? 'bg-blue-600 bg-opacity-20 ml-8' : 'bg-gray-700 mr-8'}`}>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`font-medium ${msg.sender_type === 'admin' ? 'text-blue-400' : 'text-green-400'}`}>{msg.sender_name}</span>
+                        <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
+                      </div>
+                      <p className="text-gray-300">{msg.message}</p>
+                      {msg.receiver_name && <span className="text-gray-500 text-xs">To: {msg.receiver_name}</span>}
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="bg-gray-800 rounded-xl p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Conversion Rate</h3>
-                <div className="text-center">
-                  <div className="text-5xl font-bold text-green-400">
-                    {leads.length > 0 
-                      ? Math.round((leads.filter(l => l.stage === 'completed').length / leads.length) * 100)
-                      : 0}%
-                  </div>
-                  <div className="text-gray-400 mt-2">Overall Conversion</div>
-                </div>
-              </div>
+              ) : <div className="text-center py-8 text-gray-400">No messages yet</div>}
             </div>
           </div>
         )}
 
         {/* Gallery Tab */}
         {activeTab === "gallery" && (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-bold text-white">Work Photos Gallery</h2>
-                <p className="text-gray-400 text-sm">Upload completed work photos - auto-updates website gallery</p>
-              </div>
-              <button
-                onClick={() => setShowPhotoUploadModal(true)}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 font-semibold hover:from-green-600 hover:to-emerald-700"
-              >
-                <Upload className="w-5 h-5" />
-                <span>Upload New Photo</span>
+              <h2 className="text-xl font-bold text-white">Work Photos Gallery</h2>
+              <button onClick={() => setShowPhotoUploadModal(true)} className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 font-semibold">
+                <Upload className="w-5 h-5" /><span>Upload Photo</span>
               </button>
             </div>
-
-            {/* Photo Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {galleryPhotos.map((photo) => (
                 <div key={photo.id} className="bg-gray-800 rounded-xl overflow-hidden group">
                   <div className="relative aspect-video">
-                    <img 
-                      src={photo.image_url || photo.imageUrl} 
-                      alt={photo.title} 
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={photo.image_url || photo.imageUrl} alt={photo.title} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition flex items-center justify-center">
-                      <button
-                        onClick={() => deletePhoto(photo.id)}
-                        className="opacity-0 group-hover:opacity-100 bg-red-600 text-white p-2 rounded-lg transition"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <button onClick={async () => { if(window.confirm('Delete?')) { await axios.delete(`${API}/admin/photos/${photo.id}`); fetchAllData(); }}} className="opacity-0 group-hover:opacity-100 bg-red-600 text-white p-2 rounded-lg"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   </div>
                   <div className="p-4">
                     <h3 className="text-white font-semibold truncate">{photo.title}</h3>
                     <p className="text-gray-400 text-sm truncate">{photo.location || photo.description}</p>
-                    {photo.system_size && (
-                      <span className="text-green-400 text-xs">{photo.system_size}</span>
-                    )}
                   </div>
                 </div>
               ))}
               {galleryPhotos.length === 0 && (
                 <div className="col-span-4 text-center py-16">
                   <Camera className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-400 mb-2">No Photos Yet</h3>
-                  <p className="text-gray-500 mb-4">Upload your completed work photos to showcase on the website gallery</p>
-                  <button
-                    onClick={() => setShowPhotoUploadModal(true)}
-                    className="bg-blue-600 text-white px-6 py-2 rounded-lg"
-                  >
-                    Upload First Photo
-                  </button>
+                  <p className="text-gray-400">No photos yet. Upload your first work photo!</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Photo Upload Modal */}
-        {showPhotoUploadModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl p-6 max-w-lg w-full">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                  <Camera className="w-5 h-5 text-green-400" />
-                  <span>Upload Work Photo</span>
-                </h2>
-                <button onClick={() => setShowPhotoUploadModal(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Photo Title *</label>
-                  <input
-                    type="text"
-                    value={photoForm.title}
-                    onChange={(e) => setPhotoForm({...photoForm, title: e.target.value})}
-                    placeholder="e.g., 5kW Installation at Patna"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
+        {/* Projects Tab */}
+        {activeTab === "projects" && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((proj) => (
+              <div key={proj.id} className="bg-gray-800 rounded-xl p-5">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="text-white font-bold">{proj.customer_name}</div>
+                    <div className="text-gray-400 text-sm">{proj.location}</div>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs ${proj.installation_status === 'completed' ? 'bg-green-600' : proj.installation_status === 'in_progress' ? 'bg-blue-600' : 'bg-yellow-600'} text-white`}>{proj.installation_status}</span>
                 </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Image URL *</label>
-                  <input
-                    type="url"
-                    value={photoForm.image_url}
-                    onChange={(e) => setPhotoForm({...photoForm, image_url: e.target.value})}
-                    placeholder="https://example.com/photo.jpg"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                  <p className="text-gray-500 text-xs mt-1">Paste image URL from Google Drive, Imgur, or any image host</p>
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={photoForm.location}
-                    onChange={(e) => setPhotoForm({...photoForm, location: e.target.value})}
-                    placeholder="e.g., Patna, Bihar"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">System Size</label>
-                  <input
-                    type="text"
-                    value={photoForm.system_size}
-                    onChange={(e) => setPhotoForm({...photoForm, system_size: e.target.value})}
-                    placeholder="e.g., 5kW Solar System"
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-400 text-sm mb-2">Description</label>
-                  <textarea
-                    value={photoForm.description}
-                    onChange={(e) => setPhotoForm({...photoForm, description: e.target.value})}
-                    placeholder="Brief description of the installation..."
-                    className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-20 resize-none"
-                  />
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between"><span className="text-gray-400">System</span><span className="text-white">{proj.system_size}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Total</span><span className="text-white">₹{proj.total_amount?.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-gray-400">Pending</span><span className="text-red-400">₹{proj.pending_amount?.toLocaleString()}</span></div>
                 </div>
               </div>
+            ))}
+            {projects.length === 0 && <div className="col-span-3 text-center py-12 text-gray-400">No projects yet</div>}
+          </div>
+        )}
 
-              {photoForm.image_url && (
-                <div className="mt-4">
-                  <p className="text-gray-400 text-sm mb-2">Preview:</p>
-                  <img 
-                    src={photoForm.image_url} 
-                    alt="Preview" 
-                    className="w-full h-40 object-cover rounded-lg"
-                    onError={(e) => e.target.style.display = 'none'}
-                  />
-                </div>
-              )}
-
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={uploadPhoto}
-                  disabled={uploading || !photoForm.title || !photoForm.image_url}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                >
-                  {uploading ? (
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Upload className="w-5 h-5" />
-                  )}
-                  <span>{uploading ? "Uploading..." : "Upload to Gallery"}</span>
-                </button>
-                <button
-                  onClick={() => setShowPhotoUploadModal(false)}
-                  className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
+        {/* Payments Tab */}
+        {activeTab === "payments" && (
+          <div className="bg-gray-800 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-700">
+                <tr>
+                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
+                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Amount</th>
+                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Type</th>
+                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Mode</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((pay) => (
+                  <tr key={pay.id} className="border-t border-gray-700">
+                    <td className="px-4 py-3 text-white">{pay.timestamp?.split('T')[0]}</td>
+                    <td className="px-4 py-3 text-green-400 font-bold">₹{pay.amount?.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_type}</td>
+                    <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_mode}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {payments.length === 0 && <div className="text-center py-12 text-gray-400">No payments recorded</div>}
           </div>
         )}
       </div>
 
-      {/* AI Suggestions Modal */}
-      {selectedLead && aiSuggestions && (
+      {/* Create Staff Modal */}
+      {showStaffModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-white mb-4">Create Staff Account</h2>
+            <div className="space-y-4">
+              <input type="text" value={newStaffForm.name} onChange={(e) => setNewStaffForm({...newStaffForm, name: e.target.value})} placeholder="Name" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <input type="tel" value={newStaffForm.phone} onChange={(e) => setNewStaffForm({...newStaffForm, phone: e.target.value})} placeholder="Phone" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <input type="email" value={newStaffForm.email} onChange={(e) => setNewStaffForm({...newStaffForm, email: e.target.value})} placeholder="Email" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <select value={newStaffForm.role} onChange={(e) => setNewStaffForm({...newStaffForm, role: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <option value="sales">Sales</option>
+                <option value="survey">Survey</option>
+                <option value="installation">Installation</option>
+                <option value="manager">Manager</option>
+              </select>
+              <input type="text" value={newStaffForm.password} onChange={(e) => setNewStaffForm({...newStaffForm, password: e.target.value})} placeholder="Password" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+            </div>
+            <div className="flex space-x-3 mt-6">
+              <button onClick={createStaffAccount} className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold">Create</button>
+              <button onClick={() => setShowStaffModal(false)} className="px-6 py-2 bg-gray-700 text-white rounded-lg">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Task Modal */}
+      {showTaskModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-white mb-4">Assign Task</h2>
+            <div className="space-y-4">
+              <select value={taskForm.staff_id} onChange={(e) => setTaskForm({...taskForm, staff_id: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <option value="">Select Staff</option>
+                {staffAccounts.map((s) => (<option key={s.id} value={s.id}>{s.name} ({s.staff_id})</option>))}
+              </select>
+              <input type="text" value={taskForm.title} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} placeholder="Task Title" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <textarea value={taskForm.description} onChange={(e) => setTaskForm({...taskForm, description: e.target.value})} placeholder="Description" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-20 resize-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <select value={taskForm.task_type} onChange={(e) => setTaskForm({...taskForm, task_type: e.target.value})} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
+                  {TASK_TYPES.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+                </select>
+                <select value={taskForm.priority} onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
+                  <option value="high">High Priority</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <select value={taskForm.lead_id} onChange={(e) => setTaskForm({...taskForm, lead_id: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <option value="">Link to Lead (Optional)</option>
+                {leads.map((l) => (<option key={l.id} value={l.id}>{l.name} - {l.district}</option>))}
+              </select>
+              <div className="grid grid-cols-2 gap-4">
+                <input type="date" value={taskForm.due_date} onChange={(e) => setTaskForm({...taskForm, due_date: e.target.value})} className="bg-gray-700 text-white px-4 py-2 rounded-lg" />
+                <input type="time" value={taskForm.due_time} onChange={(e) => setTaskForm({...taskForm, due_time: e.target.value})} className="bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              </div>
+            </div>
+            <div className="flex space-x-3 mt-6">
+              <button onClick={createTask} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold">Assign Task</button>
+              <button onClick={() => setShowTaskModal(false)} className="px-6 py-2 bg-gray-700 text-white rounded-lg">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Upload Modal */}
+      {showPhotoUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-xl p-6 max-w-lg w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-                <span>AI Suggestions for {selectedLead.name}</span>
-              </h2>
-              <button onClick={() => { setSelectedLead(null); setAiSuggestions(""); }} className="text-gray-400 hover:text-white text-2xl">×</button>
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2"><Camera className="w-5 h-5 text-green-400" /><span>Upload Work Photo</span></h2>
+            <div className="space-y-4">
+              <input type="text" value={photoForm.title} onChange={(e) => setPhotoForm({...photoForm, title: e.target.value})} placeholder="Photo Title *" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              
+              {/* File Upload from Gallery */}
+              <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold mb-3">
+                  <Camera className="w-5 h-5 inline mr-2" />Select from Gallery
+                </button>
+                <p className="text-gray-400 text-sm">or paste image URL below</p>
+              </div>
+              
+              <input type="url" value={photoForm.image_url} onChange={(e) => setPhotoForm({...photoForm, image_url: e.target.value})} placeholder="Image URL (optional if file selected)" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <input type="text" value={photoForm.location} onChange={(e) => setPhotoForm({...photoForm, location: e.target.value})} placeholder="Location (e.g., Patna)" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <input type="text" value={photoForm.system_size} onChange={(e) => setPhotoForm({...photoForm, system_size: e.target.value})} placeholder="System Size (e.g., 5kW)" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <textarea value={photoForm.description} onChange={(e) => setPhotoForm({...photoForm, description: e.target.value})} placeholder="Description" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-20 resize-none" />
+              
+              {(photoPreview || photoForm.image_url) && (
+                <div className="mt-4">
+                  <p className="text-gray-400 text-sm mb-2">Preview:</p>
+                  <img src={photoPreview || photoForm.image_url} alt="Preview" className="w-full h-40 object-cover rounded-lg" onError={(e) => e.target.style.display='none'} />
+                </div>
+              )}
             </div>
-            <div className="bg-gray-700 rounded-lg p-4 text-gray-300 whitespace-pre-wrap">
-              {aiSuggestions}
-            </div>
-            <div className="flex space-x-3 mt-4">
-              <button
-                onClick={() => sendWhatsApp(selectedLead.phone, `Hi ${selectedLead.name}, this is ASR Enterprises...`)}
-                className="flex-1 bg-green-600 text-white py-2 rounded-lg"
-              >
-                WhatsApp Now
+            <div className="flex space-x-3 mt-6">
+              <button onClick={uploadPhoto} disabled={uploading} className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center space-x-2">
+                {uploading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                <span>{uploading ? "Uploading..." : "Upload to Gallery"}</span>
               </button>
-              <a href={`tel:${selectedLead.phone}`} className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-center">
-                Call Now
-              </a>
+              <button onClick={() => { setShowPhotoUploadModal(false); setPhotoPreview(''); setPhotoFile(null); }} className="px-6 py-3 bg-gray-700 text-white rounded-lg">Cancel</button>
             </div>
           </div>
         </div>

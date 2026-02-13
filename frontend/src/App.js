@@ -315,17 +315,6 @@ const ServiceRegistration = () => {
     }
   };
 
-  if (step === 'checking') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-orange-500 mx-auto mb-4" />
-          <p className="text-gray-600">Verifying payment status...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
@@ -479,11 +468,11 @@ const ServiceRegistration = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Processing...</span>
+                  <span>Saving details...</span>
                 </>
               ) : (
                 <>
-                  <span>Pay ₹{registrationFee} & Register</span>
+                  <span>Proceed to Pay ₹{registrationFee}</span>
                   <ChevronRight className="w-5 h-5" />
                 </>
               )}

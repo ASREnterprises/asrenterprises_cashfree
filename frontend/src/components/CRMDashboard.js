@@ -234,6 +234,11 @@ export const CRMDashboard = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File too large. Max 10MB allowed.");
+        return;
+      }
       setPhotoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPhotoPreview(reader.result);
@@ -243,29 +248,41 @@ export const CRMDashboard = () => {
 
   const uploadPhoto = async () => {
     if (!photoForm.title) { alert("Please add title"); return; }
-    if (!photoPreview && !photoForm.image_url) { alert("Please select image"); return; }
+    if (!photoFile && !photoForm.image_url) { alert("Please select image or enter URL"); return; }
     setUploading(true);
     try {
-      let imageUrl = photoForm.image_url;
-      if (photoPreview && !photoForm.image_url) {
-        // For demo, using base64 directly or URL
-        imageUrl = photoPreview;
+      if (photoFile) {
+        // Use multipart form data for file upload
+        const formData = new FormData();
+        formData.append('file', photoFile);
+        formData.append('title', photoForm.title);
+        formData.append('description', photoForm.description || '');
+        formData.append('location', photoForm.location || '');
+        formData.append('system_size', photoForm.system_size || '');
+        
+        await axios.post(`${API}/gallery/upload-file`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        // Use URL-based upload
+        await axios.post(`${API}/gallery/upload`, {
+          title: photoForm.title,
+          description: photoForm.description,
+          location: photoForm.location,
+          system_size: photoForm.system_size,
+          image_url: photoForm.image_url,
+          category: "installation"
+        });
       }
-      await axios.post(`${API}/gallery/upload`, {
-        title: photoForm.title,
-        description: photoForm.description,
-        location: photoForm.location,
-        system_size: photoForm.system_size,
-        image_url: imageUrl,
-        category: "installation"
-      });
       setPhotoForm({ title: '', description: '', location: '', system_size: '', image_url: '' });
       setPhotoFile(null);
       setPhotoPreview('');
       setShowPhotoUploadModal(false);
       fetchAllData();
       alert("Photo uploaded to gallery!");
-    } catch (err) { alert("Error uploading"); }
+    } catch (err) { 
+      alert(err.response?.data?.detail || "Error uploading photo"); 
+    }
     setUploading(false);
   };
 

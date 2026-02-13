@@ -438,12 +438,21 @@ export const CRMDashboard = () => {
                 <option value="">All Stages</option>
                 {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
               </select>
-              <div className="flex space-x-2">
-                <button onClick={() => setShowAddLeadModal(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 hover:bg-green-700 transition" data-testid="add-lead-btn">
-                  <Plus className="w-4 h-4" /><span>Add Lead</span>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setShowQuickAddModal(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-green-700 transition" data-testid="quick-add-btn">
+                  <Plus className="w-4 h-4" /><span>Quick Add</span>
                 </button>
-                <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
-                  <Zap className="w-4 h-4" /><span>AI Auto-Assign All</span>
+                <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-blue-700 transition" data-testid="add-lead-btn">
+                  <UserPlus className="w-4 h-4" /><span>Full Form</span>
+                </button>
+                <button onClick={() => setShowBulkImportModal(true)} className="bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-orange-700 transition" data-testid="bulk-import-btn">
+                  <Upload className="w-4 h-4" /><span>CSV Import</span>
+                </button>
+                <button onClick={fetchSocialLeads} className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-green-600 hover:to-teal-600 transition" data-testid="fetch-social-btn">
+                  <Download className="w-4 h-4" /><span>Fetch Social Leads</span>
+                </button>
+                <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
+                  <Zap className="w-4 h-4" /><span>AI Auto-Assign</span>
                 </button>
               </div>
             </div>
@@ -453,6 +462,7 @@ export const CRMDashboard = () => {
                   <tr>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Lead</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Contact</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Source</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Stage</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Assign To</th>
                     <th className="text-left text-gray-300 px-4 py-3 text-sm">Actions</th>
@@ -466,6 +476,16 @@ export const CRMDashboard = () => {
                         <div className="text-gray-400 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
                       </td>
                       <td className="px-4 py-3 text-gray-300 text-sm">{lead.phone}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          lead.source === 'whatsapp' ? 'bg-green-600' : 
+                          lead.source === 'facebook' ? 'bg-blue-600' : 
+                          lead.source === 'website' ? 'bg-purple-600' : 
+                          lead.source === 'registration' ? 'bg-orange-600' : 'bg-gray-600'
+                        } text-white`}>
+                          {lead.source?.toUpperCase() || 'MANUAL'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <select value={lead.stage} onChange={(e) => updateLeadStage(lead.id, e.target.value)} className="bg-gray-700 text-white text-sm px-2 py-1 rounded">
                           {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}

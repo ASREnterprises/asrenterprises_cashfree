@@ -87,7 +87,7 @@ export const TestimonialsSection = () => {
           <p className="text-gray-600 mb-6">Join our growing family of satisfied solar customers!</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
-              href="https://share.google/HWt7y6fPM2DbAZ085"
+              href="https://search.google.com/local/writereview?placeid=ChIJAR33l2BX7TkRJ4CYdw8Hkps"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition flex items-center justify-center space-x-2"

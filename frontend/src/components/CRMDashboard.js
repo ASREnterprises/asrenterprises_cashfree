@@ -656,6 +656,15 @@ export const CRMDashboard = () => {
                               if(staff) forwardLeadToStaffWhatsApp(lead, staff);
                             }} className="text-yellow-400 hover:text-yellow-300" title="Forward to Staff WhatsApp"><Send className="w-4 h-4" /></button>
                           )}
+                          <button onClick={() => window.open(`/admin/leads?edit=${lead.id}`, '_blank')} className="text-cyan-400 hover:text-cyan-300" title="Edit Lead"><Edit className="w-4 h-4" /></button>
+                          <button onClick={async () => {
+                            if(window.confirm(`Delete lead "${lead.name}"? This cannot be undone.`)) {
+                              try {
+                                await axios.delete(`${API}/admin/leads/${lead.id}`);
+                                fetchAllData();
+                              } catch(err) { alert('Error deleting lead'); }
+                            }
+                          }} className="text-red-400 hover:text-red-300" title="Delete Lead"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>

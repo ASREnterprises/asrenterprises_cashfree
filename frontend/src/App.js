@@ -29,6 +29,7 @@ import { SocialMediaIntegration } from "@/components/SocialMediaIntegration";
 import { CRMDashboard } from "@/components/CRMDashboard";
 import { StaffLogin } from "@/components/StaffLogin";
 import { StaffPortal } from "@/components/StaffPortal";
+import { BusinessDashboard } from "@/components/BusinessDashboard";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

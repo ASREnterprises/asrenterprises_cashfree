@@ -2803,6 +2803,635 @@ async def report_suspicious(request: Request, data: Dict[str, Any]):
     
     return {"success": True, "message": "Report received"}
 
+# ==================== BUSINESS BOOST FEATURES ====================
+
+# 1. Staff Performance Leaderboard
+@api_router.get("/crm/leaderboard")
+async def get_staff_leaderboard():
+    """Staff performance leaderboard with rankings"""
+    staff_list = await db.crm_staff_accounts.find({"is_active": True}, {"_id": 0, "password_hash": 0}).to_list(100)
+    
+    # Calculate scores for each staff
+    leaderboard = []
+    for staff in staff_list:
+        staff_id = staff.get("id")
+        
+        # Count conversions (leads that reached 'won' stage)
+        conversions = await db.crm_leads.count_documents({
+            "assigned_to": staff_id,
+            "stage": "won"
+        })
+        
+        # Calculate total revenue from payments
+        revenue_data = await db.crm_payments.aggregate([
+            {"$match": {"received_by": staff_id}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]).to_list(1)
+        total_revenue = revenue_data[0]["total"] if revenue_data else 0
+        
+        # Count follow-ups completed
+        followups_done = await db.crm_followups.count_documents({
+            "employee_id": staff_id,
+            "status": "completed"
+        })
+        
+        # Calculate response rate (leads contacted within 24h)
+        leads_assigned = staff.get("leads_assigned", 0)
+        
+        # Performance score = (conversions * 100) + (revenue/1000) + (followups * 10)
+        score = (conversions * 100) + (total_revenue / 1000) + (followups_done * 10)
+        
+        leaderboard.append({
+            "staff_id": staff.get("staff_id"),
+            "name": staff.get("name"),
+            "role": staff.get("role"),
+            "leads_assigned": leads_assigned,
+            "conversions": conversions,
+            "conversion_rate": round((conversions / leads_assigned * 100), 1) if leads_assigned > 0 else 0,
+            "total_revenue": total_revenue,
+            "followups_completed": followups_done,
+            "performance_score": round(score, 1),
+            "phone": staff.get("phone")
+        })
+    
+    # Sort by performance score
+    leaderboard.sort(key=lambda x: x["performance_score"], reverse=True)
+    
+    # Add ranks
+    for i, staff in enumerate(leaderboard):
+        staff["rank"] = i + 1
+        if i == 0:
+            staff["badge"] = "🥇 Top Performer"
+        elif i == 1:
+            staff["badge"] = "🥈 Star Seller"
+        elif i == 2:
+            staff["badge"] = "🥉 Rising Star"
+        else:
+            staff["badge"] = None
+    
+    return leaderboard
+
+# 2. Revenue & Target Dashboard
+@api_router.get("/crm/revenue-dashboard")
+async def get_revenue_dashboard():
+    """Revenue analytics and target tracking"""
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # This month's revenue
+    monthly_revenue = await db.crm_payments.aggregate([
+        {"$match": {"timestamp": {"$gte": month_start.isoformat()}}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    # Total all-time revenue
+    total_revenue = await db.crm_payments.aggregate([
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    # Revenue by payment type
+    revenue_by_type = await db.crm_payments.aggregate([
+        {"$group": {"_id": "$payment_type", "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}
+    ]).to_list(10)
+    
+    # Daily revenue for last 7 days
+    seven_days_ago = (now - timedelta(days=7)).isoformat()
+    daily_revenue = await db.crm_payments.aggregate([
+        {"$match": {"timestamp": {"$gte": seven_days_ago}}},
+        {"$group": {
+            "_id": {"$substr": ["$timestamp", 0, 10]},
+            "total": {"$sum": "$amount"},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]).to_list(7)
+    
+    # Pipeline value (potential revenue from active leads)
+    pipeline_leads = await db.crm_leads.find(
+        {"stage": {"$in": ["new", "follow_up", "survey", "quotation"]}},
+        {"_id": 0, "monthly_bill": 1}
+    ).to_list(1000)
+    
+    # Estimate: monthly_bill * 12 * 3 (3kW system assumption) = potential project value
+    pipeline_value = sum([(l.get("monthly_bill", 0) * 60) for l in pipeline_leads])
+    
+    # Get targets (stored in settings or default)
+    settings = await db.crm_settings.find_one({"type": "targets"}, {"_id": 0})
+    monthly_target = settings.get("monthly_revenue_target", 1000000) if settings else 1000000
+    
+    current_monthly = monthly_revenue[0]["total"] if monthly_revenue else 0
+    target_progress = round((current_monthly / monthly_target * 100), 1) if monthly_target > 0 else 0
+    
+    return {
+        "monthly_revenue": current_monthly,
+        "monthly_target": monthly_target,
+        "target_progress": target_progress,
+        "total_revenue": total_revenue[0]["total"] if total_revenue else 0,
+        "pipeline_value": pipeline_value,
+        "revenue_by_type": {item["_id"]: {"amount": item["total"], "count": item["count"]} for item in revenue_by_type if item["_id"]},
+        "daily_revenue": daily_revenue,
+        "days_remaining": (month_start.replace(month=month_start.month % 12 + 1) - now).days if month_start.month < 12 else (month_start.replace(year=month_start.year + 1, month=1) - now).days
+    }
+
+# Set monthly target
+@api_router.post("/crm/set-target")
+async def set_monthly_target(data: Dict[str, Any]):
+    """Set monthly revenue target"""
+    target = data.get("monthly_revenue_target", 1000000)
+    
+    await db.crm_settings.update_one(
+        {"type": "targets"},
+        {"$set": {"monthly_revenue_target": target, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    return {"success": True, "target": target}
+
+# 3. Lead Analytics
+@api_router.get("/crm/lead-analytics")
+async def get_lead_analytics():
+    """Comprehensive lead analytics"""
+    now = datetime.now(timezone.utc)
+    
+    # Leads by source
+    by_source = await db.crm_leads.aggregate([
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}}
+    ]).to_list(20)
+    
+    # Leads by district
+    by_district = await db.crm_leads.aggregate([
+        {"$group": {"_id": "$district", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 10}
+    ]).to_list(10)
+    
+    # Leads by stage
+    by_stage = await db.crm_leads.aggregate([
+        {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
+    ]).to_list(20)
+    
+    # Conversion funnel
+    total_leads = await db.crm_leads.count_documents({})
+    contacted = await db.crm_leads.count_documents({"stage": {"$ne": "new"}})
+    surveyed = await db.crm_leads.count_documents({"stage": {"$in": ["survey", "quotation", "negotiation", "won", "lost"]}})
+    quoted = await db.crm_leads.count_documents({"stage": {"$in": ["quotation", "negotiation", "won", "lost"]}})
+    won = await db.crm_leads.count_documents({"stage": "won"})
+    
+    # Average lead score
+    avg_score = await db.crm_leads.aggregate([
+        {"$group": {"_id": None, "avg": {"$avg": "$lead_score"}}}
+    ]).to_list(1)
+    
+    # Leads this month
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    this_month = await db.crm_leads.count_documents({"timestamp": {"$gte": month_start}})
+    
+    # High value leads (bill > 5000)
+    high_value = await db.crm_leads.count_documents({"monthly_bill": {"$gte": 5000}})
+    
+    return {
+        "total_leads": total_leads,
+        "this_month": this_month,
+        "by_source": {item["_id"] or "unknown": item["count"] for item in by_source},
+        "by_district": [{"district": item["_id"], "count": item["count"]} for item in by_district if item["_id"]],
+        "by_stage": {item["_id"] or "new": item["count"] for item in by_stage},
+        "funnel": {
+            "total": total_leads,
+            "contacted": contacted,
+            "surveyed": surveyed,
+            "quoted": quoted,
+            "won": won,
+            "conversion_rate": round((won / total_leads * 100), 1) if total_leads > 0 else 0
+        },
+        "avg_lead_score": round(avg_score[0]["avg"], 1) if avg_score and avg_score[0].get("avg") else 0,
+        "high_value_leads": high_value
+    }
+
+# 4. Overdue Lead Alerts
+@api_router.get("/crm/overdue-leads")
+async def get_overdue_leads():
+    """Get leads that haven't been contacted/updated recently"""
+    now = datetime.now(timezone.utc)
+    
+    leads = await db.crm_leads.find(
+        {"stage": {"$in": ["new", "follow_up"]}},
+        {"_id": 0}
+    ).to_list(500)
+    
+    overdue_24h = []
+    overdue_48h = []
+    overdue_72h = []
+    critical = []  # More than 5 days
+    
+    for lead in leads:
+        try:
+            last_update = datetime.fromisoformat(lead.get("timestamp", "").replace("Z", "+00:00"))
+            hours_since = (now - last_update).total_seconds() / 3600
+            
+            lead_info = {
+                **lead,
+                "hours_since_update": round(hours_since, 1),
+                "days_since_update": round(hours_since / 24, 1),
+                "whatsapp_url": get_whatsapp_url(lead.get("phone", ""), f"Hello {lead.get('name')}, this is ASR Enterprises following up on your solar inquiry...")
+            }
+            
+            if hours_since > 120:  # 5+ days
+                critical.append(lead_info)
+            elif hours_since > 72:
+                overdue_72h.append(lead_info)
+            elif hours_since > 48:
+                overdue_48h.append(lead_info)
+            elif hours_since > 24:
+                overdue_24h.append(lead_info)
+        except:
+            continue
+    
+    return {
+        "critical": critical,
+        "overdue_72h": overdue_72h,
+        "overdue_48h": overdue_48h,
+        "overdue_24h": overdue_24h,
+        "summary": {
+            "critical_count": len(critical),
+            "total_overdue": len(critical) + len(overdue_72h) + len(overdue_48h) + len(overdue_24h)
+        }
+    }
+
+# 5. Customer Journey Timeline
+@api_router.get("/crm/leads/{lead_id}/timeline")
+async def get_lead_timeline(lead_id: str):
+    """Get complete timeline for a lead"""
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get all activities
+    activities = await db.crm_activities.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(100)
+    
+    # Get all follow-ups
+    followups = await db.crm_followups.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(50)
+    
+    # Get project if exists
+    project = await db.crm_projects.find_one({"lead_id": lead_id}, {"_id": 0})
+    
+    # Get payments
+    payments = await db.crm_payments.find(
+        {"lead_id": lead_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(20)
+    
+    # Build timeline
+    timeline = []
+    
+    # Lead created
+    timeline.append({
+        "type": "lead_created",
+        "title": "Lead Created",
+        "description": f"New inquiry from {lead.get('source', 'website')}",
+        "timestamp": lead.get("timestamp"),
+        "icon": "user-plus"
+    })
+    
+    # Activities
+    for activity in activities:
+        timeline.append({
+            "type": "activity",
+            "title": activity.get("title", "Activity"),
+            "description": activity.get("description", ""),
+            "timestamp": activity.get("timestamp"),
+            "icon": "activity"
+        })
+    
+    # Follow-ups
+    for fu in followups:
+        timeline.append({
+            "type": "followup",
+            "title": f"Follow-up ({fu.get('reminder_type', 'call')})",
+            "description": fu.get("notes", ""),
+            "status": fu.get("status"),
+            "timestamp": fu.get("timestamp"),
+            "icon": "phone"
+        })
+    
+    # Payments
+    for payment in payments:
+        timeline.append({
+            "type": "payment",
+            "title": f"Payment Received - ₹{payment.get('amount', 0):,}",
+            "description": f"{payment.get('payment_type', 'payment')} via {payment.get('payment_mode', 'cash')}",
+            "timestamp": payment.get("timestamp"),
+            "icon": "credit-card"
+        })
+    
+    # Sort by timestamp
+    timeline.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    # Get assigned staff
+    assigned_staff = None
+    if lead.get("assigned_to"):
+        assigned_staff = await db.crm_staff_accounts.find_one(
+            {"id": lead.get("assigned_to")},
+            {"_id": 0, "password_hash": 0}
+        )
+    
+    return {
+        "lead": lead,
+        "timeline": timeline,
+        "project": project,
+        "assigned_staff": assigned_staff,
+        "total_paid": sum([p.get("amount", 0) for p in payments]),
+        "summary": {
+            "activities": len(activities),
+            "followups": len(followups),
+            "payments": len(payments)
+        }
+    }
+
+# 6. Commission Calculator
+@api_router.get("/crm/commissions")
+async def get_commission_report():
+    """Calculate staff commissions"""
+    # Commission rates
+    COMMISSION_RATES = {
+        "sales": 0.02,       # 2% of project value
+        "survey": 500,       # Fixed per survey
+        "installation": 0.01, # 1% of project value
+        "manager": 0.005      # 0.5% of team revenue
+    }
+    
+    staff_list = await db.crm_staff_accounts.find({"is_active": True}, {"_id": 0, "password_hash": 0}).to_list(100)
+    
+    commissions = []
+    for staff in staff_list:
+        staff_id = staff.get("id")
+        role = staff.get("role", "sales")
+        
+        # Get revenue generated by this staff
+        revenue_data = await db.crm_payments.aggregate([
+            {"$match": {"received_by": staff_id}},
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]).to_list(1)
+        revenue = revenue_data[0]["total"] if revenue_data else 0
+        
+        # Get conversions
+        conversions = await db.crm_leads.count_documents({
+            "assigned_to": staff_id,
+            "stage": "won"
+        })
+        
+        # Calculate commission
+        if role in ["sales", "manager"]:
+            commission = revenue * COMMISSION_RATES.get(role, 0.02)
+        elif role == "survey":
+            surveys_done = await db.crm_followups.count_documents({
+                "employee_id": staff_id,
+                "reminder_type": "survey",
+                "status": "completed"
+            })
+            commission = surveys_done * COMMISSION_RATES["survey"]
+        elif role == "installation":
+            commission = revenue * COMMISSION_RATES["installation"]
+        else:
+            commission = revenue * 0.01
+        
+        commissions.append({
+            "staff_id": staff.get("staff_id"),
+            "name": staff.get("name"),
+            "role": role,
+            "revenue_generated": revenue,
+            "conversions": conversions,
+            "commission_rate": f"{COMMISSION_RATES.get(role, 0.02) * 100}%",
+            "commission_earned": round(commission, 2),
+            "phone": staff.get("phone")
+        })
+    
+    # Sort by commission earned
+    commissions.sort(key=lambda x: x["commission_earned"], reverse=True)
+    
+    total_commission = sum([c["commission_earned"] for c in commissions])
+    
+    return {
+        "commissions": commissions,
+        "total_commission_payable": round(total_commission, 2),
+        "commission_rates": {k: f"{v*100}%" if v < 1 else f"₹{v}" for k, v in COMMISSION_RATES.items()}
+    }
+
+# 7. Daily Business Digest
+@api_router.get("/crm/daily-digest")
+async def get_daily_digest():
+    """Daily summary of business activities"""
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    yesterday_start = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    
+    # Today's stats
+    new_leads_today = await db.crm_leads.count_documents({"timestamp": {"$gte": today_start}})
+    followups_today = await db.crm_followups.count_documents({"reminder_date": now.strftime("%Y-%m-%d")})
+    followups_completed = await db.crm_followups.count_documents({
+        "reminder_date": now.strftime("%Y-%m-%d"),
+        "status": "completed"
+    })
+    
+    # Today's revenue
+    revenue_today = await db.crm_payments.aggregate([
+        {"$match": {"timestamp": {"$gte": today_start}}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    # Yesterday's comparison
+    new_leads_yesterday = await db.crm_leads.count_documents({
+        "timestamp": {"$gte": yesterday_start, "$lt": today_start}
+    })
+    
+    revenue_yesterday = await db.crm_payments.aggregate([
+        {"$match": {"timestamp": {"$gte": yesterday_start, "$lt": today_start}}},
+        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+    ]).to_list(1)
+    
+    # Hot leads (high score, new/follow_up stage)
+    hot_leads = await db.crm_leads.find(
+        {"lead_score": {"$gte": 75}, "stage": {"$in": ["new", "follow_up"]}},
+        {"_id": 0}
+    ).sort("lead_score", -1).limit(5).to_list(5)
+    
+    # Overdue critical
+    overdue_response = await get_overdue_leads()
+    
+    # Staff activity today
+    active_staff = await db.crm_staff_accounts.count_documents({"is_active": True})
+    
+    # Projects status
+    installations_pending = await db.crm_projects.count_documents({"installation_status": "pending"})
+    installations_today = await db.crm_projects.count_documents({
+        "scheduled_date": now.strftime("%Y-%m-%d")
+    })
+    
+    today_revenue = revenue_today[0]["total"] if revenue_today else 0
+    yesterday_revenue = revenue_yesterday[0]["total"] if revenue_yesterday else 0
+    
+    return {
+        "date": now.strftime("%Y-%m-%d"),
+        "day": now.strftime("%A"),
+        "greeting": "Good Morning" if now.hour < 12 else "Good Afternoon" if now.hour < 17 else "Good Evening",
+        "summary": {
+            "new_leads": new_leads_today,
+            "leads_change": new_leads_today - new_leads_yesterday,
+            "revenue": today_revenue,
+            "revenue_change": today_revenue - yesterday_revenue,
+            "followups_scheduled": followups_today,
+            "followups_completed": followups_completed,
+            "followups_pending": followups_today - followups_completed
+        },
+        "hot_leads": hot_leads,
+        "overdue_critical": overdue_response.get("critical", [])[:3],
+        "total_overdue": overdue_response.get("summary", {}).get("total_overdue", 0),
+        "staff": {
+            "active": active_staff
+        },
+        "installations": {
+            "pending": installations_pending,
+            "scheduled_today": installations_today
+        },
+        "ai_tip": await generate_daily_tip()
+    }
+
+async def generate_daily_tip():
+    """Generate AI-powered daily business tip"""
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are a solar business coach in Bihar, India."
+        )
+        
+        # Get some context
+        total_leads = await db.crm_leads.count_documents({})
+        won_leads = await db.crm_leads.count_documents({"stage": "won"})
+        conversion = round((won_leads / total_leads * 100), 1) if total_leads > 0 else 0
+        
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(text=f"""Give one short, actionable tip (2 lines max) to improve solar sales.
+Current stats: {total_leads} leads, {conversion}% conversion rate.
+Focus on Bihar market. Be specific and practical.""")]
+        )
+        
+        return response
+    except:
+        tips = [
+            "💡 Call new leads within 2 hours - response time is key to conversion!",
+            "💡 Focus on high-bill customers (>₹4000/month) - they have the best ROI.",
+            "💡 Send WhatsApp quotes immediately after site survey while interest is high.",
+            "💡 Offer EMI options prominently - it removes the biggest objection.",
+            "💡 Follow up on Saturdays - homeowners are available for site surveys."
+        ]
+        return random.choice(tips)
+
+# 8. Smart Lead Insights
+@api_router.get("/crm/insights")
+async def get_business_insights():
+    """AI-powered business insights and recommendations"""
+    # Get comprehensive data
+    total_leads = await db.crm_leads.count_documents({})
+    conversion_rate = await db.crm_leads.count_documents({"stage": "won"}) / total_leads * 100 if total_leads > 0 else 0
+    
+    # Best performing district
+    by_district = await db.crm_leads.aggregate([
+        {"$match": {"stage": "won"}},
+        {"$group": {"_id": "$district", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 1}
+    ]).to_list(1)
+    
+    # Best lead source
+    by_source = await db.crm_leads.aggregate([
+        {"$match": {"stage": "won"}},
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 1}
+    ]).to_list(1)
+    
+    # Average deal value
+    avg_deal = await db.crm_projects.aggregate([
+        {"$group": {"_id": None, "avg": {"$avg": "$total_amount"}}}
+    ]).to_list(1)
+    
+    # Response time impact (leads contacted within 24h vs later)
+    
+    insights = []
+    
+    # Conversion rate insight
+    if conversion_rate < 10:
+        insights.append({
+            "type": "warning",
+            "title": "Low Conversion Rate",
+            "message": f"Your conversion rate is {round(conversion_rate, 1)}%. Industry average is 15-20%. Focus on follow-up quality.",
+            "action": "Review lost leads to identify common objections"
+        })
+    elif conversion_rate > 20:
+        insights.append({
+            "type": "success",
+            "title": "Great Conversion Rate!",
+            "message": f"Your {round(conversion_rate, 1)}% conversion rate is above average. Keep up the good work!",
+            "action": "Document your winning strategies"
+        })
+    
+    # District insight
+    if by_district:
+        insights.append({
+            "type": "info",
+            "title": "Top Performing District",
+            "message": f"{by_district[0]['_id']} has the most conversions. Consider increasing marketing here.",
+            "action": f"Focus more resources on {by_district[0]['_id']}"
+        })
+    
+    # Source insight
+    if by_source:
+        insights.append({
+            "type": "info",
+            "title": "Best Lead Source",
+            "message": f"'{by_source[0]['_id']}' brings the most converting leads.",
+            "action": "Invest more in this channel"
+        })
+    
+    # Average deal insight
+    if avg_deal and avg_deal[0].get("avg"):
+        avg = avg_deal[0]["avg"]
+        insights.append({
+            "type": "info",
+            "title": "Average Deal Value",
+            "message": f"₹{int(avg):,} per project. Consider upselling to larger systems.",
+            "action": "Offer 5kW+ systems to high-bill customers"
+        })
+    
+    # Staff performance insight
+    leaderboard = await get_staff_leaderboard()
+    if leaderboard and len(leaderboard) > 1:
+        top = leaderboard[0]
+        insights.append({
+            "type": "success",
+            "title": "Top Performer",
+            "message": f"{top['name']} leads with {top['conversions']} conversions and ₹{top['total_revenue']:,} revenue.",
+            "action": "Recognize and reward top performers"
+        })
+    
+    return {
+        "insights": insights,
+        "key_metrics": {
+            "conversion_rate": round(conversion_rate, 1),
+            "total_leads": total_leads,
+            "avg_deal_value": int(avg_deal[0]["avg"]) if avg_deal and avg_deal[0].get("avg") else 0,
+            "top_district": by_district[0]["_id"] if by_district else "N/A",
+            "top_source": by_source[0]["_id"] if by_source else "website"
+        }
+    }
+
 app.include_router(api_router)
 
 # CORS configuration with security

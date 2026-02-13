@@ -137,6 +137,31 @@ export const CRMDashboard = () => {
     } catch (err) { alert("Error assigning lead"); }
   };
 
+  // Create Manual Lead
+  const createManualLead = async () => {
+    if (!newLeadForm.name || !newLeadForm.phone) {
+      alert("Name and Phone are required!");
+      return;
+    }
+    try {
+      await axios.post(`${API}/crm/leads`, {
+        ...newLeadForm,
+        monthly_bill: newLeadForm.monthly_bill ? parseFloat(newLeadForm.monthly_bill) : null,
+        roof_area: newLeadForm.roof_area ? parseFloat(newLeadForm.roof_area) : null
+      });
+      setShowAddLeadModal(false);
+      setNewLeadForm({
+        name: '', email: '', phone: '', district: '', address: '',
+        property_type: 'residential', roof_type: 'rcc', monthly_bill: '',
+        roof_area: '', source: 'manual', notes: ''
+      });
+      fetchAllData();
+      alert("Lead created successfully!");
+    } catch (err) { 
+      alert(err.response?.data?.detail || "Error creating lead"); 
+    }
+  };
+
   const autoAssignLead = async (leadId) => {
     try {
       const res = await axios.post(`${API}/crm/leads/${leadId}/auto-assign`);

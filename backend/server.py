@@ -1273,9 +1273,24 @@ async def register_staff(data: Dict[str, Any]):
     """Admin creates staff account with unique ID and password"""
     import hashlib
     
-    # Generate unique staff ID (ASR + 4 digits)
-    staff_count = await db.crm_staff_accounts.count_documents({})
-    staff_id = f"ASR{1001 + staff_count}"
+    # Check for custom staff ID or generate one
+    custom_staff_id = data.get("custom_staff_id", "").strip().upper()
+    if custom_staff_id:
+        # Validate custom ID format and check for duplicates
+        if not custom_staff_id.startswith("ASR"):
+            custom_staff_id = f"ASR{custom_staff_id}"
+        existing = await db.crm_staff_accounts.find_one({"staff_id": custom_staff_id})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Staff ID {custom_staff_id} already exists. Please use a different ID.")
+        staff_id = custom_staff_id
+    else:
+        # Generate unique staff ID (ASR + 4 digits)
+        staff_count = await db.crm_staff_accounts.count_documents({})
+        staff_id = f"ASR{1001 + staff_count}"
+        # Ensure uniqueness
+        while await db.crm_staff_accounts.find_one({"staff_id": staff_id}):
+            staff_count += 1
+            staff_id = f"ASR{1001 + staff_count}"
     
     # Hash password
     password = data.get("password", "asr@123")

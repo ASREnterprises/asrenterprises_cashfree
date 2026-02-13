@@ -901,7 +901,7 @@ export const CRMDashboard = () => {
 
             {/* Paid Registrations */}
             <div className="bg-gray-800 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Paid Registrations</h3>
+              <h3 className="text-lg font-bold text-white mb-4">Service Registrations</h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-700">
@@ -911,6 +911,7 @@ export const CRMDashboard = () => {
                       <th className="text-left text-gray-300 px-4 py-3 text-sm">Phone</th>
                       <th className="text-left text-gray-300 px-4 py-3 text-sm">Amount</th>
                       <th className="text-left text-gray-300 px-4 py-3 text-sm">Status</th>
+                      <th className="text-left text-gray-300 px-4 py-3 text-sm">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -925,10 +926,36 @@ export const CRMDashboard = () => {
                             {reg.payment_status?.toUpperCase()}
                           </span>
                         </td>
+                        <td className="px-4 py-3">
+                          {reg.payment_status !== 'paid' ? (
+                            <button
+                              onClick={async () => {
+                                const paymentId = prompt("Enter Razorpay Payment/Transaction ID:");
+                                if (paymentId) {
+                                  try {
+                                    await axios.post(`${API}/admin/registrations/${reg.id}/mark-paid`, {
+                                      payment_id: paymentId,
+                                      amount: reg.amount
+                                    });
+                                    alert("Payment marked as confirmed!");
+                                    fetchRegistrations();
+                                  } catch (err) {
+                                    alert("Error marking payment");
+                                  }
+                                }
+                              }}
+                              className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                            >
+                              Mark Paid
+                            </button>
+                          ) : (
+                            <span className="text-green-400 text-xs">✓ Confirmed</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {registrations.length === 0 && (
-                      <tr><td colSpan="5" className="text-center py-8 text-gray-400">No registrations yet</td></tr>
+                      <tr><td colSpan="6" className="text-center py-8 text-gray-400">No registrations yet</td></tr>
                     )}
                   </tbody>
                 </table>

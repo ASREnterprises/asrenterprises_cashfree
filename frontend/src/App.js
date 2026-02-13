@@ -2142,3 +2142,317 @@ const SolarCalculatorPage = () => {
     </div>
   );
 };
+
+
+// Agent Registration Page
+const AgentRegistrationPage = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [agentId, setAgentId] = useState("");
+  const [formData, setFormData] = useState({
+    name: "", phone: "", email: "", district: "", address: "",
+    aadhar_number: "", pan_number: "", bank_name: "", bank_account: "", ifsc_code: "",
+    experience: "", notes: ""
+  });
+
+  const BIHAR_DISTRICTS = [
+    "Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", 
+    "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", 
+    "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", 
+    "Nawada", "Bagaha", "Buxar", "Kishanganj", "Sitamarhi", "Jamalpur"
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.phone || !formData.district) {
+      alert("Name, Phone, and District are required!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/agents/register`, formData);
+      setAgentId(res.data.agent_id);
+      setSuccess(true);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Registration failed");
+    }
+    setLoading(false);
+  };
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h1>
+          <div className="bg-purple-50 rounded-lg p-4 mb-6">
+            <p className="text-purple-800 font-semibold">Your Agent ID: {agentId}</p>
+            <p className="text-purple-600 text-sm mt-1">Save this ID for future reference</p>
+          </div>
+          <p className="text-gray-600 mb-6">
+            Our team will verify your details and contact you within 48 hours.
+          </p>
+          <Link to="/" className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        <Link to="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+          <ChevronRight className="w-5 h-5 rotate-180" />
+          <span>Back to Home</span>
+        </Link>
+
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Become an ASR Agent</h1>
+            <p className="text-gray-600">Join our network and earn ₹5,000+ per referral</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-purple-50 rounded-xl p-4 mb-6">
+              <h3 className="font-semibold text-purple-800 mb-2">Personal Details</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    placeholder="Your full name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    placeholder="10-digit mobile"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">District *</label>
+                  <select
+                    value={formData.district}
+                    onChange={(e) => setFormData({...formData, district: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    required
+                  >
+                    <option value="">Select District</option>
+                    {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    placeholder="Your full address"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 rounded-xl p-4 mb-6">
+              <h3 className="font-semibold text-blue-800 mb-2">KYC Details</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                  <input
+                    type="text"
+                    value={formData.aadhar_number}
+                    onChange={(e) => setFormData({...formData, aadhar_number: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="12-digit Aadhar"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                  <input
+                    type="text"
+                    value={formData.pan_number}
+                    onChange={(e) => setFormData({...formData, pan_number: e.target.value.toUpperCase()})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="ABCDE1234F"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-green-50 rounded-xl p-4 mb-6">
+              <h3 className="font-semibold text-green-800 mb-2">Bank Details (For Commission)</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                  <input
+                    type="text"
+                    value={formData.bank_name}
+                    onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="Bank name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                  <input
+                    type="text"
+                    value={formData.bank_account}
+                    onChange={(e) => setFormData({...formData, bank_account: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="Account number"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                  <input
+                    type="text"
+                    value={formData.ifsc_code}
+                    onChange={(e) => setFormData({...formData, ifsc_code: e.target.value.toUpperCase()})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="IFSC code"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Previous Experience (Optional)</label>
+              <textarea
+                value={formData.experience}
+                onChange={(e) => setFormData({...formData, experience: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 h-24"
+                placeholder="Tell us about your experience in sales or solar industry..."
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-lg font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+              data-testid="agent-register-submit"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <span>Submit Registration</span>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Public Govt News Page
+const PublicGovtNewsPage = () => {
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const res = await axios.get(`${API}/public/govt-news`);
+        setNews(res.data);
+      } catch (err) {
+        console.error("Error fetching news:", err);
+      }
+      setLoading(false);
+    };
+    fetchNews();
+  }, []);
+
+  const getCategoryColor = (category) => {
+    switch (category) {
+      case "subsidy": return "bg-green-100 text-green-800";
+      case "scheme": return "bg-blue-100 text-blue-800";
+      case "guideline": return "bg-purple-100 text-purple-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+          <ChevronRight className="w-5 h-5 rotate-180" />
+          <span>Back to Home</span>
+        </Link>
+
+        <div className="text-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Government News & Schemes</h1>
+          <p className="text-gray-600">Latest updates on PM Surya Ghar Yojana and Bihar Solar Subsidies</p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-16">
+            <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-gray-500">Loading news...</p>
+          </div>
+        ) : news.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
+            <p className="text-gray-500">No news available at the moment.</p>
+            <p className="text-gray-400 text-sm mt-2">Check back later for updates!</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {news.map((item, index) => (
+              <div key={item.id || index} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${getCategoryColor(item.category)}`}>
+                      {item.category}
+                    </span>
+                    <span className="text-gray-400 text-sm">{item.date?.split('T')[0]}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{item.summary}</p>
+                  {item.source && (
+                    <p className="text-blue-600 text-sm mt-3 font-medium">{item.source}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-10 text-center">
+          <Link
+            to="/#inquiry-form"
+            className="inline-block bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-8 py-4 rounded-lg font-bold hover:from-orange-600 hover:to-yellow-600 transition shadow-lg"
+          >
+            Apply for Solar Subsidy →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};

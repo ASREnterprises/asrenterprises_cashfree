@@ -409,8 +409,12 @@ export const CRMDashboard = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
-                          <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ASR Enterprises...`)} className="text-green-400 hover:text-green-300"><MessageSquare className="w-4 h-4" /></button>
-                          <a href={`tel:${lead.phone}`} className="text-blue-400 hover:text-blue-300"><Phone className="w-4 h-4" /></a>
+                          <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ASR Enterprises...`)} className="text-green-400 hover:text-green-300" title="WhatsApp Customer"><MessageSquare className="w-4 h-4" /></button>
+                          <a href={`tel:${lead.phone}`} className="text-blue-400 hover:text-blue-300" title="Call"><Phone className="w-4 h-4" /></a>
+                          <button onClick={() => sendQuoteViaWhatsApp(lead.id)} className="text-orange-400 hover:text-orange-300" title="Send Quote via WhatsApp"><FileSpreadsheet className="w-4 h-4" /></button>
+                          {!lead.assigned_to && (
+                            <button onClick={() => autoAssignLead(lead.id)} className="text-purple-400 hover:text-purple-300" title="AI Auto-Assign"><Zap className="w-4 h-4" /></button>
+                          )}
                           {lead.assigned_to && (
                             <button onClick={() => {
                               const staff = staffAccounts.find(s => s.id === lead.assigned_to);

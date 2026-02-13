@@ -608,8 +608,13 @@ export const CRMDashboard = () => {
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
             <h2 className="text-xl font-bold text-white mb-4">Create Staff Account</h2>
             <div className="space-y-4">
-              <input type="text" value={newStaffForm.name} onChange={(e) => setNewStaffForm({...newStaffForm, name: e.target.value})} placeholder="Name" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
-              <input type="tel" value={newStaffForm.phone} onChange={(e) => setNewStaffForm({...newStaffForm, phone: e.target.value})} placeholder="Phone" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Custom Staff ID (Optional)</label>
+                <input type="text" value={newStaffForm.custom_staff_id} onChange={(e) => setNewStaffForm({...newStaffForm, custom_staff_id: e.target.value})} placeholder="e.g., ASR2001 (leave blank for auto)" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+                <p className="text-gray-500 text-xs mt-1">Leave empty for auto-generated ID</p>
+              </div>
+              <input type="text" value={newStaffForm.name} onChange={(e) => setNewStaffForm({...newStaffForm, name: e.target.value})} placeholder="Name *" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <input type="tel" value={newStaffForm.phone} onChange={(e) => setNewStaffForm({...newStaffForm, phone: e.target.value})} placeholder="Phone *" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
               <input type="email" value={newStaffForm.email} onChange={(e) => setNewStaffForm({...newStaffForm, email: e.target.value})} placeholder="Email" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
               <select value={newStaffForm.role} onChange={(e) => setNewStaffForm({...newStaffForm, role: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
                 <option value="sales">Sales</option>

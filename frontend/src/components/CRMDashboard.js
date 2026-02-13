@@ -54,7 +54,7 @@ export const CRMDashboard = () => {
   const [editStaffForm, setEditStaffForm] = useState(null);
   const [newStaffCredentials, setNewStaffCredentials] = useState(null);
   const [filterStage, setFilterStage] = useState("");
-  const [newStaffForm, setNewStaffForm] = useState({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123', custom_id: '' });
+  const [newStaffForm, setNewStaffForm] = useState({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123', custom_staff_id: '' });
   const [taskForm, setTaskForm] = useState({ staff_id: '', title: '', description: '', task_type: 'call', lead_id: '', priority: 'medium', due_date: '', due_time: '10:00' });
   const [messageForm, setMessageForm] = useState({ receiver_id: '', message: '' });
   const [photoFile, setPhotoFile] = useState(null);

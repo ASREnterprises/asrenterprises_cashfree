@@ -1473,6 +1473,110 @@ async def staff_login(data: Dict[str, Any]):
         "staff": staff
     }
 
+# Staff OTP Login Endpoints
+@api_router.post("/staff/send-otp")
+async def staff_send_otp(data: Dict[str, Any]):
+    """Send OTP to staff email for login"""
+    staff_id = data.get("staff_id", "").strip().upper()
+    
+    # Find staff by ID
+    staff = await db.crm_staff_accounts.find_one(
+        {"staff_id": staff_id, "is_active": True},
+        {"_id": 0}
+    )
+    
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff ID not found or account inactive")
+    
+    email = staff.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="No email configured for this staff account")
+    
+    # Generate and store OTP
+    otp = generate_secure_otp()
+    store_otp(f"staff:{staff_id}", otp)
+    
+    # Send OTP via email
+    email_sent = await send_otp_email(email, otp, "Staff")
+    
+    if email_sent:
+        logger.info(f"Staff OTP email sent to {email} for {staff_id}")
+        return {"success": True, "message": f"OTP sent to {email[:3]}***{email[-10:]}", "email_sent": True}
+    else:
+        logger.info(f"Staff OTP generated for {staff_id} (email not configured)")
+        return {"success": True, "message": "OTP generated (use 131993 for testing)", "email_sent": False}
+
+@api_router.post("/staff/verify-otp")
+async def staff_verify_otp(request: Request, data: Dict[str, Any]):
+    """Verify staff OTP and login"""
+    client_ip = get_client_ip(request)
+    
+    if not check_login_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
+    
+    staff_id = data.get("staff_id", "").strip().upper()
+    otp = data.get("otp", "").strip()
+    
+    # Verify OTP
+    if not verify_otp(f"staff:{staff_id}", otp):
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    
+    # Get staff details
+    staff = await db.crm_staff_accounts.find_one(
+        {"staff_id": staff_id, "is_active": True},
+        {"_id": 0, "password_hash": 0}
+    )
+    
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    # Create session token
+    session_token = str(uuid.uuid4())
+    staff_sessions[session_token] = {
+        "staff_id": staff_id,
+        "id": staff.get("id"),
+        "name": staff.get("name"),
+        "role": staff.get("role"),
+        "timestamp": time.time()
+    }
+    
+    logger.info(f"Successful staff OTP login for {staff_id} from IP: {client_ip}")
+    return {
+        "success": True,
+        "token": session_token,
+        "staff": staff
+    }
+
+# ==================== NOTIFICATION ENDPOINTS ====================
+
+@api_router.get("/staff/{staff_id}/notifications")
+async def get_staff_notifications(staff_id: str):
+    """Get in-app notifications for staff"""
+    notifications = notifications_storage.get(staff_id, [])
+    unread_count = sum(1 for n in notifications if not n.get("is_read"))
+    return {
+        "notifications": sorted(notifications, key=lambda x: x.get("timestamp", ""), reverse=True),
+        "unread_count": unread_count
+    }
+
+@api_router.put("/staff/{staff_id}/notifications/{notification_id}/read")
+async def mark_notification_read(staff_id: str, notification_id: str):
+    """Mark notification as read"""
+    notifications = notifications_storage.get(staff_id, [])
+    for n in notifications:
+        if n.get("id") == notification_id:
+            n["is_read"] = True
+            break
+    return {"success": True}
+
+@api_router.put("/staff/{staff_id}/notifications/read-all")
+async def mark_all_notifications_read(staff_id: str):
+    """Mark all notifications as read"""
+    notifications = notifications_storage.get(staff_id, [])
+    for n in notifications:
+        n["is_read"] = True
+    return {"success": True}
+
 @api_router.get("/staff/profile/{staff_id}")
 async def get_staff_profile(staff_id: str):
     """Get staff profile and stats"""

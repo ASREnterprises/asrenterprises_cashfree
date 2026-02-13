@@ -109,10 +109,59 @@ export const CRMDashboard = () => {
 
   const assignLeadToStaff = async (leadId, staffInternalId) => {
     try {
-      await axios.post(`${API}/crm/leads/${leadId}/assign`, { employee_id: staffInternalId, assigned_by: "admin" });
+      const res = await axios.post(`${API}/crm/leads/${leadId}/assign`, { employee_id: staffInternalId, assigned_by: "admin" });
       fetchAllData();
       alert("Lead assigned!");
+      // Open WhatsApp notification if URL available
+      if (res.data.whatsapp_notification_url) {
+        if (window.confirm("Open WhatsApp to notify staff?")) {
+          window.open(res.data.whatsapp_notification_url, '_blank');
+        }
+      }
     } catch (err) { alert("Error assigning lead"); }
+  };
+
+  const autoAssignLead = async (leadId) => {
+    try {
+      const res = await axios.post(`${API}/crm/leads/${leadId}/auto-assign`);
+      if (res.data.success) {
+        fetchAllData();
+        alert(`Lead auto-assigned to ${res.data.assigned_name} (${res.data.assignment_reason})`);
+        if (res.data.whatsapp_notification_url && window.confirm("Open WhatsApp to notify staff?")) {
+          window.open(res.data.whatsapp_notification_url, '_blank');
+        }
+      } else {
+        alert(res.data.message || "Auto-assign failed");
+      }
+    } catch (err) { alert(err.response?.data?.detail || "Error auto-assigning lead"); }
+  };
+
+  const autoAssignAllLeads = async () => {
+    if (!window.confirm("Auto-assign ALL unassigned leads using AI?")) return;
+    try {
+      const res = await axios.post(`${API}/crm/leads/auto-assign-all`);
+      fetchAllData();
+      alert(`Processed ${res.data.total_processed} leads. ${res.data.successful} assigned successfully.`);
+    } catch (err) { alert("Error in bulk auto-assign"); }
+  };
+
+  const sendQuoteViaWhatsApp = async (leadId) => {
+    const systemSize = prompt("Enter system size (e.g., 3kW):", "3kW");
+    if (!systemSize) return;
+    const totalCost = parseInt(prompt("Enter total cost:", "210000") || "210000");
+    const subsidy = parseInt(prompt("Enter govt subsidy:", "78000") || "78000");
+    
+    try {
+      const res = await axios.post(`${API}/crm/leads/${leadId}/send-quote-whatsapp`, {
+        system_size: systemSize,
+        total_cost: totalCost,
+        subsidy: subsidy,
+        final_cost: totalCost - subsidy
+      });
+      if (res.data.whatsapp_url) {
+        window.open(res.data.whatsapp_url, '_blank');
+      }
+    } catch (err) { alert("Error generating quote"); }
   };
 
   const createTask = async () => {

@@ -4009,6 +4009,272 @@ async def get_recent_social_leads():
         }
     }
 
+# ==================== SERVICE REGISTRATION WITH PAYMENT ====================
+
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
+REGISTRATION_FEE = float(os.environ.get('REGISTRATION_FEE', '1500'))
+
+# Service Registration Pydantic Model
+class ServiceRegistration(BaseModel):
+    name: str
+    phone: str
+    email: str = ""
+    district: str = ""
+    address: str = ""
+    property_type: str = "residential"
+    roof_type: str = "rcc"
+    monthly_bill: Optional[float] = None
+    roof_area: Optional[float] = None
+    notes: str = ""
+
+@api_router.get("/registration/fee")
+async def get_registration_fee():
+    """Get current registration fee (admin configurable)"""
+    return {
+        "fee": REGISTRATION_FEE,
+        "currency": "INR",
+        "description": "Solar Service Registration Fee"
+    }
+
+@api_router.post("/registration/update-fee")
+async def update_registration_fee(data: Dict[str, Any]):
+    """Admin API to update registration fee"""
+    global REGISTRATION_FEE
+    new_fee = data.get("fee")
+    if new_fee is None or float(new_fee) < 0:
+        raise HTTPException(status_code=400, detail="Invalid fee amount")
+    REGISTRATION_FEE = float(new_fee)
+    logger.info(f"Registration fee updated to ₹{REGISTRATION_FEE}")
+    return {"success": True, "new_fee": REGISTRATION_FEE}
+
+@api_router.post("/registration/create-checkout")
+async def create_registration_checkout(data: Dict[str, Any], request: Request):
+    """Create Stripe checkout session for service registration"""
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
+        
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        # Get customer details
+        customer_data = data.get("customer", {})
+        origin_url = data.get("origin_url", str(request.base_url).rstrip('/'))
+        
+        # Initialize Stripe
+        host_url = str(request.base_url).rstrip('/')
+        webhook_url = f"{host_url}/api/webhook/stripe"
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+        
+        # Create checkout session ID for tracking
+        registration_id = str(uuid.uuid4())
+        
+        # Build URLs
+        success_url = f"{origin_url}/registration-success?session_id={{CHECKOUT_SESSION_ID}}&registration_id={registration_id}"
+        cancel_url = f"{origin_url}/"
+        
+        # Create checkout request (amount in INR)
+        checkout_request = CheckoutSessionRequest(
+            amount=float(REGISTRATION_FEE),
+            currency="inr",
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "registration_id": registration_id,
+                "customer_name": customer_data.get("name", ""),
+                "customer_phone": customer_data.get("phone", ""),
+                "customer_email": customer_data.get("email", ""),
+                "service_type": "solar_registration"
+            }
+        )
+        
+        # Create Stripe session
+        session = await stripe_checkout.create_checkout_session(checkout_request)
+        
+        # Store pending registration in database
+        registration_doc = {
+            "id": registration_id,
+            "session_id": session.session_id,
+            "customer": {
+                "name": sanitize_input(customer_data.get("name", "")),
+                "phone": customer_data.get("phone", ""),
+                "email": customer_data.get("email", ""),
+                "district": customer_data.get("district", ""),
+                "address": sanitize_input(customer_data.get("address", "")),
+                "property_type": customer_data.get("property_type", "residential"),
+                "roof_type": customer_data.get("roof_type", "rcc"),
+                "monthly_bill": customer_data.get("monthly_bill"),
+                "roof_area": customer_data.get("roof_area"),
+                "notes": sanitize_input(customer_data.get("notes", ""))
+            },
+            "amount": REGISTRATION_FEE,
+            "currency": "INR",
+            "payment_status": "pending",
+            "lead_created": False,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payment_transactions.insert_one(registration_doc)
+        
+        logger.info(f"Registration checkout created: {registration_id} - ₹{REGISTRATION_FEE}")
+        
+        return {
+            "success": True,
+            "checkout_url": session.url,
+            "session_id": session.session_id,
+            "registration_id": registration_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Registration checkout error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/registration/status/{session_id}")
+async def get_registration_status(session_id: str):
+    """Check registration payment status"""
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        
+        if not STRIPE_API_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+        
+        # Get status from Stripe
+        status = await stripe_checkout.get_checkout_status(session_id)
+        
+        # Find registration in database
+        registration = await db.payment_transactions.find_one(
+            {"session_id": session_id},
+            {"_id": 0}
+        )
+        
+        if not registration:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        
+        # Update status if payment is complete
+        if status.payment_status == "paid" and registration.get("payment_status") != "paid":
+            # Update payment status
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {
+                    "payment_status": "paid",
+                    "paid_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            # Create CRM lead if not already created
+            if not registration.get("lead_created"):
+                customer = registration.get("customer", {})
+                lead_id = str(uuid.uuid4())
+                
+                # Calculate lead score
+                monthly_bill = customer.get("monthly_bill") or 0
+                lead_score = min(100, 50 + int(monthly_bill / 100))  # Paid leads get bonus
+                
+                crm_lead = {
+                    "id": lead_id,
+                    "name": customer.get("name", ""),
+                    "email": customer.get("email", ""),
+                    "phone": customer.get("phone", ""),
+                    "district": customer.get("district", ""),
+                    "address": customer.get("address", ""),
+                    "property_type": customer.get("property_type", "residential"),
+                    "monthly_bill": customer.get("monthly_bill"),
+                    "roof_area": customer.get("roof_area"),
+                    "source": "registration",
+                    "stage": "new",
+                    "assigned_to": None,
+                    "assigned_by": None,
+                    "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] PAID REGISTRATION ₹{REGISTRATION_FEE}. {customer.get('notes', '')}",
+                    "quoted_amount": None,
+                    "system_size": None,
+                    "advance_paid": float(REGISTRATION_FEE),
+                    "total_amount": 0.0,
+                    "pending_amount": 0.0,
+                    "lead_score": lead_score,
+                    "ai_priority": "high",  # Paid registrations are high priority
+                    "ai_suggestions": "PAID CUSTOMER - High priority lead. Customer has already paid registration fee.",
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": f"Paid registration ₹{REGISTRATION_FEE}"}],
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                
+                await db.crm_leads.insert_one(crm_lead)
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id},
+                    {"$set": {"lead_created": True, "lead_id": lead_id}}
+                )
+                
+                logger.info(f"Paid registration lead created: {lead_id} - {customer.get('name')}")
+        
+        return {
+            "success": True,
+            "payment_status": status.payment_status,
+            "status": status.status,
+            "amount": status.amount_total / 100,  # Convert from paise
+            "currency": status.currency,
+            "registration": registration
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Registration status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    """Handle Stripe payment webhooks"""
+    try:
+        from emergentintegrations.payments.stripe.checkout import StripeCheckout
+        
+        if not STRIPE_API_KEY:
+            return {"status": "ignored", "reason": "Stripe not configured"}
+        
+        body = await request.body()
+        signature = request.headers.get("Stripe-Signature", "")
+        
+        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="")
+        
+        try:
+            webhook_response = await stripe_checkout.handle_webhook(body, signature)
+            
+            if webhook_response.payment_status == "paid":
+                # Update payment transaction
+                await db.payment_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {
+                        "payment_status": "paid",
+                        "webhook_event_id": webhook_response.event_id,
+                        "paid_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                logger.info(f"Stripe webhook: Payment confirmed for {webhook_response.session_id}")
+            
+            return {"status": "ok", "event_type": webhook_response.event_type}
+            
+        except Exception as e:
+            logger.warning(f"Stripe webhook handling failed: {e}")
+            return {"status": "ok"}  # Return 200 to acknowledge receipt
+        
+    except Exception as e:
+        logger.error(f"Stripe webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@api_router.get("/admin/registrations")
+async def get_all_registrations():
+    """Get all service registrations for admin"""
+    registrations = await db.payment_transactions.find(
+        {"customer": {"$exists": True}},
+        {"_id": 0}
+    ).sort("timestamp", -1).to_list(100)
+    
+    return {
+        "total": len(registrations),
+        "paid": sum(1 for r in registrations if r.get("payment_status") == "paid"),
+        "pending": sum(1 for r in registrations if r.get("payment_status") == "pending"),
+        "registrations": registrations
+    }
+
 app.include_router(api_router)
 
 # CORS configuration with security

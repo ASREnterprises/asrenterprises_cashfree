@@ -2330,7 +2330,147 @@ async def create_followup(data: Dict[str, Any]):
         {"$set": {"next_follow_up": data.get("reminder_date")}}
     )
     
+    # Get lead and staff details for notification
+    lead = await db.crm_leads.find_one({"id": data.get("lead_id")}, {"_id": 0})
+    staff = await db.crm_staff_accounts.find_one({"id": data.get("employee_id")}, {"_id": 0})
+    
+    # Send in-app notification
+    if staff:
+        add_notification(
+            staff.get("staff_id"),
+            "followup",
+            f"Follow-up Reminder: {data.get('reminder_type', 'call').title()}",
+            f"Lead: {lead.get('name', 'Unknown') if lead else 'Unknown'} on {data.get('reminder_date')} at {data.get('reminder_time', '10:00')}",
+            data.get("lead_id")
+        )
+    
     return followup
+
+# Get Today's Follow-up Reminders with WhatsApp URLs
+@api_router.get("/crm/followups/today")
+async def get_todays_followups():
+    """Get today's follow-up reminders with WhatsApp notification URLs"""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    followups = await db.crm_followups.find(
+        {"reminder_date": today, "status": "pending"},
+        {"_id": 0}
+    ).to_list(100)
+    
+    enriched_followups = []
+    for fu in followups:
+        # Get lead details
+        lead = await db.crm_leads.find_one({"id": fu.get("lead_id")}, {"_id": 0})
+        # Get staff details
+        staff = await db.crm_staff_accounts.find_one({"id": fu.get("employee_id")}, {"_id": 0})
+        
+        # Generate WhatsApp reminder message for staff
+        reminder_message = f"""⏰ *Follow-up Reminder - ASR Enterprises*
+
+📋 *Type:* {fu.get('reminder_type', 'call').title()}
+👤 *Lead:* {lead.get('name', 'Unknown') if lead else 'Unknown'}
+📞 *Phone:* {lead.get('phone', 'N/A') if lead else 'N/A'}
+📍 *District:* {lead.get('district', 'N/A') if lead else 'N/A'}
+⏰ *Time:* {fu.get('reminder_time', '10:00')}
+📝 *Notes:* {fu.get('notes', 'No notes')}
+
+Please complete this follow-up today!"""
+        
+        staff_whatsapp_url = get_whatsapp_url(staff.get("phone", ""), reminder_message) if staff else None
+        
+        # Generate WhatsApp message for contacting customer
+        customer_message = f"""Hello {lead.get('name', 'Sir/Madam') if lead else 'Sir/Madam'},
+
+This is a follow-up from ASR Enterprises regarding your solar rooftop inquiry.
+
+Would you like to discuss further about:
+- Government subsidy up to ₹78,000
+- 25-year warranty
+- Easy EMI options
+
+Please let us know a convenient time to discuss.
+
+Best regards,
+ASR Enterprises
+📞 8877896889"""
+        
+        customer_whatsapp_url = get_whatsapp_url(lead.get("phone", ""), customer_message) if lead else None
+        
+        enriched_followups.append({
+            **fu,
+            "lead_name": lead.get("name") if lead else "Unknown",
+            "lead_phone": lead.get("phone") if lead else None,
+            "lead_district": lead.get("district") if lead else None,
+            "staff_name": staff.get("name") if staff else "Unassigned",
+            "staff_phone": staff.get("phone") if staff else None,
+            "staff_whatsapp_url": staff_whatsapp_url,
+            "customer_whatsapp_url": customer_whatsapp_url
+        })
+    
+    return enriched_followups
+
+# Send WhatsApp Quote
+@api_router.post("/crm/leads/{lead_id}/send-quote-whatsapp")
+async def send_quote_whatsapp(lead_id: str, data: Dict[str, Any]):
+    """Generate WhatsApp URL for sending quote to customer"""
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    system_size = data.get("system_size", "3kW")
+    total_cost = data.get("total_cost", 210000)
+    subsidy = data.get("subsidy", 78000)
+    final_cost = data.get("final_cost", total_cost - subsidy)
+    monthly_savings = data.get("monthly_savings", 3000)
+    
+    quote_message = f"""🌞 *ASR ENTERPRISES - Solar Quotation*
+
+Dear {lead.get('name', 'Sir/Madam')},
+
+Thank you for your interest in solar rooftop installation!
+
+📋 *QUOTATION DETAILS*
+━━━━━━━━━━━━━━━━━━━━━
+🔆 System Size: {system_size}
+💰 Total Cost: ₹{total_cost:,}
+🎁 Govt Subsidy: -₹{subsidy:,}
+✅ *Final Price: ₹{final_cost:,}*
+
+📊 *BENEFITS*
+━━━━━━━━━━━━━━━━━━━━━
+💵 Monthly Savings: ~₹{monthly_savings:,}
+📅 Payback Period: ~3-4 years
+🛡️ Warranty: 25 years
+🔧 Free Maintenance: 5 years
+
+📍 *Your Location:* {lead.get('district', 'Bihar')}
+
+*EMI Available:* Starting ₹{int(final_cost/36):,}/month
+
+Ready to go solar? Reply YES or call us!
+
+📞 *8877896889*
+📧 asrenterprisespatna@gmail.com
+
+_ASR Enterprises - Bihar's Trusted Solar Partner_"""
+
+    whatsapp_url = get_whatsapp_url(lead.get("phone", ""), quote_message)
+    
+    # Log activity
+    await db.crm_activities.insert_one({
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "activity_type": "quote_sent",
+        "title": f"Quote sent via WhatsApp - {system_size}",
+        "description": f"Quoted ₹{final_cost:,} after subsidy",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {
+        "success": True,
+        "whatsapp_url": whatsapp_url,
+        "message": "Open the URL to send quote via WhatsApp"
+    }
 
 @api_router.put("/crm/followups/{followup_id}")
 async def update_followup(followup_id: str, data: Dict[str, Any]):

@@ -216,8 +216,54 @@ export const StaffPortal = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Notifications Bell */}
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)} 
+                  className="text-gray-400 hover:text-white relative"
+                  data-testid="notifications-bell"
+                >
+                  <Bell className="w-5 h-5" />
+                  {notifUnread > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                      {notifUnread}
+                    </span>
+                  )}
+                </button>
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+                    <div className="p-3 border-b border-gray-700 flex justify-between items-center">
+                      <h3 className="font-bold text-white">Notifications</h3>
+                      {notifUnread > 0 && (
+                        <button onClick={markAllNotificationsRead} className="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
+                      )}
+                    </div>
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-gray-500">No notifications</div>
+                    ) : (
+                      <div className="divide-y divide-gray-700">
+                        {notifications.slice(0, 10).map((notif) => (
+                          <div 
+                            key={notif.id} 
+                            onClick={() => { markNotificationRead(notif.id); setShowNotifications(false); if(notif.lead_id) setActiveTab('leads'); }}
+                            className={`p-3 cursor-pointer hover:bg-gray-700 ${!notif.is_read ? 'bg-gray-700/50' : ''}`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className={`text-sm font-medium ${!notif.is_read ? 'text-white' : 'text-gray-400'}`}>{notif.title}</div>
+                              {!notif.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                            <p className="text-xs text-gray-600 mt-1">{new Date(notif.timestamp).toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{unreadCount} new</span>
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{unreadCount} msg</span>
               )}
               <button onClick={fetchAllData} className="text-gray-400 hover:text-white"><RefreshCw className="w-5 h-5" /></button>
               <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1">

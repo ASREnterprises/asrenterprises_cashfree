@@ -12,122 +12,154 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - **Facebook:** https://www.facebook.com/share/1876swUqxu/
 - **Instagram:** @asr_enterprises_patna
 
-## Authentication
-- **Admin Login:** asrenterprisespatna@gmail.com (OTP: 131993 - MOCKED)
-- **Staff Login:** Unique Staff IDs (ASR1001, ASR1002...) with passwords
+## Test Credentials
+- **Admin Login:** asrenterprisespatna@gmail.com (OTP: 131993 - fallback when RESEND_API_KEY not set)
+- **Staff Login:** ASR1001 / asr@123 (Password) OR via Email OTP
 
 ## Implemented Features (100% Complete)
 
 ### Homepage Features
-1. **ASR ENTERPRISES** branding in dark orange
-2. Running Flash Advertisement Banner with WhatsApp integration
-3. Trust badges (MNRE Registered, PM Surya Ghar Partner)
-4. Solar Brands Section (TATA, Adani, Luminous, Loom, Waaree, Vikram)
-5. **Solar Inquiry Form** with Bihar districts dropdown - Auto-creates CRM Lead
-6. AI-powered features section
-7. Government schemes information (₹78,000 max subsidy)
-8. 5-year FREE maintenance offers
-9. **Login button** in navigation
-10. **Festive Banner** - Auto-displays active festival posts from admin panel
+1. Running Flash Advertisement Banner
+2. Trust badges (MNRE Registered, PM Surya Ghar Partner)
+3. Solar Brands Section (TATA, Adani, Luminous, Loom, Waaree, Vikram)
+4. **Solar Inquiry Form** - Auto-creates CRM Lead
+5. **Festive Banner** - Auto-displays active festival posts
+6. Login button in navigation
 
-### Admin Panel (10 Modules)
-1. **CRM System** - Complete lead & sales management
-2. **Leads Management** - View, filter, update status
-3. **Festival Posts** - Create/edit/delete festival wishes (auto-displays on homepage)
-4. **Govt News & Schemes** - AI auto-updates Bihar solar news
-5. **Social Media Hub** - AI-powered social media management
-6. **Security Center** - Website security monitoring
-7. **Analytics** - Business performance reports
+### CRM System - Complete Feature List
 
-### CRM System Features (Fully Integrated)
-**Admin CRM (/admin/crm):**
-- Dashboard with pipeline overview
-- Lead management with stage tracking
-- Staff account creation with **Custom Staff ID** support
-- Lead assignment to staff
-- Task management
-- Messages/Communication
-- **Gallery Tab** - Upload work photos (auto-syncs to website gallery)
-- Projects tracking
-- Payment management
+#### Admin CRM (/admin/crm)
+1. **Dashboard** with pipeline overview and stats
+2. **Lead Management**
+   - View all leads with filters
+   - Update lead stage
+   - **AI Auto-Assign** (single lead or bulk)
+   - **Send Quote via WhatsApp** - Generates pre-filled quote message
+   - WhatsApp/Call customers directly
+   - Forward leads to staff via WhatsApp
+3. **Staff (Team) Management**
+   - Create staff with **Custom Staff ID**
+   - Edit/Deactivate/Delete staff
+   - Password reset
+4. **Task Management** - Assign tasks to staff
+5. **Messages** - Internal messaging
+6. **Gallery** - Upload work photos (syncs to website)
+7. **Projects** - Track installations
+8. **Payments** - Payment tracking
 
-**Staff Portal (/staff/portal):**
-- Unique Staff ID & password login
-- View assigned leads only
-- Update lead status (Lead → Follow-up → Survey → Quotation → Installation → Completed)
-- Set follow-up reminders
-- WhatsApp integration
+#### Staff Portal (/staff/portal)
+1. **Dashboard** with assigned leads and tasks
+2. **My Leads** - View and update assigned leads
+3. **Follow-ups** - Manage follow-up reminders
+4. **Tasks** - Today's tasks
+5. **Messages** - Internal messaging
+6. **Notifications** - Bell icon with dropdown showing:
+   - New lead assignments
+   - Follow-up reminders
+   - Unread count badge
 
-### Gallery Features (NEW - 2026-02-12)
-- **Gallery Sync**: Photos uploaded in CRM Gallery → Auto-display on website /gallery page
-- **Mobile Upload**: File input with `accept="image/*"` for direct mobile gallery/camera access
-- **Refresh Button**: Users can refresh gallery to see latest uploads
+### NEW FEATURES (Session 4 - 2026-02-12)
 
-### Lead Management Features (NEW - 2026-02-12)
-- **Auto-CRM Lead Creation**: Website inquiry form submissions auto-create leads in CRM
-- AI-powered lead scoring and prioritization
-- Source tracking (website, WhatsApp, call, etc.)
+#### 1. WhatsApp Web URL Integration ✅
+- **Send Quote via WhatsApp**: Pre-filled message with system size, cost, subsidy, EMI
+- **Forward Lead to Staff**: Notify staff about new assignments
+- **Customer Follow-up**: Quick WhatsApp message to customers
+- **Endpoint**: `POST /api/crm/leads/{lead_id}/send-quote-whatsapp`
 
-### Staff Management Features (NEW - 2026-02-12)
-- **Custom Staff ID**: Admin can specify custom Staff IDs (e.g., ASR2001)
-- **Duplicate Detection**: System prevents duplicate Staff IDs
-- Auto-prefix ASR if not provided
-- Password reset capability
+#### 2. AI-Powered Auto Lead Assignment ✅
+- **Strategy**: Location-based (checks staff districts) → Round-robin (least leads)
+- **Single Lead**: `POST /api/crm/leads/{lead_id}/auto-assign`
+- **Bulk All**: `POST /api/crm/leads/auto-assign-all`
+- **UI Button**: "AI Auto-Assign All" on CRM Leads tab
+- **Notifications**: Auto-sends in-app + WhatsApp notification to assigned staff
+
+#### 3. Follow-up Reminder System ✅
+- **Create Follow-up**: With notification to staff
+- **Today's Follow-ups**: `GET /api/crm/followups/today`
+- **WhatsApp URLs**: staff_whatsapp_url (reminder) + customer_whatsapp_url (follow-up message)
+- **In-app Notifications**: Bell icon in Staff Portal
+
+#### 4. Real Email OTP for Login ✅
+- **Admin OTP**: `POST /api/admin/send-otp` → Email via Resend
+- **Staff OTP**: `POST /api/staff/send-otp` → Email via Resend
+- **Fallback**: OTP 131993 works when RESEND_API_KEY not configured
+- **Staff Login UI**: Toggle between Password and Email OTP
 
 ## Data Models
 - **Lead:** {name, email, phone, district, status, lead_score, ai_analysis}
-- **CRMLead:** {name, email, phone, district, stage, assigned_to, lead_score, ai_priority, source}
-- **CRMStaffAccount:** {staff_id, password_hash, name, phone, role, leads_assigned, leads_converted}
-- **WorkPhoto:** {title, image_url, location, system_size, description, category}
-- **FestivalPost:** {title, message, image_url, start_date, end_date, is_active}
+- **CRMLead:** {name, email, phone, district, stage, assigned_to, ai_priority, source}
+- **CRMStaffAccount:** {staff_id, password_hash, name, email, phone, role, districts, leads_assigned}
+- **CRMFollowUp:** {lead_id, employee_id, reminder_date, reminder_time, status}
+- **Notification:** {id, type, title, message, lead_id, is_read, timestamp} (in-memory)
 
-## API Endpoints
+## Key API Endpoints
+
 ### Public
-- `GET /api/photos` - Public gallery photos
-- `GET /api/festivals/active` - Active festival banner
+- `GET /api/photos` - Gallery photos
+- `GET /api/festivals/active` - Active festive banner
 - `POST /api/leads` - Submit inquiry (auto-creates CRM lead)
 
-### Admin
-- `POST /api/admin/photos` - Upload photo to gallery
-- `DELETE /api/admin/photos/{id}` - Delete photo
-- `POST /api/admin/festivals` - Create festival post
-- `GET /api/admin/staff-accounts` - List all staff
+### Admin Auth
+- `POST /api/admin/send-otp` - Send OTP email (returns email_sent status)
+- `POST /api/admin/verify-otp` - Verify OTP
 
-### Staff
+### Staff Auth
 - `POST /api/staff/register` - Create staff (supports custom_staff_id)
-- `POST /api/staff/login` - Staff login
-- `GET /api/staff/{staff_id}/leads` - Get assigned leads
+- `POST /api/staff/login` - Password login
+- `POST /api/staff/send-otp` - Send OTP to staff email
+- `POST /api/staff/verify-otp` - Verify staff OTP
 
-## Test Credentials
-- **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (MOCKED)
-- **Staff:** ASR1001 / asr@123
+### CRM - Lead Assignment
+- `POST /api/crm/leads/{id}/assign` - Manual assign with WhatsApp notification
+- `POST /api/crm/leads/{id}/auto-assign` - AI auto-assign
+- `POST /api/crm/leads/auto-assign-all` - Bulk auto-assign
 
-## Changelog
-- **2026-02-12 (Session 3):** 
-  - Gallery Sync - CRM photos auto-display on website gallery
-  - Custom Staff ID - Admin can specify custom IDs
-  - Mobile Gallery Upload - accept="image/*" attribute
-  - Auto-CRM Lead Creation - Website inquiries auto-create CRM leads
-  - Festive Banner - Admin posts auto-flash on homepage
-  - Facebook link updated to https://www.facebook.com/share/1876swUqxu/
-- **2026-02-12 (Session 2):** Added Login button, ASR logo to CRM/Staff pages, Gallery tab
-- **2026-02-12 (Session 1):** Implemented CRM with Admin and Staff logins
-- **2026-02-01:** Fixed Analytics page, Added Social Media Hub
+### CRM - WhatsApp Integration
+- `POST /api/crm/leads/{id}/send-quote-whatsapp` - Generate quote WhatsApp URL
+
+### CRM - Notifications
+- `GET /api/staff/{staff_id}/notifications` - Get notifications
+- `PUT /api/staff/{staff_id}/notifications/{id}/read` - Mark read
+- `PUT /api/staff/{staff_id}/notifications/read-all` - Mark all read
+
+### CRM - Follow-ups
+- `POST /api/crm/followups` - Create with notification
+- `GET /api/crm/followups/today` - Today's with WhatsApp URLs
+
+## Environment Variables
+```
+# Backend (.env)
+MONGO_URL="mongodb://localhost:27017"
+DB_NAME="test_database"
+EMERGENT_LLM_KEY=sk-emergent-xxx
+RESEND_API_KEY=re_xxx (optional - falls back to 131993)
+SENDER_EMAIL=onboarding@resend.dev
+```
 
 ## Testing Status
-- **Backend Tests:** 100% (12/12 passed)
+- **Backend Tests:** 100% (24/24 passed - iteration_4)
 - **Frontend Tests:** 100% (all features verified)
-- **Test Reports:** /app/test_reports/iteration_3.json
+- **Test Reports:** /app/test_reports/iteration_4.json
+
+## Known Limitations
+1. **Email OTP**: Requires RESEND_API_KEY - falls back to 131993 if not configured
+2. **Notifications**: Stored in-memory, reset on server restart (not persisted to MongoDB)
+3. **WhatsApp**: Uses wa.me URLs (opens WhatsApp Web) - not true API integration
 
 ## Future Enhancements (Backlog)
-- **P1: WhatsApp Business API** - Send quotes/updates directly from CRM
-- **P1: AI Lead Assignment** - Round-robin or location-based auto-assignment
-- **P1: Follow-up Reminders** - Automatic reminder notifications
-- **P2: Real Email OTP** - Replace mock OTP with production email service
-- **P2: Performance Dashboard** - Employee performance tracking
-- **P2: Deployment** - Deploy to www.asrenterprisespatna.com
-- **P3: Direct File Upload** - Cloud storage for uploaded images
+- **P1: Persist Notifications**: Store in MongoDB for persistence
+- **P2: Deployment**: Deploy to www.asrenterprisespatna.com
+- **P2: WhatsApp Business API**: Direct messaging (requires Meta approval)
+- **P3: Real-time Updates**: WebSocket for live notifications
+- **P3: Mobile App**: React Native staff app
 
-## Notes
-- Admin OTP (131993) is MOCKED - not sent via real email
-- AI content generation has fallback if LLM API fails
+## Changelog
+- **2026-02-12 (Session 4):**
+  - WhatsApp Web URL integration for quotes
+  - AI auto lead assignment (location + round-robin)
+  - Follow-up reminder system with notifications
+  - Real email OTP with Resend (fallback 131993)
+  - Staff Portal notification bell with dropdown
+- **2026-02-12 (Session 3):** Gallery Sync, Custom Staff ID, Auto-CRM Lead
+- **2026-02-12 (Session 2):** Login button, ASR logo, Gallery tab
+- **2026-02-12 (Session 1):** CRM with Admin and Staff portals

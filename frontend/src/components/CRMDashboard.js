@@ -366,11 +366,16 @@ export const CRMDashboard = () => {
         {/* Leads Tab */}
         {activeTab === "leads" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-2">
               <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
                 <option value="">All Stages</option>
                 {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
               </select>
+              <div className="flex space-x-2">
+                <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
+                  <Zap className="w-4 h-4" /><span>AI Auto-Assign All</span>
+                </button>
+              </div>
             </div>
             <div className="bg-gray-800 rounded-xl overflow-hidden">
               <table className="w-full">

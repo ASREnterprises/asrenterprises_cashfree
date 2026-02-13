@@ -482,11 +482,11 @@ const ServiceRegistration = () => {
           <div className="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
             <div className="flex items-center space-x-1">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span>Secure Payment</span>
+              <span>Powered by Razorpay</span>
             </div>
             <div className="flex items-center space-x-1">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span>Instant Confirmation</span>
+              <span>Secure Payment</span>
             </div>
           </div>
         </div>

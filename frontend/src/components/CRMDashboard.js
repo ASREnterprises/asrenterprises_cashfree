@@ -309,27 +309,71 @@ export const CRMDashboard = () => {
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert("File too large. Max 10MB allowed.");
-        return;
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      // Validate each file
+      const validFiles = files.filter(file => {
+        if (file.size > 10 * 1024 * 1024) {
+          alert(`${file.name} is too large. Max 10MB allowed.`);
+          return false;
+        }
+        return true;
+      });
+      
+      if (validFiles.length === 1) {
+        // Single file - use existing flow
+        setPhotoFile(validFiles[0]);
+        setPhotoFiles([]);
+        const reader = new FileReader();
+        reader.onloadend = () => setPhotoPreview(reader.result);
+        reader.readAsDataURL(validFiles[0]);
+      } else if (validFiles.length > 1) {
+        // Multiple files
+        setPhotoFiles(validFiles);
+        setPhotoFile(null);
+        setPhotoPreview('');
       }
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result);
-      reader.readAsDataURL(file);
     }
   };
 
   const uploadPhoto = async () => {
     if (!photoForm.title) { alert("Please add title"); return; }
+    
+    // Handle multiple file upload
+    if (photoFiles.length > 1) {
+      if (!window.confirm(`Upload ${photoFiles.length} photos with title "${photoForm.title}"?`)) return;
+      setUploading(true);
+      let successCount = 0;
+      for (let i = 0; i < photoFiles.length; i++) {
+        try {
+          const formData = new FormData();
+          formData.append('file', photoFiles[i]);
+          formData.append('title', `${photoForm.title} (${i + 1}/${photoFiles.length})`);
+          formData.append('description', photoForm.description || '');
+          formData.append('location', photoForm.location || '');
+          formData.append('system_size', photoForm.system_size || '');
+          await axios.post(`${API}/gallery/upload-file`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          successCount++;
+        } catch (err) { console.error(`Failed to upload ${photoFiles[i].name}`, err); }
+      }
+      setPhotoForm({ title: '', description: '', location: '', system_size: '', image_url: '' });
+      setPhotoFile(null);
+      setPhotoFiles([]);
+      setPhotoPreview('');
+      setShowPhotoUploadModal(false);
+      fetchAllData();
+      alert(`Uploaded ${successCount}/${photoFiles.length} photos!`);
+      setUploading(false);
+      return;
+    }
+    
+    // Single file or URL upload
     if (!photoFile && !photoForm.image_url) { alert("Please select image or enter URL"); return; }
     setUploading(true);
     try {
       if (photoFile) {
-        // Use multipart form data for file upload
         const formData = new FormData();
         formData.append('file', photoFile);
         formData.append('title', photoForm.title);
@@ -341,7 +385,6 @@ export const CRMDashboard = () => {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       } else {
-        // Use URL-based upload
         await axios.post(`${API}/gallery/upload`, {
           title: photoForm.title,
           description: photoForm.description,
@@ -353,6 +396,7 @@ export const CRMDashboard = () => {
       }
       setPhotoForm({ title: '', description: '', location: '', system_size: '', image_url: '' });
       setPhotoFile(null);
+      setPhotoFiles([]);
       setPhotoPreview('');
       setShowPhotoUploadModal(false);
       fetchAllData();

@@ -1,0 +1,122 @@
+{
+  "summary": "Completed comprehensive testing of new ASR Enterprises Solar CRM features. Backend: 24/24 tests passed (100%). Frontend: All requested features verified working - OTP login, notifications, AI auto-assign button, WhatsApp quote integration.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_crm_features.py",
+    "/app/test_reports/pytest/pytest_results_iter4.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "All requested features are implemented correctly and working as expected",
+    "Email OTP uses fallback 131993 since RESEND_API_KEY is not configured (documented MOCKED API)",
+    "Notifications are stored in-memory (not MongoDB) as documented - will reset on server restart"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_new_crm_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (24/24 tests passed)",
+    "frontend": "100% (all tested features working)"
+  },
+  "test_credentials": {
+    "admin_email": "asrenterprisespatna@gmail.com",
+    "admin_otp": "131993 (MOCKED - fallback when RESEND_API_KEY not configured)",
+    "staff_id": "ASR1001",
+    "staff_password": "asr@123"
+  },
+  "seed_data_creation": "Test leads and followups created during testing. Test data prefixed with TEST_ for identification.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All new features verified working: 1) WhatsApp Quote Integration (POST /api/crm/leads/{id}/send-quote-whatsapp returns wa.me URL), 2) AI Auto-Assign (POST /api/crm/leads/{id}/auto-assign uses location + round-robin), 3) Bulk Auto-Assign All button visible on CRM Leads tab, 4) Staff OTP login with fallback 131993, 5) Notifications bell in Staff Portal with dropdown showing follow-up reminders.",
+  "features_tested": {
+    "whatsapp_quote_integration": {
+      "status": "PASSED",
+      "endpoint": "POST /api/crm/leads/{lead_id}/send-quote-whatsapp",
+      "details": "Returns whatsapp_url in format https://wa.me/{phone}?text={encoded_quote_message}. Quote includes system size, costs, subsidy, EMI info."
+    },
+    "ai_auto_assign_lead": {
+      "status": "PASSED",
+      "endpoint": "POST /api/crm/leads/{lead_id}/auto-assign",
+      "details": "Assigns unassigned leads using: 1) Location match (checks staff districts), 2) Round-robin (staff with least leads). Returns assigned_to, assigned_name, assignment_reason, whatsapp_notification_url."
+    },
+    "bulk_auto_assign_all": {
+      "status": "PASSED",
+      "endpoint": "POST /api/crm/leads/auto-assign-all",
+      "ui_button": "AI Auto-Assign All button visible on CRM Dashboard Leads tab (data-testid='auto-assign-all-btn')",
+      "details": "Processes all unassigned leads. Returns total_processed, successful count, and results array."
+    },
+    "staff_notifications": {
+      "status": "PASSED",
+      "endpoint": "GET /api/staff/{staff_id}/notifications",
+      "ui_element": "Bell icon (data-testid='notifications-bell') in Staff Portal header with unread count badge",
+      "details": "Returns notifications array with unread_count. Mark read: PUT /api/staff/{staff_id}/notifications/{id}/read"
+    },
+    "staff_otp_login": {
+      "status": "PASSED",
+      "endpoints": ["POST /api/staff/send-otp", "POST /api/staff/verify-otp"],
+      "ui_element": "Email OTP tab on Staff Login page (data-testid='send-otp-btn', 'verify-otp-btn')",
+      "details": "Send OTP returns email_sent status. Verify with fallback OTP 131993 when RESEND_API_KEY not configured."
+    },
+    "admin_otp_login": {
+      "status": "PASSED",
+      "endpoints": ["POST /api/admin/send-otp", "POST /api/admin/verify-otp"],
+      "details": "Admin email: asrenterprisespatna@gmail.com. Returns email_sent status. Fallback OTP 131993."
+    },
+    "followup_reminders": {
+      "status": "PASSED",
+      "endpoints": ["POST /api/crm/followups", "GET /api/crm/followups/today"],
+      "details": "Creating followup sends notification to staff. Today's followups include staff_whatsapp_url and customer_whatsapp_url."
+    }
+  },
+  "mocked_apis": {
+    "email_otp": "OTP 131993 is hardcoded fallback when RESEND_API_KEY not configured (returns email_sent: false)",
+    "notifications": "Stored in-memory (notifications_storage dict), not persisted to MongoDB"
+  },
+  "api_endpoints_tested": [
+    "GET /api/districts - Health check",
+    "POST /api/staff/send-otp - Staff OTP request",
+    "POST /api/staff/verify-otp - Staff OTP verification (fallback 131993)",
+    "POST /api/admin/send-otp - Admin OTP request",
+    "POST /api/admin/verify-otp - Admin OTP verification (fallback 131993)",
+    "POST /api/crm/leads/{id}/auto-assign - AI auto-assign single lead",
+    "POST /api/crm/leads/auto-assign-all - Bulk auto-assign all unassigned",
+    "POST /api/crm/leads/{id}/send-quote-whatsapp - Generate WhatsApp quote URL",
+    "GET /api/staff/{staff_id}/notifications - Get staff notifications",
+    "PUT /api/staff/{staff_id}/notifications/{id}/read - Mark notification read",
+    "PUT /api/staff/{staff_id}/notifications/read-all - Mark all notifications read",
+    "POST /api/crm/followups - Create followup with notification",
+    "GET /api/crm/followups/today - Today's followups with WhatsApp URLs",
+    "GET /api/crm/followups - All followups",
+    "GET /api/crm/dashboard - CRM dashboard stats",
+    "GET /api/admin/staff-accounts - Staff accounts list",
+    "GET /api/crm/leads - CRM leads list",
+    "POST /api/staff/login - Staff password login"
+  ],
+  "ui_elements_verified": {
+    "crm_dashboard_leads_tab": {
+      "ai_auto_assign_all_button": "Present with data-testid='auto-assign-all-btn'",
+      "send_quote_whatsapp_button": "Present in Actions column for each lead",
+      "stage_dropdown": "Working correctly",
+      "assign_to_dropdown": "Working correctly with staff list"
+    },
+    "staff_portal": {
+      "notifications_bell": "Present with data-testid='notifications-bell'",
+      "notifications_dropdown": "Opens on click, shows notifications with 'Mark all read'",
+      "unread_badge": "Shows count on bell icon"
+    },
+    "staff_login": {
+      "password_tab": "Present and working",
+      "email_otp_tab": "Present and working",
+      "send_otp_button": "data-testid='send-otp-btn'",
+      "verify_otp_button": "data-testid='verify-otp-btn'"
+    }
+  }
+}

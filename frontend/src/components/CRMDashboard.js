@@ -95,12 +95,16 @@ export const CRMDashboard = () => {
 
   const createStaffAccount = async () => {
     try {
-      const res = await axios.post(`${API}/staff/register`, newStaffForm);
+      const payload = {
+        ...newStaffForm,
+        custom_staff_id: newStaffForm.custom_staff_id?.trim() || undefined
+      };
+      const res = await axios.post(`${API}/staff/register`, payload);
       setNewStaffCredentials({ staff_id: res.data.staff_id, password: res.data.password });
-      setNewStaffForm({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123' });
+      setNewStaffForm({ name: '', email: '', phone: '', role: 'sales', password: 'asr@123', custom_staff_id: '' });
       setShowStaffModal(false);
       fetchAllData();
-    } catch (err) { alert("Error creating staff"); }
+    } catch (err) { alert(err.response?.data?.detail || "Error creating staff"); }
   };
 
   const assignLeadToStaff = async (leadId, staffInternalId) => {

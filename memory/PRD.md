@@ -205,6 +205,7 @@ FACEBOOK_PAGE_ACCESS_TOKEN=      # Add from Meta Dashboard
 - ✅ Conversation history tracking
 - ✅ Lead source marking (whatsapp/facebook)
 - ✅ Webhook status endpoint with setup instructions
+- ✅ Manual lead creation feature with all customer details
 - ✅ 84% test success rate (16/19 tests passed)
 
 ### Session 4-5 (2026-02-13)

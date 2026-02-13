@@ -3439,6 +3439,369 @@ async def get_business_insights():
         }
     }
 
+# ==================== SOCIAL MEDIA WEBHOOK CONFIGURATION ====================
+WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', 'asr_solar_verify_2024')
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
+WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
+FACEBOOK_APP_ID = os.environ.get('FACEBOOK_APP_ID', '')
+FACEBOOK_APP_SECRET = os.environ.get('FACEBOOK_APP_SECRET', '')
+FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN', '')
+
+def verify_facebook_signature(payload: bytes, signature: str) -> bool:
+    """Verify Facebook webhook signature for security"""
+    if not signature or not FACEBOOK_APP_SECRET:
+        return True  # Skip verification if no secret configured
+    try:
+        if signature.startswith('sha256='):
+            expected = hmac.new(
+                FACEBOOK_APP_SECRET.encode(),
+                payload,
+                hashlib.sha256
+            ).hexdigest()
+            return hmac.compare_digest(signature[7:], expected)
+    except Exception as e:
+        logger.error(f"Signature verification error: {e}")
+    return False
+
+async def create_lead_from_social_message(
+    source: str,
+    sender_id: str,
+    sender_name: str,
+    message_text: str,
+    phone_number: str = None
+) -> Dict[str, Any]:
+    """Create or update CRM lead from social media message"""
+    try:
+        # Check if lead already exists by phone or sender_id
+        existing_lead = None
+        if phone_number:
+            existing_lead = await db.crm_leads.find_one({"phone": phone_number}, {"_id": 0})
+        if not existing_lead:
+            existing_lead = await db.crm_leads.find_one(
+                {"$or": [
+                    {"social_id": sender_id},
+                    {"name": sender_name, "source": source}
+                ]},
+                {"_id": 0}
+            )
+        
+        if existing_lead:
+            # Update existing lead with new message
+            update_data = {
+                "follow_up_notes": f"{existing_lead.get('follow_up_notes', '')}\n[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] {source.upper()}: {message_text[:200]}",
+                "stage": "follow_up" if existing_lead.get("stage") == "new" else existing_lead.get("stage")
+            }
+            await db.crm_leads.update_one({"id": existing_lead["id"]}, {"$set": update_data})
+            logger.info(f"Updated existing lead {existing_lead['id']} from {source}")
+            return {"action": "updated", "lead_id": existing_lead["id"], "name": existing_lead["name"]}
+        
+        # Create new lead
+        lead_id = str(uuid.uuid4())
+        new_lead = {
+            "id": lead_id,
+            "name": sender_name or f"{source.capitalize()} User",
+            "email": "",
+            "phone": phone_number or "",
+            "district": "",
+            "address": "",
+            "property_type": "residential",
+            "monthly_bill": None,
+            "roof_area": None,
+            "source": source,  # "whatsapp" or "facebook"
+            "social_id": sender_id,
+            "stage": "new",
+            "assigned_to": None,
+            "assigned_by": None,
+            "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+            "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Initial message: {message_text[:500]}",
+            "quoted_amount": None,
+            "system_size": None,
+            "advance_paid": 0.0,
+            "total_amount": 0.0,
+            "pending_amount": 0.0,
+            "lead_score": 60,  # Default score for social leads
+            "ai_priority": "medium",
+            "ai_suggestions": f"New inquiry from {source.upper()}. Customer reached out via social media - indicates active interest.",
+            "status_history": [{"status": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "by": "system"}],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.crm_leads.insert_one(new_lead)
+        logger.info(f"Created new lead {lead_id} from {source}: {sender_name}")
+        
+        # Also create in leads collection for website display
+        website_lead = {
+            "id": lead_id,
+            "name": sender_name or f"{source.capitalize()} User",
+            "email": "",
+            "phone": phone_number or "",
+            "district": "",
+            "location": "",
+            "interest": f"Inquiry via {source.upper()}",
+            "address": "",
+            "property_type": "residential",
+            "roof_type": "rcc",
+            "monthly_bill": None,
+            "roof_area": None,
+            "message": message_text[:500],
+            "ai_analysis": f"Social media lead from {source.upper()}",
+            "lead_score": 60,
+            "recommended_system": "To be assessed",
+            "status": "new",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        await db.leads.insert_one(website_lead)
+        
+        return {"action": "created", "lead_id": lead_id, "name": sender_name}
+        
+    except Exception as e:
+        logger.error(f"Error creating lead from {source}: {e}")
+        return {"action": "error", "error": str(e)}
+
+# ==================== WHATSAPP WEBHOOK ENDPOINTS ====================
+
+@api_router.get("/webhook/whatsapp")
+async def verify_whatsapp_webhook(request: Request):
+    """WhatsApp webhook verification endpoint (Meta requirement)"""
+    hub_mode = request.query_params.get("hub.mode")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    hub_challenge = request.query_params.get("hub.challenge")
+    
+    logger.info(f"WhatsApp webhook verification: mode={hub_mode}")
+    
+    if hub_mode == "subscribe" and hub_verify_token == WEBHOOK_VERIFY_TOKEN:
+        logger.info("WhatsApp webhook verified successfully")
+        from starlette.responses import PlainTextResponse
+        return PlainTextResponse(hub_challenge)
+    
+    logger.warning(f"WhatsApp webhook verification failed: token mismatch")
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+@api_router.post("/webhook/whatsapp")
+async def receive_whatsapp_webhook(request: Request):
+    """Receive incoming WhatsApp messages and auto-create leads"""
+    try:
+        body = await request.body()
+        data = await request.json()
+        
+        logger.info(f"WhatsApp webhook received: {json.dumps(data, indent=2)[:500]}")
+        
+        # Verify this is a WhatsApp Business Account webhook
+        if data.get("object") != "whatsapp_business_account":
+            return {"status": "ignored", "reason": "not whatsapp_business_account"}
+        
+        # Process each entry
+        results = []
+        for entry in data.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+                
+                # Get contacts info
+                contacts = value.get("contacts", [])
+                contact_map = {c.get("wa_id"): c.get("profile", {}).get("name", "Unknown") for c in contacts}
+                
+                # Process messages
+                for message in value.get("messages", []):
+                    sender_id = message.get("from", "")
+                    sender_name = contact_map.get(sender_id, "WhatsApp User")
+                    message_id = message.get("id", "")
+                    message_type = message.get("type", "text")
+                    timestamp = message.get("timestamp", "")
+                    
+                    # Extract message content
+                    message_text = ""
+                    if message_type == "text":
+                        message_text = message.get("text", {}).get("body", "")
+                    elif message_type == "image":
+                        caption = message.get("image", {}).get("caption", "")
+                        message_text = f"[Image] {caption}" if caption else "[Image sent]"
+                    elif message_type == "document":
+                        filename = message.get("document", {}).get("filename", "document")
+                        message_text = f"[Document: {filename}]"
+                    elif message_type == "audio":
+                        message_text = "[Audio message]"
+                    elif message_type == "video":
+                        caption = message.get("video", {}).get("caption", "")
+                        message_text = f"[Video] {caption}" if caption else "[Video sent]"
+                    elif message_type == "location":
+                        loc = message.get("location", {})
+                        message_text = f"[Location: {loc.get('name', 'Shared location')}]"
+                    else:
+                        message_text = f"[{message_type} message]"
+                    
+                    # Create/update lead
+                    result = await create_lead_from_social_message(
+                        source="whatsapp",
+                        sender_id=sender_id,
+                        sender_name=sender_name,
+                        message_text=message_text,
+                        phone_number=sender_id  # WhatsApp ID is the phone number
+                    )
+                    results.append(result)
+                    
+                    logger.info(f"WhatsApp lead processed: {sender_name} ({sender_id}) - {result.get('action')}")
+        
+        return {"status": "ok", "processed": len(results), "results": results}
+        
+    except Exception as e:
+        logger.error(f"WhatsApp webhook error: {e}")
+        # Always return 200 to acknowledge receipt (Meta requirement)
+        return {"status": "error", "message": str(e)}
+
+# ==================== FACEBOOK MESSENGER WEBHOOK ENDPOINTS ====================
+
+@api_router.get("/webhook/facebook")
+async def verify_facebook_webhook(request: Request):
+    """Facebook Messenger webhook verification endpoint (Meta requirement)"""
+    hub_mode = request.query_params.get("hub.mode")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    hub_challenge = request.query_params.get("hub.challenge")
+    
+    logger.info(f"Facebook webhook verification: mode={hub_mode}")
+    
+    if hub_mode == "subscribe" and hub_verify_token == WEBHOOK_VERIFY_TOKEN:
+        logger.info("Facebook webhook verified successfully")
+        from starlette.responses import PlainTextResponse
+        return PlainTextResponse(hub_challenge)
+    
+    logger.warning(f"Facebook webhook verification failed: token mismatch")
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+@api_router.post("/webhook/facebook")
+async def receive_facebook_webhook(request: Request):
+    """Receive incoming Facebook Messenger messages and auto-create leads"""
+    try:
+        body = await request.body()
+        
+        # Verify signature if app secret is configured
+        signature = request.headers.get("X-Hub-Signature-256", "")
+        if FACEBOOK_APP_SECRET and not verify_facebook_signature(body, signature):
+            logger.warning("Facebook webhook signature verification failed")
+            raise HTTPException(status_code=403, detail="Invalid signature")
+        
+        data = await request.json()
+        logger.info(f"Facebook webhook received: {json.dumps(data, indent=2)[:500]}")
+        
+        # Verify this is a page subscription
+        if data.get("object") != "page":
+            return {"status": "ignored", "reason": "not page object"}
+        
+        # Process each entry
+        results = []
+        for entry in data.get("entry", []):
+            page_id = entry.get("id", "")
+            
+            for messaging_event in entry.get("messaging", []):
+                sender_id = messaging_event.get("sender", {}).get("id", "")
+                recipient_id = messaging_event.get("recipient", {}).get("id", "")
+                timestamp = messaging_event.get("timestamp", "")
+                
+                # Skip if sender is the page itself (echo)
+                if sender_id == page_id:
+                    continue
+                
+                # Check if this is a message event
+                if "message" in messaging_event:
+                    message_data = messaging_event["message"]
+                    
+                    # Skip echo messages
+                    if message_data.get("is_echo"):
+                        continue
+                    
+                    message_id = message_data.get("mid", "")
+                    message_text = message_data.get("text", "")
+                    
+                    # Handle attachments
+                    if not message_text and "attachments" in message_data:
+                        attachments = message_data["attachments"]
+                        if attachments:
+                            att_type = attachments[0].get("type", "unknown")
+                            message_text = f"[{att_type.capitalize()} attachment]"
+                    
+                    # Try to get user profile (requires page access token)
+                    sender_name = "Facebook User"
+                    if FACEBOOK_PAGE_ACCESS_TOKEN:
+                        try:
+                            import httpx
+                            async with httpx.AsyncClient() as client:
+                                profile_url = f"https://graph.facebook.com/{sender_id}"
+                                params = {
+                                    "fields": "name",
+                                    "access_token": FACEBOOK_PAGE_ACCESS_TOKEN
+                                }
+                                response = await client.get(profile_url, params=params, timeout=5.0)
+                                if response.status_code == 200:
+                                    profile = response.json()
+                                    sender_name = profile.get("name", "Facebook User")
+                        except Exception as e:
+                            logger.warning(f"Could not fetch Facebook profile: {e}")
+                    
+                    # Create/update lead
+                    result = await create_lead_from_social_message(
+                        source="facebook",
+                        sender_id=sender_id,
+                        sender_name=sender_name,
+                        message_text=message_text or "[No text content]",
+                        phone_number=None  # Facebook doesn't provide phone
+                    )
+                    results.append(result)
+                    
+                    logger.info(f"Facebook lead processed: {sender_name} ({sender_id}) - {result.get('action')}")
+        
+        return {"status": "ok", "processed": len(results), "results": results}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Facebook webhook error: {e}")
+        # Always return 200 to acknowledge receipt (Meta requirement)
+        return {"status": "error", "message": str(e)}
+
+# ==================== WEBHOOK STATUS & TESTING ====================
+
+@api_router.get("/webhook/status")
+async def get_webhook_status():
+    """Get status of social media webhook integrations"""
+    return {
+        "whatsapp": {
+            "configured": bool(WHATSAPP_ACCESS_TOKEN),
+            "phone_number_id": WHATSAPP_PHONE_NUMBER_ID[:4] + "***" if WHATSAPP_PHONE_NUMBER_ID else None,
+            "webhook_url": "/api/webhook/whatsapp",
+            "verify_token": WEBHOOK_VERIFY_TOKEN
+        },
+        "facebook": {
+            "configured": bool(FACEBOOK_PAGE_ACCESS_TOKEN),
+            "app_id": FACEBOOK_APP_ID[:4] + "***" if FACEBOOK_APP_ID else None,
+            "webhook_url": "/api/webhook/facebook",
+            "verify_token": WEBHOOK_VERIFY_TOKEN
+        },
+        "instructions": {
+            "step1": "Go to Meta for Developers (developers.facebook.com)",
+            "step2": "Select your app → WhatsApp/Messenger → Settings",
+            "step3": f"Add webhook URL: YOUR_DOMAIN/api/webhook/whatsapp or /api/webhook/facebook",
+            "step4": f"Use verify token: {WEBHOOK_VERIFY_TOKEN}",
+            "step5": "Subscribe to 'messages' events",
+            "step6": "Add your credentials to backend/.env file"
+        }
+    }
+
+@api_router.get("/webhook/recent-social-leads")
+async def get_recent_social_leads():
+    """Get recently created leads from social media"""
+    leads = await db.crm_leads.find(
+        {"source": {"$in": ["whatsapp", "facebook"]}},
+        {"_id": 0}
+    ).sort("timestamp", -1).limit(20).to_list(20)
+    
+    return {
+        "total": len(leads),
+        "leads": leads,
+        "by_source": {
+            "whatsapp": sum(1 for l in leads if l.get("source") == "whatsapp"),
+            "facebook": sum(1 for l in leads if l.get("source") == "facebook")
+        }
+    }
+
 app.include_router(api_router)
 
 # CORS configuration with security

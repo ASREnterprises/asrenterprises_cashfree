@@ -825,6 +825,147 @@ export const CRMDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Add Lead Modal */}
+      {showAddLeadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-2xl w-full my-8">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+              <UserPlus className="w-5 h-5 text-green-400" />
+              <span>Add New Lead</span>
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* Customer Details */}
+              <div className="space-y-3">
+                <h3 className="text-gray-400 text-sm font-semibold border-b border-gray-700 pb-1">Customer Details</h3>
+                <input 
+                  type="text" 
+                  value={newLeadForm.name} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, name: e.target.value})} 
+                  placeholder="Customer Name *" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  data-testid="lead-name-input"
+                />
+                <input 
+                  type="tel" 
+                  value={newLeadForm.phone} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, phone: e.target.value})} 
+                  placeholder="Phone Number *" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  data-testid="lead-phone-input"
+                />
+                <input 
+                  type="email" 
+                  value={newLeadForm.email} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, email: e.target.value})} 
+                  placeholder="Email (Optional)" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                />
+                <select 
+                  value={newLeadForm.district} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, district: e.target.value})} 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  data-testid="lead-district-select"
+                >
+                  <option value="">Select District</option>
+                  {districts.map((d) => (<option key={d} value={d}>{d}</option>))}
+                </select>
+                <input 
+                  type="text" 
+                  value={newLeadForm.address} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, address: e.target.value})} 
+                  placeholder="Full Address" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                />
+              </div>
+              
+              {/* Property & Requirements */}
+              <div className="space-y-3">
+                <h3 className="text-gray-400 text-sm font-semibold border-b border-gray-700 pb-1">Property & Requirements</h3>
+                <select 
+                  value={newLeadForm.property_type} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, property_type: e.target.value})} 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                >
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                  <option value="agricultural">Agricultural</option>
+                </select>
+                <select 
+                  value={newLeadForm.roof_type} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, roof_type: e.target.value})} 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                >
+                  <option value="rcc">RCC (Concrete)</option>
+                  <option value="tin">Tin/Metal Sheet</option>
+                  <option value="asbestos">Asbestos</option>
+                  <option value="tile">Tile</option>
+                  <option value="other">Other</option>
+                </select>
+                <input 
+                  type="number" 
+                  value={newLeadForm.monthly_bill} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, monthly_bill: e.target.value})} 
+                  placeholder="Monthly Electricity Bill (₹)" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                />
+                <input 
+                  type="number" 
+                  value={newLeadForm.roof_area} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, roof_area: e.target.value})} 
+                  placeholder="Roof Area (sq ft)" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                />
+                <select 
+                  value={newLeadForm.source} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, source: e.target.value})} 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  data-testid="lead-source-select"
+                >
+                  <option value="manual">Manual Entry</option>
+                  <option value="walk_in">Walk-in</option>
+                  <option value="phone_call">Phone Call</option>
+                  <option value="referral">Referral</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="website">Website</option>
+                  <option value="exhibition">Exhibition/Event</option>
+                </select>
+              </div>
+              
+              {/* Notes - Full Width */}
+              <div className="md:col-span-2">
+                <textarea 
+                  value={newLeadForm.notes} 
+                  onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})} 
+                  placeholder="Additional Notes (requirements, special requests, etc.)" 
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-24 resize-none"
+                  data-testid="lead-notes-input"
+                />
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button 
+                onClick={createManualLead} 
+                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 hover:from-green-600 hover:to-emerald-700 transition"
+                data-testid="create-lead-btn"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Create Lead</span>
+              </button>
+              <button 
+                onClick={() => setShowAddLeadModal(false)} 
+                className="px-6 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

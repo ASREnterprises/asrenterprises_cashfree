@@ -1407,7 +1407,7 @@ const HomePage = () => {
       {/* Referral Program */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 py-16" id="referral-program">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">Become an ASR Agent</h2>
+          <h2 className="text-4xl font-bold mb-4">Become an ASR Solar Advisor</h2>
           <p className="text-xl text-purple-100 mb-8">Join our network and earn attractive commissions!</p>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
             <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
@@ -1428,7 +1428,7 @@ const HomePage = () => {
             className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition shadow-lg"
             data-testid="become-agent-btn"
           >
-            Register as Agent →
+            Register as Solar Advisor →
           </Link>
         </div>
       </div>
@@ -2291,7 +2291,7 @@ const AgentRegistrationPage = () => {
 
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Become an ASR Agent</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Become an ASR Solar Advisor</h1>
             <p className="text-gray-600">Join our network and earn ₹5,000+ per referral</p>
           </div>
 

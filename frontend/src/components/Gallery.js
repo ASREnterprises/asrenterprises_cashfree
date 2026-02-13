@@ -1,11 +1,17 @@
-import { useState } from "react";
-import { ChevronRight, X, Play, MapPin, Calendar, Award } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronRight, X, Play, MapPin, Calendar, Award, Loader2, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
+import axios from "axios";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const GalleryPage = () => {
   const [selectedMedia, setSelectedMedia] = useState(null);
+  const [dynamicPhotos, setDynamicPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const galleryItems = [
+  // Static gallery items (original photos)
+  const staticGalleryItems = [
     {
       type: "video",
       url: "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/6t8numer_VID-20260130-WA0022.mp4",
@@ -49,6 +55,33 @@ export const GalleryPage = () => {
       date: "August 2025"
     }
   ];
+
+  useEffect(() => {
+    fetchGalleryPhotos();
+  }, []);
+
+  const fetchGalleryPhotos = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/photos`);
+      // Convert backend photos to gallery format
+      const crmPhotos = (res.data || []).map(photo => ({
+        type: "image",
+        url: photo.image_url || photo.imageUrl,
+        title: photo.title,
+        location: photo.location || "Bihar, India",
+        date: photo.timestamp ? new Date(photo.timestamp).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : undefined,
+        systemSize: photo.system_size
+      }));
+      setDynamicPhotos(crmPhotos);
+    } catch (err) {
+      console.error("Error fetching gallery photos:", err);
+    }
+    setLoading(false);
+  };
+
+  // Combine dynamic CRM photos with static ones (CRM photos first)
+  const galleryItems = [...dynamicPhotos, ...staticGalleryItems];
 
   const openModal = (item) => {
     setSelectedMedia(item);
@@ -119,52 +152,77 @@ export const GalleryPage = () => {
 
       {/* Gallery Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {galleryItems.map((item, index) => (
-            <div
-              key={index}
-              className="relative group cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-              onClick={() => openModal(item)}
-              data-testid={`gallery-item-${index}`}
-            >
-              {/* Image/Video Thumbnail */}
-              <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
-                <img
-                  src={item.type === "video" ? item.thumbnail : item.url}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                
-                {/* Play button for video */}
-                {item.type === "video" && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                    <div className="bg-white rounded-full p-4 group-hover:scale-110 transition-transform">
-                      <Play className="w-8 h-8 text-yellow-600" fill="currentColor" />
-                    </div>
-                  </div>
-                )}
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-6">
+          <button 
+            onClick={fetchGalleryPhotos} 
+            className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
+            disabled={loading}
+            data-testid="refresh-gallery-btn"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
-                
-                {/* Info Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                  <h3 className="font-bold text-lg mb-1">{item.title}</h3>
-                  <div className="flex items-center text-sm text-gray-200">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span>{item.location}</span>
-                  </div>
-                  {item.date && (
-                    <div className="flex items-center text-sm text-gray-200 mt-1">
-                      <Calendar className="w-4 h-4 mr-1" />
-                      <span>{item.date}</span>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-10 h-10 text-yellow-600 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {galleryItems.map((item, index) => (
+              <div
+                key={index}
+                className="relative group cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                onClick={() => openModal(item)}
+                data-testid={`gallery-item-${index}`}
+              >
+                {/* Image/Video Thumbnail */}
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
+                  <img
+                    src={item.type === "video" ? item.thumbnail : item.url}
+                    alt={item.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Solar+Installation'; }}
+                  />
+                  
+                  {/* Play button for video */}
+                  {item.type === "video" && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+                      <div className="bg-white rounded-full p-4 group-hover:scale-110 transition-transform">
+                        <Play className="w-8 h-8 text-yellow-600" fill="currentColor" />
+                      </div>
                     </div>
                   )}
+
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+                  
+                  {/* Info Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                    <h3 className="font-bold text-lg mb-1">{item.title}</h3>
+                    <div className="flex items-center text-sm text-gray-200">
+                      <MapPin className="w-4 h-4 mr-1" />
+                      <span>{item.location}</span>
+                    </div>
+                    {item.date && (
+                      <div className="flex items-center text-sm text-gray-200 mt-1">
+                        <Calendar className="w-4 h-4 mr-1" />
+                        <span>{item.date}</span>
+                      </div>
+                    )}
+                    {item.systemSize && (
+                      <div className="text-xs text-yellow-400 mt-1 font-semibold">
+                        System: {item.systemSize}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* CTA Section */}
         <div className="mt-16 bg-white rounded-2xl shadow-2xl p-8 md:p-12 text-center">
@@ -218,6 +276,7 @@ export const GalleryPage = () => {
                 alt={selectedMedia.title}
                 className="w-full rounded-lg shadow-2xl"
                 data-testid="modal-image"
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/800x600?text=Solar+Installation'; }}
               />
             )}
 
@@ -229,9 +288,14 @@ export const GalleryPage = () => {
                 <span>{selectedMedia.location}</span>
               </div>
               {selectedMedia.date && (
-                <div className="flex items-center text-gray-600">
+                <div className="flex items-center text-gray-600 mb-2">
                   <Calendar className="w-5 h-5 mr-2" />
                   <span>{selectedMedia.date}</span>
+                </div>
+              )}
+              {selectedMedia.systemSize && (
+                <div className="text-yellow-600 font-semibold">
+                  System Size: {selectedMedia.systemSize}
                 </div>
               )}
             </div>

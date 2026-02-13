@@ -268,9 +268,14 @@ export const CRMDashboard = () => {
                 <p className="text-gray-400 text-sm">Manage leads, staff & operations</p>
               </div>
             </div>
-            <button onClick={fetchAllData} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-              <RefreshCw className="w-4 h-4" /><span>Refresh</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              <Link to="/admin/business-dashboard" className="bg-gradient-to-r from-orange-500 to-pink-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-orange-600 hover:to-pink-600 transition" data-testid="business-dashboard-link">
+                <TrendingUp className="w-4 h-4" /><span>Business Intelligence</span>
+              </Link>
+              <button onClick={fetchAllData} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                <RefreshCw className="w-4 h-4" /><span>Refresh</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

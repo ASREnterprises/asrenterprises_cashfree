@@ -1403,32 +1403,31 @@ const HomePage = () => {
       </div>
 
       {/* Referral Program */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 py-16">
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 py-16" id="referral-program">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-          <h2 className="text-4xl font-bold mb-4">🎁 Referral Rewards Program</h2>
-          <p className="text-xl text-purple-100 mb-8">Refer friends & family and earn attractive rewards!</p>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <h2 className="text-4xl font-bold mb-4">Become an ASR Agent</h2>
+          <p className="text-xl text-purple-100 mb-8">Join our network and earn attractive commissions!</p>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
             <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
               <div className="text-5xl font-bold mb-2">₹5,000</div>
-              <p className="text-purple-100">For each successful referral</p>
+              <p className="text-purple-100">Per successful referral</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
               <div className="text-5xl font-bold mb-2">FREE</div>
-              <p className="text-purple-100">AMC for 1 year on 3+ referrals</p>
+              <p className="text-purple-100">Training & Support</p>
             </div>
             <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
               <div className="text-5xl font-bold mb-2">10%</div>
-              <p className="text-purple-100">Discount for your next upgrade</p>
+              <p className="text-purple-100">Commission on deals</p>
             </div>
           </div>
-          <a
-            href="https://wa.me/918877896889?text=I%20want%20to%20join%20the%20referral%20program"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition shadow-lg mt-8"
+          <Link
+            to="/become-agent"
+            className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition shadow-lg"
+            data-testid="become-agent-btn"
           >
-            Join Referral Program →
-          </a>
+            Register as Agent →
+          </Link>
         </div>
       </div>
 

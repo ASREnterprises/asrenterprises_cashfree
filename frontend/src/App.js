@@ -265,6 +265,22 @@ const SolarInquiryForm = () => {
 const HomePage = () => {
   const navigate = useNavigate();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [festiveBanner, setFestiveBanner] = useState(null);
+
+  useEffect(() => {
+    // Fetch active festive post
+    const fetchFestiveBanner = async () => {
+      try {
+        const res = await axios.get(`${API}/festivals/active`);
+        if (res.data) {
+          setFestiveBanner(res.data);
+        }
+      } catch (err) {
+        console.log("No active festive post");
+      }
+    };
+    fetchFestiveBanner();
+  }, []);
 
   const features = [
     {

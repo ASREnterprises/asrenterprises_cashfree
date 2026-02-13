@@ -50,22 +50,6 @@ export const AdminDashboard = ({ onLogout }) => {
       count: `${stats.total_leads || 0} Leads`
     },
     {
-      title: "Work Photos",
-      description: "Upload and manage installation photos",
-      icon: <Image className="w-10 h-10" />,
-      link: "/admin/photos",
-      color: "from-blue-500 to-blue-600",
-      count: "Manage Gallery"
-    },
-    {
-      title: "Customer Reviews",
-      description: "Add and manage customer testimonials",
-      icon: <Star className="w-10 h-10" />,
-      link: "/admin/reviews",
-      color: "from-yellow-500 to-orange-500",
-      count: "Manage Reviews"
-    },
-    {
       title: "Festival Posts",
       description: "Create festival wishes & announcements",
       icon: <Calendar className="w-10 h-10" />,
@@ -80,14 +64,6 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/govt-news",
       color: "from-indigo-500 to-purple-600",
       count: "AI Updates"
-    },
-    {
-      title: "Staff Management",
-      description: "AI-powered team & task management",
-      icon: <Users className="w-10 h-10" />,
-      link: "/admin/staff",
-      color: "from-cyan-500 to-blue-600",
-      count: "AI Features"
     },
     {
       title: "Social Media Hub",

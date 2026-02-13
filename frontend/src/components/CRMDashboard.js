@@ -1049,15 +1049,14 @@ export const CRMDashboard = () => {
                   type="file" 
                   ref={fileInputRef} 
                   onChange={handleFileSelect} 
-                  accept="image/*" 
-                  capture="environment"
+                  accept="image/*"
                   multiple
                   className="hidden" 
                 />
                 <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold mb-3">
-                  <Camera className="w-5 h-5 inline mr-2" />Select Photos / Take Photo
+                  <Image className="w-5 h-5 inline mr-2" />Select Photos from Gallery
                 </button>
-                <p className="text-gray-400 text-sm">Tap to open camera or select multiple from gallery</p>
+                <p className="text-gray-400 text-sm">Choose photos from gallery or storage (multiple selection supported)</p>
                 {photoFiles.length > 1 && (
                   <p className="text-green-400 text-sm mt-2">{photoFiles.length} photos selected</p>
                 )}

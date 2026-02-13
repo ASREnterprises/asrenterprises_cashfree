@@ -272,34 +272,22 @@ const ServiceRegistration = () => {
     property_type: "residential", roof_type: "rcc", monthly_bill: "", roof_area: "", notes: ""
   });
 
+  // Razorpay Payment Link
+  const RAZORPAY_PAYMENT_LINK = "https://razorpay.me/@asrenterprises9465";
+
   useEffect(() => {
     // Fetch current registration fee
     axios.get(`${API}/registration/fee`).then(res => {
       setRegistrationFee(res.data.fee);
     }).catch(err => console.log("Using default fee"));
 
-    // Check if returning from payment
+    // Check if returning from payment success page
     const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    if (sessionId) {
-      setStep('checking');
-      checkPaymentStatus(sessionId);
+    const paymentStatus = urlParams.get('payment_status');
+    if (paymentStatus === 'success') {
+      setStep('success');
     }
   }, []);
-
-  const checkPaymentStatus = async (sessionId) => {
-    try {
-      const res = await axios.get(`${API}/registration/status/${sessionId}`);
-      if (res.data.payment_status === 'paid') {
-        setStep('success');
-      } else {
-        setStep('form');
-        alert('Payment was not completed. Please try again.');
-      }
-    } catch (err) {
-      setStep('form');
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -309,15 +297,20 @@ const ServiceRegistration = () => {
     }
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/registration/create-checkout`, {
-        customer: formData,
-        origin_url: window.location.origin
+      // Save registration details to database first
+      const res = await axios.post(`${API}/registration/save-details`, {
+        customer: formData
       });
-      if (res.data.checkout_url) {
-        window.location.href = res.data.checkout_url;
+      
+      if (res.data.success) {
+        // Store registration ID for reference
+        localStorage.setItem('pendingRegistrationId', res.data.registration_id);
+        
+        // Redirect to Razorpay payment link
+        window.location.href = RAZORPAY_PAYMENT_LINK;
       }
     } catch (err) {
-      alert(err.response?.data?.detail || "Error creating payment session");
+      alert(err.response?.data?.detail || "Error saving registration details");
       setLoading(false);
     }
   };

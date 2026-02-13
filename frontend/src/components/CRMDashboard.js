@@ -838,28 +838,99 @@ export const CRMDashboard = () => {
 
         {/* Payments Tab */}
         {activeTab === "payments" && (
-          <div className="bg-gray-800 rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-700">
-                <tr>
-                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
-                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Amount</th>
-                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Type</th>
-                  <th className="text-left text-gray-300 px-4 py-3 text-sm">Mode</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((pay) => (
-                  <tr key={pay.id} className="border-t border-gray-700">
-                    <td className="px-4 py-3 text-white">{pay.timestamp?.split('T')[0]}</td>
-                    <td className="px-4 py-3 text-green-400 font-bold">₹{pay.amount?.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_type}</td>
-                    <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_mode}</td>
+          <div className="space-y-6">
+            {/* Registration Fee Management */}
+            <div className="bg-gradient-to-r from-orange-600 to-yellow-600 rounded-xl p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">Service Registration Fee</h3>
+                  <p className="text-orange-100 text-sm">Current fee charged to customers for solar service registration</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="bg-white/20 rounded-lg px-4 py-2">
+                    <span className="text-white/80 text-sm">Current:</span>
+                    <span className="text-white text-2xl font-bold ml-2">₹{registrationFee}</span>
+                  </div>
+                  <input
+                    type="number"
+                    value={newRegistrationFee}
+                    onChange={(e) => setNewRegistrationFee(e.target.value)}
+                    placeholder="New fee"
+                    className="bg-white/20 text-white placeholder-white/50 px-4 py-2 rounded-lg w-32"
+                  />
+                  <button
+                    onClick={updateRegistrationFee}
+                    className="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold hover:bg-orange-50 transition"
+                  >
+                    Update
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Paid Registrations */}
+            <div className="bg-gray-800 rounded-xl p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Paid Registrations</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-700">
+                    <tr>
+                      <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
+                      <th className="text-left text-gray-300 px-4 py-3 text-sm">Customer</th>
+                      <th className="text-left text-gray-300 px-4 py-3 text-sm">Phone</th>
+                      <th className="text-left text-gray-300 px-4 py-3 text-sm">Amount</th>
+                      <th className="text-left text-gray-300 px-4 py-3 text-sm">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {registrations.map((reg) => (
+                      <tr key={reg.id} className="border-t border-gray-700">
+                        <td className="px-4 py-3 text-white">{reg.timestamp?.split('T')[0]}</td>
+                        <td className="px-4 py-3 text-white">{reg.customer?.name}</td>
+                        <td className="px-4 py-3 text-gray-300">{reg.customer?.phone}</td>
+                        <td className="px-4 py-3 text-green-400 font-bold">₹{reg.amount?.toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded text-xs ${reg.payment_status === 'paid' ? 'bg-green-600' : 'bg-yellow-600'} text-white`}>
+                            {reg.payment_status?.toUpperCase()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {registrations.length === 0 && (
+                      <tr><td colSpan="5" className="text-center py-8 text-gray-400">No registrations yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Payment History */}
+            <div className="bg-gray-800 rounded-xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-700">
+                <h3 className="text-lg font-bold text-white">Payment History</h3>
+              </div>
+              <table className="w-full">
+                <thead className="bg-gray-700">
+                  <tr>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Amount</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Type</th>
+                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Mode</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {payments.length === 0 && <div className="text-center py-12 text-gray-400">No payments recorded</div>}
+                </thead>
+                <tbody>
+                  {payments.map((pay) => (
+                    <tr key={pay.id} className="border-t border-gray-700">
+                      <td className="px-4 py-3 text-white">{pay.timestamp?.split('T')[0]}</td>
+                      <td className="px-4 py-3 text-green-400 font-bold">₹{pay.amount?.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_type}</td>
+                      <td className="px-4 py-3 text-gray-300 capitalize">{pay.payment_mode}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {payments.length === 0 && <div className="text-center py-12 text-gray-400">No payments recorded</div>}
+            </div>
           </div>
         )}
       </div>

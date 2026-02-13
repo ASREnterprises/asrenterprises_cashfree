@@ -2140,18 +2140,164 @@ async def assign_lead(lead_id: str, data: Dict[str, Any]):
     employee_id = data.get("employee_id")
     assigned_by = data.get("assigned_by", "admin")
     
+    # Get lead details
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get staff details
+    staff = await db.crm_staff_accounts.find_one({"id": employee_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
     await db.crm_leads.update_one(
         {"id": lead_id},
         {"$set": {"assigned_to": employee_id, "assigned_by": assigned_by}}
     )
     
     # Update employee stats
-    await db.crm_employees.update_one(
+    await db.crm_staff_accounts.update_one(
         {"id": employee_id},
         {"$inc": {"leads_assigned": 1}}
     )
     
-    return {"success": True}
+    # Send in-app notification to staff
+    add_notification(
+        staff.get("staff_id"),
+        "lead_assigned",
+        "New Lead Assigned!",
+        f"Lead: {lead.get('name')} from {lead.get('district')} - ₹{lead.get('monthly_bill', 0)}/mo bill",
+        lead_id
+    )
+    
+    # Generate WhatsApp notification URL
+    whatsapp_message = f"""🔔 *New Lead Assigned - ASR Enterprises*
+
+👤 *Name:* {lead.get('name')}
+📞 *Phone:* {lead.get('phone')}
+📍 *District:* {lead.get('district')}
+💰 *Monthly Bill:* ₹{lead.get('monthly_bill', 'N/A')}
+🏠 *Property:* {lead.get('property_type', 'residential')}
+
+Please contact within 24 hours.
+
+_From ASR Enterprises Admin_"""
+    
+    whatsapp_url = get_whatsapp_url(staff.get("phone", ""), whatsapp_message) if staff.get("phone") else None
+    
+    return {"success": True, "whatsapp_notification_url": whatsapp_url}
+
+# AI Auto Lead Assignment
+@api_router.post("/crm/leads/{lead_id}/auto-assign")
+async def auto_assign_lead(lead_id: str):
+    """AI-powered auto lead assignment - location first, then round-robin"""
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    if lead.get("assigned_to"):
+        return {"success": False, "message": "Lead already assigned"}
+    
+    # Get all active staff
+    active_staff = await db.crm_staff_accounts.find(
+        {"is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    if not active_staff:
+        return {"success": False, "message": "No active staff available"}
+    
+    lead_district = lead.get("district", "").lower()
+    assigned_staff = None
+    assignment_reason = ""
+    
+    # Strategy 1: Location-based assignment
+    # Check if any staff has the district in their name/notes or handles that area
+    for staff in active_staff:
+        staff_districts = staff.get("districts", [])
+        if isinstance(staff_districts, list):
+            if any(lead_district in d.lower() for d in staff_districts):
+                assigned_staff = staff
+                assignment_reason = f"Location match: {lead_district}"
+                break
+    
+    # Strategy 2: Round-robin (assign to staff with least leads)
+    if not assigned_staff:
+        # Sort by leads_assigned ascending
+        sorted_staff = sorted(active_staff, key=lambda x: x.get("leads_assigned", 0))
+        assigned_staff = sorted_staff[0]
+        assignment_reason = "Round-robin (least leads)"
+    
+    # Assign the lead
+    await db.crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "assigned_to": assigned_staff.get("id"),
+            "assigned_by": "ai_auto",
+            "ai_assignment_reason": assignment_reason
+        }}
+    )
+    
+    # Update staff stats
+    await db.crm_staff_accounts.update_one(
+        {"id": assigned_staff.get("id")},
+        {"$inc": {"leads_assigned": 1}}
+    )
+    
+    # Send notification
+    add_notification(
+        assigned_staff.get("staff_id"),
+        "lead_assigned",
+        "New Lead Auto-Assigned!",
+        f"Lead: {lead.get('name')} from {lead.get('district')} - AI assigned ({assignment_reason})",
+        lead_id
+    )
+    
+    # WhatsApp notification
+    whatsapp_message = f"""🤖 *Auto-Assigned Lead - ASR Enterprises*
+
+👤 *Name:* {lead.get('name')}
+📞 *Phone:* {lead.get('phone')}
+📍 *District:* {lead.get('district')}
+💰 *Monthly Bill:* ₹{lead.get('monthly_bill', 'N/A')}
+
+📌 *Assignment:* {assignment_reason}
+
+Please contact within 24 hours."""
+    
+    whatsapp_url = get_whatsapp_url(assigned_staff.get("phone", ""), whatsapp_message)
+    
+    return {
+        "success": True,
+        "assigned_to": assigned_staff.get("staff_id"),
+        "assigned_name": assigned_staff.get("name"),
+        "assignment_reason": assignment_reason,
+        "whatsapp_notification_url": whatsapp_url
+    }
+
+# Bulk Auto-Assign Unassigned Leads
+@api_router.post("/crm/leads/auto-assign-all")
+async def auto_assign_all_leads():
+    """Auto-assign all unassigned leads"""
+    unassigned = await db.crm_leads.find(
+        {"$or": [{"assigned_to": None}, {"assigned_to": ""}]},
+        {"_id": 0}
+    ).to_list(100)
+    
+    results = []
+    for lead in unassigned:
+        try:
+            # Call auto-assign for each lead
+            result = await auto_assign_lead(lead.get("id"))
+            results.append({"lead_id": lead.get("id"), "name": lead.get("name"), **result})
+        except Exception as e:
+            results.append({"lead_id": lead.get("id"), "name": lead.get("name"), "success": False, "error": str(e)})
+    
+    return {
+        "total_processed": len(results),
+        "successful": sum(1 for r in results if r.get("success")),
+        "results": results
+    }
 
 # CRM Follow-up Reminders
 @api_router.get("/crm/followups")

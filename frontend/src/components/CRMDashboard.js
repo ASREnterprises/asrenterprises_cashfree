@@ -679,13 +679,21 @@ export const CRMDashboard = () => {
             <div className="space-y-4">
               <input type="text" value={photoForm.title} onChange={(e) => setPhotoForm({...photoForm, title: e.target.value})} placeholder="Photo Title *" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
               
-              {/* File Upload from Gallery */}
+              {/* File Upload from Gallery - Mobile Optimized */}
               <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
-                <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileSelect} 
+                  accept="image/*" 
+                  capture="environment"
+                  className="hidden" 
+                />
                 <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold mb-3">
-                  <Camera className="w-5 h-5 inline mr-2" />Select from Gallery
+                  <Camera className="w-5 h-5 inline mr-2" />Select from Gallery / Take Photo
                 </button>
-                <p className="text-gray-400 text-sm">or paste image URL below</p>
+                <p className="text-gray-400 text-sm">Tap to open camera or select from gallery</p>
+                <p className="text-gray-500 text-xs mt-1">or paste image URL below</p>
               </div>
               
               <input type="url" value={photoForm.image_url} onChange={(e) => setPhotoForm({...photoForm, image_url: e.target.value})} placeholder="Image URL (optional if file selected)" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />

@@ -13,6 +13,7 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 ## Test Credentials
 - **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (or check email)
 - **Staff:** ASR1001 / asr@123
+- **Webhook Verify Token:** asr_solar_verify_2024
 
 ---
 
@@ -33,6 +34,15 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - Work photo gallery (syncs to website)
 - Project tracking
 - Payment management
+- **NEW: Auto-capture leads from WhatsApp & Facebook**
+
+### 📱 Social Media Lead Auto-Capture (NEW)
+- WhatsApp Business API webhook integration
+- Facebook Messenger webhook integration
+- Auto-creates lead when customer messages
+- Updates existing lead on repeat messages
+- Stores conversation history in follow-up notes
+- Source marked as "whatsapp" or "facebook"
 
 ### 👨‍💼 Staff Portal (/staff/portal)
 - Assigned leads view

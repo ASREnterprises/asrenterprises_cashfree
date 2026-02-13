@@ -2094,6 +2094,12 @@ async def create_crm_lead(data: Dict[str, Any]):
     lead_score = min(100, 40 + int(monthly_bill / 100))
     ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
     
+    # Process notes into follow_up_notes
+    notes = data.get("notes", "")
+    follow_up_notes = ""
+    if notes:
+        follow_up_notes = f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Initial Notes: {notes}"
+    
     lead = CRMLead(
         name=sanitize_input(data.get("name", "")),
         email=data.get("email", ""),
@@ -2103,15 +2109,19 @@ async def create_crm_lead(data: Dict[str, Any]):
         property_type=data.get("property_type", "residential"),
         monthly_bill=data.get("monthly_bill"),
         roof_area=data.get("roof_area"),
-        source=data.get("source", "website"),
+        source=data.get("source", "manual"),
         stage="new",
         lead_score=lead_score,
         ai_priority=ai_priority,
-        status_history=[{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Lead created"}]
+        follow_up_notes=follow_up_notes,
+        next_follow_up=(datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+        status_history=[{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": f"Lead created via {data.get('source', 'manual')}"}]
     )
     doc = lead.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     await db.crm_leads.insert_one(doc)
+    
+    logger.info(f"Manual lead created: {data.get('name')} from source: {data.get('source', 'manual')}")
     return lead
 
 @api_router.put("/crm/leads/{lead_id}")

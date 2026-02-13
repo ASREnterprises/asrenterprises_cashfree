@@ -176,6 +176,69 @@ export const CRMDashboard = () => {
     }
   };
 
+  // Quick Add Lead (simplified)
+  const createQuickLead = async () => {
+    if (!quickLeadForm.name || !quickLeadForm.phone) {
+      alert("Name and Phone are required!");
+      return;
+    }
+    try {
+      await axios.post(`${API}/crm/leads`, quickLeadForm);
+      setShowQuickAddModal(false);
+      setQuickLeadForm({ name: '', phone: '', district: '', source: 'manual' });
+      fetchAllData();
+      alert("Lead added successfully!");
+    } catch (err) { 
+      alert(err.response?.data?.detail || "Error creating lead"); 
+    }
+  };
+
+  // Bulk Import Leads
+  const handleBulkImport = async () => {
+    if (!bulkImportFile) { alert("Please select a CSV file"); return; }
+    setBulkImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', bulkImportFile);
+      const res = await axios.post(`${API}/crm/leads/bulk-import`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setBulkImportResult(res.data);
+      fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Import failed");
+    }
+    setBulkImporting(false);
+  };
+
+  // Fetch Social Leads (WhatsApp, Facebook, etc.)
+  const fetchSocialLeads = async () => {
+    try {
+      const res = await axios.get(`${API}/webhook/recent-social-leads`);
+      if (res.data.total > 0) {
+        alert(`Found ${res.data.total} social media leads!\n\nWhatsApp: ${res.data.by_source?.whatsapp || 0}\nFacebook: ${res.data.by_source?.facebook || 0}`);
+        fetchAllData();
+      } else {
+        alert("No new social media leads found. Make sure WhatsApp/Facebook webhooks are configured.");
+      }
+    } catch (err) {
+      alert("Error fetching social leads. Check webhook configuration.");
+    }
+  };
+
+  // Download CSV Template
+  const downloadCSVTemplate = () => {
+    const headers = "name,phone,email,district,address,property_type,monthly_bill,roof_area,source,notes\n";
+    const example = "Ramesh Kumar,9876543210,ramesh@example.com,Patna,123 Main Road,residential,3500,500,referral,Interested in 5kW system\n";
+    const blob = new Blob([headers + example], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leads_import_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const autoAssignLead = async (leadId) => {
     try {
       const res = await axios.post(`${API}/crm/leads/${leadId}/auto-assign`);

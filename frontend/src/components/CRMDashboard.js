@@ -79,6 +79,13 @@ export const CRMDashboard = () => {
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkImportResult, setBulkImportResult] = useState(null);
   const bulkFileInputRef = useRef(null);
+  
+  // Quick Add Lead State
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [quickLeadForm, setQuickLeadForm] = useState({ name: '', phone: '', district: '', source: 'manual' });
+  
+  // Multiple Photo Upload State  
+  const [photoFiles, setPhotoFiles] = useState([]);
 
   useEffect(() => { fetchAllData(); fetchDistricts(); }, []);
   

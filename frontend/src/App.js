@@ -262,6 +262,263 @@ const SolarInquiryForm = () => {
   );
 };
 
+// Service Registration Component with Payment
+const ServiceRegistration = () => {
+  const [step, setStep] = useState('form'); // form, payment, success
+  const [loading, setLoading] = useState(false);
+  const [registrationFee, setRegistrationFee] = useState(1500);
+  const [formData, setFormData] = useState({
+    name: "", phone: "", email: "", district: "", address: "",
+    property_type: "residential", roof_type: "rcc", monthly_bill: "", roof_area: "", notes: ""
+  });
+
+  useEffect(() => {
+    // Fetch current registration fee
+    axios.get(`${API}/registration/fee`).then(res => {
+      setRegistrationFee(res.data.fee);
+    }).catch(err => console.log("Using default fee"));
+
+    // Check if returning from payment
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session_id');
+    if (sessionId) {
+      setStep('checking');
+      checkPaymentStatus(sessionId);
+    }
+  }, []);
+
+  const checkPaymentStatus = async (sessionId) => {
+    try {
+      const res = await axios.get(`${API}/registration/status/${sessionId}`);
+      if (res.data.payment_status === 'paid') {
+        setStep('success');
+      } else {
+        setStep('form');
+        alert('Payment was not completed. Please try again.');
+      }
+    } catch (err) {
+      setStep('form');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.phone) {
+      alert("Name and Phone are required!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await axios.post(`${API}/registration/create-checkout`, {
+        customer: formData,
+        origin_url: window.location.origin
+      });
+      if (res.data.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error creating payment session");
+      setLoading(false);
+    }
+  };
+
+  if (step === 'checking') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-600">Verifying payment status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'success') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h1>
+          <p className="text-gray-600 mb-6">
+            Thank you for registering with ASR Enterprises. Our team will contact you within 24 hours to schedule your solar consultation.
+          </p>
+          <div className="bg-green-50 rounded-lg p-4 mb-6">
+            <p className="text-green-800 font-semibold">Payment Received: ₹{registrationFee}</p>
+            <p className="text-green-600 text-sm">This amount will be adjusted in your final bill</p>
+          </div>
+          <Link to="/" className="inline-block bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center space-x-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <Sun className="w-4 h-4" />
+            <span>PM Surya Ghar Yojana Partner</span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Book Your Solar Installation</h1>
+          <p className="text-gray-600">Register now and get priority service from Bihar's trusted solar experts</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+          <div className="bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl p-4 mb-6 text-white">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm opacity-90">Registration Fee</p>
+                <p className="text-3xl font-bold">₹{registrationFee}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm opacity-90">This amount will be</p>
+                <p className="text-sm font-semibold">Adjusted in final bill</p>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter your name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter your phone"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                <select
+                  value={formData.district}
+                  onChange={(e) => setFormData({...formData, district: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="">Select District</option>
+                  {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                placeholder="Enter your full address"
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+                <select
+                  value={formData.property_type}
+                  onChange={(e) => setFormData({...formData, property_type: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                >
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="industrial">Industrial</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Bill (₹)</label>
+                <input
+                  type="number"
+                  value={formData.monthly_bill}
+                  onChange={(e) => setFormData({...formData, monthly_bill: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="e.g., 3000"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-24 resize-none"
+                placeholder="Any specific requirements..."
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-4 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-yellow-600 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>Pay ₹{registrationFee} & Register</span>
+                  <ChevronRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span>Secure Payment</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span>Instant Confirmation</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 text-center">
+          <Link to="/" className="text-orange-600 hover:text-orange-700 font-medium">
+            ← Back to Home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // HomePage Component
 const HomePage = () => {
   const navigate = useNavigate();

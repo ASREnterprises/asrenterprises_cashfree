@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://social-lead-capture-1.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-solar-crm.preview.emergentagent.com')
 
 class TestHealthAndBasicEndpoints:
     """Test basic health and API endpoints"""

@@ -8,7 +8,7 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - **Location:** Patna, Bihar
 - **Phone:** 8877896889
 - **Email:** asrenterprisespatna@gmail.com
-- **Facebook:** https://www.facebook.com/share/1876swUqxu/
+- **Facebook:** https://www.facebook.com/share/1ALVBDkYKe/
 
 ## Test Credentials
 - **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (or check email)
@@ -25,25 +25,37 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 - Festive banner (auto-displays from admin)
 - AI-generated brand logos
 - Trust badges (MNRE, PM Surya Ghar)
+- **NEW: "Book Now @ ₹1500" button for paid registration**
 
 ### 📊 CRM System (/admin/crm)
 - Lead management with AI scoring
-- **NEW: Manual lead creation with all customer details**
+- **Quick Add Lead** - Fast entry with basic details
+- **Full Form Lead** - Detailed customer information
+- **CSV Bulk Import** - Import multiple leads at once
+- **Fetch Social Leads** - Pull WhatsApp/Facebook leads
 - Staff account management (custom Staff IDs)
 - Task management
 - Internal messaging
-- Work photo gallery (syncs to website)
+- Work photo gallery (multiple photo upload support)
 - Project tracking
-- Payment management
-- **NEW: Auto-capture leads from WhatsApp & Facebook**
+- Payment management with registration fee control
+- Auto-capture leads from WhatsApp & Facebook
+- Lead source tracking with colored badges
 
-### 📱 Social Media Lead Auto-Capture (NEW)
+### 📱 Social Media Lead Auto-Capture
 - WhatsApp Business API webhook integration
 - Facebook Messenger webhook integration
 - Auto-creates lead when customer messages
 - Updates existing lead on repeat messages
 - Stores conversation history in follow-up notes
 - Source marked as "whatsapp" or "facebook"
+
+### 💳 Service Registration with Payment (/register)
+- Customer registration form
+- ₹1500 registration fee (admin configurable)
+- Stripe payment integration
+- Auto-creates high-priority lead on payment success
+- Registration fee reflected in CRM
 
 ### 👨‍💼 Staff Portal (/staff/portal)
 - Assigned leads view

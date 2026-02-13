@@ -4047,6 +4047,90 @@ async def update_registration_fee(data: Dict[str, Any]):
     logger.info(f"Registration fee updated to ₹{REGISTRATION_FEE}")
     return {"success": True, "new_fee": REGISTRATION_FEE}
 
+@api_router.post("/registration/save-details")
+async def save_registration_details(data: Dict[str, Any]):
+    """Save customer registration details before Razorpay payment redirect"""
+    try:
+        customer_data = data.get("customer", {})
+        registration_id = str(uuid.uuid4())
+        
+        # Calculate lead score
+        monthly_bill = customer_data.get("monthly_bill") or 0
+        try:
+            monthly_bill = float(monthly_bill) if monthly_bill else 0
+        except:
+            monthly_bill = 0
+        lead_score = min(100, 50 + int(monthly_bill / 100))
+        
+        # Create registration document
+        registration_doc = {
+            "id": registration_id,
+            "customer": {
+                "name": customer_data.get("name", ""),
+                "phone": customer_data.get("phone", ""),
+                "email": customer_data.get("email", ""),
+                "district": customer_data.get("district", ""),
+                "address": customer_data.get("address", ""),
+                "property_type": customer_data.get("property_type", "residential"),
+                "roof_type": customer_data.get("roof_type", ""),
+                "monthly_bill": monthly_bill,
+                "roof_area": customer_data.get("roof_area"),
+                "notes": customer_data.get("notes", "")
+            },
+            "payment_method": "razorpay_link",
+            "amount": REGISTRATION_FEE,
+            "payment_status": "pending",  # Will be manually marked as paid by admin after receiving payment
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Save to database
+        await db.payment_transactions.insert_one(registration_doc)
+        
+        # Also create a CRM lead immediately (since payment will be manual verification)
+        lead_id = str(uuid.uuid4())
+        crm_lead = {
+            "id": lead_id,
+            "name": customer_data.get("name", ""),
+            "email": customer_data.get("email", ""),
+            "phone": customer_data.get("phone", ""),
+            "district": customer_data.get("district", ""),
+            "address": customer_data.get("address", ""),
+            "property_type": customer_data.get("property_type", "residential"),
+            "monthly_bill": monthly_bill,
+            "roof_area": customer_data.get("roof_area"),
+            "source": "registration",
+            "stage": "new",
+            "assigned_to": None,
+            "assigned_by": None,
+            "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+            "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] REGISTRATION (Razorpay Payment Pending) ₹{REGISTRATION_FEE}. {customer_data.get('notes', '')}",
+            "quoted_amount": None,
+            "system_size": None,
+            "advance_paid": 0.0,  # Will be updated when payment is confirmed
+            "total_amount": 0.0,
+            "pending_amount": 0.0,
+            "lead_score": lead_score,
+            "ai_priority": "high",
+            "ai_suggestions": "REGISTRATION LEAD - Awaiting payment confirmation via Razorpay.",
+            "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": f"Registration ₹{REGISTRATION_FEE} (payment pending)"}],
+            "registration_id": registration_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.crm_leads.insert_one(crm_lead)
+        
+        logger.info(f"Registration saved: {registration_id} - Customer: {customer_data.get('name')} - Phone: {customer_data.get('phone')}")
+        
+        return {
+            "success": True,
+            "registration_id": registration_id,
+            "message": "Registration details saved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Registration save error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/registration/create-checkout")
 async def create_registration_checkout(data: Dict[str, Any], request: Request):
     """Create Stripe checkout session for service registration"""

@@ -63,8 +63,24 @@ export const CRMDashboard = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const ASR_LOGO = "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png";
+  
+  // Manual Lead Creation State
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+  const [newLeadForm, setNewLeadForm] = useState({
+    name: '', email: '', phone: '', district: '', address: '',
+    property_type: 'residential', roof_type: 'rcc', monthly_bill: '',
+    roof_area: '', source: 'manual', notes: ''
+  });
+  const [districts, setDistricts] = useState([]);
 
-  useEffect(() => { fetchAllData(); }, []);
+  useEffect(() => { fetchAllData(); fetchDistricts(); }, []);
+  
+  const fetchDistricts = async () => {
+    try {
+      const res = await axios.get(`${API}/districts`);
+      setDistricts(res.data.districts || []);
+    } catch (err) { console.error("Error fetching districts", err); }
+  };
 
   const fetchAllData = async () => {
     setLoading(true);

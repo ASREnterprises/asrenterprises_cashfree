@@ -1605,6 +1605,8 @@ export default function App() {
         <Route path="/chat" element={<WhatsAppChatPage />} />
         <Route path="/register" element={<ServiceRegistration />} />
         <Route path="/registration-success" element={<ServiceRegistration />} />
+        <Route path="/become-agent" element={<AgentRegistrationPage />} />
+        <Route path="/govt-schemes" element={<PublicGovtNewsPage />} />
         
         {/* Admin Login */}
         <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />

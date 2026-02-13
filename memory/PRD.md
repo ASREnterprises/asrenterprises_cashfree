@@ -1,165 +1,200 @@
 # ASR Enterprises Solar Website - Product Requirements Document
 
 ## Original Problem Statement
-Build a feature-rich website for "ASR Enterprises" - a solar energy business in Patna, Bihar with AI-powered features, admin panel, and comprehensive CRM system for managing leads, staff, and business operations.
+Build a feature-rich website for "ASR Enterprises" - a solar energy business in Patna, Bihar with AI-powered features, admin panel, and comprehensive CRM system.
 
 ## Company Information
 - **Name:** ASR Enterprises
-- **Location:** Patna, Bihar (Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503)
-- **GSTIN:** 10CCFPK3447Q3ZD
+- **Location:** Patna, Bihar
 - **Phone:** 8877896889
 - **Email:** asrenterprisespatna@gmail.com
 - **Facebook:** https://www.facebook.com/share/1876swUqxu/
-- **Instagram:** @asr_enterprises_patna
 
 ## Test Credentials
-- **Admin Login:** asrenterprisespatna@gmail.com (OTP: 131993 - fallback when RESEND_API_KEY not set)
-- **Staff Login:** ASR1001 / asr@123 (Password) OR via Email OTP
+- **Admin:** asrenterprisespatna@gmail.com / OTP: 131993 (or check email)
+- **Staff:** ASR1001 / asr@123
 
-## Implemented Features (100% Complete)
+---
 
-### Homepage Features
-1. Running Flash Advertisement Banner
-2. Trust badges (MNRE Registered, PM Surya Ghar Partner)
-3. Solar Brands Section (TATA, Adani, Luminous, Loom, Waaree, Vikram)
-4. **Solar Inquiry Form** - Auto-creates CRM Lead
-5. **Festive Banner** - Auto-displays active festival posts
-6. Login button in navigation
+## COMPLETE FEATURE LIST
 
-### CRM System - Complete Feature List
+### 🏠 Homepage
+- Running flash advertisement banner
+- Solar inquiry form (auto-creates CRM lead)
+- Festive banner (auto-displays from admin)
+- AI-generated brand logos
+- Trust badges (MNRE, PM Surya Ghar)
 
-#### Admin CRM (/admin/crm)
-1. **Dashboard** with pipeline overview and stats
-2. **Lead Management**
-   - View all leads with filters
-   - Update lead stage
-   - **AI Auto-Assign** (single lead or bulk)
-   - **Send Quote via WhatsApp** - Generates pre-filled quote message
-   - WhatsApp/Call customers directly
-   - Forward leads to staff via WhatsApp
-3. **Staff (Team) Management**
-   - Create staff with **Custom Staff ID**
-   - Edit/Deactivate/Delete staff
-   - Password reset
-4. **Task Management** - Assign tasks to staff
-5. **Messages** - Internal messaging
-6. **Gallery** - Upload work photos (syncs to website)
-7. **Projects** - Track installations
-8. **Payments** - Payment tracking
+### 📊 CRM System (/admin/crm)
+- Lead management with AI scoring
+- Staff account management (custom Staff IDs)
+- Task management
+- Internal messaging
+- Work photo gallery (syncs to website)
+- Project tracking
+- Payment management
 
-#### Staff Portal (/staff/portal)
-1. **Dashboard** with assigned leads and tasks
-2. **My Leads** - View and update assigned leads
-3. **Follow-ups** - Manage follow-up reminders
-4. **Tasks** - Today's tasks
-5. **Messages** - Internal messaging
-6. **Notifications** - Bell icon with dropdown showing:
-   - New lead assignments
-   - Follow-up reminders
-   - Unread count badge
+### 👨‍💼 Staff Portal (/staff/portal)
+- Assigned leads view
+- Follow-up management
+- Task management
+- Notifications bell with dropdown
+- Email OTP login option
 
-### NEW FEATURES (Session 4 - 2026-02-12)
+### 🚀 Business Intelligence Dashboard (/admin/business-dashboard)
 
-#### 1. WhatsApp Web URL Integration ✅
-- **Send Quote via WhatsApp**: Pre-filled message with system size, cost, subsidy, EMI
-- **Forward Lead to Staff**: Notify staff about new assignments
-- **Customer Follow-up**: Quick WhatsApp message to customers
-- **Endpoint**: `POST /api/crm/leads/{lead_id}/send-quote-whatsapp`
+#### 1. Daily Digest
+- Personalized greeting with date
+- AI-powered daily tip
+- New leads count (vs yesterday)
+- Today's revenue
+- Follow-ups scheduled/completed
+- Hot leads to focus (with WhatsApp/Call buttons)
 
-#### 2. AI-Powered Auto Lead Assignment ✅
-- **Strategy**: Location-based (checks staff districts) → Round-robin (least leads)
-- **Single Lead**: `POST /api/crm/leads/{lead_id}/auto-assign`
-- **Bulk All**: `POST /api/crm/leads/auto-assign-all`
-- **UI Button**: "AI Auto-Assign All" on CRM Leads tab
-- **Notifications**: Auto-sends in-app + WhatsApp notification to assigned staff
+#### 2. Staff Leaderboard
+- Performance rankings with scores
+- Top 3 podium display (🥇🥈🥉)
+- Metrics: Conversions, Revenue, Conversion Rate
+- Gamification badges
 
-#### 3. Follow-up Reminder System ✅
-- **Create Follow-up**: With notification to staff
-- **Today's Follow-ups**: `GET /api/crm/followups/today`
-- **WhatsApp URLs**: staff_whatsapp_url (reminder) + customer_whatsapp_url (follow-up message)
-- **In-app Notifications**: Bell icon in Staff Portal
+#### 3. Revenue Dashboard
+- Monthly revenue vs target
+- Progress bar visualization
+- Pipeline value (potential revenue)
+- Revenue by payment type
+- Set monthly target feature
 
-#### 4. Real Email OTP for Login ✅
-- **Admin OTP**: `POST /api/admin/send-otp` → Email via Resend
-- **Staff OTP**: `POST /api/staff/send-otp` → Email via Resend
-- **Fallback**: OTP 131993 works when RESEND_API_KEY not configured
-- **Staff Login UI**: Toggle between Password and Email OTP
+#### 4. Lead Analytics
+- Total leads & this month count
+- Conversion funnel visualization
+- Leads by source
+- Top performing districts
+- Average lead score
 
-## Data Models
-- **Lead:** {name, email, phone, district, status, lead_score, ai_analysis}
-- **CRMLead:** {name, email, phone, district, stage, assigned_to, ai_priority, source}
-- **CRMStaffAccount:** {staff_id, password_hash, name, email, phone, role, districts, leads_assigned}
-- **CRMFollowUp:** {lead_id, employee_id, reminder_date, reminder_time, status}
-- **Notification:** {id, type, title, message, lead_id, is_read, timestamp} (in-memory)
+#### 5. Overdue Lead Alerts
+- Critical (5+ days) - RED
+- 72+ hours - ORANGE
+- 48+ hours - YELLOW
+- 24+ hours - BLUE
+- Quick WhatsApp/Call buttons
 
-## Key API Endpoints
+#### 6. AI Business Insights
+- Conversion rate analysis
+- Top performing district
+- Best lead source
+- Average deal value
+- Top performer recognition
+- Actionable recommendations
 
-### Public
-- `GET /api/photos` - Gallery photos
-- `GET /api/festivals/active` - Active festive banner
-- `POST /api/leads` - Submit inquiry (auto-creates CRM lead)
+#### 7. Commission Calculator
+- Staff commission report
+- Commission rates: Sales 2%, Survey ₹500, Installation 1%, Manager 0.5%
+- Total commission payable
 
-### Admin Auth
-- `POST /api/admin/send-otp` - Send OTP email (returns email_sent status)
-- `POST /api/admin/verify-otp` - Verify OTP
+### 🔔 Notifications & Reminders
+- In-app notifications (bell icon)
+- Follow-up reminders
+- Lead assignment alerts
+- WhatsApp notification URLs
 
-### Staff Auth
-- `POST /api/staff/register` - Create staff (supports custom_staff_id)
-- `POST /api/staff/login` - Password login
-- `POST /api/staff/send-otp` - Send OTP to staff email
-- `POST /api/staff/verify-otp` - Verify staff OTP
+### 📱 WhatsApp Integration
+- Send quotes via WhatsApp (pre-filled message)
+- Follow-up customer via WhatsApp
+- Notify staff via WhatsApp
+- Forward leads to staff WhatsApp
 
-### CRM - Lead Assignment
-- `POST /api/crm/leads/{id}/assign` - Manual assign with WhatsApp notification
-- `POST /api/crm/leads/{id}/auto-assign` - AI auto-assign
-- `POST /api/crm/leads/auto-assign-all` - Bulk auto-assign
+### 🤖 AI Features
+- Lead scoring & prioritization
+- Auto lead assignment (location + round-robin)
+- Daily business tips
+- Business insights & recommendations
 
-### CRM - WhatsApp Integration
-- `POST /api/crm/leads/{id}/send-quote-whatsapp` - Generate quote WhatsApp URL
+### 🔐 Authentication
+- Admin Email OTP (via Resend)
+- Staff Password login
+- Staff Email OTP login
+- Fallback OTP: 131993
 
-### CRM - Notifications
-- `GET /api/staff/{staff_id}/notifications` - Get notifications
-- `PUT /api/staff/{staff_id}/notifications/{id}/read` - Mark read
-- `PUT /api/staff/{staff_id}/notifications/read-all` - Mark all read
+---
 
-### CRM - Follow-ups
-- `POST /api/crm/followups` - Create with notification
-- `GET /api/crm/followups/today` - Today's with WhatsApp URLs
+## API Endpoints Summary
+
+### Business Intelligence APIs
+```
+GET  /api/crm/daily-digest        - Daily summary
+GET  /api/crm/leaderboard         - Staff rankings
+GET  /api/crm/revenue-dashboard   - Revenue analytics
+POST /api/crm/set-target          - Set monthly target
+GET  /api/crm/lead-analytics      - Lead analytics
+GET  /api/crm/overdue-leads       - Overdue alerts
+GET  /api/crm/leads/{id}/timeline - Customer journey
+GET  /api/crm/commissions         - Commission report
+GET  /api/crm/insights            - AI insights
+```
+
+### CRM APIs
+```
+POST /api/crm/leads/{id}/auto-assign     - AI auto-assign
+POST /api/crm/leads/auto-assign-all      - Bulk auto-assign
+POST /api/crm/leads/{id}/send-quote-whatsapp - Quote via WhatsApp
+GET  /api/staff/{id}/notifications       - Staff notifications
+POST /api/crm/followups                  - Create follow-up
+GET  /api/crm/followups/today            - Today's follow-ups
+```
+
+### Auth APIs
+```
+POST /api/admin/send-otp    - Send admin OTP
+POST /api/admin/verify-otp  - Verify admin OTP
+POST /api/staff/send-otp    - Send staff OTP
+POST /api/staff/verify-otp  - Verify staff OTP
+POST /api/staff/login       - Staff password login
+```
+
+---
+
+## Testing Status
+- **Total Tests:** 44/44 passed (100%)
+- **Test Reports:** /app/test_reports/iteration_1-5.json
 
 ## Environment Variables
 ```
-# Backend (.env)
-MONGO_URL="mongodb://localhost:27017"
-DB_NAME="test_database"
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=test_database
 EMERGENT_LLM_KEY=sk-emergent-xxx
-RESEND_API_KEY=re_xxx (optional - falls back to 131993)
+RESEND_API_KEY=re_xxx (configured)
 SENDER_EMAIL=onboarding@resend.dev
 ```
 
-## Testing Status
-- **Backend Tests:** 100% (24/24 passed - iteration_4)
-- **Frontend Tests:** 100% (all features verified)
-- **Test Reports:** /app/test_reports/iteration_4.json
+---
 
-## Known Limitations
-1. **Email OTP**: Requires RESEND_API_KEY - falls back to 131993 if not configured
-2. **Notifications**: Stored in-memory, reset on server restart (not persisted to MongoDB)
-3. **WhatsApp**: Uses wa.me URLs (opens WhatsApp Web) - not true API integration
+## Session Changelog
 
-## Future Enhancements (Backlog)
-- **P1: Persist Notifications**: Store in MongoDB for persistence
-- **P2: Deployment**: Deploy to www.asrenterprisespatna.com
-- **P2: WhatsApp Business API**: Direct messaging (requires Meta approval)
-- **P3: Real-time Updates**: WebSocket for live notifications
-- **P3: Mobile App**: React Native staff app
+### Session 4-5 (2026-02-13)
+- ✅ Staff Performance Leaderboard with rankings
+- ✅ Revenue & Target Dashboard with goal tracking
+- ✅ Lead Analytics with conversion funnel
+- ✅ Overdue Lead Alerts (24h/48h/72h/critical)
+- ✅ Customer Journey Timeline
+- ✅ Commission Calculator
+- ✅ Daily Business Digest with AI tips
+- ✅ Smart Business Insights
+- ✅ Real Email OTP via Resend
+- ✅ WhatsApp Quote Integration
+- ✅ AI Auto Lead Assignment
+- ✅ Follow-up Reminder System
+- ✅ Staff Notifications
 
-## Changelog
-- **2026-02-12 (Session 4):**
-  - WhatsApp Web URL integration for quotes
-  - AI auto lead assignment (location + round-robin)
-  - Follow-up reminder system with notifications
-  - Real email OTP with Resend (fallback 131993)
-  - Staff Portal notification bell with dropdown
-- **2026-02-12 (Session 3):** Gallery Sync, Custom Staff ID, Auto-CRM Lead
-- **2026-02-12 (Session 2):** Login button, ASR logo, Gallery tab
-- **2026-02-12 (Session 1):** CRM with Admin and Staff portals
+### Previous Sessions
+- CRM with Admin & Staff portals
+- Gallery sync to website
+- Custom Staff ID support
+- Mobile gallery upload
+
+---
+
+## Future Roadmap
+- P1: Persist notifications to MongoDB
+- P2: WebSocket real-time updates
+- P2: Deployment to production
+- P3: Mobile app for staff

@@ -1957,114 +1957,190 @@ const SolarCalculatorPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-amber-100 py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-orange-600 hover:text-orange-700 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>
 
+        {/* Hero Banner */}
+        <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 rounded-2xl p-6 mb-8 text-white shadow-xl">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center space-x-4">
+              <img 
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png"
+                alt="ASR Enterprises"
+                className="h-16 w-auto bg-white rounded-lg p-1"
+              />
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">ASR Solar Calculator</h1>
+                <p className="text-orange-100">AI-Powered Savings Estimator</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2 bg-white/20 rounded-lg px-4 py-2">
+              <Sun className="w-6 h-6" />
+              <span className="font-semibold">PM Surya Ghar Partner</span>
+            </div>
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Calculator Form */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
-                <Calculator className="w-8 h-8 text-yellow-600" />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Solar Calculator</h1>
-              <p className="text-gray-600">Get instant cost estimates and AI recommendations</p>
-            </div>
-
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-                <span className="text-red-800">{error}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleCalculate} className="space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Monthly Electricity Bill (₹) *</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.monthly_bill}
-                  onChange={(e) => setFormData({ ...formData, monthly_bill: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                  placeholder="e.g., 5000"
-                  data-testid="calc-monthly-bill-input"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Available Roof Area (sq ft) *</label>
-                <input
-                  type="number"
-                  required
-                  value={formData.roof_area}
-                  onChange={(e) => setFormData({ ...formData, roof_area: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                  placeholder="e.g., 500"
-                  data-testid="calc-roof-area-input"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                  placeholder="City, State"
-                  data-testid="calc-location-input"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Electricity Rate (₹/kWh)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={formData.electricity_rate}
-                  onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                  placeholder="7.5"
-                  data-testid="calc-rate-input"
-                />
-              </div>
-
+          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-6 text-white">
               <div className="flex items-center space-x-3">
-                <input
-                  type="checkbox"
-                  checked={formData.has_three_phase}
-                  onChange={(e) => setFormData({ ...formData, has_three_phase: e.target.checked })}
-                  className="w-5 h-5 text-yellow-600"
-                  data-testid="calc-three-phase-checkbox"
-                />
-                <label className="text-sm font-semibold text-gray-700">I have three-phase connection</label>
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Calculator className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Calculate Your Savings</h2>
+                  <p className="text-orange-100 text-sm">Get instant AI-powered recommendations</p>
+                </div>
               </div>
+            </div>
+            
+            <div className="p-6">
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                  <span className="text-red-800">{error}</span>
+                </div>
+              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-yellow-600 text-white py-4 rounded-lg font-semibold hover:bg-yellow-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                data-testid="calculate-btn"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Calculating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Calculator className="w-5 h-5" />
-                    <span>Calculate with AI</span>
-                  </>
-                )}
-              </button>
-            </form>
+              <form onSubmit={handleCalculate} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <span className="flex items-center space-x-1">
+                      <span>Monthly Electricity Bill</span>
+                      <span className="text-orange-500">*</span>
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">₹</span>
+                    <input
+                      type="number"
+                      required
+                      value={formData.monthly_bill}
+                      onChange={(e) => setFormData({ ...formData, monthly_bill: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                      placeholder="5000"
+                      data-testid="calc-monthly-bill-input"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <span className="flex items-center space-x-1">
+                      <span>Available Roof Area</span>
+                      <span className="text-orange-500">*</span>
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      required
+                      value={formData.roof_area}
+                      onChange={(e) => setFormData({ ...formData, roof_area: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                      placeholder="500"
+                      data-testid="calc-roof-area-input"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">sq ft</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <span className="flex items-center space-x-1">
+                      <span>Your Location</span>
+                      <span className="text-orange-500">*</span>
+                    </span>
+                  </label>
+                  <select
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                    data-testid="calc-location-input"
+                  >
+                    <option value="">Select District</option>
+                    {["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", "Other Bihar District"].map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Electricity Rate</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">₹</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={formData.electricity_rate}
+                        onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
+                        className="w-full pl-10 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                        placeholder="7.5"
+                        data-testid="calc-rate-input"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/kWh</span>
+                    </div>
+                  </div>
+                  <div className="flex items-end">
+                    <label className="flex items-center space-x-3 w-full bg-gray-50 rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-100 transition">
+                      <input
+                        type="checkbox"
+                        checked={formData.has_three_phase}
+                        onChange={(e) => setFormData({ ...formData, has_three_phase: e.target.checked })}
+                        className="w-5 h-5 text-orange-600 rounded"
+                        data-testid="calc-three-phase-checkbox"
+                      />
+                      <span className="text-sm font-medium text-gray-700">3-Phase</span>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 rounded-xl font-bold text-lg hover:from-orange-600 hover:to-amber-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
+                  data-testid="calculate-btn"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Calculating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5" />
+                      <span>Calculate My Savings</span>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Trust Badges */}
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
+                  <div className="flex items-center space-x-1">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Free Estimate</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>AI-Powered</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>No Obligation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Results */}

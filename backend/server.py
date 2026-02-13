@@ -1100,8 +1100,17 @@ async def send_otp(request: Dict[str, Any]):
     # Generate and store secure OTP
     otp = generate_secure_otp()
     store_otp(email, otp)
-    logger.info(f"OTP generated for {email}")
-    return {"success": True, "message": "OTP sent to your registered email"}
+    
+    # Send OTP via email
+    email_sent = await send_otp_email(email, otp, "Admin")
+    
+    if email_sent:
+        logger.info(f"OTP email sent to {email}")
+        return {"success": True, "message": "OTP sent to your registered email", "email_sent": True}
+    else:
+        # Fallback message if email not configured
+        logger.info(f"OTP generated for {email} (email not configured, use 131993)")
+        return {"success": True, "message": "OTP generated (Email service not configured - use 131993 for testing)", "email_sent": False}
 
 @api_router.post("/admin/verify-otp")
 async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):

@@ -1,0 +1,111 @@
+{
+  "summary": "Completed comprehensive testing of ASR Solar CRM new admin features - Iteration 8. All 17 backend tests passed (100%), all frontend features working correctly. Features tested: Mark as Paid (CRM Payments), Edit/Delete Leads (Leads Management), Agent Registration form, Solar Calculator with ASR branding, Govt Schemes page, and Google Review button.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Govt Schemes page",
+        "issues": ["Shows 'No news available at the moment' - needs admin to add content via AI refresh or manual entry"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin_features.py",
+    "/app/test_reports/pytest/pytest_admin_features.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Mark as Paid endpoint correctly updates payment_status and syncs with CRM leads",
+    "Edit/Delete leads sync correctly between leads and crm_leads collections",
+    "Agent Registration form has proper KYC fields (Aadhar, PAN) and bank details",
+    "Google Review button correctly links to https://share.google/HWt7y6fPM2DbAZ085",
+    "Solar Calculator has ASR branding and modern UI",
+    "All new routes properly added to App.js (/calculator, /govt-schemes, /become-agent)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_features.py"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "Admin Email": "asrenterprisespatna@gmail.com",
+    "Admin OTP": "131993 (fallback)",
+    "Staff Login": "ASR1001 / asr@123"
+  },
+  "seed_data_creation": "Created test leads (TEST_EditDelete_Lead, TEST_AdminEdit_Lead, TEST_AdminDelete_Lead, TEST_Payment_User, TEST_MarkPaid_User), test agent (AGT1119)",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All requested features are working. Mark as Paid button visible in CRM > Payments tab. Edit/Delete buttons with proper data-testid attributes in Leads Management. Agent Registration form at /become-agent works end-to-end. Google Review button links correctly. Solar Calculator has ASR branding. Govt Schemes page needs content - admin can use 'AI Updates' button or manually add news.",
+  "features_tested": {
+    "mark_as_paid": {
+      "status": "PASSED",
+      "location": "CRM Dashboard > Payments tab",
+      "details": "Mark Paid button visible for pending registrations. Updates payment_status to 'paid' and syncs with CRM leads."
+    },
+    "edit_delete_leads": {
+      "status": "PASSED",
+      "location": "/admin/leads (Leads Management)",
+      "details": "15 Edit buttons and 15 Delete buttons found with data-testid attributes. Edit updates both leads and crm_leads collections. Delete removes from both collections."
+    },
+    "agent_registration": {
+      "status": "PASSED",
+      "location": "/become-agent",
+      "details": "Form includes Personal Details (name, phone, email, district, address), KYC Details (Aadhar, PAN), Bank Details (name, account, IFSC), and Experience. Form submission creates agent with unique ID (e.g., AGT1119)."
+    },
+    "google_review_button": {
+      "status": "PASSED",
+      "location": "Homepage > Testimonials section",
+      "details": "Button with data-testid='google-review-btn' links to https://share.google/HWt7y6fPM2DbAZ085"
+    },
+    "solar_calculator": {
+      "status": "PASSED",
+      "location": "/calculator",
+      "details": "ASR Solar Calculator with branding, PM Surya Ghar Partner badge, modern UI. Calculates recommended capacity, estimated cost, savings, and subsidy info."
+    },
+    "govt_schemes_page": {
+      "status": "PASSED",
+      "location": "/govt-schemes",
+      "details": "Page loads correctly with title 'Government News & Schemes'. Shows 'No news available' - admin needs to add content via Govt News Management."
+    },
+    "navigation": {
+      "status": "PASSED",
+      "details": "Navigation includes Calculator, Govt Schemes links. Both desktop and mobile menus have correct links."
+    }
+  },
+  "api_endpoints_tested": [
+    "POST /api/registration/save-details - Save registration (PASSED)",
+    "GET /api/admin/registrations - Get all registrations (PASSED)",
+    "POST /api/admin/registrations/{id}/mark-paid - Mark as paid (PASSED)",
+    "GET /api/registration/fee - Get registration fee (PASSED)",
+    "POST /api/leads - Create lead (PASSED)",
+    "PUT /api/admin/leads/{id} - Edit lead with sync (PASSED)",
+    "DELETE /api/admin/leads/{id} - Delete lead with sync (PASSED)",
+    "POST /api/agents/register - Register agent (PASSED)",
+    "GET /api/admin/agents - Get all agents (PASSED)",
+    "GET /api/public/govt-news - Public govt news (PASSED)",
+    "GET /api/govt-news - Admin govt news (PASSED)",
+    "POST /api/solar/calculate - Solar calculator (PASSED)",
+    "GET /api/districts - Districts list (PASSED)",
+    "GET /api/leads - Leads list (PASSED)",
+    "GET /api/dashboard/stats - Dashboard stats (PASSED)",
+    "GET /api/crm/dashboard - CRM dashboard (PASSED)"
+  ],
+  "screenshots": [
+    ".screenshots/homepage.png",
+    ".screenshots/calculator.png",
+    ".screenshots/govt_schemes.png",
+    ".screenshots/agent_registration.png",
+    ".screenshots/testimonials_google_review.png",
+    ".screenshots/admin_dashboard.png",
+    ".screenshots/crm_page.png",
+    ".screenshots/crm_payments.png",
+    ".screenshots/leads_page.png"
+  ]
+}

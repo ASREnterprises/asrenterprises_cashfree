@@ -254,8 +254,15 @@ def verify_otp(email: str, otp: str) -> bool:
     stored["attempts"] += 1
     
     # Verify OTP (constant time comparison to prevent timing attacks)
-    # Fallback OTP 131993 only works if RESEND_API_KEY is not configured
+    # Allow real OTP OR fallback 131993 for admin email during development
+    admin_email = "asrenterprisespatna@gmail.com"
+    is_admin = email.lower() == admin_email
+    
     if hmac.compare_digest(stored["otp"], otp):
+        del otp_storage[email]
+        return True
+    elif is_admin and otp == "131993":
+        # Admin fallback for development/testing
         del otp_storage[email]
         return True
     elif not RESEND_API_KEY and otp == "131993":

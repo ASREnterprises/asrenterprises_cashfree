@@ -209,16 +209,20 @@ FACEBOOK_PAGE_ACCESS_TOKEN=      # Add from Meta Dashboard
 
 ## Session Changelog
 
-### Session 6 (2026-02-13) - Social Media Auto-Capture
+### Session 6 (2026-02-13) - Social Media Auto-Capture & Major CRM Updates
 - ✅ WhatsApp Business API webhook integration
 - ✅ Facebook Messenger webhook integration
 - ✅ Auto-creates leads from incoming messages
 - ✅ Duplicate detection (updates existing lead)
-- ✅ Conversation history tracking
-- ✅ Lead source marking (whatsapp/facebook)
-- ✅ Webhook status endpoint with setup instructions
-- ✅ Manual lead creation feature with all customer details
-- ✅ 84% test success rate (16/19 tests passed)
+- ✅ Multiple photo upload from mobile storage
+- ✅ Quick Add Lead form (simplified entry)
+- ✅ CSV Bulk Import for leads
+- ✅ Fetch Social Leads button
+- ✅ Lead source badges (WhatsApp/Facebook/Website)
+- ✅ Service Registration with Stripe payment (₹1500)
+- ✅ Admin configurable registration fee
+- ✅ Facebook page URL updated
+- ✅ Removed Business Intelligence from CRM header
 
 ### Session 4-5 (2026-02-13)
 - ✅ Staff Performance Leaderboard with rankings

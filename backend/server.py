@@ -2776,6 +2776,200 @@ async def upload_gallery_photo(data: Dict[str, Any]):
     await db.work_photos.insert_one(photo)
     return {"success": True, "photo": photo}
 
+@api_router.post("/gallery/upload-file")
+async def upload_gallery_photo_file(
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    location: str = Form(""),
+    system_size: str = Form("")
+):
+    """Upload photo file directly from mobile/desktop"""
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Validate file size (max 10MB)
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Max 10MB allowed.")
+        
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {allowed_types}")
+        
+        # Convert to base64 data URL for storage
+        base64_content = base64.b64encode(content).decode('utf-8')
+        data_url = f"data:{file.content_type};base64,{base64_content}"
+        
+        photo = {
+            "id": str(uuid.uuid4()),
+            "title": sanitize_input(title),
+            "description": sanitize_input(description),
+            "image_url": data_url,
+            "location": sanitize_input(location),
+            "system_size": system_size,
+            "category": "installation",
+            "file_name": file.filename,
+            "file_size": len(content),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        await db.work_photos.insert_one(photo)
+        logger.info(f"Photo uploaded: {title} - {len(content)} bytes")
+        return {"success": True, "photo": {**photo, "_id": None}}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Photo upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== BULK LEAD IMPORT ====================
+
+@api_router.post("/crm/leads/bulk-import")
+async def bulk_import_leads(file: UploadFile = File(...)):
+    """Import leads from CSV file"""
+    try:
+        content = await file.read()
+        
+        # Validate file type
+        if not file.filename.endswith('.csv'):
+            raise HTTPException(status_code=400, detail="Only CSV files are supported")
+        
+        # Parse CSV
+        decoded = content.decode('utf-8-sig')  # Handle BOM
+        reader = csv.DictReader(io.StringIO(decoded))
+        
+        imported = []
+        errors = []
+        row_num = 1
+        
+        for row in reader:
+            row_num += 1
+            try:
+                # Required field validation
+                name = row.get('name', row.get('Name', row.get('customer_name', ''))).strip()
+                phone = row.get('phone', row.get('Phone', row.get('mobile', row.get('Mobile', '')))).strip()
+                
+                if not name or not phone:
+                    errors.append({"row": row_num, "error": "Name and Phone are required"})
+                    continue
+                
+                # Clean phone number
+                phone = re.sub(r'[^\d]', '', phone)
+                if len(phone) == 10:
+                    phone = f"91{phone}"
+                
+                # Check for duplicate
+                existing = await db.crm_leads.find_one({"phone": phone}, {"_id": 0})
+                if existing:
+                    errors.append({"row": row_num, "error": f"Lead with phone {phone} already exists"})
+                    continue
+                
+                # Parse optional fields
+                email = row.get('email', row.get('Email', '')).strip()
+                district = row.get('district', row.get('District', row.get('city', row.get('City', '')))).strip()
+                address = row.get('address', row.get('Address', '')).strip()
+                property_type = row.get('property_type', row.get('Property Type', 'residential')).strip().lower()
+                
+                monthly_bill_str = row.get('monthly_bill', row.get('Monthly Bill', row.get('bill', ''))).strip()
+                monthly_bill = None
+                if monthly_bill_str:
+                    try:
+                        monthly_bill = float(re.sub(r'[^\d.]', '', monthly_bill_str))
+                    except:
+                        pass
+                
+                roof_area_str = row.get('roof_area', row.get('Roof Area', row.get('area', ''))).strip()
+                roof_area = None
+                if roof_area_str:
+                    try:
+                        roof_area = float(re.sub(r'[^\d.]', '', roof_area_str))
+                    except:
+                        pass
+                
+                source = row.get('source', row.get('Source', 'csv_import')).strip().lower()
+                notes = row.get('notes', row.get('Notes', row.get('remarks', row.get('Remarks', '')))).strip()
+                
+                # Calculate lead score
+                lead_score = min(100, 40 + int((monthly_bill or 0) / 100))
+                ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
+                
+                # Create lead
+                lead_id = str(uuid.uuid4())
+                lead = {
+                    "id": lead_id,
+                    "name": sanitize_input(name),
+                    "email": email,
+                    "phone": phone,
+                    "district": district,
+                    "address": sanitize_input(address),
+                    "property_type": property_type if property_type in ['residential', 'commercial', 'industrial', 'agricultural'] else 'residential',
+                    "monthly_bill": monthly_bill,
+                    "roof_area": roof_area,
+                    "source": source if source else "csv_import",
+                    "stage": "new",
+                    "assigned_to": None,
+                    "assigned_by": None,
+                    "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Imported from CSV. {notes}" if notes else "",
+                    "quoted_amount": None,
+                    "system_size": None,
+                    "advance_paid": 0.0,
+                    "total_amount": 0.0,
+                    "pending_amount": 0.0,
+                    "lead_score": lead_score,
+                    "ai_priority": ai_priority,
+                    "ai_suggestions": None,
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Imported from CSV"}],
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                
+                await db.crm_leads.insert_one(lead)
+                imported.append({"name": name, "phone": phone, "id": lead_id})
+                
+            except Exception as e:
+                errors.append({"row": row_num, "error": str(e)})
+        
+        logger.info(f"Bulk import: {len(imported)} leads imported, {len(errors)} errors")
+        
+        return {
+            "success": True,
+            "imported_count": len(imported),
+            "error_count": len(errors),
+            "imported_leads": imported[:10],  # Return first 10 only
+            "errors": errors[:20],  # Return first 20 errors
+            "message": f"Successfully imported {len(imported)} leads" + (f" with {len(errors)} errors" if errors else "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Bulk import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+@api_router.get("/crm/leads/import-template")
+async def get_import_template():
+    """Get CSV template for bulk import"""
+    return {
+        "columns": ["name", "phone", "email", "district", "address", "property_type", "monthly_bill", "roof_area", "source", "notes"],
+        "required": ["name", "phone"],
+        "example": {
+            "name": "Ramesh Kumar",
+            "phone": "9876543210",
+            "email": "ramesh@example.com",
+            "district": "Patna",
+            "address": "123 Main Road",
+            "property_type": "residential",
+            "monthly_bill": "3500",
+            "roof_area": "500",
+            "source": "referral",
+            "notes": "Interested in 5kW system"
+        },
+        "property_types": ["residential", "commercial", "industrial", "agricultural"],
+        "sources": ["website", "referral", "walk_in", "phone_call", "whatsapp", "facebook", "exhibition", "csv_import"]
+    }
+
 @api_router.get("/")
 async def root():
     return {"message": "ASR Enterprises Solar AI Platform API", "status": "active"}

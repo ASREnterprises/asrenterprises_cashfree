@@ -4359,6 +4359,162 @@ async def get_all_registrations():
         "registrations": registrations
     }
 
+@api_router.post("/admin/registrations/{registration_id}/mark-paid")
+async def mark_registration_paid(registration_id: str, data: Dict[str, Any]):
+    """Mark a registration as paid and update associated CRM lead"""
+    try:
+        payment_id = data.get("payment_id", "")
+        amount = data.get("amount", REGISTRATION_FEE)
+        
+        # Update registration status
+        result = await db.payment_transactions.update_one(
+            {"id": registration_id},
+            {"$set": {
+                "payment_status": "paid",
+                "payment_id": payment_id,
+                "amount": float(amount),
+                "paid_at": datetime.now(timezone.utc).isoformat(),
+                "marked_paid_by": "admin"
+            }}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        
+        # Update associated CRM lead
+        await db.crm_leads.update_one(
+            {"registration_id": registration_id},
+            {"$set": {
+                "advance_paid": float(amount),
+                "ai_suggestions": f"PAYMENT CONFIRMED - ₹{amount} via Razorpay. Payment ID: {payment_id}",
+                "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] PAYMENT CONFIRMED ₹{amount}. Razorpay ID: {payment_id}"
+            }}
+        )
+        
+        logger.info(f"Registration {registration_id} marked as paid - ₹{amount}")
+        return {"success": True, "message": "Payment marked as confirmed"}
+    except Exception as e:
+        logger.error(f"Error marking registration paid: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== EDIT/DELETE LEADS WITH SYNC ====================
+
+@api_router.put("/admin/leads/{lead_id}")
+async def admin_update_lead(lead_id: str, data: Dict[str, Any]):
+    """Admin update lead - syncs with both leads and crm_leads collections"""
+    try:
+        update_data = {k: v for k, v in data.items() if k not in ["id", "_id", "timestamp"]}
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        
+        # Update in leads collection
+        await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+        
+        # Update in crm_leads collection
+        await db.crm_leads.update_one({"id": lead_id}, {"$set": update_data})
+        
+        logger.info(f"Lead {lead_id} updated by admin")
+        return {"success": True, "message": "Lead updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating lead: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/leads/{lead_id}")
+async def admin_delete_lead(lead_id: str):
+    """Admin delete lead - removes from both collections"""
+    try:
+        # Delete from leads collection
+        await db.leads.delete_one({"id": lead_id})
+        
+        # Delete from crm_leads collection
+        await db.crm_leads.delete_one({"id": lead_id})
+        
+        logger.info(f"Lead {lead_id} deleted by admin")
+        return {"success": True, "message": "Lead deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting lead: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== AGENT REGISTRATION ====================
+
+class AgentRegistration(BaseModel):
+    name: str
+    phone: str
+    email: str = ""
+    district: str
+    address: str = ""
+    aadhar_number: str = ""
+    pan_number: str = ""
+    bank_name: str = ""
+    bank_account: str = ""
+    ifsc_code: str = ""
+    experience: str = ""
+    notes: str = ""
+
+@api_router.post("/agents/register")
+async def register_agent(agent: AgentRegistration):
+    """Register a new referral agent"""
+    try:
+        agent_id = f"AGT{random.randint(1000, 9999)}"
+        
+        agent_doc = {
+            "id": str(uuid.uuid4()),
+            "agent_id": agent_id,
+            "name": agent.name,
+            "phone": agent.phone,
+            "email": agent.email,
+            "district": agent.district,
+            "address": agent.address,
+            "aadhar_number": agent.aadhar_number,
+            "pan_number": agent.pan_number,
+            "bank_details": {
+                "bank_name": agent.bank_name,
+                "account_number": agent.bank_account,
+                "ifsc_code": agent.ifsc_code
+            },
+            "experience": agent.experience,
+            "notes": agent.notes,
+            "status": "pending",  # pending, approved, rejected
+            "referrals": 0,
+            "total_commission": 0.0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.agents.insert_one(agent_doc)
+        logger.info(f"New agent registered: {agent_id} - {agent.name}")
+        
+        return {
+            "success": True,
+            "agent_id": agent_id,
+            "message": "Registration submitted successfully. Our team will contact you soon."
+        }
+    except Exception as e:
+        logger.error(f"Agent registration error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/agents")
+async def get_all_agents():
+    """Get all registered agents"""
+    agents = await db.agents.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"agents": agents}
+
+@api_router.put("/admin/agents/{agent_id}/status")
+async def update_agent_status(agent_id: str, data: Dict[str, Any]):
+    """Update agent status (approve/reject)"""
+    status = data.get("status", "pending")
+    await db.agents.update_one(
+        {"agent_id": agent_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"success": True}
+
+# ==================== PUBLIC GOVT NEWS ====================
+
+@api_router.get("/public/govt-news")
+async def get_public_govt_news():
+    """Get govt news for public website (read-only)"""
+    news = await db.govt_news.find({}, {"_id": 0}).sort("date", -1).to_list(20)
+    return news
+
 app.include_router(api_router)
 
 # CORS configuration with security

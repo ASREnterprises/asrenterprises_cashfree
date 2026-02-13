@@ -86,8 +86,39 @@ export const CRMDashboard = () => {
   
   // Multiple Photo Upload State  
   const [photoFiles, setPhotoFiles] = useState([]);
+  
+  // Registration Fee State
+  const [registrationFee, setRegistrationFee] = useState(1500);
+  const [newRegistrationFee, setNewRegistrationFee] = useState('');
+  const [registrations, setRegistrations] = useState([]);
 
-  useEffect(() => { fetchAllData(); fetchDistricts(); }, []);
+  useEffect(() => { fetchAllData(); fetchDistricts(); fetchRegistrations(); }, []);
+  
+  const fetchRegistrations = async () => {
+    try {
+      const [feeRes, regRes] = await Promise.all([
+        axios.get(`${API}/registration/fee`),
+        axios.get(`${API}/admin/registrations`)
+      ]);
+      setRegistrationFee(feeRes.data.fee);
+      setRegistrations(regRes.data.registrations || []);
+    } catch (err) { console.error("Error fetching registrations", err); }
+  };
+  
+  const updateRegistrationFee = async () => {
+    if (!newRegistrationFee || parseFloat(newRegistrationFee) < 0) {
+      alert("Please enter a valid fee amount");
+      return;
+    }
+    try {
+      await axios.post(`${API}/registration/update-fee`, { fee: parseFloat(newRegistrationFee) });
+      setRegistrationFee(parseFloat(newRegistrationFee));
+      setNewRegistrationFee('');
+      alert("Registration fee updated successfully!");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error updating fee");
+    }
+  };
   
   const fetchDistricts = async () => {
     try {

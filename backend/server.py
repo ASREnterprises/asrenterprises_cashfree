@@ -938,20 +938,35 @@ async def refresh_govt_news():
         chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
             session_id=str(uuid.uuid4()),
-            system_message="You are an AI assistant that generates news updates about government solar schemes in India."
+            system_message="You are an AI assistant specializing in Indian government solar energy schemes and policies. Provide accurate, up-to-date information about PM Surya Ghar Muft Bijli Yojana and Bihar state solar initiatives."
         )
+        
+        current_date = datetime.now().strftime("%B %Y")
         response = await chat.send_message(
-            model="gpt-4o-mini",
-            messages=[UserMessage(text="""Generate 3 latest realistic news updates about PM Surya Ghar Yojana for Bihar state. 
-            Include subsidy updates, new guidelines, or implementation news.
-            Format as JSON array with fields: title, summary, category (scheme/subsidy/guideline/update)
-            Make it realistic and helpful for Bihar residents interested in solar installation.
-            Example format: [{"title": "...", "summary": "...", "category": "scheme"}]""")]
+            model="gpt-4o",
+            messages=[UserMessage(text=f"""Generate 4 latest and realistic news updates about PM Surya Ghar Yojana and solar schemes for Bihar state as of {current_date}.
+
+Include updates about:
+1. Current subsidy amounts and eligibility (up to ₹78,000 for residential)
+2. Application process updates via BREDA or national portal
+3. New policy announcements or deadline extensions
+4. Success stories or installation targets for Bihar
+
+Format as JSON array with fields: title, summary, category
+Categories: subsidy, scheme, guideline, update, success_story
+
+Make updates realistic, informative, and helpful for Bihar residents planning solar installation.
+Include specific details like subsidy amounts, capacity limits (1-3kW gets higher subsidy), portal names.
+
+Example format: [{{"title": "...", "summary": "...", "category": "subsidy"}}]
+Return ONLY the JSON array, no other text.""")]
         )
         
         # Parse AI response
-        import ast
         news_items = json.loads(response.replace("```json", "").replace("```", "").strip())
+        
+        # Clear old news and add fresh updates
+        await db.govt_news.delete_many({})
         
         # Store in database
         for item in news_items:
@@ -965,21 +980,24 @@ async def refresh_govt_news():
             doc['timestamp'] = doc['timestamp'].isoformat()
             await db.govt_news.insert_one(doc)
         
-        return {"success": True, "message": f"Added {len(news_items)} news updates"}
+        logger.info(f"Govt news refreshed with {len(news_items)} items")
+        return {"success": True, "message": f"Added {len(news_items)} latest news updates"}
     except Exception as e:
         logger.error(f"Error refreshing govt news: {e}")
         # Add default news if AI fails
+        await db.govt_news.delete_many({})
         default_news = [
-            {"title": "PM Surya Ghar Yojana: ₹78,000 Maximum Subsidy Available", "summary": "Bihar residents can avail up to ₹78,000 subsidy for rooftop solar installation under PM Surya Ghar Muft Bijli Yojana. Apply through official portal.", "category": "subsidy"},
-            {"title": "Free Electricity for 1 Crore Homes Target", "summary": "Government aims to provide free electricity to 1 crore households through rooftop solar. Bihar allocation increased for FY 2025-26.", "category": "scheme"},
-            {"title": "Simplified Application Process for Bihar", "summary": "BREDA has simplified the solar subsidy application process. Residents can now apply online with minimal documentation.", "category": "update"}
+            {"title": "PM Surya Ghar Yojana: ₹78,000 Maximum Subsidy for Bihar Residents", "summary": "Bihar residents can avail up to ₹78,000 subsidy for 3kW rooftop solar installation under PM Surya Ghar Muft Bijli Yojana. 1-2kW systems get ₹30,000/kW subsidy, 2-3kW gets ₹18,000/kW for additional capacity. Apply through national portal pmsuryaghar.gov.in or BREDA.", "category": "subsidy"},
+            {"title": "BREDA Simplifies Solar Application Process in Bihar", "summary": "Bihar Renewable Energy Development Agency (BREDA) has streamlined the solar subsidy application. Residents need only Aadhar, electricity bill, and bank details. Applications processed within 30 days. Technical inspection scheduled within 15 days of approval.", "category": "update"},
+            {"title": "1 Crore Homes Target: Bihar Gets Increased Allocation", "summary": "Under PM Surya Ghar scheme target of 1 crore solar rooftop homes, Bihar's allocation has been increased for FY 2025-26. Priority given to rural and semi-urban areas. Free electricity up to 300 units/month for eligible households.", "category": "scheme"},
+            {"title": "Net Metering Benefits: Sell Excess Solar Power to Grid", "summary": "Bihar residents with rooftop solar can sell excess electricity to BSPHCL through net metering. Earn ₹2-3 per unit for surplus power. Smart meters being installed across state for accurate billing. Apply for net metering along with solar installation.", "category": "guideline"}
         ]
         for item in default_news:
             news = GovtNews(title=item["title"], summary=item["summary"], source="PM Surya Ghar Yojana - Bihar", category=item["category"])
             doc = news.model_dump()
             doc['timestamp'] = doc['timestamp'].isoformat()
             await db.govt_news.insert_one(doc)
-        return {"success": True, "message": "Added default news updates"}
+        return {"success": True, "message": "Added latest news updates"}
 
 @api_router.delete("/admin/govt-news/{news_id}")
 async def delete_govt_news(news_id: str):

@@ -687,6 +687,32 @@ async def create_lead(lead_data: LeadCreate):
     doc = lead_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
     await db.leads.insert_one(doc)
+    
+    # Auto-create CRM lead for seamless integration
+    try:
+        crm_lead = CRMLead(
+            id=lead_obj.id,  # Use same ID for correlation
+            name=lead_data.name,
+            email=lead_data.email,
+            phone=lead_data.phone,
+            district=lead_data.district,
+            address=lead_data.address,
+            property_type=lead_data.property_type,
+            monthly_bill=lead_data.monthly_bill,
+            roof_area=lead_data.roof_area,
+            source="website",
+            stage="new",
+            lead_score=ai_result.get("lead_score", 50),
+            ai_priority="high" if ai_result.get("lead_score", 50) >= 80 else "medium" if ai_result.get("lead_score", 50) >= 50 else "low",
+            ai_suggestions=ai_result.get("ai_analysis", "")
+        )
+        crm_doc = crm_lead.model_dump()
+        crm_doc['timestamp'] = crm_doc['timestamp'].isoformat()
+        await db.crm_leads.insert_one(crm_doc)
+        logger.info(f"Auto-created CRM lead for {lead_data.name}")
+    except Exception as e:
+        logger.error(f"Failed to auto-create CRM lead: {e}")
+    
     return lead_obj
 
 @api_router.get("/leads", response_model=List[Lead])

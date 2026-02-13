@@ -357,6 +357,29 @@ const HomePage = () => {
         )}
       </nav>
 
+      {/* Festive Banner - Auto-display from Admin Panel */}
+      {festiveBanner && (
+        <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-4 px-4 text-center shadow-lg" data-testid="festive-banner">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center space-y-2 md:space-y-0 md:space-x-4">
+            {festiveBanner.image_url && (
+              <img src={festiveBanner.image_url} alt={festiveBanner.title} className="h-16 w-16 rounded-lg object-cover" />
+            )}
+            <div className="text-white">
+              <h3 className="text-xl font-bold">{festiveBanner.title}</h3>
+              <p className="text-pink-100 text-sm">{festiveBanner.message}</p>
+            </div>
+            <a
+              href="https://wa.me/918877896889?text=Happy%20Festive%20Season!%20I%20want%20to%20know%20about%20solar%20offers"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition text-sm"
+            >
+              Get Festive Offer
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">

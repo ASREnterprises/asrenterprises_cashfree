@@ -712,6 +712,14 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+              <button
+                onClick={() => navigate('/register')}
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-lg font-bold hover:from-orange-600 hover:to-red-600 transition flex items-center justify-center space-x-2 shadow-lg animate-pulse"
+                data-testid="book-now-btn"
+              >
+                <Zap className="w-5 h-5" />
+                <span>Book Now @ ₹1,500</span>
+              </button>
               <a
                 href="tel:8877896889"
                 className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center space-x-2 shadow-lg"
@@ -730,6 +738,9 @@ const HomePage = () => {
                 <MessageSquare className="w-5 h-5" />
                 <span>WhatsApp Us</span>
               </a>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
               <button
                 onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
                 className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600 transition shadow-lg"

@@ -178,6 +178,10 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 otp_storage = {}
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
 
+# ==================== NOTIFICATION STORAGE ====================
+# In-app notifications storage
+notifications_storage = defaultdict(list)
+
 def generate_secure_otp() -> str:
     """Generate a secure 6-digit OTP"""
     return str(random.SystemRandom().randint(100000, 999999))
@@ -189,6 +193,46 @@ def store_otp(email: str, otp: str):
         "timestamp": time.time(),
         "attempts": 0
     }
+
+async def send_otp_email(email: str, otp: str, user_type: str = "Admin") -> bool:
+    """Send OTP via Resend Email API"""
+    if not RESEND_API_KEY:
+        logger.warning("RESEND_API_KEY not configured - OTP email not sent")
+        return False
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" alt="ASR Enterprises" style="height: 60px;">
+        </div>
+        <h2 style="color: #ea580c; text-align: center;">ASR Enterprises - {user_type} Login</h2>
+        <p style="color: #333; font-size: 16px;">Your One-Time Password (OTP) for login verification:</p>
+        <div style="background: linear-gradient(135deg, #ea580c, #f97316); color: white; font-size: 32px; font-weight: bold; text-align: center; padding: 20px; border-radius: 10px; letter-spacing: 8px; margin: 20px 0;">
+            {otp}
+        </div>
+        <p style="color: #666; font-size: 14px;">This OTP is valid for 5 minutes. Do not share it with anyone.</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+        <p style="color: #999; font-size: 12px; text-align: center;">
+            ASR Enterprises - Bihar's Trusted Solar Rooftop Installation Company<br>
+            📞 8877896889 | ✉️ asrenterprisespatna@gmail.com
+        </p>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [email],
+        "subject": f"ASR Enterprises - Your {user_type} Login OTP: {otp}",
+        "html": html_content
+    }
+    
+    try:
+        result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"OTP email sent to {email}, ID: {result.get('id')}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send OTP email to {email}: {e}")
+        return False
 
 def verify_otp(email: str, otp: str) -> bool:
     """Verify OTP with expiry and attempt checking"""
@@ -210,11 +254,43 @@ def verify_otp(email: str, otp: str) -> bool:
     stored["attempts"] += 1
     
     # Verify OTP (constant time comparison to prevent timing attacks)
-    if hmac.compare_digest(stored["otp"], otp) or otp == "131993":
+    # Fallback OTP 131993 only works if RESEND_API_KEY is not configured
+    if hmac.compare_digest(stored["otp"], otp):
+        del otp_storage[email]
+        return True
+    elif not RESEND_API_KEY and otp == "131993":
+        # Fallback for testing without email configured
         del otp_storage[email]
         return True
     
     return False
+
+# ==================== NOTIFICATION FUNCTIONS ====================
+
+def add_notification(staff_id: str, notification_type: str, title: str, message: str, lead_id: str = None):
+    """Add in-app notification for staff"""
+    notification = {
+        "id": str(uuid.uuid4()),
+        "type": notification_type,  # followup, lead_assigned, message, reminder
+        "title": title,
+        "message": message,
+        "lead_id": lead_id,
+        "is_read": False,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    notifications_storage[staff_id].append(notification)
+    # Keep only last 50 notifications per staff
+    if len(notifications_storage[staff_id]) > 50:
+        notifications_storage[staff_id] = notifications_storage[staff_id][-50:]
+    return notification
+
+def get_whatsapp_url(phone: str, message: str) -> str:
+    """Generate WhatsApp Web URL with pre-filled message"""
+    clean_phone = re.sub(r'\D', '', phone)
+    if not clean_phone.startswith('91'):
+        clean_phone = f'91{clean_phone}'
+    encoded_message = message.replace(' ', '%20').replace('\n', '%0A')
+    return f"https://wa.me/{clean_phone}?text={encoded_message}"
 
 # Staff Authentication Storage
 staff_sessions = {}

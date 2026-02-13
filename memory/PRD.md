@@ -28,6 +28,7 @@ Build a feature-rich website for "ASR Enterprises" - a solar energy business in 
 
 ### 📊 CRM System (/admin/crm)
 - Lead management with AI scoring
+- **NEW: Manual lead creation with all customer details**
 - Staff account management (custom Staff IDs)
 - Task management
 - Internal messaging

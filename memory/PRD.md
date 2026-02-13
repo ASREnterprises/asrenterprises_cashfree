@@ -184,11 +184,27 @@ DB_NAME=test_database
 EMERGENT_LLM_KEY=sk-emergent-xxx
 RESEND_API_KEY=re_xxx (configured)
 SENDER_EMAIL=onboarding@resend.dev
+WEBHOOK_VERIFY_TOKEN=asr_solar_verify_2024
+WHATSAPP_PHONE_NUMBER_ID=        # Add from Meta Dashboard
+WHATSAPP_ACCESS_TOKEN=           # Add from Meta Dashboard
+FACEBOOK_APP_ID=                 # Add from Meta Dashboard
+FACEBOOK_APP_SECRET=             # Add from Meta Dashboard
+FACEBOOK_PAGE_ACCESS_TOKEN=      # Add from Meta Dashboard
 ```
 
 ---
 
 ## Session Changelog
+
+### Session 6 (2026-02-13) - Social Media Auto-Capture
+- ✅ WhatsApp Business API webhook integration
+- ✅ Facebook Messenger webhook integration
+- ✅ Auto-creates leads from incoming messages
+- ✅ Duplicate detection (updates existing lead)
+- ✅ Conversation history tracking
+- ✅ Lead source marking (whatsapp/facebook)
+- ✅ Webhook status endpoint with setup instructions
+- ✅ 84% test success rate (16/19 tests passed)
 
 ### Session 4-5 (2026-02-13)
 - ✅ Staff Performance Leaderboard with rankings

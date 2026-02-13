@@ -59,6 +59,10 @@ export const StaffPortal = () => {
     setStaffData(JSON.parse(data));
   }, [navigate]);
 
+  const [notifications, setNotifications] = useState([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+
   useEffect(() => {
     if (staffData?.staff_id) fetchAllData();
   }, [staffData]);
@@ -66,13 +70,14 @@ export const StaffPortal = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes] = await Promise.all([
+      const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes, notifRes] = await Promise.all([
         axios.get(`${API}/staff/${staffData.staff_id}/dashboard`),
         axios.get(`${API}/staff/${staffData.staff_id}/leads`),
         axios.get(`${API}/staff/${staffData.staff_id}/followups`),
         axios.get(`${API}/staff/${staffData.staff_id}/tasks/today`).catch(() => ({ data: [] })),
         axios.get(`${API}/staff/${staffData.staff_id}/messages`).catch(() => ({ data: [] })),
-        axios.get(`${API}/staff/${staffData.staff_id}/messages/unread`).catch(() => ({ data: { count: 0 } }))
+        axios.get(`${API}/staff/${staffData.staff_id}/messages/unread`).catch(() => ({ data: { count: 0 } })),
+        axios.get(`${API}/staff/${staffData.staff_id}/notifications`).catch(() => ({ data: { notifications: [], unread_count: 0 } }))
       ]);
       setDashboard(dashRes.data);
       setLeads(leadsRes.data);
@@ -80,10 +85,30 @@ export const StaffPortal = () => {
       setTasks(tasksRes.data || []);
       setMessages(msgRes.data || []);
       setUnreadCount(unreadRes.data?.count || 0);
+      setNotifications(notifRes.data?.notifications || []);
+      setNotifUnread(notifRes.data?.unread_count || 0);
     } catch (err) {
       console.error("Error:", err);
     }
     setLoading(false);
+  };
+
+  const markNotificationRead = async (notifId) => {
+    try {
+      await axios.put(`${API}/staff/${staffData.staff_id}/notifications/${notifId}/read`);
+      fetchAllData();
+    } catch (err) {
+      console.error("Error marking notification read");
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      await axios.put(`${API}/staff/${staffData.staff_id}/notifications/read-all`);
+      fetchAllData();
+    } catch (err) {
+      console.error("Error marking all read");
+    }
   };
 
   const handleLogout = () => {

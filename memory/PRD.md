@@ -152,6 +152,16 @@ POST /api/crm/followups                  - Create follow-up
 GET  /api/crm/followups/today            - Today's follow-ups
 ```
 
+### Social Media Webhook APIs (NEW)
+```
+GET  /api/webhook/whatsapp              - WhatsApp verification
+POST /api/webhook/whatsapp              - Receive WhatsApp messages
+GET  /api/webhook/facebook              - Facebook verification
+POST /api/webhook/facebook              - Receive Messenger messages
+GET  /api/webhook/status                - Webhook configuration status
+GET  /api/webhook/recent-social-leads   - Recent social media leads
+```
+
 ### Auth APIs
 ```
 POST /api/admin/send-otp    - Send admin OTP

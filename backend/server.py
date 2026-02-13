@@ -18,7 +18,9 @@ import re
 import hashlib
 import hmac
 import time
+import asyncio
 from collections import defaultdict
+import resend
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -26,6 +28,12 @@ load_dotenv(ROOT_DIR / '.env')
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ==================== EMAIL CONFIGURATION ====================
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
 
 # ==================== SECURITY CONFIGURATION ====================
 

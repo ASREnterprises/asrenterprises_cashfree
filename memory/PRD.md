@@ -231,6 +231,29 @@ FACEBOOK_PAGE_ACCESS_TOKEN=      # Add from Meta Dashboard
 
 ## Future Roadmap
 - P1: Persist notifications to MongoDB
+- P1: Configure Meta credentials for full social integration
 - P2: WebSocket real-time updates
 - P2: Deployment to production
+- P2: Refactor server.py into smaller routers
 - P3: Mobile app for staff
+
+---
+
+## How to Configure WhatsApp & Facebook Integration
+
+### WhatsApp Business API Setup:
+1. Go to [Meta for Developers](https://developers.facebook.com)
+2. Create/select your app → WhatsApp → API Setup
+3. Get: Phone Number ID, Business Account ID, Access Token
+4. Add webhook URL: `YOUR_DOMAIN/api/webhook/whatsapp`
+5. Use verify token: `asr_solar_verify_2024`
+6. Subscribe to "messages" events
+7. Add credentials to `/app/backend/.env`
+
+### Facebook Messenger Setup:
+1. In your app → Messenger → Settings
+2. Generate Page Access Token for your business page
+3. Add webhook URL: `YOUR_DOMAIN/api/webhook/facebook`
+4. Use verify token: `asr_solar_verify_2024`
+5. Subscribe to "messages" events
+6. Add credentials to `/app/backend/.env`

@@ -949,12 +949,16 @@ export const CRMDashboard = () => {
                   onChange={handleFileSelect} 
                   accept="image/*" 
                   capture="environment"
+                  multiple
                   className="hidden" 
                 />
                 <button onClick={() => fileInputRef.current?.click()} className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold mb-3">
-                  <Camera className="w-5 h-5 inline mr-2" />Select from Gallery / Take Photo
+                  <Camera className="w-5 h-5 inline mr-2" />Select Photos / Take Photo
                 </button>
-                <p className="text-gray-400 text-sm">Tap to open camera or select from gallery</p>
+                <p className="text-gray-400 text-sm">Tap to open camera or select multiple from gallery</p>
+                {photoFiles.length > 1 && (
+                  <p className="text-green-400 text-sm mt-2">{photoFiles.length} photos selected</p>
+                )}
                 <p className="text-gray-500 text-xs mt-1">or paste image URL below</p>
               </div>
               
@@ -973,9 +977,9 @@ export const CRMDashboard = () => {
             <div className="flex space-x-3 mt-6">
               <button onClick={uploadPhoto} disabled={uploading} className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center space-x-2">
                 {uploading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
-                <span>{uploading ? "Uploading..." : "Upload to Gallery"}</span>
+                <span>{uploading ? "Uploading..." : photoFiles.length > 1 ? `Upload ${photoFiles.length} Photos` : "Upload to Gallery"}</span>
               </button>
-              <button onClick={() => { setShowPhotoUploadModal(false); setPhotoPreview(''); setPhotoFile(null); }} className="px-6 py-3 bg-gray-700 text-white rounded-lg">Cancel</button>
+              <button onClick={() => { setShowPhotoUploadModal(false); setPhotoPreview(''); setPhotoFile(null); setPhotoFiles([]); }} className="px-6 py-3 bg-gray-700 text-white rounded-lg">Cancel</button>
             </div>
           </div>
         </div>

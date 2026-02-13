@@ -1,15 +1,26 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Search, Filter, Phone, Mail, MapPin, Calendar, Star, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ArrowLeft, Search, Phone, Mail, MapPin, Star, Trash2, Edit, X, Save } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const BIHAR_DISTRICTS = [
+  "Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", 
+  "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", 
+  "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", 
+  "Nawada", "Bagaha", "Buxar", "Kishanganj", "Sitamarhi", "Jamalpur", 
+  "Jehanabad", "Aurangabad", "Samastipur", "Madhubani", "Vaishali",
+  "Nalanda", "Rohtas", "Saran", "East Champaran", "West Champaran"
+];
 
 export const LeadsManagement = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [editingLead, setEditingLead] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   useEffect(() => {
     fetchLeads();
@@ -28,6 +39,8 @@ export const LeadsManagement = () => {
   const handleStatusChange = async (leadId, status) => {
     try {
       await axios.put(`${API}/leads/${leadId}/status`, { status });
+      // Also update in admin leads for sync
+      await axios.put(`${API}/admin/leads/${leadId}`, { status });
       fetchLeads();
     } catch (err) {
       alert("Error updating status");
@@ -35,13 +48,41 @@ export const LeadsManagement = () => {
   };
 
   const handleDelete = async (leadId) => {
-    if (window.confirm("Delete this lead?")) {
+    if (window.confirm("Delete this lead? This will also remove it from CRM.")) {
       try {
-        await axios.delete(`${API}/leads/${leadId}`);
+        await axios.delete(`${API}/admin/leads/${leadId}`);
         fetchLeads();
       } catch (err) {
         alert("Error deleting lead");
       }
+    }
+  };
+
+  const handleEdit = (lead) => {
+    setEditingLead(lead.id);
+    setEditForm({
+      name: lead.name || "",
+      phone: lead.phone || "",
+      email: lead.email || "",
+      district: lead.district || "",
+      address: lead.address || "",
+      property_type: lead.property_type || "residential",
+      roof_type: lead.roof_type || "rcc",
+      monthly_bill: lead.monthly_bill || "",
+      status: lead.status || "new",
+      notes: lead.notes || ""
+    });
+  };
+
+  const handleSaveEdit = async (leadId) => {
+    try {
+      await axios.put(`${API}/admin/leads/${leadId}`, editForm);
+      setEditingLead(null);
+      setEditForm({});
+      fetchLeads();
+      alert("Lead updated successfully!");
+    } catch (err) {
+      alert("Error updating lead");
     }
   };
 
@@ -95,12 +136,14 @@ export const LeadsManagement = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg"
+              data-testid="leads-search-input"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="bg-gray-700 text-white px-4 py-3 rounded-lg"
+            data-testid="leads-filter-status"
           >
             <option value="all">All Status</option>
             <option value="new">New</option>
@@ -144,82 +187,221 @@ export const LeadsManagement = () => {
         ) : (
           <div className="space-y-4">
             {filteredLeads.map((lead) => (
-              <div key={lead.id} className="bg-gray-800 rounded-xl p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-xl font-bold text-white">{lead.name}</h3>
-                      <span className={`${getStatusColor(lead.status)} text-white text-xs px-2 py-1 rounded capitalize`}>
-                        {lead.status || "new"}
-                      </span>
-                      {lead.lead_score && (
-                        <span className={`${getScoreColor(lead.lead_score)} font-bold flex items-center`}>
-                          <Star className="w-4 h-4 mr-1" />
-                          {lead.lead_score}%
-                        </span>
-                      )}
+              <div key={lead.id} className="bg-gray-800 rounded-xl p-6" data-testid={`lead-card-${lead.id}`}>
+                {editingLead === lead.id ? (
+                  /* Edit Mode */
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-bold text-white">Edit Lead</h3>
+                      <button onClick={() => setEditingLead(null)} className="text-gray-400 hover:text-white">
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                    
-                    <div className="grid md:grid-cols-3 gap-2 text-sm text-gray-400">
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2" />
-                        <a href={`tel:${lead.phone}`} className="hover:text-white">{lead.phone}</a>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-gray-400 text-sm">Name *</label>
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        />
                       </div>
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2" />
-                        <a href={`mailto:${lead.email}`} className="hover:text-white truncate">{lead.email}</a>
+                      <div>
+                        <label className="text-gray-400 text-sm">Phone *</label>
+                        <input
+                          type="text"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        />
                       </div>
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {lead.district}, Bihar
+                      <div>
+                        <label className="text-gray-400 text-sm">Email</label>
+                        <input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm({...editForm, email: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-sm">District</label>
+                        <select
+                          value={editForm.district}
+                          onChange={(e) => setEditForm({...editForm, district: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        >
+                          <option value="">Select District</option>
+                          {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-sm">Property Type</label>
+                        <select
+                          value={editForm.property_type}
+                          onChange={(e) => setEditForm({...editForm, property_type: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        >
+                          <option value="residential">Residential</option>
+                          <option value="commercial">Commercial</option>
+                          <option value="industrial">Industrial</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-sm">Roof Type</label>
+                        <select
+                          value={editForm.roof_type}
+                          onChange={(e) => setEditForm({...editForm, roof_type: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        >
+                          <option value="rcc">RCC</option>
+                          <option value="tin_shed">Tin Shed</option>
+                          <option value="asbestos">Asbestos</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-sm">Monthly Bill (₹)</label>
+                        <input
+                          type="number"
+                          value={editForm.monthly_bill}
+                          onChange={(e) => setEditForm({...editForm, monthly_bill: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-gray-400 text-sm">Status</label>
+                        <select
+                          value={editForm.status}
+                          onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        >
+                          <option value="new">New</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="qualified">Qualified</option>
+                          <option value="converted">Converted</option>
+                          <option value="lost">Lost</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-gray-400 text-sm">Address</label>
+                        <input
+                          type="text"
+                          value={editForm.address}
+                          onChange={(e) => setEditForm({...editForm, address: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-gray-400 text-sm">Notes</label>
+                        <textarea
+                          value={editForm.notes}
+                          onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1 h-20"
+                        />
                       </div>
                     </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                      <span className="bg-gray-700 px-2 py-1 rounded text-gray-300">{lead.property_type}</span>
-                      <span className="bg-gray-700 px-2 py-1 rounded text-gray-300">{lead.roof_type} roof</span>
-                      {lead.monthly_bill && <span className="bg-green-700 px-2 py-1 rounded text-green-300">₹{lead.monthly_bill}/month</span>}
-                      {lead.recommended_system && <span className="bg-blue-700 px-2 py-1 rounded text-blue-300">{lead.recommended_system}</span>}
-                    </div>
-
-                    {lead.ai_analysis && (
-                      <div className="mt-3 bg-purple-600 bg-opacity-20 border border-purple-600 rounded-lg p-3">
-                        <span className="text-purple-400 text-xs font-semibold">AI Analysis: </span>
-                        <span className="text-gray-300 text-xs">{lead.ai_analysis}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col space-y-2">
-                    <select
-                      value={lead.status || "new"}
-                      onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                      className="bg-gray-700 text-white px-3 py-2 rounded-lg text-sm"
-                    >
-                      <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="qualified">Qualified</option>
-                      <option value="converted">Converted</option>
-                      <option value="lost">Lost</option>
-                    </select>
-                    <div className="flex space-x-2">
-                      <a
-                        href={`https://wa.me/91${lead.phone}?text=Hi ${lead.name}, Thank you for your interest in solar installation. I'm from ASR Enterprises, Patna.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 text-center"
-                      >
-                        WhatsApp
-                      </a>
+                    <div className="flex space-x-3 mt-4">
                       <button
-                        onClick={() => handleDelete(lead.id)}
-                        className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700"
+                        onClick={() => handleSaveEdit(lead.id)}
+                        className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-green-700"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Save className="w-4 h-4" /><span>Save Changes</span>
+                      </button>
+                      <button
+                        onClick={() => setEditingLead(null)}
+                        className="px-6 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-500"
+                      >
+                        Cancel
                       </button>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  /* View Mode */
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-xl font-bold text-white">{lead.name}</h3>
+                        <span className={`${getStatusColor(lead.status)} text-white text-xs px-2 py-1 rounded capitalize`}>
+                          {lead.status || "new"}
+                        </span>
+                        {lead.lead_score && (
+                          <span className={`${getScoreColor(lead.lead_score)} font-bold flex items-center`}>
+                            <Star className="w-4 h-4 mr-1" />
+                            {lead.lead_score}%
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="grid md:grid-cols-3 gap-2 text-sm text-gray-400">
+                        <div className="flex items-center">
+                          <Phone className="w-4 h-4 mr-2" />
+                          <a href={`tel:${lead.phone}`} className="hover:text-white">{lead.phone}</a>
+                        </div>
+                        <div className="flex items-center">
+                          <Mail className="w-4 h-4 mr-2" />
+                          <a href={`mailto:${lead.email}`} className="hover:text-white truncate">{lead.email || "N/A"}</a>
+                        </div>
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {lead.district || "N/A"}, Bihar
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                        <span className="bg-gray-700 px-2 py-1 rounded text-gray-300">{lead.property_type}</span>
+                        <span className="bg-gray-700 px-2 py-1 rounded text-gray-300">{lead.roof_type} roof</span>
+                        {lead.monthly_bill && <span className="bg-green-700 px-2 py-1 rounded text-green-300">₹{lead.monthly_bill}/month</span>}
+                        {lead.recommended_system && <span className="bg-blue-700 px-2 py-1 rounded text-blue-300">{lead.recommended_system}</span>}
+                      </div>
+
+                      {lead.ai_analysis && (
+                        <div className="mt-3 bg-purple-600 bg-opacity-20 border border-purple-600 rounded-lg p-3">
+                          <span className="text-purple-400 text-xs font-semibold">AI Analysis: </span>
+                          <span className="text-gray-300 text-xs">{lead.ai_analysis}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col space-y-2">
+                      <select
+                        value={lead.status || "new"}
+                        onChange={(e) => handleStatusChange(lead.id, e.target.value)}
+                        className="bg-gray-700 text-white px-3 py-2 rounded-lg text-sm"
+                      >
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="converted">Converted</option>
+                        <option value="lost">Lost</option>
+                      </select>
+                      <div className="flex space-x-2">
+                        <a
+                          href={`https://wa.me/91${lead.phone}?text=Hi ${lead.name}, Thank you for your interest in solar installation. I'm from ASR Enterprises, Patna.`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 text-center"
+                        >
+                          WhatsApp
+                        </a>
+                        <button
+                          onClick={() => handleEdit(lead)}
+                          className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+                          data-testid={`edit-lead-${lead.id}`}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(lead.id)}
+                          className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700"
+                          data-testid={`delete-lead-${lead.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

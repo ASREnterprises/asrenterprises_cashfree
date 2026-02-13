@@ -1125,6 +1125,158 @@ export const CRMDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Add Lead Modal */}
+      {showQuickAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+              <Plus className="w-5 h-5 text-green-400" />
+              <span>Quick Add Lead</span>
+            </h2>
+            <div className="space-y-3">
+              <input 
+                type="text" 
+                value={quickLeadForm.name} 
+                onChange={(e) => setQuickLeadForm({...quickLeadForm, name: e.target.value})} 
+                placeholder="Customer Name *" 
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                data-testid="quick-lead-name"
+              />
+              <input 
+                type="tel" 
+                value={quickLeadForm.phone} 
+                onChange={(e) => setQuickLeadForm({...quickLeadForm, phone: e.target.value})} 
+                placeholder="Phone Number *" 
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+                data-testid="quick-lead-phone"
+              />
+              <select 
+                value={quickLeadForm.district} 
+                onChange={(e) => setQuickLeadForm({...quickLeadForm, district: e.target.value})} 
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+              >
+                <option value="">Select District (Optional)</option>
+                {districts.map((d) => (<option key={d} value={d}>{d}</option>))}
+              </select>
+              <select 
+                value={quickLeadForm.source} 
+                onChange={(e) => setQuickLeadForm({...quickLeadForm, source: e.target.value})} 
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg"
+              >
+                <option value="manual">Manual Entry</option>
+                <option value="walk_in">Walk-in</option>
+                <option value="phone_call">Phone Call</option>
+                <option value="referral">Referral</option>
+              </select>
+            </div>
+            <div className="flex space-x-3 mt-6">
+              <button 
+                onClick={createQuickLead} 
+                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2"
+                data-testid="quick-create-btn"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add Lead</span>
+              </button>
+              <button 
+                onClick={() => setShowQuickAddModal(false)} 
+                className="px-6 py-3 bg-gray-700 text-white rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-lg w-full">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center space-x-2">
+              <Upload className="w-5 h-5 text-orange-400" />
+              <span>Bulk Import Leads</span>
+            </h2>
+            
+            {!bulkImportResult ? (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                  <input 
+                    type="file" 
+                    ref={bulkFileInputRef}
+                    accept=".csv"
+                    onChange={(e) => setBulkImportFile(e.target.files[0])}
+                    className="hidden" 
+                  />
+                  <FileSpreadsheet className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                  <button 
+                    onClick={() => bulkFileInputRef.current?.click()} 
+                    className="bg-orange-600 text-white px-6 py-2 rounded-lg font-medium mb-2"
+                  >
+                    Select CSV File
+                  </button>
+                  {bulkImportFile && (
+                    <p className="text-green-400 text-sm mt-2">{bulkImportFile.name}</p>
+                  )}
+                  <p className="text-gray-500 text-xs mt-2">CSV file with columns: name, phone, email, district, etc.</p>
+                </div>
+                
+                <button 
+                  onClick={downloadCSVTemplate} 
+                  className="w-full bg-gray-700 text-gray-300 py-2 rounded-lg text-sm flex items-center justify-center space-x-2"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download CSV Template</span>
+                </button>
+
+                <div className="flex space-x-3 mt-4">
+                  <button 
+                    onClick={handleBulkImport} 
+                    disabled={!bulkImportFile || bulkImporting}
+                    className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    {bulkImporting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                    <span>{bulkImporting ? "Importing..." : "Import Leads"}</span>
+                  </button>
+                  <button 
+                    onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); }} 
+                    className="px-6 py-3 bg-gray-700 text-white rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className={`p-4 rounded-lg ${bulkImportResult.imported_count > 0 ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                  <p className="text-lg font-semibold text-white mb-2">{bulkImportResult.message}</p>
+                  <div className="flex space-x-4 text-sm">
+                    <span className="text-green-400">Imported: {bulkImportResult.imported_count}</span>
+                    <span className="text-red-400">Errors: {bulkImportResult.error_count}</span>
+                  </div>
+                </div>
+                
+                {bulkImportResult.errors?.length > 0 && (
+                  <div className="bg-gray-700 rounded-lg p-3 max-h-40 overflow-y-auto">
+                    <p className="text-red-400 text-sm font-semibold mb-2">Errors:</p>
+                    {bulkImportResult.errors.slice(0, 10).map((err, i) => (
+                      <p key={i} className="text-gray-400 text-xs">Row {err.row}: {err.error}</p>
+                    ))}
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); }} 
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -418,6 +418,9 @@ export const CRMDashboard = () => {
                 {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
               </select>
               <div className="flex space-x-2">
+                <button onClick={() => setShowAddLeadModal(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 hover:bg-green-700 transition" data-testid="add-lead-btn">
+                  <Plus className="w-4 h-4" /><span>Add Lead</span>
+                </button>
                 <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg font-medium flex items-center space-x-2 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
                   <Zap className="w-4 h-4" /><span>AI Auto-Assign All</span>
                 </button>

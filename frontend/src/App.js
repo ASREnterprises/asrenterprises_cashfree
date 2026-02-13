@@ -569,6 +569,7 @@ const HomePage = () => {
               <Link to="/" className="text-gray-700 hover:text-blue-600 transition">Home</Link>
               <Link to="/gallery" className="text-gray-700 hover:text-blue-600 transition">Gallery</Link>
               <Link to="/calculator" className="text-gray-700 hover:text-blue-600 transition">Calculator</Link>
+              <Link to="/govt-schemes" className="text-gray-700 hover:text-blue-600 transition">Govt Schemes</Link>
               <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition">Contact</Link>
               <Link to="/admin/login" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition text-sm font-semibold">Login</Link>
             </div>
@@ -590,6 +591,7 @@ const HomePage = () => {
               <Link to="/" className="block py-2 text-gray-700">Home</Link>
               <Link to="/gallery" className="block py-2 text-gray-700">Gallery</Link>
               <Link to="/calculator" className="block py-2 text-gray-700">Calculator</Link>
+              <Link to="/govt-schemes" className="block py-2 text-gray-700">Govt Schemes</Link>
               <Link to="/contact" className="block py-2 text-gray-700">Contact</Link>
               <Link to="/admin/login" className="block py-2 text-blue-600 font-semibold">Login (Admin/Staff)</Link>
             </div>

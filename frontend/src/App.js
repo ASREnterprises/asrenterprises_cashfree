@@ -290,7 +290,7 @@ const ServiceRegistration = () => {
           <p className="text-gray-400 mb-6">
             Thank you for registering with ASR Enterprises. Our team will contact you within 24 hours to schedule your solar consultation.
           </p>
-          <div className="bg-green-50 rounded-lg p-4 mb-6">
+          <div className="bg-green-500/10 rounded-lg p-4 mb-6">
             <p className="text-green-800 font-semibold">Payment Received: ₹{registrationFee}</p>
             <p className="text-green-600 text-sm">This amount will be adjusted in your final bill</p>
           </div>
@@ -802,7 +802,7 @@ const HomePage = () => {
             </div>
           </div>
           <div className="text-center mt-8">
-            <p className="text-sm text-gray-400 bg-green-50 inline-block px-6 py-2 rounded-full">
+            <p className="text-sm text-gray-400 bg-green-500/10 inline-block px-6 py-2 rounded-full">
               <CheckCircle className="w-4 h-4 inline mr-2 text-green-600" />
               All brands come with 25-year performance warranty
             </p>
@@ -832,7 +832,7 @@ const HomePage = () => {
                 <li>✓ 2 kW system: ₹60,000 subsidy</li>
                 <li>✓ 3 kW system: ₹78,000 subsidy (Maximum)</li>
               </ul>
-              <div className="bg-green-50 p-3 rounded-lg">
+              <div className="bg-green-500/10 p-3 rounded-lg">
                 <p className="text-xs text-green-800 font-semibold">📋 ASR Enterprises handles complete subsidy documentation & approval!</p>
               </div>
             </div>
@@ -852,7 +852,7 @@ const HomePage = () => {
                 <li>✓ 5-year inverter warranty</li>
                 <li>✓ Grid synchronization support</li>
               </ul>
-              <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="bg-blue-500/10 p-3 rounded-lg">
                 <p className="text-xs text-blue-800 font-semibold">⚡ Start saving from day one with net metering!</p>
               </div>
             </div>
@@ -872,7 +872,7 @@ const HomePage = () => {
                 <li>✓ 3-5 year payback period</li>
                 <li>✓ Zero down payment options</li>
               </ul>
-              <div className="bg-purple-50 p-3 rounded-lg">
+              <div className="bg-purple-500/10 p-3 rounded-lg">
                 <p className="text-xs text-purple-800 font-semibold">🏦 Partner with all major banks for easy financing</p>
               </div>
             </div>
@@ -1055,7 +1055,7 @@ const HomePage = () => {
       </div>
 
       {/* Why Choose ASR Enterprises */}
-      <div className="bg-gradient-to-br from-blue-50 to-green-50 py-20">
+      <div className="bg-gradient-to-br from-[#0a1628] to-[#0d1b33] py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Residential & Commercial Services */}
           <div className="text-center mb-12">
@@ -1098,7 +1098,7 @@ const HomePage = () => {
                   <span><strong>Quick Installation:</strong> 3-5 days complete setup</span>
                 </li>
               </ul>
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-500/10 p-4 rounded-lg">
                 <p className="text-sm font-semibold text-blue-900">💡 Save 85-90% on electricity bills!</p>
               </div>
             </div>
@@ -1137,7 +1137,7 @@ const HomePage = () => {
                   <span><strong>Maintenance:</strong> AMC contracts with 24/7 support</span>
                 </li>
               </ul>
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="bg-green-500/10 p-4 rounded-lg">
                 <p className="text-sm font-semibold text-green-900">📈 Reduce operational costs by 70%!</p>
               </div>
             </div>
@@ -1716,7 +1716,7 @@ const LeadCapturePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
@@ -1733,7 +1733,7 @@ const LeadCapturePage = () => {
           </div>
 
           {success && aiAnalysis && (
-            <div className="mb-6 p-6 bg-green-50 border border-green-200 rounded-lg" data-testid="success-message">
+            <div className="mb-6 p-6 bg-green-500/10 border border-green-500/30 rounded-lg" data-testid="success-message">
               <div className="flex items-start space-x-3">
                 <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
                 <div className="flex-1">
@@ -1749,7 +1749,7 @@ const LeadCapturePage = () => {
           )}
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3" data-testid="error-message">
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-3" data-testid="error-message">
               <AlertCircle className="w-6 h-6 text-red-600" />
               <span className="text-red-800">{error}</span>
             </div>
@@ -1958,7 +1958,7 @@ const SolarCalculatorPage = () => {
             
             <div className="p-6">
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3">
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-3">
                   <AlertCircle className="w-6 h-6 text-red-600" />
                   <span className="text-red-800">{error}</span>
                 </div>
@@ -1979,7 +1979,7 @@ const SolarCalculatorPage = () => {
                       required
                       value={formData.monthly_bill}
                       onChange={(e) => setFormData({ ...formData, monthly_bill: e.target.value })}
-                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-600 rounded-xl bg-gray-700/50 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                       placeholder="5000"
                       data-testid="calc-monthly-bill-input"
                     />
@@ -1999,7 +1999,7 @@ const SolarCalculatorPage = () => {
                       required
                       value={formData.roof_area}
                       onChange={(e) => setFormData({ ...formData, roof_area: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                      className="w-full px-4 py-3 border-2 border-gray-600 rounded-xl bg-gray-700/50 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                       placeholder="500"
                       data-testid="calc-roof-area-input"
                     />
@@ -2018,7 +2018,7 @@ const SolarCalculatorPage = () => {
                     required
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                    className="w-full px-4 py-3 border-2 border-gray-600 rounded-xl bg-gray-700/50 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                     data-testid="calc-location-input"
                   >
                     <option value="">Select District</option>
@@ -2038,7 +2038,7 @@ const SolarCalculatorPage = () => {
                         step="0.1"
                         value={formData.electricity_rate}
                         onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
-                        className="w-full pl-10 pr-16 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                        className="w-full pl-10 pr-16 py-3 border-2 border-gray-600 rounded-xl bg-gray-700/50 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
                         placeholder="7.5"
                         data-testid="calc-rate-input"
                       />
@@ -2046,7 +2046,7 @@ const SolarCalculatorPage = () => {
                     </div>
                   </div>
                   <div className="flex items-end">
-                    <label className="flex items-center space-x-3 w-full bg-gray-50 rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-100 transition">
+                    <label className="flex items-center space-x-3 w-full bg-gray-700/50 rounded-xl px-4 py-3 cursor-pointer hover:bg-gray-600/50 transition">
                       <input
                         type="checkbox"
                         checked={formData.has_three_phase}
@@ -2080,7 +2080,7 @@ const SolarCalculatorPage = () => {
               </form>
 
               {/* Trust Badges */}
-              <div className="mt-6 pt-6 border-t border-gray-100">
+              <div className="mt-6 pt-6 border-t border-gray-700">
                 <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
                   <div className="flex items-center space-x-1">
                     <CheckCircle className="w-4 h-4 text-green-500" />
@@ -2107,7 +2107,7 @@ const SolarCalculatorPage = () => {
                   <h2 className="text-2xl font-bold text-white mb-6">Your Solar System</h2>
                   
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-blue-500/10 rounded-lg">
                       <span className="text-gray-300 font-semibold">Recommended Capacity</span>
                       <span className="text-2xl font-bold text-blue-600">{result.recommended_capacity_kw} kW</span>
                     </div>
@@ -2434,7 +2434,7 @@ const PublicGovtNewsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />

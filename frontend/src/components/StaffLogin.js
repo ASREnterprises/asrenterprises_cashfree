@@ -129,7 +129,6 @@ export const StaffLogin = () => {
                 src="/asr_logo_dark.png" 
                 alt="ASR Enterprises" 
                 className="h-14 w-auto"
-                style={{ mixBlendMode: 'lighten' }}
               />
             </div>
             <h1 className="text-2xl font-bold text-white">Staff Portal</h1>

@@ -76,7 +76,6 @@ export const AdminLogin = ({ onLogin }) => {
               src="/asr_logo_dark.png" 
               alt="ASR Enterprises" 
               className="h-16 w-auto"
-              style={{ mixBlendMode: 'lighten' }}
             />
           </div>
           <h1 className="text-4xl font-extrabold text-white mb-2">ASR ENTERPRISES</h1>

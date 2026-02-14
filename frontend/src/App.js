@@ -532,7 +532,6 @@ const HomePage = () => {
                 src="/asr_logo_dark.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
-                style={{ mixBlendMode: 'lighten' }}
               />
               <div className="flex flex-col">
                 <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 tracking-tight leading-tight">ASR ENTERPRISES</span>
@@ -742,7 +741,6 @@ const HomePage = () => {
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2ec9e58fd2abff0bdf30ff0421355525a7340de1ca2a28c48b166c013ee92e32.png" 
                   alt="TATA Power Solar" 
                   className="h-16 w-auto object-contain"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">TATA Power Solar</h3>
@@ -756,7 +754,6 @@ const HomePage = () => {
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/41dcb615eba9ab569f57551b6ff6382956917056e859b5e54978a7c236d87429.png" 
                   alt="Adani Solar" 
                   className="h-16 w-auto object-contain"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Adani Solar</h3>
@@ -770,7 +767,6 @@ const HomePage = () => {
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/aec140fce213a04d665f5b8cb77d677357d947b90cf77e9b13525221364096d4.png" 
                   alt="Luminous Solar" 
                   className="h-16 w-auto object-contain"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Luminous Solar</h3>
@@ -784,7 +780,6 @@ const HomePage = () => {
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/cd17c9473d45036b2878ebac38a938b0d04b3405eeef23360c0c5176a762e138.png" 
                   alt="Loom Solar" 
                   className="h-16 w-auto object-contain"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Loom Solar</h3>
@@ -798,7 +793,6 @@ const HomePage = () => {
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/7ec5409d65b483bfe009d1dc7e6a7ee6df1d67bb7a31a531ada18708020e63f7.png" 
                   alt="Waaree Solar" 
                   className="h-16 w-auto object-contain"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Waaree Solar</h3>
@@ -812,7 +806,6 @@ const HomePage = () => {
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2bf4384279551841349eac5d02f7b1c15550a0b920a4eda5dca5b62f94302fb0.png" 
                   alt="Vikram Solar" 
                   className="h-16 w-auto object-contain"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Vikram Solar</h3>
@@ -1415,7 +1408,6 @@ const HomePage = () => {
                   src="/asr_logo_dark.png" 
                   alt="ASR Enterprises Patna" 
                   className="h-12 w-auto"
-                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="text-xl font-bold mb-2">ASR ENTERPRISES</h3>
@@ -1947,7 +1939,6 @@ const SolarCalculatorPage = () => {
                 src="/asr_logo_dark.png"
                 alt="ASR Enterprises"
                 className="h-16 w-auto rounded-lg p-1"
-                style={{ mixBlendMode: 'lighten' }}
               />
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">ASR Solar Calculator</h1>

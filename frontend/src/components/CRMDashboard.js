@@ -479,7 +479,6 @@ export const CRMDashboard = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Link to="/admin/dashboard" className="text-gray-400 hover:text-white"><ArrowLeft className="w-6 h-6" /></Link>
-              <img src={ASR_LOGO} alt="ASR" className="h-12 rounded-lg p-1" style={{ mixBlendMode: 'lighten' }} />
               <div>
                 <h1 className="text-2xl font-bold text-white">ASR CRM System</h1>
                 <p className="text-gray-400 text-sm">Manage leads, staff & operations</p>

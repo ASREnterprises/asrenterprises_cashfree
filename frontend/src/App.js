@@ -549,7 +549,7 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Premium Navigation */}
-      <nav className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-2xl sticky top-0 z-50 border-b border-amber-500/20">
+      <nav className="bg-gradient-to-r from-[#0a1628] via-[#0f2240] to-[#0a1628] shadow-2xl sticky top-0 z-50 border-b border-amber-500/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-4">
@@ -559,8 +559,8 @@ const HomePage = () => {
                 className="h-16 w-auto"
               />
               <div className="flex flex-col">
-                <span className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 tracking-tight">ASR ENTERPRISES</span>
-                <span className="text-xs text-slate-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
+                <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 tracking-tight leading-tight">ASR ENTERPRISES</span>
+                <span className="text-[10px] md:text-xs text-slate-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </div>
             

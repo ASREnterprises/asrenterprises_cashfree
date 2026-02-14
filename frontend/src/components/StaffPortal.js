@@ -164,6 +164,7 @@ export const StaffPortal = () => {
         sender_id: staffData.id,
         sender_name: staffData.name,
         sender_type: "staff",
+        receiver_id: "admin",
         message: newMessage
       });
       setNewMessage("");

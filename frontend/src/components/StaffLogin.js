@@ -252,7 +252,7 @@ export const StaffLogin = () => {
                 Back to Login
               </button>
             </form>
-            )
+            )}
           ) : (
             <form onSubmit={handleOtpLogin} className="space-y-6">
               <div>

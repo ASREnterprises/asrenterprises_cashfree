@@ -4415,6 +4415,19 @@ async def mark_registration_paid(registration_id: str, data: Dict[str, Any]):
         logger.error(f"Error marking registration paid: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.delete("/admin/registrations/{registration_id}")
+async def delete_registration(registration_id: str):
+    """Admin deletes a registration record"""
+    try:
+        result = await db.payment_transactions.delete_one({"id": registration_id})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Registration not found")
+        logger.info(f"Registration {registration_id} deleted")
+        return {"success": True, "message": "Registration deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting registration: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ==================== EDIT/DELETE LEADS WITH SYNC ====================
 
 @api_router.put("/admin/leads/{lead_id}")

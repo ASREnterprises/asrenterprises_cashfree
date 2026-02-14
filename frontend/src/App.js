@@ -511,7 +511,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
       {/* Premium Navigation */}
       <nav className="bg-gradient-to-r from-[#0a1628] via-[#0f2240] to-[#0a1628] shadow-2xl sticky top-0 z-50 border-b border-amber-500/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

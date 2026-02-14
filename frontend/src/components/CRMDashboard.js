@@ -586,15 +586,10 @@ export const CRMDashboard = () => {
         {activeTab === "leads" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
-                  <option value="">All Stages</option>
-                  {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
-                </select>
-                <a href="/admin/leads" target="_blank" rel="noopener noreferrer" className="bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-gray-600 transition" data-testid="manage-leads-btn">
-                  <Eye className="w-4 h-4" /><span>Manage Leads</span>
-                </a>
-              </div>
+              <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <option value="">All Stages</option>
+                {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
+              </select>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setShowQuickAddModal(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-green-700 transition" data-testid="quick-add-btn">
                   <Plus className="w-4 h-4" /><span>Quick Add</span>

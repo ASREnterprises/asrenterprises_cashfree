@@ -80,11 +80,23 @@ const SolarInquiryForm = () => {
     setError("");
     
     try {
+      // Execute invisible reCAPTCHA
+      let token = recaptchaToken;
+      if (recaptchaRef.current && RECAPTCHA_SITE_KEY) {
+        try {
+          token = await recaptchaRef.current.executeAsync();
+          recaptchaRef.current.reset();
+        } catch (recaptchaErr) {
+          // Continue without reCAPTCHA if it fails
+          console.log("reCAPTCHA skipped");
+        }
+      }
+      
       await axios.post(`${API}/secure-lead`, {
         ...formData,
         monthly_bill: parseFloat(formData.monthly_bill) || null,
         roof_area: parseFloat(formData.roof_area) || null,
-        recaptcha_token: recaptchaToken || "",
+        recaptcha_token: token || "",
         website_url: honeypot
       });
       setSuccess(true);

@@ -95,6 +95,14 @@ class TestStaffLogin2FA:
     
     def test_staff_verify_2fa_success(self):
         """POST /api/staff/verify-2fa with valid OTP returns token"""
+        # First trigger OTP generation by calling staff login
+        login_response = requests.post(f"{BASE_URL}/api/staff/login", json={
+            "staff_id": "ASR1001",
+            "password": "asr@123"
+        })
+        assert login_response.status_code == 200, f"Login step 1 failed: {login_response.text}"
+        
+        # Now verify with test OTP 131993
         response = requests.post(f"{BASE_URL}/api/staff/verify-2fa", json={
             "staff_id": "ASR1001",
             "password": "asr@123",

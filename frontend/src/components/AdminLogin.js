@@ -143,25 +143,25 @@ export const AdminLogin = ({ onLogin }) => {
           ) : (
             <form onSubmit={verifyOTP} className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Enter OTP</h2>
-                <p className="text-gray-600 text-sm">We've sent a 6-digit code to {email}</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Enter OTP</h2>
+                <p className="text-gray-400 text-sm">We've sent a 6-digit code to {email}</p>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
                   6-Digit OTP
                 </label>
                 <input
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest font-bold"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest font-bold placeholder-gray-400"
                   placeholder="000000"
                   maxLength="6"
                   required
@@ -181,7 +181,7 @@ export const AdminLogin = ({ onLogin }) => {
               <button
                 type="button"
                 onClick={() => { setStep(1); setOtp(""); setError(""); }}
-                className="w-full text-blue-600 py-2 text-sm font-semibold hover:text-blue-700"
+                className="w-full text-blue-400 py-2 text-sm font-semibold hover:text-blue-300"
               >
                 ← Back to Email
               </button>
@@ -190,11 +190,11 @@ export const AdminLogin = ({ onLogin }) => {
         </div>
 
         {/* Staff Login Link */}
-        <div className="bg-white bg-opacity-20 rounded-xl p-4 mt-6 text-center">
-          <p className="text-white text-sm mb-2">Are you a staff member?</p>
+        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mt-6 text-center">
+          <p className="text-gray-300 text-sm mb-2">Are you a staff member?</p>
           <button
             onClick={() => navigate("/staff/login")}
-            className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+            className="bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-600 transition border border-gray-600"
           >
             Staff Login →
           </button>

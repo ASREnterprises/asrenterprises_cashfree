@@ -812,7 +812,23 @@ async def get_districts():
     return {"districts": BIHAR_DISTRICTS}
 
 @api_router.post("/leads", response_model=Lead)
-async def create_lead(lead_data: LeadCreate):
+async def create_lead(request: Request, lead_data: LeadCreate):
+    # Verify reCAPTCHA if token provided
+    body = await request.body()
+    try:
+        body_json = json.loads(body)
+        recaptcha_token = body_json.get("recaptcha_token", "")
+        if recaptcha_token:
+            is_valid = await verify_recaptcha(recaptcha_token)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail="reCAPTCHA verification failed. Please try again.")
+        # Check honeypot
+        if not check_honeypot(body_json):
+            logger.warning(f"Honeypot triggered on lead form from IP: {get_client_ip(request)}")
+            raise HTTPException(status_code=400, detail="Form submission rejected")
+    except (json.JSONDecodeError, AttributeError):
+        pass
+    
     ai_result = await analyze_lead_with_ai(lead_data)
     lead_obj = Lead(**lead_data.model_dump(), **ai_result)
     doc = lead_obj.model_dump()

@@ -281,7 +281,7 @@ const ServiceRegistration = () => {
 
   if (step === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] flex items-center justify-center p-4">
         <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-700">
           <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-400" />
@@ -291,7 +291,7 @@ const ServiceRegistration = () => {
             Thank you for registering with ASR Enterprises. Our team will contact you within 24 hours to schedule your solar consultation.
           </p>
           <div className="bg-green-500/10 rounded-lg p-4 mb-6">
-            <p className="text-green-800 font-semibold">Payment Received: ₹{registrationFee}</p>
+            <p className="text-green-400 font-semibold">Payment Received: ₹{registrationFee}</p>
             <p className="text-green-400 text-sm">This amount will be adjusted in your final bill</p>
           </div>
           <Link to="/" className="inline-block bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
@@ -303,10 +303,10 @@ const ServiceRegistration = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-orange-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Sun className="w-4 h-4" />
             <span>PM Surya Ghar Yojana Partner</span>
           </div>
@@ -833,7 +833,7 @@ const HomePage = () => {
                 <li>✓ 3 kW system: ₹78,000 subsidy (Maximum)</li>
               </ul>
               <div className="bg-green-500/10 p-3 rounded-lg">
-                <p className="text-xs text-green-800 font-semibold">📋 ASR Enterprises handles complete subsidy documentation & approval!</p>
+                <p className="text-xs text-green-400 font-semibold">📋 ASR Enterprises handles complete subsidy documentation & approval!</p>
               </div>
             </div>
 
@@ -1738,7 +1738,7 @@ const LeadCapturePage = () => {
                 <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
                 <div className="flex-1">
                   <h3 className="font-bold text-green-400 mb-2">Lead Submitted Successfully!</h3>
-                  <div className="space-y-2 text-sm text-green-800">
+                  <div className="space-y-2 text-sm text-green-400">
                     <p><strong>Lead Score:</strong> {aiAnalysis.lead_score}/100</p>
                     <p><strong>Recommended System:</strong> {aiAnalysis.recommended_system}</p>
                     <p><strong>AI Analysis:</strong> {aiAnalysis.ai_analysis}</p>
@@ -2339,7 +2339,7 @@ const AgentRegistrationPage = () => {
             </div>
 
             <div className="bg-green-50 rounded-xl p-4 mb-6">
-              <h3 className="font-semibold text-green-800 mb-2">Bank Details (For Commission)</h3>
+              <h3 className="font-semibold text-green-400 mb-2">Bank Details (For Commission)</h3>
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Bank Name</label>

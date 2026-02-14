@@ -92,9 +92,9 @@ export const GalleryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
       {/* Header */}
-      <div className="bg-white shadow-md">
+      <div className="bg-[#0a1628] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
             <ChevronRight className="w-5 h-5 rotate-180" />
@@ -109,15 +109,15 @@ export const GalleryPage = () => {
                 className="h-16 w-auto"
               />
             </div>
-            <h1 className="text-5xl font-extrabold text-gray-900 mb-4">
+            <h1 className="text-5xl font-extrabold text-white mb-4">
               Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">Solar Projects</span>
             </h1>
-            <p className="text-xl text-gray-600 mb-2">Transforming Bihar with Clean Energy Solutions</p>
+            <p className="text-xl text-gray-400 mb-2">Transforming Bihar with Clean Energy Solutions</p>
             <div className="flex items-center justify-center space-x-2 text-blue-600">
               <Award className="w-5 h-5" />
               <span className="font-semibold">Follow us: @asr_enterprises_patna</span>
             </div>
-            <div className="text-gray-600 text-sm mt-2">
+            <div className="text-gray-400 text-sm mt-2">
               <a href="tel:8877896889" className="hover:text-blue-600">📞 8877896889</a>
               <span className="mx-2">|</span>
               <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-blue-600">✉️ asrenterprisespatna@gmail.com</a>
@@ -156,7 +156,7 @@ export const GalleryPage = () => {
         <div className="flex justify-end mb-6">
           <button 
             onClick={fetchGalleryPhotos} 
-            className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 transition"
+            className="flex items-center space-x-2 text-gray-400 hover:text-blue-600 transition"
             disabled={loading}
             data-testid="refresh-gallery-btn"
           >
@@ -190,7 +190,7 @@ export const GalleryPage = () => {
                   {/* Play button for video */}
                   {item.type === "video" && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <div className="bg-white rounded-full p-4 group-hover:scale-110 transition-transform">
+                      <div className="bg-gray-800 rounded-full p-4 group-hover:scale-110 transition-transform">
                         <Play className="w-8 h-8 text-yellow-600" fill="currentColor" />
                       </div>
                     </div>
@@ -225,9 +225,9 @@ export const GalleryPage = () => {
         )}
 
         {/* CTA Section */}
-        <div className="mt-16 bg-white rounded-2xl shadow-2xl p-8 md:p-12 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Ready to Go Solar?</h2>
-          <p className="text-xl text-gray-600 mb-8">Join hundreds of satisfied customers in Bihar who have switched to clean energy</p>
+        <div className="mt-16 bg-gray-800/80 rounded-2xl shadow-2xl p-8 md:p-12 text-center border border-gray-700/50">
+          <h2 className="text-3xl font-bold text-white mb-4">Ready to Go Solar?</h2>
+          <p className="text-xl text-gray-400 mb-8">Join hundreds of satisfied customers in Bihar who have switched to clean energy</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               to="/leads"
@@ -237,7 +237,7 @@ export const GalleryPage = () => {
             </Link>
             <Link
               to="/calculator"
-              className="bg-white text-yellow-600 border-2 border-yellow-600 px-8 py-4 rounded-lg font-semibold hover:bg-yellow-50 transition"
+              className="bg-yellow-600 text-white border-2 border-yellow-600 px-8 py-4 rounded-lg font-semibold hover:bg-yellow-50 transition"
             >
               Calculate Savings
             </Link>
@@ -281,14 +281,14 @@ export const GalleryPage = () => {
             )}
 
             {/* Image Info */}
-            <div className="bg-white rounded-b-lg p-6 mt-2">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedMedia.title}</h3>
-              <div className="flex items-center text-gray-600 mb-2">
+            <div className="bg-gray-800 rounded-b-lg p-6 mt-2">
+              <h3 className="text-2xl font-bold text-white mb-2">{selectedMedia.title}</h3>
+              <div className="flex items-center text-gray-400 mb-2">
                 <MapPin className="w-5 h-5 mr-2" />
                 <span>{selectedMedia.location}</span>
               </div>
               {selectedMedia.date && (
-                <div className="flex items-center text-gray-600 mb-2">
+                <div className="flex items-center text-gray-400 mb-2">
                   <Calendar className="w-5 h-5 mr-2" />
                   <span>{selectedMedia.date}</span>
                 </div>

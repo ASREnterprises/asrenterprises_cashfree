@@ -622,12 +622,15 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      {/* Hero Section - Premium Corporate Design */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
           <div className="text-center">
-            {/* Running Flash Advertisement Banner */}
-            <div className="bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500 py-3 rounded-xl mb-6 relative overflow-hidden shadow-lg">
+            {/* Premium Running Banner */}
+            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 py-3 rounded-xl mb-8 relative overflow-hidden shadow-2xl border border-amber-400/30">
               <a
                 href="https://wa.me/918877896889?text=Hi!%20I%20saw%20your%20flash%20offer%20and%20I'm%20interested%20in%20solar%20installation!"
                 target="_blank"
@@ -636,48 +639,33 @@ const HomePage = () => {
               >
                 <div className="animate-marquee whitespace-nowrap flex items-center">
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
+                    3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
                   </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-amber-100 font-bold text-sm md:text-base flex items-center">
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
                   </span>
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
                     🛠️ 5 Year FREE Maintenance Included!
                   </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-amber-100 font-bold text-sm md:text-base flex items-center">
                     📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
                   </span>
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    🏆 MNRE Bihar Registered Vendor - PM Surya Ghar Yojana Partner
-                  </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-                    🎁 SPECIAL: Easy EMI Starting ₹3,000/Month - Zero Down Payment!
-                  </span>
-                  {/* Duplicate for seamless loop */}
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    🔥 FLASH OFFER: Get 3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
-                  </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-                    💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
-                  </span>
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    🛠️ 5 Year FREE Maintenance Included!
-                  </span>
-                  <span className="mx-8 text-yellow-100 font-bold text-sm md:text-base flex items-center">
-                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
+                    3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
                   </span>
                 </div>
               </a>
             </div>
 
-            {/* Attractive Quote */}
-            <p className="text-lg md:text-xl text-gray-700 italic mb-4 max-w-3xl mx-auto">
+            {/* Corporate Tagline */}
+            <p className="text-lg md:text-xl text-blue-200 italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
               "Powering Bihar's Future with Clean, Affordable Solar Energy"
             </p>
             
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-full mb-6 shadow-lg">
-              <Award className="w-5 h-5" />
-              <span className="text-sm font-semibold">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>
+            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full mb-8 border border-white/20">
+              <Award className="w-5 h-5 text-amber-400" />
+              <span className="text-sm font-medium">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>
+            </div>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6">

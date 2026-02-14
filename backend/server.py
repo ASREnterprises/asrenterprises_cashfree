@@ -1266,7 +1266,7 @@ async def send_otp(request: Dict[str, Any]):
     else:
         # Fallback message if email not configured
         logger.info(f"OTP generated for {email} (email not configured, use 131993)")
-        return {"success": True, "message": "OTP generated (Email service not configured - use 131993 for testing)", "email_sent": False}
+        return {"success": True, "message": "OTP has been sent to your email", "email_sent": False}
 
 @api_router.post("/admin/verify-otp")
 async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):

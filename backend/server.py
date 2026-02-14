@@ -3243,14 +3243,19 @@ async def security_status():
     return {
         "status": "secure",
         "security_features": [
+            "Google reCAPTCHA v2 enabled",
+            "Honeypot anti-spam fields active",
+            "HTTPS forced (HSTS with preload)",
             "Rate limiting enabled",
             "Input sanitization active",
             "XSS protection enabled",
-            "CSRF protection enabled",
-            "Security headers configured",
+            "Security headers (CSP, X-Frame, CORP, COOP)",
             "Brute force protection active",
+            "2FA OTP for staff login",
             "OTP expiry enforced",
-            "Constant-time OTP comparison"
+            "Constant-time OTP comparison",
+            "Admin access OTP protected",
+            "IP blocking for suspicious activity"
         ],
         "timestamp": datetime.now(timezone.utc).isoformat()
     }

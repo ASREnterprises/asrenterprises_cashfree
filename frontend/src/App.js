@@ -282,7 +282,7 @@ const ServiceRegistration = () => {
   if (step === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-700">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
@@ -314,7 +314,7 @@ const ServiceRegistration = () => {
           <p className="text-gray-600">Register now and get priority service from Bihar's trusted solar experts</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <div className="bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 border border-gray-700">
           <div className="bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl p-4 mb-6 text-white">
             <div className="flex justify-between items-center">
               <div>
@@ -819,7 +819,7 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div className="bg-white rounded-xl p-6 shadow-2xl">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Award className="w-8 h-8 text-green-600" />
               </div>
@@ -837,7 +837,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-2xl">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <TrendingUp className="w-8 h-8 text-blue-600" />
               </div>
@@ -857,7 +857,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-2xl">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Zap className="w-8 h-8 text-purple-600" />
               </div>
@@ -880,7 +880,7 @@ const HomePage = () => {
 
           {/* Additional Government Schemes */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-white bg-opacity-95 rounded-xl p-6 shadow-xl">
+            <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <Award className="w-6 h-6 text-orange-600 mr-2" />
                 MNRE Rooftop Solar Programme
@@ -894,7 +894,7 @@ const HomePage = () => {
               </ul>
             </div>
 
-            <div className="bg-white bg-opacity-95 rounded-xl p-6 shadow-xl">
+            <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 <TrendingUp className="w-6 h-6 text-green-600 mr-2" />
                 Easy EMI Facilities Available
@@ -949,7 +949,7 @@ const HomePage = () => {
             <div
               key={index}
               onClick={() => navigate(feature.link)}
-              className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 p-8"
+              className="bg-gray-800/70 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 p-8 border border-gray-700/50"
               data-testid={`feature-card-${index}`}
             >
               <div className={`${feature.color} text-white w-16 h-16 rounded-lg flex items-center justify-center mb-6`}>
@@ -1064,7 +1064,7 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-16">
-            <div className="bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-blue-100">
+            <div className="bg-gray-800/70 rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-blue-500/30">
               <div className="flex items-center mb-6">
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
                   <Users className="w-8 h-8 text-white" />
@@ -1103,7 +1103,7 @@ const HomePage = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-green-100">
+            <div className="bg-gray-800/70 rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-green-500/30">
               <div className="flex items-center mb-6">
                 <div className="bg-gradient-to-r from-green-500 to-green-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
                   <BarChart3 className="w-8 h-8 text-white" />
@@ -1149,7 +1149,7 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-blue-600" />
               </div>
@@ -1157,7 +1157,7 @@ const HomePage = () => {
               <p className="text-gray-600">Official MNRE Bihar vendor ensuring quality and compliance</p>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
@@ -1165,7 +1165,7 @@ const HomePage = () => {
               <p className="text-gray-600">From site survey to after-sales service - we handle everything</p>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrendingUp className="w-8 h-8 text-yellow-600" />
               </div>
@@ -1173,7 +1173,7 @@ const HomePage = () => {
               <p className="text-gray-600">Complete documentation and approval support for PM Surya Ghar</p>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center">
+            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Zap className="w-8 h-8 text-purple-600" />
               </div>
@@ -1182,7 +1182,7 @@ const HomePage = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
+          <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-700/50">
             <h3 className="text-3xl font-bold text-gray-900 text-center mb-8">Our Installation Process</h3>
             <div className="grid md:grid-cols-5 gap-6">
               <div className="text-center">
@@ -1361,15 +1361,15 @@ const HomePage = () => {
           <h2 className="text-4xl font-bold mb-4">Become an ASR Solar Advisor</h2>
           <p className="text-xl text-purple-100 mb-8">Join our network and earn attractive commissions!</p>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
-            <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
+            <div className="bg-gray-800/30 rounded-xl p-6 backdrop-blur-lg border border-gray-700/30">
               <div className="text-5xl font-bold mb-2">₹5,000</div>
               <p className="text-purple-100">Per successful referral</p>
             </div>
-            <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
+            <div className="bg-gray-800/30 rounded-xl p-6 backdrop-blur-lg border border-gray-700/30">
               <div className="text-5xl font-bold mb-2">FREE</div>
               <p className="text-purple-100">Training & Support</p>
             </div>
-            <div className="bg-white bg-opacity-20 rounded-xl p-6 backdrop-blur-lg">
+            <div className="bg-gray-800/30 rounded-xl p-6 backdrop-blur-lg border border-gray-700/30">
               <div className="text-5xl font-bold mb-2">10%</div>
               <p className="text-purple-100">Commission on deals</p>
             </div>
@@ -2217,7 +2217,7 @@ const AgentRegistrationPage = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-700">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
@@ -2245,7 +2245,7 @@ const AgentRegistrationPage = () => {
           <span>Back to Home</span>
         </Link>
 
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        <div className="bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 border border-gray-700">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Become an ASR Solar Advisor</h1>
             <p className="text-gray-600">Join our network and earn ₹5,000+ per referral</p>

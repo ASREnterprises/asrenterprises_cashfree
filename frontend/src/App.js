@@ -286,8 +286,8 @@ const ServiceRegistration = () => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-white mb-2">Registration Successful!</h1>
+          <p className="text-gray-400 mb-6">
             Thank you for registering with ASR Enterprises. Our team will contact you within 24 hours to schedule your solar consultation.
           </p>
           <div className="bg-green-50 rounded-lg p-4 mb-6">
@@ -310,8 +310,8 @@ const ServiceRegistration = () => {
             <Sun className="w-4 h-4" />
             <span>PM Surya Ghar Yojana Partner</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Book Your Solar Installation</h1>
-          <p className="text-gray-600">Register now and get priority service from Bihar's trusted solar experts</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Book Your Solar Installation</h1>
+          <p className="text-gray-400">Register now and get priority service from Bihar's trusted solar experts</p>
         </div>
 
         <div className="bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 border border-gray-700">
@@ -331,7 +331,7 @@ const ServiceRegistration = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -342,7 +342,7 @@ const ServiceRegistration = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number *</label>
                 <input
                   type="tel"
                   value={formData.phone}
@@ -356,7 +356,7 @@ const ServiceRegistration = () => {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -366,7 +366,7 @@ const ServiceRegistration = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">District</label>
                 <select
                   value={formData.district}
                   onChange={(e) => setFormData({...formData, district: e.target.value})}
@@ -379,7 +379,7 @@ const ServiceRegistration = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Address</label>
               <input
                 type="text"
                 value={formData.address}
@@ -391,7 +391,7 @@ const ServiceRegistration = () => {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Property Type</label>
                 <select
                   value={formData.property_type}
                   onChange={(e) => setFormData({...formData, property_type: e.target.value})}
@@ -403,7 +403,7 @@ const ServiceRegistration = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Bill (₹)</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Monthly Bill (₹)</label>
                 <input
                   type="number"
                   value={formData.monthly_bill}
@@ -415,7 +415,7 @@ const ServiceRegistration = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Additional Notes</label>
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
@@ -732,7 +732,7 @@ const HomePage = () => {
                   className="h-12 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">TATA Power Solar</h3>
+              <h3 className="font-bold text-white text-sm">TATA Power Solar</h3>
               <p className="text-xs text-blue-600 mt-1 font-medium">Premium Quality</p>
             </div>
             
@@ -745,7 +745,7 @@ const HomePage = () => {
                   className="h-10 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Adani Solar</h3>
+              <h3 className="font-bold text-white text-sm">Adani Solar</h3>
               <p className="text-xs text-green-600 mt-1 font-medium">High Efficiency</p>
             </div>
             
@@ -758,7 +758,7 @@ const HomePage = () => {
                   className="h-10 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Luminous Solar</h3>
+              <h3 className="font-bold text-white text-sm">Luminous Solar</h3>
               <p className="text-xs text-red-600 mt-1 font-medium">Trusted Brand</p>
             </div>
             
@@ -771,7 +771,7 @@ const HomePage = () => {
                   className="h-12 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Loom Solar</h3>
+              <h3 className="font-bold text-white text-sm">Loom Solar</h3>
               <p className="text-xs text-orange-600 mt-1 font-medium">Made in India</p>
             </div>
             
@@ -784,7 +784,7 @@ const HomePage = () => {
                   className="h-10 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Waaree Solar</h3>
+              <h3 className="font-bold text-white text-sm">Waaree Solar</h3>
               <p className="text-xs text-sky-600 mt-1 font-medium">Industry Leader</p>
             </div>
             
@@ -797,12 +797,12 @@ const HomePage = () => {
                   className="h-12 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-gray-900 text-sm">Vikram Solar</h3>
+              <h3 className="font-bold text-white text-sm">Vikram Solar</h3>
               <p className="text-xs text-indigo-600 mt-1 font-medium">Global Standard</p>
             </div>
           </div>
           <div className="text-center mt-8">
-            <p className="text-sm text-gray-600 bg-green-50 inline-block px-6 py-2 rounded-full">
+            <p className="text-sm text-gray-400 bg-green-50 inline-block px-6 py-2 rounded-full">
               <CheckCircle className="w-4 h-4 inline mr-2 text-green-600" />
               All brands come with 25-year performance warranty
             </p>
@@ -823,11 +823,11 @@ const HomePage = () => {
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Award className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Up to ₹78,000 Subsidy</h3>
-              <p className="text-gray-600 mb-4">
+              <h3 className="text-2xl font-bold text-white mb-3">Up to ₹78,000 Subsidy</h3>
+              <p className="text-gray-400 mb-4">
                 Get <strong>₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
               </p>
-              <ul className="text-sm text-gray-700 space-y-2 mb-4">
+              <ul className="text-sm text-gray-300 space-y-2 mb-4">
                 <li>✓ 1 kW system: ₹30,000 subsidy</li>
                 <li>✓ 2 kW system: ₹60,000 subsidy</li>
                 <li>✓ 3 kW system: ₹78,000 subsidy (Maximum)</li>
@@ -841,11 +841,11 @@ const HomePage = () => {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <TrendingUp className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Net Metering Benefits</h3>
-              <p className="text-gray-600 mb-4">
+              <h3 className="text-2xl font-bold text-white mb-3">Net Metering Benefits</h3>
+              <p className="text-gray-400 mb-4">
                 Sell excess solar power back to the grid and earn credits on your electricity bill.
               </p>
-              <ul className="text-sm text-gray-700 space-y-2 mb-4">
+              <ul className="text-sm text-gray-300 space-y-2 mb-4">
                 <li>✓ Reduce bills up to 90%</li>
                 <li>✓ Earn from surplus energy</li>
                 <li>✓ 25-year panel warranty</li>
@@ -861,11 +861,11 @@ const HomePage = () => {
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
                 <Zap className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Tax Benefits & Easy EMI</h3>
-              <p className="text-gray-600 mb-4">
+              <h3 className="text-2xl font-bold text-white mb-3">Tax Benefits & Easy EMI</h3>
+              <p className="text-gray-400 mb-4">
                 Enjoy depreciation benefits and easy financing options at low interest rates from leading banks.
               </p>
-              <ul className="text-sm text-gray-700 space-y-2 mb-4">
+              <ul className="text-sm text-gray-300 space-y-2 mb-4">
                 <li>✓ 80% accelerated depreciation</li>
                 <li>✓ Low-interest bank loans (7-9%)</li>
                 <li>✓ Easy EMI starting ₹3,000/month</li>
@@ -881,11 +881,11 @@ const HomePage = () => {
           {/* Additional Government Schemes */}
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
                 <Award className="w-6 h-6 text-orange-600 mr-2" />
                 MNRE Rooftop Solar Programme
               </h3>
-              <ul className="text-sm text-gray-700 space-y-2">
+              <ul className="text-sm text-gray-300 space-y-2">
                 <li>✓ <strong>Grid-Connected Systems:</strong> Central Financial Assistance (CFA) up to 40%</li>
                 <li>✓ <strong>Residential Sector:</strong> Priority for subsidy under PM Surya Ghar scheme</li>
                 <li>✓ <strong>Commercial Sector:</strong> Accelerated depreciation benefits</li>
@@ -895,11 +895,11 @@ const HomePage = () => {
             </div>
 
             <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
                 <TrendingUp className="w-6 h-6 text-green-600 mr-2" />
                 Easy EMI Facilities Available
               </h3>
-              <ul className="text-sm text-gray-700 space-y-2">
+              <ul className="text-sm text-gray-300 space-y-2">
                 <li>✓ <strong>Green Loans:</strong> Up to ₹10 Lakhs at competitive rates</li>
                 <li>✓ <strong>Solar Financing:</strong> Tenure up to 10 years</li>
                 <li>✓ <strong>Quick Approval:</strong> Loans approved in 48-72 hours</li>
@@ -940,8 +940,8 @@ const HomePage = () => {
       {/* Features Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful AI Features for Your Solar Journey</h2>
-          <p className="text-xl text-gray-600">Smart tools to help you make informed decisions</p>
+          <h2 className="text-4xl font-bold text-white mb-4">Powerful AI Features for Your Solar Journey</h2>
+          <p className="text-xl text-gray-400">Smart tools to help you make informed decisions</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -955,8 +955,8 @@ const HomePage = () => {
               <div className={`${feature.color} text-white w-16 h-16 rounded-lg flex items-center justify-center mb-6`}>
                 {feature.icon}
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-              <p className="text-gray-600 mb-4">{feature.description}</p>
+              <h3 className="text-2xl font-bold text-white mb-3">{feature.title}</h3>
+              <p className="text-gray-400 mb-4">{feature.description}</p>
               <div className="flex items-center text-blue-600 font-semibold">
                 <span>Explore</span>
                 <ChevronRight className="w-5 h-5 ml-1" />
@@ -996,8 +996,8 @@ const HomePage = () => {
       {/* Our Work Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Recent Solar Installations</h2>
-          <p className="text-xl text-gray-600">Proudly serving Bihar with quality solar solutions</p>
+          <h2 className="text-4xl font-bold text-white mb-4">Our Recent Solar Installations</h2>
+          <p className="text-xl text-gray-400">Proudly serving Bihar with quality solar solutions</p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
@@ -1059,8 +1059,8 @@ const HomePage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Residential & Commercial Services */}
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">We Install All Types of Solar Rooftop Systems</h2>
-            <p className="text-xl text-gray-600">Residential & Commercial Solutions Across Bihar</p>
+            <h2 className="text-4xl font-bold text-white mb-4">We Install All Types of Solar Rooftop Systems</h2>
+            <p className="text-xl text-gray-400">Residential & Commercial Solutions Across Bihar</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-16">
@@ -1069,10 +1069,10 @@ const HomePage = () => {
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
                   <Users className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">Residential Solutions</h3>
+                <h3 className="text-3xl font-bold text-white">Residential Solutions</h3>
               </div>
-              <p className="text-gray-600 mb-4">Perfect solar rooftop systems for homes and apartments</p>
-              <ul className="text-sm text-gray-700 space-y-3 mb-6">
+              <p className="text-gray-400 mb-4">Perfect solar rooftop systems for homes and apartments</p>
+              <ul className="text-sm text-gray-300 space-y-3 mb-6">
                 <li className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>1-10 kW Systems:</strong> Ideal for houses, villas, and bungalows</span>
@@ -1108,10 +1108,10 @@ const HomePage = () => {
                 <div className="bg-gradient-to-r from-green-500 to-green-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
                   <BarChart3 className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900">Commercial Solutions</h3>
+                <h3 className="text-3xl font-bold text-white">Commercial Solutions</h3>
               </div>
-              <p className="text-gray-600 mb-4">High-capacity solar systems for businesses and industries</p>
-              <ul className="text-sm text-gray-700 space-y-3 mb-6">
+              <p className="text-gray-400 mb-4">High-capacity solar systems for businesses and industries</p>
+              <ul className="text-sm text-gray-300 space-y-3 mb-6">
                 <li className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>10-100+ kW Systems:</strong> For factories, offices, hospitals, schools</span>
@@ -1144,8 +1144,8 @@ const HomePage = () => {
           </div>
 
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose ASR Enterprises?</h2>
-            <p className="text-xl text-gray-600">Your trusted partner for solar energy in Bihar</p>
+            <h2 className="text-4xl font-bold text-white mb-4">Why Choose ASR Enterprises?</h2>
+            <p className="text-xl text-gray-400">Your trusted partner for solar energy in Bihar</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
@@ -1153,62 +1153,62 @@ const HomePage = () => {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">MNRE Registered</h3>
-              <p className="text-gray-600">Official MNRE Bihar vendor ensuring quality and compliance</p>
+              <h3 className="text-xl font-bold text-white mb-3">MNRE Registered</h3>
+              <p className="text-gray-400">Official MNRE Bihar vendor ensuring quality and compliance</p>
             </div>
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">End-to-End Support</h3>
-              <p className="text-gray-600">From site survey to after-sales service - we handle everything</p>
+              <h3 className="text-xl font-bold text-white mb-3">End-to-End Support</h3>
+              <p className="text-gray-400">From site survey to after-sales service - we handle everything</p>
             </div>
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <TrendingUp className="w-8 h-8 text-yellow-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Subsidy Guidance</h3>
-              <p className="text-gray-600">Complete documentation and approval support for PM Surya Ghar</p>
+              <h3 className="text-xl font-bold text-white mb-3">Subsidy Guidance</h3>
+              <p className="text-gray-400">Complete documentation and approval support for PM Surya Ghar</p>
             </div>
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Zap className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Trusted Brands</h3>
-              <p className="text-gray-600">High-quality panels with 25-year performance warranty</p>
+              <h3 className="text-xl font-bold text-white mb-3">Trusted Brands</h3>
+              <p className="text-gray-400">High-quality panels with 25-year performance warranty</p>
             </div>
           </div>
 
           <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-700/50">
-            <h3 className="text-3xl font-bold text-gray-900 text-center mb-8">Our Installation Process</h3>
+            <h3 className="text-3xl font-bold text-white text-center mb-8">Our Installation Process</h3>
             <div className="grid md:grid-cols-5 gap-6">
               <div className="text-center">
                 <div className="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">1</div>
-                <h4 className="font-bold text-gray-900 mb-2">Free Site Survey</h4>
-                <p className="text-sm text-gray-600">Expert assessment of your property</p>
+                <h4 className="font-bold text-white mb-2">Free Site Survey</h4>
+                <p className="text-sm text-gray-400">Expert assessment of your property</p>
               </div>
               <div className="text-center">
                 <div className="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">2</div>
-                <h4 className="font-bold text-gray-900 mb-2">System Design</h4>
-                <p className="text-sm text-gray-600">Customized solar solution proposal</p>
+                <h4 className="font-bold text-white mb-2">System Design</h4>
+                <p className="text-sm text-gray-400">Customized solar solution proposal</p>
               </div>
               <div className="text-center">
                 <div className="bg-yellow-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">3</div>
-                <h4 className="font-bold text-gray-900 mb-2">Subsidy Approval</h4>
-                <p className="text-sm text-gray-600">Complete documentation support</p>
+                <h4 className="font-bold text-white mb-2">Subsidy Approval</h4>
+                <p className="text-sm text-gray-400">Complete documentation support</p>
               </div>
               <div className="text-center">
                 <div className="bg-purple-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">4</div>
-                <h4 className="font-bold text-gray-900 mb-2">Installation</h4>
-                <p className="text-sm text-gray-600">Professional setup in 3-5 days</p>
+                <h4 className="font-bold text-white mb-2">Installation</h4>
+                <p className="text-sm text-gray-400">Professional setup in 3-5 days</p>
               </div>
               <div className="text-center">
                 <div className="bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">5</div>
-                <h4 className="font-bold text-gray-900 mb-2">After-Sales</h4>
-                <p className="text-sm text-gray-600">Ongoing maintenance & support</p>
+                <h4 className="font-bold text-white mb-2">After-Sales</h4>
+                <p className="text-sm text-gray-400">Ongoing maintenance & support</p>
               </div>
             </div>
           </div>
@@ -1225,7 +1225,7 @@ const HomePage = () => {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 px-4 py-2 rounded-full text-sm font-bold mb-4">
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-bold mb-4">
               <Zap className="w-4 h-4" />
               <span>AI-POWERED SMART DEALS</span>
             </div>
@@ -1238,7 +1238,7 @@ const HomePage = () => {
           <div className="grid md:grid-cols-3 gap-8 mb-12">
             {/* Offer 1 - Flash Sale */}
             <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-4 py-1 text-xs font-bold rounded-bl-lg">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-white px-4 py-1 text-xs font-bold rounded-bl-lg">
                 FLASH SALE
               </div>
               <div className="mb-4">
@@ -1267,7 +1267,7 @@ const HomePage = () => {
 
             {/* Offer 2 - Best Seller */}
             <div className="bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-2xl relative overflow-hidden border-4 border-yellow-400">
-              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-4 py-1 text-xs font-bold rounded-bl-lg">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-white px-4 py-1 text-xs font-bold rounded-bl-lg">
                 BEST SELLER
               </div>
               <div className="mb-4">
@@ -1289,7 +1289,7 @@ const HomePage = () => {
                 href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%205kW%20Best%20Seller%20offer!"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full bg-yellow-400 text-gray-900 py-3 rounded-lg font-bold text-center hover:bg-yellow-300 transition"
+                className="block w-full bg-yellow-400 text-white py-3 rounded-lg font-bold text-center hover:bg-yellow-300 transition"
               >
                 Most Popular Choice →
               </a>
@@ -1297,7 +1297,7 @@ const HomePage = () => {
 
             {/* Offer 3 - Commercial */}
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-4 py-1 text-xs font-bold rounded-bl-lg">
+              <div className="absolute top-0 right-0 bg-yellow-400 text-white px-4 py-1 text-xs font-bold rounded-bl-lg">
                 COMMERCIAL
               </div>
               <div className="mb-4">
@@ -1728,8 +1728,8 @@ const LeadCapturePage = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
               <Users className="w-8 h-8 text-blue-600" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">AI Lead Capture Form</h1>
-            <p className="text-gray-600">Our AI will analyze your inquiry and provide instant recommendations</p>
+            <h1 className="text-4xl font-bold text-white mb-2">AI Lead Capture Form</h1>
+            <p className="text-gray-400">Our AI will analyze your inquiry and provide instant recommendations</p>
           </div>
 
           {success && aiAnalysis && (
@@ -1758,7 +1758,7 @@ const LeadCapturePage = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Full Name *</label>
                 <input
                   type="text"
                   required
@@ -1771,7 +1771,7 @@ const LeadCapturePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Email *</label>
                 <input
                   type="email"
                   required
@@ -1784,7 +1784,7 @@ const LeadCapturePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Phone Number *</label>
                 <input
                   type="tel"
                   required
@@ -1797,7 +1797,7 @@ const LeadCapturePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Location *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Location *</label>
                 <input
                   type="text"
                   required
@@ -1810,7 +1810,7 @@ const LeadCapturePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Interest *</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Interest *</label>
                 <select
                   required
                   value={formData.interest}
@@ -1826,7 +1826,7 @@ const LeadCapturePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Monthly Electricity Bill (₹)</label>
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Monthly Electricity Bill (₹)</label>
                 <input
                   type="number"
                   value={formData.monthly_electricity_bill}
@@ -1839,7 +1839,7 @@ const LeadCapturePage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">Message</label>
               <textarea
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -1966,7 +1966,7 @@ const SolarCalculatorPage = () => {
 
               <form onSubmit={handleCalculate} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">
                     <span className="flex items-center space-x-1">
                       <span>Monthly Electricity Bill</span>
                       <span className="text-orange-500">*</span>
@@ -1987,7 +1987,7 @@ const SolarCalculatorPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">
                     <span className="flex items-center space-x-1">
                       <span>Available Roof Area</span>
                       <span className="text-orange-500">*</span>
@@ -2008,7 +2008,7 @@ const SolarCalculatorPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-300 mb-2">
                     <span className="flex items-center space-x-1">
                       <span>Your Location</span>
                       <span className="text-orange-500">*</span>
@@ -2030,7 +2030,7 @@ const SolarCalculatorPage = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Electricity Rate</label>
+                    <label className="block text-sm font-semibold text-gray-300 mb-2">Electricity Rate</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">₹</span>
                       <input
@@ -2054,7 +2054,7 @@ const SolarCalculatorPage = () => {
                         className="w-5 h-5 text-orange-600 rounded"
                         data-testid="calc-three-phase-checkbox"
                       />
-                      <span className="text-sm font-medium text-gray-700">3-Phase</span>
+                      <span className="text-sm font-medium text-gray-300">3-Phase</span>
                     </label>
                   </div>
                 </div>
@@ -2104,56 +2104,56 @@ const SolarCalculatorPage = () => {
             {result ? (
               <>
                 <div className="bg-white rounded-2xl shadow-2xl p-8" data-testid="calculation-results">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Solar System</h2>
+                  <h2 className="text-2xl font-bold text-white mb-6">Your Solar System</h2>
                   
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">Recommended Capacity</span>
+                      <span className="text-gray-300 font-semibold">Recommended Capacity</span>
                       <span className="text-2xl font-bold text-blue-600">{result.recommended_capacity_kw} kW</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">Estimated Cost</span>
+                      <span className="text-gray-300 font-semibold">Estimated Cost</span>
                       <span className="text-2xl font-bold text-green-600">₹{result.estimated_cost.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">Monthly Savings</span>
+                      <span className="text-gray-300 font-semibold">Monthly Savings</span>
                       <span className="text-2xl font-bold text-purple-600">₹{result.monthly_savings.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">Annual Savings</span>
+                      <span className="text-gray-300 font-semibold">Annual Savings</span>
                       <span className="text-2xl font-bold text-orange-600">₹{result.annual_savings.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">Payback Period</span>
+                      <span className="text-gray-300 font-semibold">Payback Period</span>
                       <span className="text-2xl font-bold text-yellow-600">{result.payback_period_years} years</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">Panels Required</span>
+                      <span className="text-gray-300 font-semibold">Panels Required</span>
                       <span className="text-2xl font-bold text-red-600">{result.panels_required}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-teal-50 rounded-lg">
-                      <span className="text-gray-700 font-semibold">CO2 Offset/Year</span>
+                      <span className="text-gray-300 font-semibold">CO2 Offset/Year</span>
                       <span className="text-2xl font-bold text-teal-600">{result.co2_offset_kg_yearly} kg</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-2xl p-8">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">System Details</h2>
+                  <h2 className="text-2xl font-bold text-white mb-4">System Details</h2>
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-semibold text-gray-700 mb-2">System Type</h3>
-                      <p className="text-gray-600">{result.system_type}</p>
+                      <h3 className="font-semibold text-gray-300 mb-2">System Type</h3>
+                      <p className="text-gray-400">{result.system_type}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-700 mb-2">Subsidy Information</h3>
-                      <p className="text-gray-600">{result.subsidy_info}</p>
+                      <h3 className="font-semibold text-gray-300 mb-2">Subsidy Information</h3>
+                      <p className="text-gray-400">{result.subsidy_info}</p>
                     </div>
                   </div>
                 </div>
@@ -2166,8 +2166,8 @@ const SolarCalculatorPage = () => {
             ) : (
               <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
                 <Sun className="w-24 h-24 text-yellow-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to Calculate</h3>
-                <p className="text-gray-600">Fill in your details to get personalized solar recommendations</p>
+                <h3 className="text-xl font-bold text-white mb-2">Ready to Calculate</h3>
+                <p className="text-gray-400">Fill in your details to get personalized solar recommendations</p>
               </div>
             )}
           </div>
@@ -2221,12 +2221,12 @@ const AgentRegistrationPage = () => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">Registration Successful!</h1>
           <div className="bg-purple-50 rounded-lg p-4 mb-6">
             <p className="text-purple-800 font-semibold">Your Agent ID: {agentId}</p>
             <p className="text-purple-600 text-sm mt-1">Save this ID for future reference</p>
           </div>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-400 mb-6">
             Our team will verify your details and contact you within 48 hours.
           </p>
           <Link to="/" className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition">
@@ -2247,8 +2247,8 @@ const AgentRegistrationPage = () => {
 
         <div className="bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 border border-gray-700">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Become an ASR Solar Advisor</h1>
-            <p className="text-gray-600">Join our network and earn ₹5,000+ per referral</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Become an ASR Solar Advisor</h1>
+            <p className="text-gray-400">Join our network and earn ₹5,000+ per referral</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -2256,7 +2256,7 @@ const AgentRegistrationPage = () => {
               <h3 className="font-semibold text-purple-800 mb-2">Personal Details</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>
                   <input
                     type="text"
                     value={formData.name}
@@ -2267,7 +2267,7 @@ const AgentRegistrationPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Phone Number *</label>
                   <input
                     type="tel"
                     value={formData.phone}
@@ -2278,7 +2278,7 @@ const AgentRegistrationPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
                   <input
                     type="email"
                     value={formData.email}
@@ -2288,7 +2288,7 @@ const AgentRegistrationPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">District *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">District *</label>
                   <select
                     value={formData.district}
                     onChange={(e) => setFormData({...formData, district: e.target.value})}
@@ -2300,7 +2300,7 @@ const AgentRegistrationPage = () => {
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Address</label>
                   <input
                     type="text"
                     value={formData.address}
@@ -2316,7 +2316,7 @@ const AgentRegistrationPage = () => {
               <h3 className="font-semibold text-blue-800 mb-2">KYC Details</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Aadhar Number</label>
                   <input
                     type="text"
                     value={formData.aadhar_number}
@@ -2326,7 +2326,7 @@ const AgentRegistrationPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">PAN Number</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">PAN Number</label>
                   <input
                     type="text"
                     value={formData.pan_number}
@@ -2342,7 +2342,7 @@ const AgentRegistrationPage = () => {
               <h3 className="font-semibold text-green-800 mb-2">Bank Details (For Commission)</h3>
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Bank Name</label>
                   <input
                     type="text"
                     value={formData.bank_name}
@@ -2352,7 +2352,7 @@ const AgentRegistrationPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Account Number</label>
                   <input
                     type="text"
                     value={formData.bank_account}
@@ -2362,7 +2362,7 @@ const AgentRegistrationPage = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">IFSC Code</label>
                   <input
                     type="text"
                     value={formData.ifsc_code}
@@ -2375,7 +2375,7 @@ const AgentRegistrationPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Previous Experience (Optional)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Previous Experience (Optional)</label>
               <textarea
                 value={formData.experience}
                 onChange={(e) => setFormData({...formData, experience: e.target.value})}
@@ -2429,7 +2429,7 @@ const PublicGovtNewsPage = () => {
       case "subsidy": return "bg-green-100 text-green-800";
       case "scheme": return "bg-blue-100 text-blue-800";
       case "guideline": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-800";
+      default: return "bg-gray-100 text-gray-100";
     }
   };
 
@@ -2442,8 +2442,8 @@ const PublicGovtNewsPage = () => {
         </Link>
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Government News & Schemes</h1>
-          <p className="text-gray-600">Latest updates on PM Surya Ghar Yojana and Bihar Solar Subsidies</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Government News & Schemes</h1>
+          <p className="text-gray-400">Latest updates on PM Surya Ghar Yojana and Bihar Solar Subsidies</p>
         </div>
 
         {loading ? (
@@ -2467,8 +2467,8 @@ const PublicGovtNewsPage = () => {
                     </span>
                     <span className="text-gray-400 text-sm">{item.date?.split('T')[0]}</span>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{item.summary}</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-gray-400 leading-relaxed">{item.summary}</p>
                   {item.source && (
                     <p className="text-blue-600 text-sm mt-3 font-medium">{item.source}</p>
                   )}

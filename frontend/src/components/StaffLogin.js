@@ -124,11 +124,12 @@ export const StaffLogin = () => {
 
         <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
           <div className="text-center mb-8">
-            <div className="bg-[#0f2240] rounded-xl p-3 inline-block mb-4">
+            <div className="rounded-xl p-3 inline-block mb-4">
               <img 
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
                 alt="ASR Enterprises" 
                 className="h-14 w-auto"
+                style={{ mixBlendMode: 'lighten' }}
               />
             </div>
             <h1 className="text-2xl font-bold text-white">Staff Portal</h1>

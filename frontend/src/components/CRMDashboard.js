@@ -25,7 +25,7 @@ const PIPELINE_STAGES = [
 const TASK_TYPES = [
   { id: "call", label: "📞 Call" },
   { id: "visit", label: "🏠 Site Visit" },
-  { id: "survey", label: "📋 Survey" },
+  { id: "telecall", label: "📞 Tele Call" },
   { id: "installation", label: "🔧 Installation" },
   { id: "follow_up", label: "🔄 Follow Up" },
   { id: "other", label: "📝 Other" }

@@ -9,60 +9,59 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Database:** MongoDB (Motor async driver)
 - **Payments:** Razorpay (payment link redirect)
 - **AI:** OpenAI GPT-4o-mini via Emergent LLM Key
+- **Security:** Google reCAPTCHA v2, honeypot fields, security headers, 2FA OTP
 
 ## What's Been Implemented
 
 ### Website (Customer-Facing)
-- Premium dark-blue corporate theme
+- Premium dark-blue corporate theme (full dark mode)
 - Solar Calculator with ROI calculations
 - Govt. News & Schemes page with AI auto-update
 - ASR Solar Advisor registration form
 - Google Review integration
 - WhatsApp chat widget
-- Gallery page
-- Contact page
+- Gallery page (dark themed)
+- Contact page (dark themed)
 - Razorpay payment link integration
 
-### CRM/Admin Panel
-- Full leads management (CRUD, pipeline stages, auto-assign, bulk import)
-- Staff management (create, edit, delete, role-based)
-- Task assignment system
-- Follow-up scheduling
-- Payment history tracking
-- Photo gallery management
-- AI marketing tools
-- Social media integration (backend ready - needs Meta credentials)
+### Security Features (Feb 2026)
+- Google reCAPTCHA v2 on inquiry form (site key: 6Ldpt2ssAAAAABvIQe10pOrMm8TuxVNGKQMZZv87)
+- Honeypot anti-spam fields on forms
+- Security headers: CSP, X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy, Permissions-Policy, COOP, CORP
+- HTTPS force redirect
+- Rate limiting on all endpoints
+- Brute force protection on login
+- Staff 2FA OTP login security
+- Admin OTP login
 
-### Private Messaging System (Feb 2026)
+### Private Messaging System
 - End-to-end private messaging between admin and each staff member
 - Staff can ONLY see their own conversation with admin
-- No cross-staff message visibility
 - Admin can delete messages
-- Admin sees staff-wise conversation list
+
+### CRM/Admin Panel
+- Full leads management, staff management, task assignment
+- Payment history tracking, photo gallery
+- AI marketing tools
+- Social media integration (backend ready)
 
 ### Staff Portal
-- Dashboard with assigned leads/tasks
-- Private chat with Admin
-- Add Lead capability (all roles including Telecallers)
-- Lead update/follow-up tracking
+- Dashboard, private chat with Admin, add/update leads
 - Activity logging
 
-### Roles
-- Admin, Manager, Sales Executive, Tele Caller, Technician
+### UI/Theme
+- Full dark navy-blue theme across ALL pages
+- "ASR ENTERPRISES" large amber/gold text in header
+- "Trusted Solar Rooftop Installation Experts in Bihar" in GREEN
+- Logo backgrounds match dark theme
+- No white backgrounds remaining
 
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993
-- Staff: ASR1001 / asr@123
+- Staff: ASR1001 / password: asr@123 / OTP: 131993
 
-## Completed Tasks (Latest Session - Feb 2026)
-- [x] Fixed private messaging - each staff only sees own admin conversation
-- [x] Added message delete functionality for admin
-- [x] Added staff lead creation (POST /api/staff/{staff_id}/leads)
-- [x] Updated header to premium dark-blue with larger ASR ENTERPRISES text
-- [x] All login links open in new tabs
-
-## Pending/Upcoming
-- P1: Guide user on Meta webhook configuration (WhatsApp/Facebook)
+## Pending/Upcoming Tasks
+- P1: Configure Meta webhooks (WhatsApp/Facebook) - needs user credentials
 - P2: Persist staff notifications in MongoDB
 - P2: Refactor server.py into modular APIRouter files
 - P2: Refactor CRMDashboard.js into smaller components

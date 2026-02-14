@@ -68,6 +68,7 @@ const SolarInquiryForm = () => {
   });
   const [honeypot, setHoneypot] = useState("");
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const recaptchaRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");

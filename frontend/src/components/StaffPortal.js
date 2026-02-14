@@ -624,6 +624,32 @@ export const StaffPortal = () => {
       </div>
 
       {/* Update Lead Modal */}
+
+      {/* Add Lead Modal */}
+      {showAddLeadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto" data-testid="add-lead-modal">
+            <h2 className="text-xl font-bold text-white mb-4">Add New Lead</h2>
+            <div className="space-y-3">
+              <input type="text" placeholder="Customer Name *" value={newLeadForm.name} onChange={(e) => setNewLeadForm({...newLeadForm, name: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" data-testid="lead-name-input" />
+              <input type="text" placeholder="Phone Number *" value={newLeadForm.phone} onChange={(e) => setNewLeadForm({...newLeadForm, phone: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" data-testid="lead-phone-input" />
+              <input type="text" placeholder="District" value={newLeadForm.district} onChange={(e) => setNewLeadForm({...newLeadForm, district: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <input type="number" placeholder="Monthly Electricity Bill (₹)" value={newLeadForm.monthly_bill} onChange={(e) => setNewLeadForm({...newLeadForm, monthly_bill: parseInt(e.target.value) || ''})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+              <select value={newLeadForm.property_type} onChange={(e) => setNewLeadForm({...newLeadForm, property_type: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <option value="residential">Residential</option>
+                <option value="commercial">Commercial</option>
+                <option value="industrial">Industrial</option>
+              </select>
+              <textarea placeholder="Notes" value={newLeadForm.notes} onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" rows={2} />
+            </div>
+            <div className="flex space-x-3 mt-4">
+              <button onClick={createLead} className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition" data-testid="submit-lead-btn">Add Lead</button>
+              <button onClick={() => setShowAddLeadModal(false)} className="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-500 transition">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showUpdateModal && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">

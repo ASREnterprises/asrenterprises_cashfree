@@ -723,14 +723,15 @@ const HomePage = () => {
             <h2 className="text-2xl font-bold text-white mb-2">Top Solar Brands We Offer</h2>
             <p className="text-gray-400">Premium quality solar panels from India's leading manufacturers</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {/* TATA Power Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-4 text-center hover:shadow-xl hover:border-blue-500/50 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
+            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-blue-500/50 transition-all hover:-translate-y-1 group">
+              <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2ec9e58fd2abff0bdf30ff0421355525a7340de1ca2a28c48b166c013ee92e32.png" 
                   alt="TATA Power Solar" 
-                  className="h-12 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">TATA Power Solar</h3>
@@ -738,12 +739,13 @@ const HomePage = () => {
             </div>
             
             {/* Adani Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-4 text-center hover:shadow-xl hover:border-green-500/50 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
+            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-green-500/50 transition-all hover:-translate-y-1 group">
+              <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/41dcb615eba9ab569f57551b6ff6382956917056e859b5e54978a7c236d87429.png" 
                   alt="Adani Solar" 
-                  className="h-10 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Adani Solar</h3>
@@ -751,12 +753,13 @@ const HomePage = () => {
             </div>
             
             {/* Luminous Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-4 text-center hover:shadow-xl hover:border-red-500/50 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
+            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-red-500/50 transition-all hover:-translate-y-1 group">
+              <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/aec140fce213a04d665f5b8cb77d677357d947b90cf77e9b13525221364096d4.png" 
                   alt="Luminous Solar" 
-                  className="h-10 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Luminous Solar</h3>
@@ -764,12 +767,13 @@ const HomePage = () => {
             </div>
             
             {/* Loom Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-4 text-center hover:shadow-xl hover:border-orange-500/50 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
+            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-orange-500/50 transition-all hover:-translate-y-1 group">
+              <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/cd17c9473d45036b2878ebac38a938b0d04b3405eeef23360c0c5176a762e138.png" 
                   alt="Loom Solar" 
-                  className="h-12 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Loom Solar</h3>
@@ -777,12 +781,13 @@ const HomePage = () => {
             </div>
             
             {/* Waaree Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-4 text-center hover:shadow-xl hover:border-sky-500/50 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
+            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-sky-500/50 transition-all hover:-translate-y-1 group">
+              <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/7ec5409d65b483bfe009d1dc7e6a7ee6df1d67bb7a31a531ada18708020e63f7.png" 
                   alt="Waaree Solar" 
-                  className="h-10 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Waaree Solar</h3>

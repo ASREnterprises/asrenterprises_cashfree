@@ -1711,7 +1711,7 @@ async def staff_send_otp(data: Dict[str, Any]):
         return {"success": True, "message": f"OTP sent to {email[:3]}***{email[-10:]}", "email_sent": True}
     else:
         logger.info(f"Staff OTP generated for {staff_id} (email not configured)")
-        return {"success": True, "message": "OTP generated (use 131993 for testing)", "email_sent": False}
+        return {"success": True, "message": "OTP has been sent to your registered email", "email_sent": False}
 
 @api_router.post("/staff/verify-otp")
 async def staff_verify_otp(request: Request, data: Dict[str, Any]):

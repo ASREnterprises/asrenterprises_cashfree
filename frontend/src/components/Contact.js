@@ -37,13 +37,13 @@ export const ContactPage = () => {
             
             <div className="space-y-6">
               {/* Phone */}
-              <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-500/20 transition">
+              <div className="flex items-start space-x-4 p-4 bg-blue-900/30 rounded-lg hover:bg-blue-500/20 transition border border-blue-800/50">
                 <div className="bg-blue-500 p-3 rounded-lg">
                   <Phone className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Phone</h3>
-                  <a href="tel:8877896889" className="text-blue-600 hover:text-blue-700 text-lg font-medium">
+                  <a href="tel:8877896889" className="text-blue-400 hover:text-blue-300 text-lg font-medium">
                     8877896889
                   </a>
                   <p className="text-sm text-gray-400 mt-1">Available 9 AM - 7 PM</p>
@@ -51,13 +51,13 @@ export const ContactPage = () => {
               </div>
 
               {/* Email */}
-              <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg hover:bg-green-500/20 transition">
+              <div className="flex items-start space-x-4 p-4 bg-green-900/30 rounded-lg hover:bg-green-500/20 transition border border-green-800/50">
                 <div className="bg-green-500 p-3 rounded-lg">
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-white mb-1">Email</h3>
-                  <a href="mailto:asrenterprisespatna@gmail.com" className="text-green-600 hover:text-green-700 font-medium break-all">
+                  <a href="mailto:asrenterprisespatna@gmail.com" className="text-green-400 hover:text-green-300 font-medium break-all">
                     asrenterprisespatna@gmail.com
                   </a>
                   <p className="text-sm text-gray-400 mt-1">We'll respond within 24 hours</p>
@@ -65,7 +65,7 @@ export const ContactPage = () => {
               </div>
 
               {/* Office Address */}
-              <div className="flex items-start space-x-4 p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition">
+              <div className="flex items-start space-x-4 p-4 bg-yellow-900/30 rounded-lg hover:bg-yellow-500/20 transition border border-yellow-800/50">
                 <div className="bg-yellow-500 p-3 rounded-lg">
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
@@ -80,7 +80,7 @@ export const ContactPage = () => {
               </div>
 
               {/* Registered Address */}
-              <div className="flex items-start space-x-4 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition">
+              <div className="flex items-start space-x-4 p-4 bg-purple-900/30 rounded-lg hover:bg-purple-500/20 transition border border-purple-800/50">
                 <div className="bg-purple-500 p-3 rounded-lg">
                   <Award className="w-6 h-6 text-white" />
                 </div>
@@ -97,7 +97,7 @@ export const ContactPage = () => {
               </div>
 
               {/* Business Hours */}
-              <div className="flex items-start space-x-4 p-4 bg-orange-50 rounded-lg">
+              <div className="flex items-start space-x-4 p-4 bg-orange-900/30 rounded-lg border border-orange-800/50">
                 <div className="bg-orange-500 p-3 rounded-lg">
                   <Clock className="w-6 h-6 text-white" />
                 </div>

@@ -206,7 +206,7 @@ const SolarInquiryForm = () => {
 
             {RECAPTCHA_SITE_KEY && (
               <div className="flex justify-center">
-                <ReCAPTCHA sitekey={RECAPTCHA_SITE_KEY} onChange={(token) => setRecaptchaToken(token)} onExpired={() => setRecaptchaToken(null)} theme="dark" data-testid="recaptcha-widget" />
+                <ReCAPTCHA sitekey={RECAPTCHA_SITE_KEY} onChange={(token) => setRecaptchaToken(token)} onExpired={() => setRecaptchaToken(null)} theme="dark" size="invisible" data-testid="recaptcha-widget" />
               </div>
             )}
 

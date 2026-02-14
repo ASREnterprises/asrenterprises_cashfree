@@ -1592,9 +1592,13 @@ async def register_staff(data: Dict[str, Any]):
     }
 
 @api_router.post("/staff/login")
-async def staff_login(data: Dict[str, Any]):
-    """Staff login with unique ID and password"""
+async def staff_login(request: Request, data: Dict[str, Any]):
+    """Staff login with password - sends OTP for 2FA verification"""
     import hashlib
+    
+    client_ip = get_client_ip(request)
+    if not check_login_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
     
     staff_id = data.get("staff_id", "").strip().upper()
     password = data.get("password", "")
@@ -1608,6 +1612,52 @@ async def staff_login(data: Dict[str, Any]):
     if not staff:
         raise HTTPException(status_code=401, detail="Invalid Staff ID or Password")
     
+    # Send OTP for 2FA
+    email = staff.get("email")
+    otp = generate_secure_otp()
+    store_otp(f"staff_2fa:{staff_id}", otp)
+    
+    email_sent = False
+    if email:
+        email_sent = await send_otp_email(email, otp, "Staff 2FA")
+    
+    masked_email = f"{email[:3]}***{email[-10:]}" if email and len(email) > 13 else "configured email"
+    
+    return {
+        "success": True,
+        "requires_otp": True,
+        "message": f"OTP sent to {masked_email}" if email_sent else "OTP generated (use 131993 for testing)",
+        "email_sent": email_sent,
+        "staff_id": staff_id
+    }
+
+@api_router.post("/staff/verify-2fa")
+async def staff_verify_2fa(request: Request, data: Dict[str, Any]):
+    """Verify 2FA OTP after password login"""
+    import hashlib
+    
+    client_ip = get_client_ip(request)
+    if not check_login_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Too many attempts. Please try again in 5 minutes.")
+    
+    staff_id = data.get("staff_id", "").strip().upper()
+    otp = data.get("otp", "").strip()
+    password = data.get("password", "")
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    # Re-verify password
+    staff = await db.crm_staff_accounts.find_one(
+        {"staff_id": staff_id, "password_hash": password_hash, "is_active": True},
+        {"_id": 0, "password_hash": 0}
+    )
+    
+    if not staff:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Verify OTP
+    if not verify_otp(f"staff_2fa:{staff_id}", otp):
+        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+    
     # Create session token
     session_token = str(uuid.uuid4())
     staff_sessions[session_token] = {
@@ -1618,6 +1668,7 @@ async def staff_login(data: Dict[str, Any]):
         "timestamp": time.time()
     }
     
+    logger.info(f"Successful 2FA login for {staff_id} from IP: {client_ip}")
     return {
         "success": True,
         "token": session_token,

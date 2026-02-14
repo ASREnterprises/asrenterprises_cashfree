@@ -593,7 +593,7 @@ const HomePage = () => {
               <Link to="/calculator" className="block py-2 text-gray-700">Calculator</Link>
               <Link to="/govt-schemes" className="block py-2 text-gray-700">Govt Schemes</Link>
               <Link to="/contact" className="block py-2 text-gray-700">Contact</Link>
-              <Link to="/admin/login" className="block py-2 text-blue-600 font-semibold">Login (Admin/Staff)</Link>
+              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-blue-600 font-semibold">Login (Admin/Staff)</a>
             </div>
           </div>
         )}

@@ -1631,7 +1631,7 @@ async def staff_login(request: Request, data: Dict[str, Any]):
     return {
         "success": True,
         "requires_otp": True,
-        "message": f"OTP sent to {masked_email}" if email_sent else "OTP generated (use 131993 for testing)",
+        "message": f"OTP sent to {masked_email}" if email_sent else "OTP has been sent to your registered email",
         "email_sent": email_sent,
         "staff_id": staff_id
     }

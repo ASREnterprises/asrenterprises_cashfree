@@ -224,7 +224,7 @@ export const StaffPortal = () => {
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <img src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" alt="ASR" className="h-10 bg-white rounded-lg p-1" />
+              <img src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" alt="ASR" className="h-10 rounded-lg p-1" style={{ mixBlendMode: 'lighten' }} />
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
                 {staffData.name?.[0]}
               </div>

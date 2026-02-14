@@ -47,6 +47,8 @@ export const StaffPortal = () => {
   const [updateData, setUpdateData] = useState({});
   const [newMessage, setNewMessage] = useState("");
   const [activityForm, setActivityForm] = useState({ activity_type: "note", title: "", description: "" });
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+  const [newLeadForm, setNewLeadForm] = useState({ name: '', phone: '', district: '', monthly_bill: '', property_type: 'residential', notes: '' });
   const navigate = useNavigate();
 
   useEffect(() => {

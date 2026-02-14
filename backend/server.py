@@ -2037,6 +2037,28 @@ async def mark_message_read(message_id: str):
     await db.crm_messages.update_one({"id": message_id}, {"$set": {"is_read": True}})
     return {"success": True}
 
+@api_router.delete("/crm/messages/{message_id}")
+async def delete_message(message_id: str):
+    """Delete a message (admin only)"""
+    result = await db.crm_messages.delete_one({"id": message_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Message not found")
+    return {"success": True, "message": "Message deleted"}
+
+@api_router.get("/crm/messages/conversation/{staff_id}")
+async def get_conversation_with_staff(staff_id: str):
+    """Get private conversation between admin and a specific staff member"""
+    # Get messages where:
+    # - sender is admin AND receiver is this staff OR
+    # - sender is this staff AND receiver is admin
+    messages = await db.crm_messages.find({
+        "$or": [
+            {"sender_id": "admin", "receiver_id": staff_id},
+            {"sender_id": staff_id, "receiver_id": "admin"}
+        ]
+    }, {"_id": 0}).sort("timestamp", 1).limit(100).to_list(100)
+    return messages
+
 @api_router.get("/staff/{staff_id}/messages")
 async def get_staff_messages(staff_id: str):
     """Get messages for staff member"""

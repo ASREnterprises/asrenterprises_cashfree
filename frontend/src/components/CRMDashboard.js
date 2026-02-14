@@ -816,34 +816,82 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Messages Tab */}
+        {/* Messages Tab - Staff-wise Conversations */}
         {activeTab === "messages" && (
           <div className="space-y-4">
             <div className="bg-gray-800 rounded-xl p-4">
-              <div className="flex space-x-3 mb-4">
-                <select value={messageForm.receiver_id} onChange={(e) => setMessageForm({...messageForm, receiver_id: e.target.value})} className="bg-gray-700 text-white px-4 py-2 rounded-lg">
-                  <option value="">Send to All Staff</option>
-                  {staffAccounts.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-                </select>
-                <input type="text" value={messageForm.message} onChange={(e) => setMessageForm({...messageForm, message: e.target.value})} placeholder="Type message..." className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg" onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
-                <button onClick={sendMessage} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"><Send className="w-4 h-4" /><span>Send</span></button>
-              </div>
-            </div>
-            <div className="bg-gray-800 rounded-xl p-4 max-h-96 overflow-y-auto">
-              {messages.length > 0 ? (
-                <div className="space-y-3">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'admin' ? 'bg-blue-600 bg-opacity-20 ml-8' : 'bg-gray-700 mr-8'}`}>
-                      <div className="flex justify-between items-start mb-1">
-                        <span className={`font-medium ${msg.sender_type === 'admin' ? 'text-blue-400' : 'text-green-400'}`}>{msg.sender_name}</span>
-                        <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
+              <h3 className="text-white font-bold mb-4">Staff Conversations (Private)</h3>
+              <div className="grid md:grid-cols-4 gap-4">
+                {/* Staff List */}
+                <div className="space-y-2 border-r border-gray-700 pr-4">
+                  <div 
+                    className={`p-3 rounded-lg cursor-pointer transition ${messageForm.receiver_id === '' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                    onClick={() => setMessageForm({...messageForm, receiver_id: ''})}
+                  >
+                    <span className="text-white font-medium">All Staff (Broadcast)</span>
+                  </div>
+                  {staffAccounts.map((staff) => (
+                    <div 
+                      key={staff.id}
+                      className={`p-3 rounded-lg cursor-pointer transition ${messageForm.receiver_id === staff.id ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+                      onClick={() => setMessageForm({...messageForm, receiver_id: staff.id})}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-white font-medium">{staff.name}</span>
+                        <span className="text-gray-400 text-xs">{staff.role}</span>
                       </div>
-                      <p className="text-gray-300">{msg.message}</p>
-                      {msg.receiver_name && <span className="text-gray-500 text-xs">To: {msg.receiver_name}</span>}
+                      <span className="text-gray-400 text-xs">{staff.staff_id}</span>
                     </div>
                   ))}
                 </div>
-              ) : <div className="text-center py-8 text-gray-400">No messages yet</div>}
+                
+                {/* Chat Area */}
+                <div className="md:col-span-3">
+                  <div className="bg-gray-700 rounded-lg p-4 mb-4 h-72 overflow-y-auto">
+                    {messages
+                      .filter(msg => !messageForm.receiver_id || msg.receiver_id === messageForm.receiver_id || msg.sender_id === messageForm.receiver_id || msg.receiver_id === '')
+                      .length > 0 ? (
+                      <div className="space-y-3">
+                        {messages
+                          .filter(msg => !messageForm.receiver_id || msg.receiver_id === messageForm.receiver_id || msg.sender_id === messageForm.receiver_id || msg.receiver_id === '')
+                          .map((msg) => (
+                          <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'admin' ? 'bg-blue-600 bg-opacity-30 ml-8' : 'bg-gray-600 mr-8'}`}>
+                            <div className="flex justify-between items-start mb-1">
+                              <span className={`font-medium text-sm ${msg.sender_type === 'admin' ? 'text-blue-400' : 'text-green-400'}`}>
+                                {msg.sender_name} {msg.receiver_name && <span className="text-gray-400">→ {msg.receiver_name}</span>}
+                              </span>
+                              <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
+                            </div>
+                            <p className="text-gray-200">{msg.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gray-400">
+                        <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No messages in this conversation</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <input 
+                      type="text" 
+                      value={messageForm.message} 
+                      onChange={(e) => setMessageForm({...messageForm, message: e.target.value})} 
+                      placeholder={messageForm.receiver_id ? `Message to ${staffAccounts.find(s => s.id === messageForm.receiver_id)?.name || 'staff'}...` : "Broadcast to all staff..."} 
+                      className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg" 
+                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()} 
+                    />
+                    <button onClick={sendMessage} className="bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition">
+                      <Send className="w-5 h-5" /><span>Send</span>
+                    </button>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-2">
+                    {messageForm.receiver_id ? "This is a private conversation. Only you and the selected staff can see these messages." : "Broadcast messages are visible to all staff members."}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

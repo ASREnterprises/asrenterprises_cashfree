@@ -336,7 +336,7 @@ const ServiceRegistration = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="Enter your name"
                   required
                 />
@@ -347,7 +347,7 @@ const ServiceRegistration = () => {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="Enter your phone"
                   required
                 />
@@ -361,7 +361,7 @@ const ServiceRegistration = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="Enter your email"
                 />
               </div>
@@ -370,7 +370,7 @@ const ServiceRegistration = () => {
                 <select
                   value={formData.district}
                   onChange={(e) => setFormData({...formData, district: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                 >
                   <option value="">Select District</option>
                   {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -384,7 +384,7 @@ const ServiceRegistration = () => {
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({...formData, address: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                 placeholder="Enter your full address"
               />
             </div>
@@ -395,7 +395,7 @@ const ServiceRegistration = () => {
                 <select
                   value={formData.property_type}
                   onChange={(e) => setFormData({...formData, property_type: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                 >
                   <option value="residential">Residential</option>
                   <option value="commercial">Commercial</option>
@@ -408,7 +408,7 @@ const ServiceRegistration = () => {
                   type="number"
                   value={formData.monthly_bill}
                   onChange={(e) => setFormData({...formData, monthly_bill: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="e.g., 3000"
                 />
               </div>
@@ -419,7 +419,7 @@ const ServiceRegistration = () => {
               <textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent h-24 resize-none"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400 h-24 resize-none"
                 placeholder="Any specific requirements..."
               />
             </div>
@@ -1764,7 +1764,7 @@ const LeadCapturePage = () => {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                   placeholder="Enter your name"
                   data-testid="lead-name-input"
                 />
@@ -1777,7 +1777,7 @@ const LeadCapturePage = () => {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                   placeholder="your@email.com"
                   data-testid="lead-email-input"
                 />
@@ -1790,7 +1790,7 @@ const LeadCapturePage = () => {
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                   placeholder="+91XXXXXXXXXX"
                   data-testid="lead-phone-input"
                 />
@@ -1803,7 +1803,7 @@ const LeadCapturePage = () => {
                   required
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                   placeholder="City, State"
                   data-testid="lead-location-input"
                 />
@@ -1815,7 +1815,7 @@ const LeadCapturePage = () => {
                   required
                   value={formData.interest}
                   onChange={(e) => setFormData({ ...formData, interest: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                   data-testid="lead-interest-select"
                 >
                   <option value="solar_panel">Solar Panels</option>
@@ -1831,7 +1831,7 @@ const LeadCapturePage = () => {
                   type="number"
                   value={formData.monthly_electricity_bill}
                   onChange={(e) => setFormData({ ...formData, monthly_electricity_bill: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                   placeholder="e.g., 5000"
                   data-testid="lead-bill-input"
                 />
@@ -1844,7 +1844,7 @@ const LeadCapturePage = () => {
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                 placeholder="Tell us more about your requirements..."
                 data-testid="lead-message-input"
               />
@@ -2252,7 +2252,7 @@ const AgentRegistrationPage = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-purple-50 rounded-xl p-4 mb-6">
+            <div className="bg-purple-500/10 rounded-xl p-4 mb-6">
               <h3 className="font-semibold text-purple-400 mb-2">Personal Details</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>

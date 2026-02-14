@@ -544,36 +544,25 @@ export const StaffPortal = () => {
           </div>
         )}
 
-        {/* Messages Tab */}
+        {/* Messages Tab - Private Chat with Admin */}
         {activeTab === "messages" && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white">Internal Messages</h2>
-            
-            {/* Send Message */}
-            <div className="bg-gray-800 rounded-xl p-4">
-              <div className="flex space-x-3">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Send message to Admin..."
-                  className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg"
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                />
-                <button onClick={sendMessage} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                  <Send className="w-4 h-4" /><span>Send</span>
-                </button>
-              </div>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Private Chat with Admin</h2>
+              <span className="text-green-400 text-xs flex items-center space-x-1">
+                <CheckCircle className="w-4 h-4" />
+                <span>End-to-End Private</span>
+              </span>
             </div>
-
-            {/* Messages List */}
-            <div className="bg-gray-800 rounded-xl p-4 max-h-96 overflow-y-auto">
+            
+            {/* Messages List - Chronological order */}
+            <div className="bg-gray-800 rounded-xl p-4 h-80 overflow-y-auto" data-testid="staff-messages-list">
               {messages.length > 0 ? (
                 <div className="space-y-3">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'staff' ? 'bg-blue-600 bg-opacity-20 ml-8' : 'bg-gray-700 mr-8'}`}>
                       <div className="flex justify-between items-start mb-1">
-                        <span className={`font-medium ${msg.sender_type === 'admin' ? 'text-green-400' : 'text-blue-400'}`}>
+                        <span className={`font-medium text-sm ${msg.sender_type === 'admin' ? 'text-green-400' : 'text-blue-400'}`}>
                           {msg.sender_name} {msg.sender_type === 'admin' && '(Admin)'}
                         </span>
                         <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
@@ -583,8 +572,30 @@ export const StaffPortal = () => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">No messages yet</div>
+                <div className="text-center py-8 text-gray-400">
+                  <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p>No messages yet. Start a private conversation with Admin.</p>
+                </div>
               )}
+            </div>
+
+            {/* Send Message */}
+            <div className="bg-gray-800 rounded-xl p-4">
+              <p className="text-green-400 text-xs mb-2">Only you and Admin can see this conversation. No other staff member has access.</p>
+              <div className="flex space-x-3">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Private message to Admin..."
+                  className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  data-testid="staff-message-input"
+                />
+                <button onClick={sendMessage} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2" data-testid="staff-send-message-btn">
+                  <Send className="w-4 h-4" /><span>Send</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

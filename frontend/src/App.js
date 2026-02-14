@@ -733,7 +733,7 @@ const HomePage = () => {
                 />
               </div>
               <h3 className="font-bold text-white text-sm">TATA Power Solar</h3>
-              <p className="text-xs text-blue-600 mt-1 font-medium">Premium Quality</p>
+              <p className="text-xs text-blue-400 mt-1 font-medium">Premium Quality</p>
             </div>
             
             {/* Adani Solar */}
@@ -759,7 +759,7 @@ const HomePage = () => {
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Luminous Solar</h3>
-              <p className="text-xs text-red-600 mt-1 font-medium">Trusted Brand</p>
+              <p className="text-xs text-red-400 mt-1 font-medium">Trusted Brand</p>
             </div>
             
             {/* Loom Solar */}
@@ -839,7 +839,7 @@ const HomePage = () => {
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="w-8 h-8 text-blue-600" />
+                <TrendingUp className="w-8 h-8 text-blue-400" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">Net Metering Benefits</h3>
               <p className="text-gray-400 mb-4">
@@ -957,7 +957,7 @@ const HomePage = () => {
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">{feature.title}</h3>
               <p className="text-gray-400 mb-4">{feature.description}</p>
-              <div className="flex items-center text-blue-600 font-semibold">
+              <div className="flex items-center text-blue-400 font-semibold">
                 <span>Explore</span>
                 <ChevronRight className="w-5 h-5 ml-1" />
               </div>
@@ -1138,7 +1138,7 @@ const HomePage = () => {
                 </li>
               </ul>
               <div className="bg-green-500/10 p-4 rounded-lg">
-                <p className="text-sm font-semibold text-green-900">📈 Reduce operational costs by 70%!</p>
+                <p className="text-sm font-semibold text-green-400">📈 Reduce operational costs by 70%!</p>
               </div>
             </div>
           </div>
@@ -1151,7 +1151,7 @@ const HomePage = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Award className="w-8 h-8 text-blue-600" />
+                <Award className="w-8 h-8 text-blue-400" />
               </div>
               <h3 className="text-xl font-bold text-white mb-3">MNRE Registered</h3>
               <p className="text-gray-400">Official MNRE Bihar vendor ensuring quality and compliance</p>
@@ -1718,15 +1718,15 @@ const LeadCapturePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>
 
         <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <Users className="w-8 h-8 text-blue-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mb-4">
+              <Users className="w-8 h-8 text-blue-400" />
             </div>
             <h1 className="text-4xl font-bold text-white mb-2">AI Lead Capture Form</h1>
             <p className="text-gray-400">Our AI will analyze your inquiry and provide instant recommendations</p>
@@ -1737,7 +1737,7 @@ const LeadCapturePage = () => {
               <div className="flex items-start space-x-3">
                 <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
                 <div className="flex-1">
-                  <h3 className="font-bold text-green-900 mb-2">Lead Submitted Successfully!</h3>
+                  <h3 className="font-bold text-green-400 mb-2">Lead Submitted Successfully!</h3>
                   <div className="space-y-2 text-sm text-green-800">
                     <p><strong>Lead Score:</strong> {aiAnalysis.lead_score}/100</p>
                     <p><strong>Recommended System:</strong> {aiAnalysis.recommended_system}</p>
@@ -1750,7 +1750,7 @@ const LeadCapturePage = () => {
 
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-3" data-testid="error-message">
-              <AlertCircle className="w-6 h-6 text-red-600" />
+              <AlertCircle className="w-6 h-6 text-red-400" />
               <span className="text-red-800">{error}</span>
             </div>
           )}
@@ -1959,7 +1959,7 @@ const SolarCalculatorPage = () => {
             <div className="p-6">
               {error && (
                 <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-3">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
+                  <AlertCircle className="w-6 h-6 text-red-400" />
                   <span className="text-red-800">{error}</span>
                 </div>
               )}
@@ -2109,7 +2109,7 @@ const SolarCalculatorPage = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center p-4 bg-blue-500/10 rounded-lg">
                       <span className="text-gray-300 font-semibold">Recommended Capacity</span>
-                      <span className="text-2xl font-bold text-blue-600">{result.recommended_capacity_kw} kW</span>
+                      <span className="text-2xl font-bold text-blue-400">{result.recommended_capacity_kw} kW</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
@@ -2134,7 +2134,7 @@ const SolarCalculatorPage = () => {
 
                     <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
                       <span className="text-gray-300 font-semibold">Panels Required</span>
-                      <span className="text-2xl font-bold text-red-600">{result.panels_required}</span>
+                      <span className="text-2xl font-bold text-red-400">{result.panels_required}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-teal-50 rounded-lg">
@@ -2436,7 +2436,7 @@ const PublicGovtNewsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>
@@ -2470,7 +2470,7 @@ const PublicGovtNewsPage = () => {
                   <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
                   <p className="text-gray-400 leading-relaxed">{item.summary}</p>
                   {item.source && (
-                    <p className="text-blue-600 text-sm mt-3 font-medium">{item.source}</p>
+                    <p className="text-blue-400 text-sm mt-3 font-medium">{item.source}</p>
                   )}
                 </div>
               </div>

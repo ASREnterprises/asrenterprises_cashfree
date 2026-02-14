@@ -578,7 +578,7 @@ const HomePage = () => {
               href="https://wa.me/918877896889?text=Happy%20Festive%20Season!%20I%20want%20to%20know%20about%20solar%20offers"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition text-sm"
+              className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-600 transition text-sm"
             >
               Get Festive Offer
             </a>
@@ -922,7 +922,7 @@ const HomePage = () => {
                   e.preventDefault();
                   document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="inline-block bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg cursor-pointer"
+                className="inline-block bg-amber-500 text-white px-8 py-4 rounded-lg font-bold hover:bg-amber-600 transition shadow-lg cursor-pointer"
               >
                 Apply for Subsidy Now →
               </Link>
@@ -1259,7 +1259,7 @@ const HomePage = () => {
                 href="https://wa.me/918877896889?text=I'm%20interested%20in%20the%203kW%20Flash%20Sale%20offer!"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full bg-white text-red-600 py-3 rounded-lg font-bold text-center hover:bg-red-50 transition"
+                className="block w-full bg-red-600 text-white py-3 rounded-lg font-bold text-center hover:bg-red-700 transition"
               >
                 Grab This Deal →
               </a>
@@ -1318,7 +1318,7 @@ const HomePage = () => {
                 href="https://wa.me/918877896889?text=I%20need%20a%20commercial%20solar%20solution%20for%20my%20business"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full bg-white text-blue-600 py-3 rounded-lg font-bold text-center hover:bg-blue-50 transition"
+                className="block w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-center hover:bg-blue-700 transition"
               >
                 Get Custom Quote →
               </a>
@@ -1329,7 +1329,7 @@ const HomePage = () => {
           <div className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl p-6 text-center shadow-2xl">
             <div className="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8">
               <div className="flex items-center space-x-3">
-                <div className="bg-white rounded-full p-3">
+                <div className="bg-[#0f2240] rounded-full p-3">
                   <Zap className="w-8 h-8 text-orange-500" />
                 </div>
                 <div className="text-left">
@@ -1344,7 +1344,7 @@ const HomePage = () => {
                 </div>
                 <a
                   href="tel:8877896889"
-                  className="bg-white text-orange-600 px-8 py-4 rounded-lg font-bold hover:bg-orange-50 transition shadow-lg flex items-center space-x-2"
+                  className="bg-amber-500 text-white px-8 py-4 rounded-lg font-bold hover:bg-amber-600 transition shadow-lg flex items-center space-x-2"
                 >
                   <Phone className="w-5 h-5" />
                   <span>Call Now: 8877896889</span>
@@ -1376,7 +1376,7 @@ const HomePage = () => {
           </div>
           <Link
             to="/become-agent"
-            className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition shadow-lg"
+            className="inline-block bg-purple-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-purple-700 transition shadow-lg"
             data-testid="become-agent-btn"
           >
             Register as Solar Advisor →
@@ -1723,7 +1723,7 @@ const LeadCapturePage = () => {
           <span>Back to Home</span>
         </Link>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
               <Users className="w-8 h-8 text-blue-600" />
@@ -1927,7 +1927,7 @@ const SolarCalculatorPage = () => {
               <img 
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png"
                 alt="ASR Enterprises"
-                className="h-16 w-auto bg-white rounded-lg p-1"
+                className="h-16 w-auto bg-[#0f2240] rounded-lg p-1"
               />
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">ASR Solar Calculator</h1>
@@ -1943,7 +1943,7 @@ const SolarCalculatorPage = () => {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Calculator Form */}
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
             <div className="bg-gradient-to-r from-orange-600 to-amber-600 p-6 text-white">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -2144,7 +2144,7 @@ const SolarCalculatorPage = () => {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-2xl p-8">
+                <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
                   <h2 className="text-2xl font-bold text-white mb-4">System Details</h2>
                   <div className="space-y-4">
                     <div>

@@ -2061,32 +2061,76 @@ async def get_conversation_with_staff(staff_id: str):
 
 @api_router.get("/staff/{staff_id}/messages")
 async def get_staff_messages(staff_id: str):
-    """Get messages for staff member"""
+    """Get ONLY private messages between this staff member and admin - no broadcasts, no other staff messages"""
     staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
     internal_id = staff.get("id")
+    # SECURE: Only return messages where this staff is directly involved with admin
     messages = await db.crm_messages.find(
-        {"$or": [{"sender_id": internal_id}, {"receiver_id": internal_id}, {"receiver_id": None}]},
+        {"$or": [
+            {"sender_id": internal_id, "receiver_id": "admin"},
+            {"sender_id": "admin", "receiver_id": internal_id}
+        ]},
         {"_id": 0}
-    ).sort("timestamp", -1).limit(50).to_list(50)
+    ).sort("timestamp", 1).limit(100).to_list(100)
     return messages
 
 @api_router.get("/staff/{staff_id}/messages/unread")
 async def get_unread_messages(staff_id: str):
-    """Get unread message count for staff"""
+    """Get unread message count for staff - only from admin to this staff"""
     staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
     if not staff:
         return {"count": 0}
     
     internal_id = staff.get("id")
     count = await db.crm_messages.count_documents({
-        "$or": [{"receiver_id": internal_id}, {"receiver_id": None}],
-        "sender_id": {"$ne": internal_id},
+        "sender_id": "admin",
+        "receiver_id": internal_id,
         "is_read": False
     })
     return {"count": count}
+
+@api_router.post("/staff/{staff_id}/leads")
+async def staff_create_lead(staff_id: str, data: Dict[str, Any]):
+    """Allow staff (telecaller/manager) to create new leads"""
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    monthly_bill = data.get("monthly_bill") or 0
+    lead_score = min(100, 40 + int(monthly_bill / 100))
+    ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
+    
+    notes = data.get("notes", "")
+    follow_up_notes = ""
+    if notes:
+        follow_up_notes = f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] {notes}"
+    
+    lead = CRMLead(
+        name=sanitize_input(data.get("name", "")),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+        district=data.get("district", ""),
+        address=sanitize_input(data.get("address", "")),
+        property_type=data.get("property_type", "residential"),
+        monthly_bill=data.get("monthly_bill"),
+        roof_area=data.get("roof_area"),
+        source=f"staff:{staff.get('name', staff_id)}",
+        stage="new",
+        assigned_to=staff.get("id"),
+        lead_score=lead_score,
+        ai_priority=ai_priority,
+        follow_up_notes=follow_up_notes,
+        next_follow_up=(datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+        status_history=[{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": f"Lead created by {staff.get('name', staff_id)}"}]
+    )
+    doc = lead.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_leads.insert_one(doc)
+    await db.crm_staff_accounts.update_one({"staff_id": staff_id}, {"$inc": {"leads_assigned": 1}})
+    return lead
 
 # CRM Employee Management
 @api_router.get("/crm/employees")

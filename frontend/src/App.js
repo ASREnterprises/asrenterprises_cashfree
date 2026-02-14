@@ -283,8 +283,8 @@ const ServiceRegistration = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-4">
         <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-700">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-400" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Registration Successful!</h1>
           <p className="text-gray-400 mb-6">
@@ -292,7 +292,7 @@ const ServiceRegistration = () => {
           </p>
           <div className="bg-green-500/10 rounded-lg p-4 mb-6">
             <p className="text-green-800 font-semibold">Payment Received: ₹{registrationFee}</p>
-            <p className="text-green-600 text-sm">This amount will be adjusted in your final bill</p>
+            <p className="text-green-400 text-sm">This amount will be adjusted in your final bill</p>
           </div>
           <Link to="/" className="inline-block bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
             Back to Home
@@ -746,7 +746,7 @@ const HomePage = () => {
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Adani Solar</h3>
-              <p className="text-xs text-green-600 mt-1 font-medium">High Efficiency</p>
+              <p className="text-xs text-green-400 mt-1 font-medium">High Efficiency</p>
             </div>
             
             {/* Luminous Solar */}
@@ -803,7 +803,7 @@ const HomePage = () => {
           </div>
           <div className="text-center mt-8">
             <p className="text-sm text-gray-400 bg-green-500/10 inline-block px-6 py-2 rounded-full">
-              <CheckCircle className="w-4 h-4 inline mr-2 text-green-600" />
+              <CheckCircle className="w-4 h-4 inline mr-2 text-green-400" />
               All brands come with 25-year performance warranty
             </p>
           </div>
@@ -821,7 +821,7 @@ const HomePage = () => {
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Award className="w-8 h-8 text-green-600" />
+                <Award className="w-8 h-8 text-green-400" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">Up to ₹78,000 Subsidy</h3>
               <p className="text-gray-400 mb-4">
@@ -859,7 +859,7 @@ const HomePage = () => {
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Zap className="w-8 h-8 text-purple-600" />
+                <Zap className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-3">Tax Benefits & Easy EMI</h3>
               <p className="text-gray-400 mb-4">
@@ -873,7 +873,7 @@ const HomePage = () => {
                 <li>✓ Zero down payment options</li>
               </ul>
               <div className="bg-purple-500/10 p-3 rounded-lg">
-                <p className="text-xs text-purple-800 font-semibold">🏦 Partner with all major banks for easy financing</p>
+                <p className="text-xs text-purple-400 font-semibold">🏦 Partner with all major banks for easy financing</p>
               </div>
             </div>
           </div>
@@ -896,7 +896,7 @@ const HomePage = () => {
 
             <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
               <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <TrendingUp className="w-6 h-6 text-green-600 mr-2" />
+                <TrendingUp className="w-6 h-6 text-green-400 mr-2" />
                 Easy EMI Facilities Available
               </h3>
               <ul className="text-sm text-gray-300 space-y-2">
@@ -1074,27 +1074,27 @@ const HomePage = () => {
               <p className="text-gray-400 mb-4">Perfect solar rooftop systems for homes and apartments</p>
               <ul className="text-sm text-gray-300 space-y-3 mb-6">
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>1-10 kW Systems:</strong> Ideal for houses, villas, and bungalows</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>On-Grid & Off-Grid:</strong> Choose based on your requirements</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>PM Surya Ghar Subsidy:</strong> Up to 40% subsidy available</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Easy EMI:</strong> Starting ₹3,000/month from banks</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Net Metering:</strong> Sell excess power back to grid</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Quick Installation:</strong> 3-5 days complete setup</span>
                 </li>
               </ul>
@@ -1113,27 +1113,27 @@ const HomePage = () => {
               <p className="text-gray-400 mb-4">High-capacity solar systems for businesses and industries</p>
               <ul className="text-sm text-gray-300 space-y-3 mb-6">
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>10-100+ kW Systems:</strong> For factories, offices, hospitals, schools</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Industrial Scale:</strong> Custom solutions for large power requirements</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Tax Benefits:</strong> 80% accelerated depreciation available</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Bank Financing:</strong> Loans available up to ₹1 Crore at 7-9% interest</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>ROI:</strong> 3-4 years payback period with savings</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Maintenance:</strong> AMC contracts with 24/7 support</span>
                 </li>
               </ul>
@@ -1159,7 +1159,7 @@ const HomePage = () => {
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-600" />
+                <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
               <h3 className="text-xl font-bold text-white mb-3">End-to-End Support</h3>
               <p className="text-gray-400">From site survey to after-sales service - we handle everything</p>
@@ -1175,7 +1175,7 @@ const HomePage = () => {
 
             <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-purple-600" />
+                <Zap className="w-8 h-8 text-purple-400" />
               </div>
               <h3 className="text-xl font-bold text-white mb-3">Trusted Brands</h3>
               <p className="text-gray-400">High-quality panels with 25-year performance warranty</p>
@@ -1735,7 +1735,7 @@ const LeadCapturePage = () => {
           {success && aiAnalysis && (
             <div className="mb-6 p-6 bg-green-500/10 border border-green-500/30 rounded-lg" data-testid="success-message">
               <div className="flex items-start space-x-3">
-                <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" />
+                <CheckCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-1" />
                 <div className="flex-1">
                   <h3 className="font-bold text-green-400 mb-2">Lead Submitted Successfully!</h3>
                   <div className="space-y-2 text-sm text-green-800">
@@ -2114,12 +2114,12 @@ const SolarCalculatorPage = () => {
 
                     <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
                       <span className="text-gray-300 font-semibold">Estimated Cost</span>
-                      <span className="text-2xl font-bold text-green-600">₹{result.estimated_cost.toLocaleString()}</span>
+                      <span className="text-2xl font-bold text-green-400">₹{result.estimated_cost.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
                       <span className="text-gray-300 font-semibold">Monthly Savings</span>
-                      <span className="text-2xl font-bold text-purple-600">₹{result.monthly_savings.toLocaleString()}</span>
+                      <span className="text-2xl font-bold text-purple-400">₹{result.monthly_savings.toLocaleString()}</span>
                     </div>
 
                     <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
@@ -2216,15 +2216,15 @@ const AgentRegistrationPage = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] flex items-center justify-center p-4">
         <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-700">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-400" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Registration Successful!</h1>
-          <div className="bg-purple-50 rounded-lg p-4 mb-6">
-            <p className="text-purple-800 font-semibold">Your Agent ID: {agentId}</p>
-            <p className="text-purple-600 text-sm mt-1">Save this ID for future reference</p>
+          <div className="bg-purple-500/10 rounded-lg p-4 mb-6">
+            <p className="text-purple-400 font-semibold">Your Agent ID: {agentId}</p>
+            <p className="text-purple-400 text-sm mt-1">Save this ID for future reference</p>
           </div>
           <p className="text-gray-400 mb-6">
             Our team will verify your details and contact you within 48 hours.
@@ -2240,7 +2240,7 @@ const AgentRegistrationPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-purple-400 hover:text-purple-700 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>
@@ -2253,7 +2253,7 @@ const AgentRegistrationPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-purple-50 rounded-xl p-4 mb-6">
-              <h3 className="font-semibold text-purple-800 mb-2">Personal Details</h3>
+              <h3 className="font-semibold text-purple-400 mb-2">Personal Details</h3>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>

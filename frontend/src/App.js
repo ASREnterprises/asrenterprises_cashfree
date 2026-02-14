@@ -524,7 +524,7 @@ const HomePage = () => {
               />
               <div className="flex flex-col">
                 <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 tracking-tight leading-tight">ASR ENTERPRISES</span>
-                <span className="text-[10px] md:text-xs text-slate-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
+                <span className="text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </div>
             

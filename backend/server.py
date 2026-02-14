@@ -806,6 +806,92 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 8877896889 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
 
 # API Routes
+
+@api_router.post("/verify-recaptcha")
+async def verify_recaptcha_endpoint(request: Request, data: Dict[str, Any]):
+    """Verify reCAPTCHA token and honeypot field"""
+    client_ip = get_client_ip(request)
+    token = data.get("recaptcha_token", "")
+    
+    # Check honeypot - hidden field should be empty
+    if not check_honeypot(data):
+        logger.warning(f"Honeypot triggered from IP: {client_ip}")
+        return {"success": False, "error": "Spam detected"}
+    
+    if not token:
+        return {"success": False, "error": "No reCAPTCHA token provided"}
+    
+    is_valid = await verify_recaptcha(token)
+    if not is_valid:
+        logger.warning(f"reCAPTCHA failed from IP: {client_ip}")
+        return {"success": False, "error": "reCAPTCHA verification failed"}
+    
+    return {"success": True}
+
+@api_router.post("/secure-lead")
+async def create_secure_lead(request: Request, data: Dict[str, Any]):
+    """Create lead with reCAPTCHA + honeypot protection"""
+    client_ip = get_client_ip(request)
+    
+    # Check honeypot
+    if not check_honeypot(data):
+        logger.warning(f"Honeypot triggered on lead form from IP: {client_ip}")
+        raise HTTPException(status_code=400, detail="Form submission rejected")
+    
+    # Verify reCAPTCHA
+    recaptcha_token = data.get("recaptcha_token", "")
+    if recaptcha_token:
+        is_valid = await verify_recaptcha(recaptcha_token)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail="Security verification failed. Please try again.")
+    
+    # Create lead using existing logic
+    lead_data = LeadCreate(
+        name=sanitize_input(data.get("name", "")),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+        district=data.get("district", ""),
+        address=sanitize_input(data.get("address", "")),
+        property_type=data.get("property_type", "residential"),
+        roof_type=data.get("roof_type", "rcc"),
+        monthly_bill=data.get("monthly_bill"),
+        roof_area=data.get("roof_area"),
+        message=sanitize_input(data.get("message", ""))
+    )
+    
+    ai_result = await analyze_lead_with_ai(lead_data)
+    lead_obj = Lead(**lead_data.model_dump(), **ai_result)
+    doc = lead_obj.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.leads.insert_one(doc)
+    
+    # Auto-create CRM lead
+    try:
+        crm_lead = CRMLead(
+            id=lead_obj.id,
+            name=lead_data.name,
+            email=lead_data.email,
+            phone=lead_data.phone,
+            district=lead_data.district,
+            address=lead_data.address,
+            property_type=lead_data.property_type,
+            monthly_bill=lead_data.monthly_bill,
+            roof_area=lead_data.roof_area,
+            source="website",
+            stage="new",
+            lead_score=ai_result.get("lead_score", 50),
+            ai_priority=ai_result.get("ai_priority", "medium"),
+            next_follow_up=(datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+            status_history=[{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Created from website inquiry"}]
+        )
+        crm_doc = crm_lead.model_dump()
+        crm_doc['timestamp'] = crm_doc['timestamp'].isoformat()
+        await db.crm_leads.insert_one(crm_doc)
+    except Exception as e:
+        logger.error(f"CRM lead creation error: {e}")
+    
+    return {"success": True, "lead": lead_obj.model_dump()}
+
 @api_router.get("/districts")
 async def get_districts():
     """Get list of Bihar districts"""

@@ -253,8 +253,6 @@ export const StaffLogin = () => {
               </button>
             </form>
             )
-              </button>
-            </form>
           ) : (
             <form onSubmit={handleOtpLogin} className="space-y-6">
               <div>

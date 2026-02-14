@@ -2426,10 +2426,10 @@ const PublicGovtNewsPage = () => {
 
   const getCategoryColor = (category) => {
     switch (category) {
-      case "subsidy": return "bg-green-100 text-green-800";
-      case "scheme": return "bg-blue-100 text-blue-800";
-      case "guideline": return "bg-purple-100 text-purple-800";
-      default: return "bg-gray-100 text-gray-100";
+      case "subsidy": return "bg-green-500/20 text-green-400";
+      case "scheme": return "bg-blue-500/20 text-blue-400";
+      case "guideline": return "bg-purple-500/20 text-purple-400";
+      default: return "bg-gray-700 text-gray-300";
     }
   };
 

@@ -83,28 +83,28 @@ export const AdminLogin = ({ onLogin }) => {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
           {step === 1 ? (
             <form onSubmit={sendOTP} className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Verification</h2>
-                <p className="text-gray-600 text-sm">Enter your registered email to receive OTP</p>
+                <h2 className="text-2xl font-bold text-white mb-2">Email Verification</h2>
+                <p className="text-gray-400 text-sm">Enter your registered email to receive OTP</p>
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-sm">
                   {success}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-300 mb-2">
                   Registered Email
                 </label>
                 <div className="relative">
@@ -113,7 +113,7 @@ export const AdminLogin = ({ onLogin }) => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                     placeholder="your@email.com"
                     required
                     data-testid="admin-email"

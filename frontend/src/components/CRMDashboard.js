@@ -788,6 +788,28 @@ export const CRMDashboard = () => {
                       <MessageSquare className="w-3 h-3" /><span>WhatsApp</span>
                     </button>
                   </div>
+                  <div className="flex space-x-2 mt-2">
+                    <button onClick={async () => {
+                      const newName = prompt('Edit Name:', staff.name);
+                      const newRole = prompt('Edit Role (sales/manager/telecaller/technician):', staff.role);
+                      if(newName && newRole) {
+                        await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/update`, { name: newName, role: newRole });
+                        alert('Staff updated!');
+                        fetchAllData();
+                      }
+                    }} className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
+                      <Edit className="w-3 h-3" /><span>Edit</span>
+                    </button>
+                    <button onClick={async () => {
+                      if(window.confirm(`Delete staff member "${staff.name}" (${staff.staff_id})? This cannot be undone.`)) {
+                        await axios.delete(`${API}/admin/staff-accounts/${staff.staff_id}`);
+                        alert('Staff deleted!');
+                        fetchAllData();
+                      }
+                    }} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
+                      <Trash2 className="w-3 h-3" /><span>Delete</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

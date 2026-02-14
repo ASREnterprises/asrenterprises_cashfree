@@ -332,16 +332,16 @@ export const CRMDashboard = () => {
   };
 
   const sendMessage = async () => {
-    if (!messageForm.message.trim()) return;
+    if (!messageForm.message.trim() || !messageForm.receiver_id) return;
     try {
       await axios.post(`${API}/crm/messages`, {
         sender_id: "admin",
         sender_name: "Admin",
         sender_type: "admin",
-        receiver_id: messageForm.receiver_id || null,
+        receiver_id: messageForm.receiver_id,
         message: messageForm.message
       });
-      setMessageForm({ receiver_id: '', message: '' });
+      setMessageForm({ ...messageForm, message: '' });
       fetchAllData();
     } catch (err) { alert("Error sending message"); }
   };

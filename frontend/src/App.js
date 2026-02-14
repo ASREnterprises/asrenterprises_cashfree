@@ -547,36 +547,36 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+      {/* Premium Navigation */}
+      <nav className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-2xl sticky top-0 z-50 border-b border-amber-500/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-4">
               <img 
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
                 alt="ASR Enterprises Patna" 
-                className="h-12 w-auto"
+                className="h-16 w-auto"
               />
               <div className="flex flex-col">
-                <span className="text-2xl font-extrabold text-orange-600">ASR ENTERPRISES</span>
-                <span className="text-xs text-green-600 font-medium">Trusted Solar Rooftop Installation Experts in Bihar</span>
+                <span className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 tracking-tight">ASR ENTERPRISES</span>
+                <span className="text-xs text-slate-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </div>
             
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6 items-center">
-              <Link to="/" className="text-gray-700 hover:text-blue-600 transition">Home</Link>
-              <Link to="/gallery" className="text-gray-700 hover:text-blue-600 transition">Gallery</Link>
-              <Link to="/calculator" className="text-gray-700 hover:text-blue-600 transition">Calculator</Link>
-              <Link to="/govt-schemes" className="text-gray-700 hover:text-blue-600 transition">Govt Schemes</Link>
-              <Link to="/contact" className="text-gray-700 hover:text-blue-600 transition">Contact</Link>
-              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition text-sm font-semibold">Login</a>
+              <Link to="/" className="text-slate-300 hover:text-amber-400 transition font-medium">Home</Link>
+              <Link to="/gallery" className="text-slate-300 hover:text-amber-400 transition font-medium">Gallery</Link>
+              <Link to="/calculator" className="text-slate-300 hover:text-amber-400 transition font-medium">Calculator</Link>
+              <Link to="/govt-schemes" className="text-slate-300 hover:text-amber-400 transition font-medium">Govt Schemes</Link>
+              <Link to="/contact" className="text-slate-300 hover:text-amber-400 transition font-medium">Contact</Link>
+              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
             </div>
 
             {/* Mobile Menu Button */}
             <button 
-              className="md:hidden"
+              className="md:hidden text-white"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               {showMobileMenu ? <X /> : <Menu />}
@@ -586,14 +586,14 @@ const HomePage = () => {
 
         {/* Mobile Menu */}
         {showMobileMenu && (
-          <div className="md:hidden bg-white border-t">
+          <div className="md:hidden bg-slate-800 border-t border-slate-700">
             <div className="px-4 py-2 space-y-2">
-              <Link to="/" className="block py-2 text-gray-700">Home</Link>
-              <Link to="/gallery" className="block py-2 text-gray-700">Gallery</Link>
-              <Link to="/calculator" className="block py-2 text-gray-700">Calculator</Link>
-              <Link to="/govt-schemes" className="block py-2 text-gray-700">Govt Schemes</Link>
-              <Link to="/contact" className="block py-2 text-gray-700">Contact</Link>
-              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-blue-600 font-semibold">Login (Admin/Staff)</a>
+              <Link to="/" className="block py-2 text-slate-300 hover:text-amber-400">Home</Link>
+              <Link to="/gallery" className="block py-2 text-slate-300 hover:text-amber-400">Gallery</Link>
+              <Link to="/calculator" className="block py-2 text-slate-300 hover:text-amber-400">Calculator</Link>
+              <Link to="/govt-schemes" className="block py-2 text-slate-300 hover:text-amber-400">Govt Schemes</Link>
+              <Link to="/contact" className="block py-2 text-slate-300 hover:text-amber-400">Contact</Link>
+              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-amber-400 font-semibold">Login (Admin/Staff)</a>
             </div>
           </div>
         )}

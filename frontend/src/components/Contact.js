@@ -5,7 +5,7 @@ export const ContactPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       {/* Header */}
-      <div className="bg-white shadow-md">
+      <div className="bg-[#0a1628] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
             <ChevronRight className="w-5 h-5 rotate-180" />
@@ -24,43 +24,43 @@ export const ContactPage = () => {
               className="h-20 w-auto"
             />
           </div>
-          <h1 className="text-5xl font-extrabold text-gray-900 mb-4">Contact Us</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h1 className="text-5xl font-extrabold text-white mb-4">Contact Us</h1>
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
             Get in touch with Bihar's leading solar energy solutions provider
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* Contact Information Card */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Get In Touch</h2>
+          <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+            <h2 className="text-3xl font-bold text-white mb-6">Get In Touch</h2>
             
             <div className="space-y-6">
               {/* Phone */}
-              <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+              <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-500/20 transition">
                 <div className="bg-blue-500 p-3 rounded-lg">
                   <Phone className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Phone</h3>
+                  <h3 className="font-semibold text-white mb-1">Phone</h3>
                   <a href="tel:8877896889" className="text-blue-600 hover:text-blue-700 text-lg font-medium">
                     8877896889
                   </a>
-                  <p className="text-sm text-gray-600 mt-1">Available 9 AM - 7 PM</p>
+                  <p className="text-sm text-gray-400 mt-1">Available 9 AM - 7 PM</p>
                 </div>
               </div>
 
               {/* Email */}
-              <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition">
+              <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg hover:bg-green-500/20 transition">
                 <div className="bg-green-500 p-3 rounded-lg">
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Email</h3>
+                  <h3 className="font-semibold text-white mb-1">Email</h3>
                   <a href="mailto:asrenterprisespatna@gmail.com" className="text-green-600 hover:text-green-700 font-medium break-all">
                     asrenterprisespatna@gmail.com
                   </a>
-                  <p className="text-sm text-gray-600 mt-1">We'll respond within 24 hours</p>
+                  <p className="text-sm text-gray-400 mt-1">We'll respond within 24 hours</p>
                 </div>
               </div>
 
@@ -70,8 +70,8 @@ export const ContactPage = () => {
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Office Address</h3>
-                  <p className="text-gray-700">
+                  <h3 className="font-semibold text-white mb-1">Office Address</h3>
+                  <p className="text-gray-300">
                     Shop no 10, AMAN SKS COMPLEX<br />
                     Khagaul Saguna Road<br />
                     Patna 801503, Bihar
@@ -85,12 +85,12 @@ export const ContactPage = () => {
                   <Award className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">Registered Office</h3>
-                  <p className="text-gray-700 mb-2">
+                  <h3 className="font-semibold text-white mb-1">Registered Office</h3>
+                  <p className="text-gray-300 mb-2">
                     Dawarikapuri, Khagaul<br />
                     Patna 801105, Bihar
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-400">
                     <strong>GSTIN:</strong> 10CCFPK3447Q3ZD
                   </p>
                 </div>
@@ -102,8 +102,8 @@ export const ContactPage = () => {
                   <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Business Hours</h3>
-                  <div className="text-sm text-gray-700 space-y-1">
+                  <h3 className="font-semibold text-white mb-2">Business Hours</h3>
+                  <div className="text-sm text-gray-300 space-y-1">
                     <p><strong>Monday - Saturday:</strong> 9:00 AM - 7:00 PM</p>
                     <p><strong>Sunday:</strong> 10:00 AM - 5:00 PM</p>
                   </div>
@@ -113,7 +113,7 @@ export const ContactPage = () => {
 
             {/* Social Media */}
             <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-4">Follow Us</h3>
+              <h3 className="font-semibold text-white mb-4">Follow Us</h3>
               <div className="flex space-x-4">
                 <a
                   href="https://instagram.com/asr_enterprises_patna"
@@ -166,9 +166,9 @@ export const ContactPage = () => {
             </div>
 
             {/* Services Card */}
-            <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Our Services</h3>
-              <ul className="space-y-3 text-gray-700">
+            <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+              <h3 className="text-2xl font-bold text-white mb-4">Our Services</h3>
+              <ul className="space-y-3 text-gray-300">
                 <li className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span>Residential Solar Installations</span>
@@ -197,8 +197,8 @@ export const ContactPage = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+              <h3 className="text-2xl font-bold text-white mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <Link
                   to="/calculator"
@@ -224,36 +224,36 @@ export const ContactPage = () => {
         </div>
 
         {/* Why Choose Us */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8 md:p-12">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-8">Why Choose ASR ENTERPRISES?</h2>
+        <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50 md:p-12">
+          <h2 className="text-3xl font-bold text-white text-center mb-8">Why Choose ASR ENTERPRISES?</h2>
           <div className="grid md:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-blue-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">Certified & Licensed</h3>
-              <p className="text-sm text-gray-600">GSTIN registered with quality certifications</p>
+              <h3 className="font-bold text-white mb-2">Certified & Licensed</h3>
+              <p className="text-sm text-gray-400">GSTIN registered with quality certifications</p>
             </div>
             <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-green-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">25+ Projects</h3>
-              <p className="text-sm text-gray-600">Growing track record across Bihar</p>
+              <h3 className="font-bold text-white mb-2">25+ Projects</h3>
+              <p className="text-sm text-gray-400">Growing track record across Bihar</p>
             </div>
             <div className="text-center">
               <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-yellow-600" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">Best Prices</h3>
-              <p className="text-sm text-gray-600">Competitive rates with quality guarantee</p>
+              <h3 className="font-bold text-white mb-2">Best Prices</h3>
+              <p className="text-sm text-gray-400">Competitive rates with quality guarantee</p>
             </div>
             <div className="text-center">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">24/7 Support</h3>
-              <p className="text-sm text-gray-600">Always here for your solar needs</p>
+              <h3 className="font-bold text-white mb-2">24/7 Support</h3>
+              <p className="text-sm text-gray-400">Always here for your solar needs</p>
             </div>
           </div>
         </div>

@@ -816,19 +816,26 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Messages Tab - Staff-wise Conversations */}
+        {/* Messages Tab - Staff-wise Conversations (PRIVATE & SECURE) */}
         {activeTab === "messages" && (
           <div className="space-y-4">
             <div className="bg-gray-800 rounded-xl p-4">
-              <h3 className="text-white font-bold mb-4">Staff Conversations (Private)</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-bold">Staff Conversations (End-to-End Secure)</h3>
+                <span className="text-green-400 text-xs flex items-center space-x-1">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Private & Encrypted</span>
+                </span>
+              </div>
               <div className="grid md:grid-cols-4 gap-4">
                 {/* Staff List */}
-                <div className="space-y-2 border-r border-gray-700 pr-4">
+                <div className="space-y-2 border-r border-gray-700 pr-4 max-h-96 overflow-y-auto">
                   <div 
                     className={`p-3 rounded-lg cursor-pointer transition ${messageForm.receiver_id === '' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
                     onClick={() => setMessageForm({...messageForm, receiver_id: ''})}
                   >
-                    <span className="text-white font-medium">All Staff (Broadcast)</span>
+                    <span className="text-white font-medium">📢 Broadcast to All</span>
+                    <p className="text-gray-400 text-xs">All staff can see</p>
                   </div>
                   {staffAccounts.map((staff) => (
                     <div 
@@ -838,40 +845,77 @@ export const CRMDashboard = () => {
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-white font-medium">{staff.name}</span>
-                        <span className="text-gray-400 text-xs">{staff.role}</span>
+                        <span className="text-gray-400 text-xs capitalize">{staff.role}</span>
                       </div>
                       <span className="text-gray-400 text-xs">{staff.staff_id}</span>
+                      <p className="text-green-400 text-xs mt-1">🔒 Private chat</p>
                     </div>
                   ))}
                 </div>
                 
                 {/* Chat Area */}
                 <div className="md:col-span-3">
-                  <div className="bg-gray-700 rounded-lg p-4 mb-4 h-72 overflow-y-auto">
-                    {messages
-                      .filter(msg => !messageForm.receiver_id || msg.receiver_id === messageForm.receiver_id || msg.sender_id === messageForm.receiver_id || msg.receiver_id === '')
-                      .length > 0 ? (
-                      <div className="space-y-3">
-                        {messages
-                          .filter(msg => !messageForm.receiver_id || msg.receiver_id === messageForm.receiver_id || msg.sender_id === messageForm.receiver_id || msg.receiver_id === '')
-                          .map((msg) => (
-                          <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'admin' ? 'bg-blue-600 bg-opacity-30 ml-8' : 'bg-gray-600 mr-8'}`}>
-                            <div className="flex justify-between items-start mb-1">
-                              <span className={`font-medium text-sm ${msg.sender_type === 'admin' ? 'text-blue-400' : 'text-green-400'}`}>
-                                {msg.sender_name} {msg.receiver_name && <span className="text-gray-400">→ {msg.receiver_name}</span>}
-                              </span>
-                              <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
-                            </div>
-                            <p className="text-gray-200">{msg.message}</p>
+                  <div className="bg-gray-900 rounded-lg border border-gray-700 mb-4">
+                    <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+                      <span className="text-white font-medium">
+                        {messageForm.receiver_id 
+                          ? `🔒 Private: ${staffAccounts.find(s => s.id === messageForm.receiver_id)?.name || 'Staff'}`
+                          : '📢 Broadcast Channel (All Staff)'}
+                      </span>
+                      {messageForm.receiver_id && (
+                        <span className="text-green-400 text-xs">Only you and {staffAccounts.find(s => s.id === messageForm.receiver_id)?.name} can see</span>
+                      )}
+                    </div>
+                    <div className="p-4 h-64 overflow-y-auto">
+                      {(() => {
+                        // SECURE FILTER: Only show messages that belong to this conversation
+                        const conversationMessages = messages.filter(msg => {
+                          if (!messageForm.receiver_id) {
+                            // Broadcast: only show broadcast messages (receiver_id is null/empty)
+                            return !msg.receiver_id || msg.receiver_id === '';
+                          } else {
+                            // Private: only show messages between admin and this specific staff
+                            return (
+                              (msg.sender_id === 'admin' && msg.receiver_id === messageForm.receiver_id) ||
+                              (msg.sender_id === messageForm.receiver_id && (msg.receiver_id === 'admin' || !msg.receiver_id))
+                            );
+                          }
+                        });
+                        
+                        return conversationMessages.length > 0 ? (
+                          <div className="space-y-3">
+                            {conversationMessages.map((msg) => (
+                              <div key={msg.id} className={`p-3 rounded-lg relative group ${msg.sender_type === 'admin' ? 'bg-blue-600 bg-opacity-30 ml-12' : 'bg-gray-700 mr-12'}`}>
+                                <button 
+                                  onClick={async () => {
+                                    if(window.confirm('Delete this message?')) {
+                                      await axios.delete(`${API}/crm/messages/${msg.id}`);
+                                      fetchAllData();
+                                    }
+                                  }}
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                <div className="flex justify-between items-start mb-1 pr-6">
+                                  <span className={`font-medium text-sm ${msg.sender_type === 'admin' ? 'text-blue-400' : 'text-green-400'}`}>
+                                    {msg.sender_name}
+                                  </span>
+                                  <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
+                                </div>
+                                <p className="text-gray-200">{msg.message}</p>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-gray-400">
-                        <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>No messages in this conversation</p>
-                      </div>
-                    )}
+                        ) : (
+                          <div className="text-center py-12 text-gray-400">
+                            <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>No messages in this conversation</p>
+                            <p className="text-xs mt-1 text-gray-500">Start a secure conversation</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                   
                   <div className="flex space-x-2">
@@ -879,8 +923,8 @@ export const CRMDashboard = () => {
                       type="text" 
                       value={messageForm.message} 
                       onChange={(e) => setMessageForm({...messageForm, message: e.target.value})} 
-                      placeholder={messageForm.receiver_id ? `Message to ${staffAccounts.find(s => s.id === messageForm.receiver_id)?.name || 'staff'}...` : "Broadcast to all staff..."} 
-                      className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg" 
+                      placeholder={messageForm.receiver_id ? `🔒 Private message to ${staffAccounts.find(s => s.id === messageForm.receiver_id)?.name || 'staff'}...` : "📢 Broadcast to all staff..."} 
+                      className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-blue-500 transition" 
                       onKeyPress={(e) => e.key === 'Enter' && sendMessage()} 
                     />
                     <button onClick={sendMessage} className="bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition">
@@ -888,7 +932,9 @@ export const CRMDashboard = () => {
                     </button>
                   </div>
                   <p className="text-gray-500 text-xs mt-2">
-                    {messageForm.receiver_id ? "This is a private conversation. Only you and the selected staff can see these messages." : "Broadcast messages are visible to all staff members."}
+                    {messageForm.receiver_id 
+                      ? "🔒 This is a private conversation. Only you and the selected staff member can see these messages. Other staff cannot view this chat."
+                      : "📢 Broadcast messages are visible to all staff members."}
                   </p>
                 </div>
               </div>

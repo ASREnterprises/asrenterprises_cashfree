@@ -685,7 +685,7 @@ const HomePage = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
               <button
                 onClick={() => navigate('/register')}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-8 py-4 rounded-lg font-bold hover:from-orange-600 hover:to-red-600 transition flex items-center justify-center space-x-2 shadow-lg animate-pulse"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 border border-amber-400/30"
                 data-testid="book-now-btn"
               >
                 <Zap className="w-5 h-5" />
@@ -693,7 +693,7 @@ const HomePage = () => {
               </button>
               <a
                 href="tel:8877896889"
-                className="bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center space-x-2 shadow-lg"
+                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/20"
                 data-testid="call-now-btn"
               >
                 <Phone className="w-5 h-5" />
@@ -703,7 +703,7 @@ const HomePage = () => {
                 href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition flex items-center justify-center space-x-2 shadow-lg"
+                className="bg-emerald-500 text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-600 transition flex items-center justify-center space-x-2 shadow-lg"
                 data-testid="whatsapp-btn"
               >
                 <MessageSquare className="w-5 h-5" />

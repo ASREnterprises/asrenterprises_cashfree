@@ -1929,7 +1929,8 @@ const SolarCalculatorPage = () => {
               <img 
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png"
                 alt="ASR Enterprises"
-                className="h-16 w-auto bg-[#0f2240] rounded-lg p-1"
+                className="h-16 w-auto rounded-lg p-1"
+                style={{ mixBlendMode: 'lighten' }}
               />
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">ASR Solar Calculator</h1>

@@ -989,6 +989,21 @@ export const CRMDashboard = () => {
                           ) : (
                             <span className="text-green-400 text-xs">✓ Confirmed</span>
                           )}
+                          <button
+                            onClick={async () => {
+                              if(window.confirm('Delete this registration record?')) {
+                                try {
+                                  await axios.delete(`${API}/admin/registrations/${reg.id}`);
+                                  fetchRegistrations();
+                                } catch (err) {
+                                  alert("Error deleting registration");
+                                }
+                              }
+                            }}
+                            className="ml-2 bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </td>
                       </tr>
                     ))}

@@ -126,7 +126,7 @@ export const StaffLogin = () => {
           <div className="text-center mb-8">
             <div className="rounded-xl p-3 inline-block mb-4">
               <img 
-                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                src="/asr_logo_dark.png" 
                 alt="ASR Enterprises" 
                 className="h-14 w-auto"
                 style={{ mixBlendMode: 'lighten' }}

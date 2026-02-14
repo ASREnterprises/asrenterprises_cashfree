@@ -69,7 +69,7 @@ export const CRMDashboard = () => {
   const [photoForm, setPhotoForm] = useState({ title: '', description: '', location: '', system_size: '' });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const ASR_LOGO = "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png";
+  const ASR_LOGO = "/asr_logo_dark.png";
   
   // Manual Lead Creation State
   const [showAddLeadModal, setShowAddLeadModal] = useState(false);

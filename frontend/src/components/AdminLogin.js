@@ -73,7 +73,7 @@ export const AdminLogin = ({ onLogin }) => {
         <div className="text-center mb-8">
           <div className="rounded-2xl p-4 mx-auto mb-4 inline-block">
             <img 
-              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+              src="/asr_logo_dark.png" 
               alt="ASR Enterprises" 
               className="h-16 w-auto"
               style={{ mixBlendMode: 'lighten' }}

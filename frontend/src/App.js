@@ -529,7 +529,7 @@ const HomePage = () => {
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-4">
               <img 
-                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                src="/asr_logo_dark.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
                 style={{ mixBlendMode: 'lighten' }}
@@ -1412,7 +1412,7 @@ const HomePage = () => {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <img 
-                  src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+                  src="/asr_logo_dark.png" 
                   alt="ASR Enterprises Patna" 
                   className="h-12 w-auto"
                   style={{ mixBlendMode: 'lighten' }}
@@ -1944,7 +1944,7 @@ const SolarCalculatorPage = () => {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center space-x-4">
               <img 
-                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png"
+                src="/asr_logo_dark.png"
                 alt="ASR Enterprises"
                 className="h-16 w-auto rounded-lg p-1"
                 style={{ mixBlendMode: 'lighten' }}

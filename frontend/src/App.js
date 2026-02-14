@@ -711,17 +711,17 @@ const HomePage = () => {
               </a>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10">
               <button
                 onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-orange-600 hover:to-yellow-600 transition shadow-lg"
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-cyan-600 transition shadow-lg"
                 data-testid="free-consultation-btn"
               >
                 Request Free Consultation
               </button>
               <button
                 onClick={() => navigate('/calculator')}
-                className="bg-white text-blue-600 border-2 border-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition shadow-lg"
+                className="bg-white/10 backdrop-blur-sm text-white border border-white/30 px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition"
                 data-testid="try-calculator-btn"
               >
                 Calculate Savings
@@ -729,21 +729,21 @@ const HomePage = () => {
             </div>
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full">
-                <CheckCircle className="w-4 h-4 text-green-600" />
+            <div className="flex flex-wrap justify-center gap-3 text-sm">
+              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
                 <span>25+ Happy Customers</span>
               </div>
-              <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full">
-                <CheckCircle className="w-4 h-4 text-blue-600" />
+              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
+                <CheckCircle className="w-4 h-4 text-blue-400" />
                 <span>MNRE Registered</span>
               </div>
-              <div className="flex items-center space-x-2 bg-yellow-50 px-4 py-2 rounded-full">
-                <CheckCircle className="w-4 h-4 text-yellow-600" />
+              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
+                <CheckCircle className="w-4 h-4 text-amber-400" />
                 <span>PM Surya Ghar Partner</span>
               </div>
-              <div className="flex items-center space-x-2 bg-purple-50 px-4 py-2 rounded-full">
-                <CheckCircle className="w-4 h-4 text-purple-600" />
+              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
+                <CheckCircle className="w-4 h-4 text-purple-400" />
                 <span>Free Site Survey</span>
               </div>
             </div>

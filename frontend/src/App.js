@@ -2452,14 +2452,14 @@ const PublicGovtNewsPage = () => {
             <p className="text-gray-500">Loading news...</p>
           </div>
         ) : news.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
-            <p className="text-gray-500">No news available at the moment.</p>
-            <p className="text-gray-400 text-sm mt-2">Check back later for updates!</p>
+          <div className="text-center py-16 bg-gray-800/80 rounded-2xl shadow-lg border border-gray-700/50">
+            <p className="text-gray-400">No news available at the moment.</p>
+            <p className="text-gray-500 text-sm mt-2">Check back later for updates!</p>
           </div>
         ) : (
           <div className="space-y-6">
             {news.map((item, index) => (
-              <div key={item.id || index} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
+              <div key={item.id || index} className="bg-gray-800/80 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition border border-gray-700/50">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${getCategoryColor(item.category)}`}>

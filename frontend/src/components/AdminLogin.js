@@ -67,7 +67,7 @@ export const AdminLogin = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0f2240] to-[#0a1628] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">

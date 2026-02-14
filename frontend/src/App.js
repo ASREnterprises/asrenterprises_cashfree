@@ -1913,9 +1913,9 @@ const SolarCalculatorPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-yellow-50 to-amber-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-orange-600 hover:text-orange-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-amber-400 hover:text-amber-300 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>

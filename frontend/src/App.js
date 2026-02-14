@@ -1751,7 +1751,7 @@ const LeadCapturePage = () => {
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-3" data-testid="error-message">
               <AlertCircle className="w-6 h-6 text-red-400" />
-              <span className="text-red-800">{error}</span>
+              <span className="text-red-400">{error}</span>
             </div>
           )}
 
@@ -1960,7 +1960,7 @@ const SolarCalculatorPage = () => {
               {error && (
                 <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center space-x-3">
                   <AlertCircle className="w-6 h-6 text-red-400" />
-                  <span className="text-red-800">{error}</span>
+                  <span className="text-red-400">{error}</span>
                 </div>
               )}
 

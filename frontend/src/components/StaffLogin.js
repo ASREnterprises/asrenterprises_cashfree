@@ -14,6 +14,7 @@ export const StaffLogin = () => {
   const [success, setSuccess] = useState("");
   const [loginMethod, setLoginMethod] = useState("password"); // password or otp
   const [otpSent, setOtpSent] = useState(false);
+  const [step, setStep] = useState("credentials"); // credentials or otp_verify
   const navigate = useNavigate();
 
   const handlePasswordLogin = async (e) => {
@@ -27,7 +28,10 @@ export const StaffLogin = () => {
         password: password
       });
 
-      if (res.data.success) {
+      if (res.data.requires_otp) {
+        setStep("otp_verify");
+        setSuccess(res.data.message || "OTP sent to your email for verification");
+      } else if (res.data.success) {
         localStorage.setItem("asrStaffAuth", "true");
         localStorage.setItem("asrStaffData", JSON.stringify(res.data.staff));
         localStorage.setItem("asrStaffToken", res.data.token);
@@ -35,6 +39,30 @@ export const StaffLogin = () => {
       }
     } catch (err) {
       setError(err.response?.data?.detail || "Invalid Staff ID or Password");
+    }
+    setLoading(false);
+  };
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API}/staff/verify-2fa`, {
+        staff_id: staffId.toUpperCase(),
+        password: password,
+        otp: otp
+      });
+
+      if (res.data.success) {
+        localStorage.setItem("asrStaffAuth", "true");
+        localStorage.setItem("asrStaffData", JSON.stringify(res.data.staff));
+        localStorage.setItem("asrStaffToken", res.data.token);
+        navigate("/staff/portal");
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Invalid or expired OTP");
     }
     setLoading(false);
   };

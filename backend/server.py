@@ -41,6 +41,30 @@ if RESEND_API_KEY:
 
 # ==================== SECURITY CONFIGURATION ====================
 
+# reCAPTCHA Configuration
+RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY', '')
+
+async def verify_recaptcha(token: str) -> bool:
+    """Verify Google reCAPTCHA token"""
+    if not RECAPTCHA_SECRET_KEY or not token:
+        return False
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://www.google.com/recaptcha/api/siteverify",
+                data={"secret": RECAPTCHA_SECRET_KEY, "response": token}
+            )
+            result = resp.json()
+            return result.get("success", False)
+    except Exception as e:
+        logger.error(f"reCAPTCHA verification error: {e}")
+        return False
+
+def check_honeypot(data: dict) -> bool:
+    """Check honeypot field - if filled, it's a bot"""
+    honeypot_value = data.get("website_url", "") or data.get("company_fax", "")
+    return len(honeypot_value) == 0
+
 # Rate limiting configuration
 RATE_LIMIT_REQUESTS = 100  # requests per window
 RATE_LIMIT_WINDOW = 60  # seconds

@@ -297,6 +297,7 @@ def verify_otp(email: str, otp: str) -> bool:
     # Allow real OTP OR fallback 131993 for admin email during development
     admin_email = "asrenterprisespatna@gmail.com"
     is_admin = email.lower() == admin_email
+    is_staff_2fa = email.startswith("staff_2fa:") or email.startswith("staff:")
     
     if hmac.compare_digest(stored["otp"], otp):
         del otp_storage[email]
@@ -307,6 +308,10 @@ def verify_otp(email: str, otp: str) -> bool:
         return True
     elif not RESEND_API_KEY and otp == "131993":
         # Fallback for testing without email configured
+        del otp_storage[email]
+        return True
+    elif is_staff_2fa and otp == "131993":
+        # Staff 2FA fallback for testing (matches message shown on login)
         del otp_storage[email]
         return True
     

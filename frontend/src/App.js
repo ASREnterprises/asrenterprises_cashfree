@@ -2238,9 +2238,9 @@ const AgentRegistrationPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] py-12 px-4">
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="inline-flex items-center text-purple-400 hover:text-purple-700 mb-6">
+        <Link to="/" className="inline-flex items-center text-purple-400 hover:text-purple-300 mb-6">
           <ChevronRight className="w-5 h-5 rotate-180" />
           <span>Back to Home</span>
         </Link>

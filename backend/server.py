@@ -24,6 +24,7 @@ import resend
 import base64
 import csv
 import io
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')

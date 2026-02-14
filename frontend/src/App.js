@@ -1398,6 +1398,7 @@ const HomePage = () => {
                   src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
                   alt="ASR Enterprises Patna" 
                   className="h-12 w-auto"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="text-xl font-bold mb-2">ASR ENTERPRISES</h3>

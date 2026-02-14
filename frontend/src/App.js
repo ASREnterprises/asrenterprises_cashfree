@@ -66,26 +66,32 @@ const SolarInquiryForm = () => {
     roof_area: "",
     message: ""
   });
+  const [honeypot, setHoneypot] = useState("");
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (honeypot) return; // Bot detected
     setLoading(true);
     setError("");
     
     try {
-      const res = await axios.post(`${API}/leads`, {
+      await axios.post(`${API}/secure-lead`, {
         ...formData,
         monthly_bill: parseFloat(formData.monthly_bill) || null,
-        roof_area: parseFloat(formData.roof_area) || null
+        roof_area: parseFloat(formData.roof_area) || null,
+        recaptcha_token: recaptchaToken || "",
+        website_url: honeypot
       });
       setSuccess(true);
       setFormData({
         name: "", email: "", phone: "", district: "", address: "",
         property_type: "residential", roof_type: "rcc", monthly_bill: "", roof_area: "", message: ""
       });
+      setRecaptchaToken(null);
       setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error submitting inquiry. Please try again.");
@@ -94,84 +100,65 @@ const SolarInquiryForm = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-orange-50 via-yellow-50 to-green-50 py-20" id="inquiry-form">
+    <div className="bg-gradient-to-br from-[#0a1628] via-[#0f2240] to-[#0a1628] py-20" id="inquiry-form">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Get Free Solar Consultation</h2>
-          <p className="text-xl text-gray-600">Fill the form below and our team will contact you within 24 hours</p>
+          <h2 className="text-4xl font-bold text-white mb-4">Get Free Solar Consultation</h2>
+          <p className="text-lg text-gray-300">Fill the form below and our team will contact you within 24 hours</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700/50">
           {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center">
+            <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6 flex items-center">
               <CheckCircle className="w-5 h-5 mr-2" />
               Thank you! Your inquiry has been submitted. Our team will contact you soon.
             </div>
           )}
           
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center">
+            <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6 flex items-center">
               <AlertCircle className="w-5 h-5 mr-2" />
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Honeypot - hidden from users, bots will fill it */}
+            <div style={{ position: 'absolute', left: '-9999px' }} aria-hidden="true">
+              <input type="text" name="website_url" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex="-1" autoComplete="off" />
+            </div>
+            
             <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Full Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Enter your full name"
-                  required
-                />
+                <label className="block text-gray-300 font-semibold mb-2">Full Name *</label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  placeholder="Enter your full name" required data-testid="inquiry-name" />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Phone Number *</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="10-digit mobile number"
-                  required
-                />
+                <label className="block text-gray-300 font-semibold mb-2">Phone Number *</label>
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  placeholder="10-digit mobile number" required data-testid="inquiry-phone" />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Email Address *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="your@email.com"
-                  required
-                />
+                <label className="block text-gray-300 font-semibold mb-2">Email Address *</label>
+                <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  placeholder="your@email.com" required data-testid="inquiry-email" />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">District (Bihar) *</label>
-                <select
-                  value={formData.district}
-                  onChange={(e) => setFormData({...formData, district: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  required
-                >
+                <label className="block text-gray-300 font-semibold mb-2">District (Bihar) *</label>
+                <select value={formData.district} onChange={(e) => setFormData({...formData, district: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" required>
                   <option value="">Select your district</option>
-                  {BIHAR_DISTRICTS.map((dist) => (
-                    <option key={dist} value={dist}>{dist}</option>
-                  ))}
+                  {BIHAR_DISTRICTS.map((dist) => (<option key={dist} value={dist}>{dist}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Property Type *</label>
-                <select
-                  value={formData.property_type}
-                  onChange={(e) => setFormData({...formData, property_type: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
+                <label className="block text-gray-300 font-semibold mb-2">Property Type *</label>
+                <select value={formData.property_type} onChange={(e) => setFormData({...formData, property_type: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
                   <option value="residential">Residential</option>
                   <option value="commercial">Commercial</option>
                   <option value="industrial">Industrial</option>
@@ -179,12 +166,9 @@ const SolarInquiryForm = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Roof Type *</label>
-                <select
-                  value={formData.roof_type}
-                  onChange={(e) => setFormData({...formData, roof_type: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
+                <label className="block text-gray-300 font-semibold mb-2">Roof Type *</label>
+                <select value={formData.roof_type} onChange={(e) => setFormData({...formData, roof_type: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
                   <option value="rcc">RCC (Concrete)</option>
                   <option value="tin">Tin/Metal Sheet</option>
                   <option value="asbestos">Asbestos</option>
@@ -193,68 +177,46 @@ const SolarInquiryForm = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Monthly Electricity Bill (₹)</label>
-                <input
-                  type="number"
-                  value={formData.monthly_bill}
-                  onChange={(e) => setFormData({...formData, monthly_bill: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="e.g., 3000"
-                />
+                <label className="block text-gray-300 font-semibold mb-2">Monthly Electricity Bill (₹)</label>
+                <input type="number" value={formData.monthly_bill} onChange={(e) => setFormData({...formData, monthly_bill: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  placeholder="e.g., 3000" />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Roof Area (sq ft)</label>
-                <input
-                  type="number"
-                  value={formData.roof_area}
-                  onChange={(e) => setFormData({...formData, roof_area: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Approximate available roof area"
-                />
+                <label className="block text-gray-300 font-semibold mb-2">Roof Area (sq ft)</label>
+                <input type="number" value={formData.roof_area} onChange={(e) => setFormData({...formData, roof_area: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  placeholder="Approximate available roof area" />
               </div>
             </div>
             
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Address</label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({...formData, address: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Your complete address"
-              />
+              <label className="block text-gray-300 font-semibold mb-2">Address</label>
+              <input type="text" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                placeholder="Your complete address" />
             </div>
             
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Additional Message</label>
-              <textarea
-                value={formData.message}
-                onChange={(e) => setFormData({...formData, message: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                rows={3}
-                placeholder="Any specific requirements or questions?"
-              />
+              <label className="block text-gray-300 font-semibold mb-2">Additional Message</label>
+              <textarea value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})}
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                rows={3} placeholder="Any specific requirements or questions?" />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-4 rounded-lg font-bold text-lg hover:from-orange-600 hover:to-yellow-600 transition disabled:opacity-50 flex items-center justify-center"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5 mr-2" />
-                  Submit Solar Inquiry
-                </>
-              )}
+            {RECAPTCHA_SITE_KEY && (
+              <div className="flex justify-center">
+                <ReCAPTCHA sitekey={RECAPTCHA_SITE_KEY} onChange={(token) => setRecaptchaToken(token)} onExpired={() => setRecaptchaToken(null)} theme="dark" data-testid="recaptcha-widget" />
+              </div>
+            )}
+
+            <button type="submit" disabled={loading}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-lg font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 flex items-center justify-center"
+              data-testid="inquiry-submit-btn">
+              {loading ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />Submitting...</>) : (<><Send className="w-5 h-5 mr-2" />Submit Solar Inquiry</>)}
             </button>
 
-            <p className="text-center text-gray-500 text-sm">
+            <p className="text-center text-gray-400 text-sm">
               By submitting, you agree to be contacted by ASR Enterprises for solar consultation.
             </p>
           </form>

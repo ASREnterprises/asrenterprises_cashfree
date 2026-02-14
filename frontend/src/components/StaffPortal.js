@@ -472,7 +472,12 @@ export const StaffPortal = () => {
         {/* Leads Tab */}
         {activeTab === "leads" && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white">My Assigned Leads</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">My Leads</h2>
+              <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition" data-testid="staff-add-lead-btn">
+                <Plus className="w-4 h-4" /><span>Add Lead</span>
+              </button>
+            </div>
             <div className="bg-gray-800 rounded-xl overflow-hidden">
               <table className="w-full">
                 <thead className="bg-gray-700">

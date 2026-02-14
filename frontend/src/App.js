@@ -666,21 +666,20 @@ const HomePage = () => {
               <Award className="w-5 h-5 text-amber-400" />
               <span className="text-sm font-medium">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>
             </div>
-            </div>
             
-            <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6">
-              Transform Your Energy Future with
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
+              <span className="text-white">Transform Your Energy Future with</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500">
                 Solar Rooftop Solutions
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 max-w-4xl mx-auto mb-6 leading-relaxed">
-              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong>PM Surya Ghar Yojana</strong>.
+            <p className="text-xl text-blue-100 max-w-4xl mx-auto mb-6 leading-relaxed">
+              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong className="text-amber-400">PM Surya Ghar Yojana</strong>.
             </p>
             
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-10">
-              Our mission: Making solar energy <strong>affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
+            <p className="text-lg text-blue-200/80 max-w-3xl mx-auto mb-10">
+              Our mission: Making solar energy <strong className="text-white">affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">

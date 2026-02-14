@@ -1029,10 +1029,9 @@ export const CRMDashboard = () => {
               <input type="tel" value={newStaffForm.phone} onChange={(e) => setNewStaffForm({...newStaffForm, phone: e.target.value})} placeholder="Phone *" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
               <input type="email" value={newStaffForm.email} onChange={(e) => setNewStaffForm({...newStaffForm, email: e.target.value})} placeholder="Email" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
               <select value={newStaffForm.role} onChange={(e) => setNewStaffForm({...newStaffForm, role: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
-                <option value="sales">Sales</option>
-                <option value="survey">Survey</option>
-                <option value="installation">Installation</option>
-                <option value="manager">Manager</option>
+                {STAFF_ROLES.map((role) => (
+                  <option key={role.id} value={role.id}>{role.label}</option>
+                ))}
               </select>
               <input type="text" value={newStaffForm.password} onChange={(e) => setNewStaffForm({...newStaffForm, password: e.target.value})} placeholder="Password" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
             </div>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 export const ContactPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
       {/* Header */}
       <div className="bg-[#0a1628] shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -146,19 +146,19 @@ export const ContactPage = () => {
                 Leading solar energy solutions provider in Patna, Bihar. Trusted by 25+ customers across the region.
               </p>
               <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                <div className="bg-gray-700/30 rounded-lg p-4">
                   <div className="text-3xl font-bold">25+</div>
                   <div className="text-blue-100 text-sm">Customers</div>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                <div className="bg-gray-700/30 rounded-lg p-4">
                   <div className="text-3xl font-bold">100kW+</div>
                   <div className="text-blue-100 text-sm">Capacity</div>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                <div className="bg-gray-700/30 rounded-lg p-4">
                   <div className="text-3xl font-bold">MNRE</div>
                   <div className="text-blue-100 text-sm">Registered</div>
                 </div>
-                <div className="bg-white bg-opacity-20 rounded-lg p-4">
+                <div className="bg-gray-700/30 rounded-lg p-4">
                   <div className="text-3xl font-bold">5★</div>
                   <div className="text-blue-100 text-sm">Rating</div>
                 </div>

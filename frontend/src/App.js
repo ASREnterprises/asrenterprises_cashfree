@@ -2103,43 +2103,43 @@ const SolarCalculatorPage = () => {
           <div className="space-y-6">
             {result ? (
               <>
-                <div className="bg-white rounded-2xl shadow-2xl p-8" data-testid="calculation-results">
+                <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50" data-testid="calculation-results">
                   <h2 className="text-2xl font-bold text-white mb-6">Your Solar System</h2>
                   
                   <div className="space-y-4">
-                    <div className="flex justify-between items-center p-4 bg-blue-500/10 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-blue-500/20 rounded-lg border border-blue-800/50">
                       <span className="text-gray-300 font-semibold">Recommended Capacity</span>
                       <span className="text-2xl font-bold text-blue-400">{result.recommended_capacity_kw} kW</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-green-500/20 rounded-lg border border-green-800/50">
                       <span className="text-gray-300 font-semibold">Estimated Cost</span>
                       <span className="text-2xl font-bold text-green-400">₹{result.estimated_cost.toLocaleString()}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-purple-500/20 rounded-lg border border-purple-800/50">
                       <span className="text-gray-300 font-semibold">Monthly Savings</span>
                       <span className="text-2xl font-bold text-purple-400">₹{result.monthly_savings.toLocaleString()}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-orange-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-orange-500/20 rounded-lg border border-orange-800/50">
                       <span className="text-gray-300 font-semibold">Annual Savings</span>
-                      <span className="text-2xl font-bold text-orange-600">₹{result.annual_savings.toLocaleString()}</span>
+                      <span className="text-2xl font-bold text-orange-400">₹{result.annual_savings.toLocaleString()}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-yellow-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-yellow-500/20 rounded-lg border border-yellow-800/50">
                       <span className="text-gray-300 font-semibold">Payback Period</span>
-                      <span className="text-2xl font-bold text-yellow-600">{result.payback_period_years} years</span>
+                      <span className="text-2xl font-bold text-yellow-400">{result.payback_period_years} years</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-red-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-red-500/20 rounded-lg border border-red-800/50">
                       <span className="text-gray-300 font-semibold">Panels Required</span>
                       <span className="text-2xl font-bold text-red-400">{result.panels_required}</span>
                     </div>
 
-                    <div className="flex justify-between items-center p-4 bg-teal-50 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-teal-500/20 rounded-lg border border-teal-800/50">
                       <span className="text-gray-300 font-semibold">CO2 Offset/Year</span>
-                      <span className="text-2xl font-bold text-teal-600">{result.co2_offset_kg_yearly} kg</span>
+                      <span className="text-2xl font-bold text-teal-400">{result.co2_offset_kg_yearly} kg</span>
                     </div>
                   </div>
                 </div>
@@ -2164,7 +2164,7 @@ const SolarCalculatorPage = () => {
                 </div>
               </>
             ) : (
-              <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+              <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 text-center border border-gray-700/50">
                 <Sun className="w-24 h-24 text-yellow-400 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">Ready to Calculate</h3>
                 <p className="text-gray-400">Fill in your details to get personalized solar recommendations</p>

@@ -1016,7 +1016,7 @@ export const CRMDashboard = () => {
                   />
                   <button
                     onClick={updateRegistrationFee}
-                    className="bg-white text-orange-600 px-4 py-2 rounded-lg font-semibold hover:bg-orange-50 transition"
+                    className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-600 transition"
                   >
                     Update
                   </button>

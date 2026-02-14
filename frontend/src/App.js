@@ -795,12 +795,13 @@ const HomePage = () => {
             </div>
             
             {/* Vikram Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-4 text-center hover:shadow-xl hover:border-indigo-500/50 transition-all hover:-translate-y-1 group">
-              <div className="h-16 flex items-center justify-center mb-3">
+            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-indigo-500/50 transition-all hover:-translate-y-1 group">
+              <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2bf4384279551841349eac5d02f7b1c15550a0b920a4eda5dca5b62f94302fb0.png" 
                   alt="Vikram Solar" 
-                  className="h-12 w-auto object-contain"
+                  className="h-16 w-auto object-contain"
+                  style={{ mixBlendMode: 'lighten' }}
                 />
               </div>
               <h3 className="font-bold text-white text-sm">Vikram Solar</h3>

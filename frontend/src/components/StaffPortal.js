@@ -176,6 +176,21 @@ export const StaffPortal = () => {
     }
   };
 
+  const createLead = async () => {
+    if (!newLeadForm.name.trim() || !newLeadForm.phone.trim()) {
+      alert("Name and Phone are required");
+      return;
+    }
+    try {
+      await axios.post(`${API}/staff/${staffData.staff_id}/leads`, newLeadForm);
+      setShowAddLeadModal(false);
+      setNewLeadForm({ name: '', phone: '', district: '', monthly_bill: '', property_type: 'residential', notes: '' });
+      fetchAllData();
+    } catch (err) {
+      alert("Error creating lead");
+    }
+  };
+
   const updateTaskStatus = async (taskId, status) => {
     try {
       await axios.put(`${API}/crm/tasks/${taskId}`, { status });

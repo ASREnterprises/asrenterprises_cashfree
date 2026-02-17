@@ -51,7 +51,9 @@ const PageLoader = () => (
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+// reCAPTCHA disabled - key is domain-specific and not valid for preview environments
+// Honeypot protection remains active for spam prevention
+const RECAPTCHA_SITE_KEY = null; // process.env.REACT_APP_RECAPTCHA_SITE_KEY;
 
 // Bihar Districts
 const BIHAR_DISTRICTS = [

@@ -19,7 +19,7 @@ export const ContactPage = () => {
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
             <img 
-              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/tnvw3j4i_file_000000002898720bbdee3e2f991ebe3f.png" 
+              src="/ASR-enterprises-logo-dark.png" 
               alt="ASR Enterprises Patna" 
               className="h-20 w-auto"
             />

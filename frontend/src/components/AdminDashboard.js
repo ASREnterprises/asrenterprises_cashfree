@@ -66,14 +66,6 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "AI Updates"
     },
     {
-      title: "Social Media Hub",
-      description: "AI-powered social media management",
-      icon: <Share2 className="w-10 h-10" />,
-      link: "/admin/social-media",
-      color: "from-pink-500 to-purple-600",
-      count: "Auto-Post"
-    },
-    {
       title: "Security Center",
       description: "Monitor website security status",
       icon: <Shield className="w-10 h-10" />,

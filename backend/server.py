@@ -1240,58 +1240,67 @@ async def get_dashboard_stats():
 # Analytics Endpoint for detailed business insights
 @api_router.get("/admin/analytics")
 async def get_analytics():
-    """Get comprehensive analytics data for admin dashboard"""
+    """Optimized analytics with parallel DB queries"""
     now = datetime.now(timezone.utc)
     this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     last_month_start = (this_month_start - timedelta(days=1)).replace(day=1)
     this_week_start = now - timedelta(days=now.weekday())
     
-    # Get leads by district
-    leads_by_district = await db.leads.aggregate([
-        {"$group": {"_id": "$district", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}},
-        {"$limit": 15}
-    ]).to_list(15)
-    
-    # Get leads by status
-    leads_by_status = await db.leads.aggregate([
-        {"$group": {"_id": "$status", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}}
-    ]).to_list(10)
-    
-    # Get leads by property type
-    leads_by_property_type = await db.leads.aggregate([
-        {"$group": {"_id": "$property_type", "count": {"$sum": 1}}},
-        {"$sort": {"count": -1}}
-    ]).to_list(10)
-    
-    # Average lead score
-    avg_score_result = await db.leads.aggregate([
-        {"$match": {"lead_score": {"$exists": True, "$ne": None}}},
-        {"$group": {"_id": None, "avg_score": {"$avg": "$lead_score"}}}
-    ]).to_list(1)
-    avg_lead_score = round(avg_score_result[0]["avg_score"], 1) if avg_score_result else 0
-    
-    # Monthly/Weekly counts - using string comparison for stored ISO timestamps
     this_month_str = this_month_start.isoformat()
     last_month_str = last_month_start.isoformat()
     this_week_str = this_week_start.isoformat()
     
-    leads_this_month = await db.leads.count_documents({"timestamp": {"$gte": this_month_str}})
-    leads_last_month = await db.leads.count_documents({
-        "timestamp": {"$gte": last_month_str, "$lt": this_month_str}
-    })
-    leads_this_week = await db.leads.count_documents({"timestamp": {"$gte": this_week_str}})
+    # Run ALL database queries in parallel
+    results = await asyncio.gather(
+        # Aggregations
+        db.leads.aggregate([
+            {"$group": {"_id": "$district", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 15}
+        ]).to_list(15),
+        db.leads.aggregate([
+            {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]).to_list(10),
+        db.leads.aggregate([
+            {"$group": {"_id": "$property_type", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]).to_list(10),
+        db.leads.aggregate([
+            {"$match": {"lead_score": {"$exists": True, "$ne": None}}},
+            {"$group": {"_id": None, "avg_score": {"$avg": "$lead_score"}}}
+        ]).to_list(1),
+        # Counts
+        db.leads.count_documents({}),
+        db.leads.count_documents({"status": "new"}),
+        db.chat_messages.count_documents({}),
+        db.solar_calculations.count_documents({}),
+        db.campaigns.count_documents({}),
+        db.leads.count_documents({"lead_score": {"$gte": 80}}),
+        db.work_photos.count_documents({}),
+        db.customer_reviews.count_documents({}),
+        db.leads.count_documents({"timestamp": {"$gte": this_month_str}}),
+        db.leads.count_documents({"timestamp": {"$gte": last_month_str, "$lt": this_month_str}}),
+        db.leads.count_documents({"timestamp": {"$gte": this_week_str}}),
+        db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
+    )
+    
+    leads_by_district, leads_by_status, leads_by_property_type, avg_score_result, \
+        total_leads, new_leads, total_chats, total_calculations, total_campaigns, \
+        high_score_leads, total_photos, total_reviews, leads_this_month, \
+        leads_last_month, leads_this_week, recent_leads = results
+    
+    avg_lead_score = round(avg_score_result[0]["avg_score"], 1) if avg_score_result else 0
     
     return {
-        "total_leads": await db.leads.count_documents({}),
-        "new_leads": await db.leads.count_documents({"status": "new"}),
-        "total_chats": await db.chat_messages.count_documents({}),
-        "total_calculations": await db.solar_calculations.count_documents({}),
-        "total_campaigns": await db.campaigns.count_documents({}),
-        "high_score_leads": await db.leads.count_documents({"lead_score": {"$gte": 80}}),
-        "total_photos": await db.work_photos.count_documents({}),
-        "total_reviews": await db.customer_reviews.count_documents({}),
+        "total_leads": total_leads,
+        "new_leads": new_leads,
+        "total_chats": total_chats,
+        "total_calculations": total_calculations,
+        "total_campaigns": total_campaigns,
+        "high_score_leads": high_score_leads,
+        "total_photos": total_photos,
+        "total_reviews": total_reviews,
         "leads_by_district": leads_by_district,
         "leads_by_status": leads_by_status,
         "leads_by_property_type": leads_by_property_type,
@@ -1299,7 +1308,7 @@ async def get_analytics():
         "leads_last_month": leads_last_month,
         "leads_this_week": leads_this_week,
         "avg_lead_score": avg_lead_score,
-        "recent_leads": await db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
+        "recent_leads": recent_leads
     }
 
 # Admin OTP APIs

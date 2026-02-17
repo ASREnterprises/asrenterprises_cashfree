@@ -2922,34 +2922,39 @@ async def create_payment(data: Dict[str, Any]):
 # CRM Dashboard Stats
 @api_router.get("/crm/dashboard")
 async def get_crm_dashboard():
-    # Lead stats by stage
-    pipeline_stats = await db.crm_leads.aggregate([
-        {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
-    ]).to_list(20)
-    
-    # Today's follow-ups
+    """Optimized CRM Dashboard with parallel DB queries"""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    todays_followups = await db.crm_followups.count_documents({"reminder_date": today, "status": "pending"})
     
-    # Employee performance
-    employees = await db.crm_employees.find({}, {"_id": 0}).to_list(50)
+    # Run all database queries in parallel for faster response
+    results = await asyncio.gather(
+        # Lead stats by stage
+        db.crm_leads.aggregate([
+            {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
+        ]).to_list(20),
+        # Today's follow-ups
+        db.crm_followups.count_documents({"reminder_date": today, "status": "pending"}),
+        # Employee performance
+        db.crm_employees.find({}, {"_id": 0}).to_list(50),
+        # Recent leads
+        db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10),
+        # Revenue stats
+        db.crm_payments.aggregate([
+            {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
+        ]).to_list(1),
+        # Project stats - parallel counts
+        db.crm_projects.count_documents({"installation_status": "pending"}),
+        db.crm_projects.count_documents({"installation_status": "in_progress"}),
+        db.crm_projects.count_documents({"installation_status": "completed"}),
+        # Total leads count
+        db.crm_leads.count_documents({})
+    )
     
-    # Recent leads
-    recent_leads = await db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
-    
-    # Revenue stats
-    total_payments = await db.crm_payments.aggregate([
-        {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
-    ]).to_list(1)
-    
-    # Project stats
-    projects_pending = await db.crm_projects.count_documents({"installation_status": "pending"})
-    projects_progress = await db.crm_projects.count_documents({"installation_status": "in_progress"})
-    projects_completed = await db.crm_projects.count_documents({"installation_status": "completed"})
+    pipeline_stats, todays_followups, employees, recent_leads, total_payments, \
+        projects_pending, projects_progress, projects_completed, total_leads = results
     
     return {
         "pipeline_stats": {item["_id"]: item["count"] for item in pipeline_stats if item["_id"]},
-        "total_leads": await db.crm_leads.count_documents({}),
+        "total_leads": total_leads,
         "todays_followups": todays_followups,
         "employees": employees,
         "recent_leads": recent_leads,

@@ -8,14 +8,14 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Backend:** FastAPI (Python) - monolithic server.py
 - **Database:** MongoDB (Motor async driver)
 - **Payments:** Razorpay (payment link redirect)
-- **AI:** OpenAI GPT-4o-mini via Emergent LLM Key
+- **AI:** OpenAI GPT-4o via Emergent LLM Key (for testimonials, lead analysis, chat)
 - **Security:** Honeypot fields, security headers, 2FA OTP (reCAPTCHA disabled for preview)
 
 ## Logo
 - Original logo had white background
 - Processed with Python PIL to replace white pixels with dark (#0a1628) background
 - Stored at `/app/frontend/public/asr_logo_dark.png`
-- Used across ALL pages: header, footer, calculator, admin login, staff login, CRM, staff portal
+- Used across ALL pages: header, footer, calculator, admin login, staff login, CRM, staff portal, contact, gallery
 
 ## What's Been Implemented
 - Full dark navy-blue theme across ALL pages
@@ -28,6 +28,12 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - Staff portal with lead creation capability
 - Brand logos enlarged with dark backgrounds
 
+### AI-Powered Testimonials (December 2025)
+- **POST /api/crm/generate-testimonial** generates unique AI testimonials
+- Uses GPT-4o via Emergent LLM integration
+- Each testimonial is unique, mentioning customer details (name, location, savings)
+- Falls back to templates if AI unavailable
+
 ### Performance Optimizations (December 2025)
 - **React.lazy() code splitting** - 23 components lazy-loaded on demand
 - **Suspense wrapper** with PageLoader fallback for smooth UX
@@ -36,6 +42,12 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
   - `/api/dashboard/stats` - ~132ms response (was sequential)
   - `/api/admin/analytics` - ~178ms response (was sequential)
 - **Memoization** added to TestimonialsTab component in CRMDashboard
+
+### Recent Fixes (December 2025)
+- Fixed Contact & Gallery page logos (white background → transparent)
+- Removed Social Media Hub from Admin Dashboard
+- Fixed Google Review button (broken g.co link → working Google search URL)
+- Fixed AI testimonial generation (correct LlmChat API usage)
 
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993

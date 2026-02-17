@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
@@ -7,30 +7,47 @@ import {
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
   Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award
 } from "lucide-react";
-import { WhatsAppChatPage } from "@/components/WhatsAppChat";
-import { MarketingPage } from "@/components/Marketing";
-import { AdsPage } from "@/components/Ads";
-import { DashboardPage } from "@/components/Dashboard";
-import { GalleryPage } from "@/components/Gallery";
-import { ContactPage } from "@/components/Contact";
-import { TestimonialsSection } from "@/components/Testimonials";
-import { AIMarketingHub } from "@/components/AIMarketing";
-import { AdminLogin } from "@/components/AdminLogin";
-import { AdminDashboard } from "@/components/AdminDashboard";
-import { StaffManagement } from "@/components/StaffManagement";
-import { PhotosManagement } from "@/components/PhotosManagement";
-import { ReviewsManagement } from "@/components/ReviewsManagement";
-import { FestivalsManagement } from "@/components/FestivalsManagement";
-import { GovtNewsManagement } from "@/components/GovtNewsManagement";
-import { SecurityCenter } from "@/components/SecurityCenter";
-import { LeadsManagement } from "@/components/LeadsManagement";
-import { AnalyticsPage } from "@/components/AnalyticsPage";
-import { SocialMediaIntegration } from "@/components/SocialMediaIntegration";
-import { CRMDashboard } from "@/components/CRMDashboard";
-import { StaffLogin } from "@/components/StaffLogin";
-import { StaffPortal } from "@/components/StaffPortal";
-import { BusinessDashboard } from "@/components/BusinessDashboard";
 import ReCAPTCHA from "react-google-recaptcha";
+
+// ==================== LAZY LOADED COMPONENTS (Code Splitting) ====================
+// Public Pages - Lazy load for faster initial page load
+const WhatsAppChatPage = lazy(() => import("@/components/WhatsAppChat").then(m => ({ default: m.WhatsAppChatPage })));
+const MarketingPage = lazy(() => import("@/components/Marketing").then(m => ({ default: m.MarketingPage })));
+const AdsPage = lazy(() => import("@/components/Ads").then(m => ({ default: m.AdsPage })));
+const DashboardPage = lazy(() => import("@/components/Dashboard").then(m => ({ default: m.DashboardPage })));
+const GalleryPage = lazy(() => import("@/components/Gallery").then(m => ({ default: m.GalleryPage })));
+const ContactPage = lazy(() => import("@/components/Contact").then(m => ({ default: m.ContactPage })));
+const TestimonialsSection = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.TestimonialsSection })));
+
+// Admin Panel - Lazy load (heavy components)
+const AIMarketingHub = lazy(() => import("@/components/AIMarketing").then(m => ({ default: m.AIMarketingHub })));
+const AdminLogin = lazy(() => import("@/components/AdminLogin").then(m => ({ default: m.AdminLogin })));
+const AdminDashboard = lazy(() => import("@/components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const StaffManagement = lazy(() => import("@/components/StaffManagement").then(m => ({ default: m.StaffManagement })));
+const PhotosManagement = lazy(() => import("@/components/PhotosManagement").then(m => ({ default: m.PhotosManagement })));
+const ReviewsManagement = lazy(() => import("@/components/ReviewsManagement").then(m => ({ default: m.ReviewsManagement })));
+const FestivalsManagement = lazy(() => import("@/components/FestivalsManagement").then(m => ({ default: m.FestivalsManagement })));
+const GovtNewsManagement = lazy(() => import("@/components/GovtNewsManagement").then(m => ({ default: m.GovtNewsManagement })));
+const SecurityCenter = lazy(() => import("@/components/SecurityCenter").then(m => ({ default: m.SecurityCenter })));
+const LeadsManagement = lazy(() => import("@/components/LeadsManagement").then(m => ({ default: m.LeadsManagement })));
+const AnalyticsPage = lazy(() => import("@/components/AnalyticsPage").then(m => ({ default: m.AnalyticsPage })));
+const SocialMediaIntegration = lazy(() => import("@/components/SocialMediaIntegration").then(m => ({ default: m.SocialMediaIntegration })));
+
+// CRM & Staff Portals - Heavy components (Lazy load critical for performance)
+const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({ default: m.CRMDashboard })));
+const StaffLogin = lazy(() => import("@/components/StaffLogin").then(m => ({ default: m.StaffLogin })));
+const StaffPortal = lazy(() => import("@/components/StaffPortal").then(m => ({ default: m.StaffPortal })));
+const BusinessDashboard = lazy(() => import("@/components/BusinessDashboard").then(m => ({ default: m.BusinessDashboard })));
+
+// Loading Spinner Component for Suspense fallback
+const PageLoader = () => (
+  <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] flex items-center justify-center">
+    <div className="text-center">
+      <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
+      <p className="text-gray-400 text-sm">Loading...</p>
+    </div>
+  </div>
+);
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;

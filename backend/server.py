@@ -426,9 +426,13 @@ class CustomerReview(BaseModel):
     location: str
     rating: int = 5
     review_text: str
-    system_installed: str
+    system_installed: str = ""
+    solar_capacity: str = ""
+    monthly_bill_before: str = ""
+    monthly_bill_after: str = ""
     photo_url: Optional[str] = None
     verified: bool = True
+    is_testimonial: bool = False
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # Festival Post Model

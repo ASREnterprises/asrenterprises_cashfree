@@ -19,7 +19,7 @@ export const ContactPage = () => {
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
             <img 
-              src="/ASR-enterprises-logo-dark.png" 
+              src="/asr_logo_dark.png" 
               alt="ASR Enterprises Patna" 
               className="h-20 w-auto"
             />

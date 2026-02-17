@@ -104,7 +104,7 @@ export const GalleryPage = () => {
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="/ASR-enterprises-logo-dark.png" 
+                src="/asr_logo_dark.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
               />

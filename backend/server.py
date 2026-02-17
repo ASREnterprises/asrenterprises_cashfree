@@ -355,7 +355,7 @@ class StaffLogin(BaseModel):
 # Models with enhanced validation
 class LeadCreate(BaseModel):
     name: str
-    email: EmailStr
+    email: Optional[str] = ""  # Made optional since simplified form doesn't have email
     phone: str
     district: str
     address: Optional[str] = ""

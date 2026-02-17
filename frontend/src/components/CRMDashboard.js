@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -12,20 +12,20 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Testimonials Tab Component
-const TestimonialsTab = () => {
+// Memoized Testimonials Tab Component
+const TestimonialsTab = memo(() => {
   const [testimonials, setTestimonials] = useState([]);
   const [form, setForm] = useState({ name: '', address: '', solar_capacity: '', bill_before: '', bill_after: '0', rating: 5 });
   const [loading, setLoading] = useState(false);
 
-  const fetchTestimonials = async () => {
+  const fetchTestimonials = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/reviews`);
       setTestimonials(res.data || []);
     } catch (err) { console.error(err); }
-  };
+  }, []);
 
-  useEffect(() => { fetchTestimonials(); }, []);
+  useEffect(() => { fetchTestimonials(); }, [fetchTestimonials]);
 
   const generateTestimonial = async () => {
     if (!form.name || !form.address || !form.solar_capacity) return alert("Name, Address & Solar Capacity required");

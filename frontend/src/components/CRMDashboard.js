@@ -12,6 +12,87 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Testimonials Tab Component
+const TestimonialsTab = () => {
+  const [testimonials, setTestimonials] = useState([]);
+  const [form, setForm] = useState({ name: '', address: '', solar_capacity: '', bill_before: '', bill_after: '0', rating: 5 });
+  const [loading, setLoading] = useState(false);
+
+  const fetchTestimonials = async () => {
+    try {
+      const res = await axios.get(`${API}/reviews`);
+      setTestimonials(res.data || []);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { fetchTestimonials(); }, []);
+
+  const generateTestimonial = async () => {
+    if (!form.name || !form.address || !form.solar_capacity) return alert("Name, Address & Solar Capacity required");
+    setLoading(true);
+    try {
+      await axios.post(`${API}/crm/generate-testimonial`, form);
+      setForm({ name: '', address: '', solar_capacity: '', bill_before: '', bill_after: '0', rating: 5 });
+      fetchTestimonials();
+    } catch (err) { alert("Error generating testimonial"); }
+    setLoading(false);
+  };
+
+  const deleteTestimonial = async (id) => {
+    if (!window.confirm('Delete this testimonial?')) return;
+    try {
+      await axios.delete(`${API}/admin/reviews/${id}`);
+      fetchTestimonials();
+    } catch (err) { alert("Error deleting"); }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Generator */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-white mb-4 flex items-center"><Star className="w-5 h-5 mr-2 text-amber-400" />Generate Customer Testimonial</h3>
+        <p className="text-gray-400 text-sm mb-4">Fill in customer details to auto-generate a testimonial. It will appear on the website automatically.</p>
+        <div className="grid md:grid-cols-2 gap-4">
+          <input type="text" placeholder="Customer Name *" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="bg-gray-700 text-white px-4 py-3 rounded-lg" data-testid="testimonial-name" />
+          <input type="text" placeholder="Address/Location *" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="bg-gray-700 text-white px-4 py-3 rounded-lg" data-testid="testimonial-address" />
+          <input type="text" placeholder="Solar Capacity (kW) *" value={form.solar_capacity} onChange={(e) => setForm({...form, solar_capacity: e.target.value})} className="bg-gray-700 text-white px-4 py-3 rounded-lg" data-testid="testimonial-capacity" />
+          <input type="number" placeholder="Bill Before Solar (₹)" value={form.bill_before} onChange={(e) => setForm({...form, bill_before: e.target.value})} className="bg-gray-700 text-white px-4 py-3 rounded-lg" data-testid="testimonial-bill" />
+          <input type="number" placeholder="Bill After Solar (₹)" value={form.bill_after} onChange={(e) => setForm({...form, bill_after: e.target.value})} className="bg-gray-700 text-white px-4 py-3 rounded-lg" />
+          <select value={form.rating} onChange={(e) => setForm({...form, rating: parseInt(e.target.value)})} className="bg-gray-700 text-white px-4 py-3 rounded-lg">
+            <option value={5}>5 Stars</option><option value={4}>4 Stars</option><option value={3}>3 Stars</option>
+          </select>
+        </div>
+        <button onClick={generateTestimonial} disabled={loading} className="mt-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg font-bold hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50" data-testid="generate-testimonial-btn">
+          {loading ? 'Generating...' : 'Generate & Publish Testimonial'}
+        </button>
+      </div>
+
+      {/* Existing Testimonials */}
+      <div className="bg-gray-800 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-white mb-4">Published Testimonials ({testimonials.length})</h3>
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {testimonials.map((t) => (
+            <div key={t.id} className="bg-gray-700/50 rounded-lg p-4 flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-1">
+                  <span className="font-bold text-white">{t.customer_name}</span>
+                  <span className="text-gray-400 text-xs">{t.location}</span>
+                  {t.is_testimonial && <span className="bg-amber-500/20 text-amber-400 text-xs px-2 py-0.5 rounded">Auto-generated</span>}
+                </div>
+                <div className="flex mb-1">{[...Array(5)].map((_, i) => (<Star key={i} className={`w-3 h-3 ${i < (t.rating || 5) ? 'text-amber-400 fill-amber-400' : 'text-gray-600'}`} />))}</div>
+                <p className="text-gray-300 text-sm">{t.review_text?.substring(0, 120)}...</p>
+                {t.solar_capacity && <p className="text-amber-400 text-xs mt-1">{t.solar_capacity} kW | ₹{t.monthly_bill_before} → ₹{t.monthly_bill_after || '0'}</p>}
+              </div>
+              <button onClick={() => deleteTestimonial(t.id)} className="text-red-400 hover:text-red-300 p-1 ml-3"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+          {testimonials.length === 0 && <p className="text-gray-400 text-center py-8">No testimonials yet. Generate one above!</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PIPELINE_STAGES = [
   { id: "new", label: "New Lead", color: "bg-blue-500" },
   { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },

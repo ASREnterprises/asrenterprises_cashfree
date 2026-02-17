@@ -1047,7 +1047,8 @@ async def generate_testimonial(data: Dict[str, Any]):
         try:
             llm = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
-                model="gpt-4o-mini"
+                session_id=str(uuid.uuid4()),
+                system_message="You are a testimonial writer for ASR Enterprises, a solar installation company in Bihar, India."
             )
             
             prompt = f"""Generate a unique, authentic customer testimonial for ASR Enterprises (solar installation company in Bihar, India).

@@ -1131,9 +1131,12 @@ export const CRMDashboard = () => {
             </div>
           </div>
         )}
-      </div>
 
-      {/* Create Staff Modal */}
+        {/* Testimonials Generator Tab */}
+        {activeTab === "testimonials" && (
+          <TestimonialsTab />
+        )}
+      </div>
       {showStaffModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">

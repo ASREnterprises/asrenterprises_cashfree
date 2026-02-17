@@ -1400,107 +1400,109 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/gallery" element={<GalleryPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/calculator" element={<SolarCalculatorPage />} />
-        <Route path="/chat" element={<WhatsAppChatPage />} />
-        <Route path="/register" element={<ServiceRegistration />} />
-        <Route path="/registration-success" element={<ServiceRegistration />} />
-        <Route path="/become-agent" element={<AgentRegistrationPage />} />
-        <Route path="/govt-schemes" element={<PublicGovtNewsPage />} />
-        
-        {/* Admin Login */}
-        <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />
-        
-        {/* Staff Portal Routes */}
-        <Route path="/staff/login" element={<StaffLogin />} />
-        <Route path="/staff/portal" element={<StaffPortal />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/calculator" element={<SolarCalculatorPage />} />
+          <Route path="/chat" element={<WhatsAppChatPage />} />
+          <Route path="/register" element={<ServiceRegistration />} />
+          <Route path="/registration-success" element={<ServiceRegistration />} />
+          <Route path="/become-agent" element={<AgentRegistrationPage />} />
+          <Route path="/govt-schemes" element={<PublicGovtNewsPage />} />
+          
+          {/* Admin Login */}
+          <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />
+          
+          {/* Staff Portal Routes */}
+          <Route path="/staff/login" element={<StaffLogin />} />
+          <Route path="/staff/portal" element={<StaffPortal />} />
 
-        {/* Protected Admin Routes */}
-        <Route path="/admin/dashboard" element={
-          <ProtectedRoute>
-            <AdminDashboard onLogout={handleLogout} />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/staff" element={
-          <ProtectedRoute>
-            <StaffManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/leads" element={
-          <ProtectedRoute>
-            <LeadsManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/analytics" element={
-          <ProtectedRoute>
-            <AnalyticsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/marketing" element={
-          <ProtectedRoute>
-            <MarketingPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/ads" element={
-          <ProtectedRoute>
-            <AdsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/ai-marketing" element={
-          <ProtectedRoute>
-            <AIMarketingHub />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/social-media" element={
-          <ProtectedRoute>
-            <SocialMediaIntegration />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/crm" element={
-          <ProtectedRoute>
-            <CRMDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/crm" element={
-          <ProtectedRoute>
-            <CRMDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/business-dashboard" element={
-          <ProtectedRoute>
-            <BusinessDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/photos" element={
-          <ProtectedRoute>
-            <PhotosManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/reviews" element={
-          <ProtectedRoute>
-            <ReviewsManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/festivals" element={
-          <ProtectedRoute>
-            <FestivalsManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/govt-news" element={
-          <ProtectedRoute>
-            <GovtNewsManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/security" element={
-          <ProtectedRoute>
-            <SecurityCenter />
-          </ProtectedRoute>
-        } />
-      </Routes>
+          {/* Protected Admin Routes */}
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute>
+              <AdminDashboard onLogout={handleLogout} />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/staff" element={
+            <ProtectedRoute>
+              <StaffManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/leads" element={
+            <ProtectedRoute>
+              <LeadsManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/analytics" element={
+            <ProtectedRoute>
+              <AnalyticsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/marketing" element={
+            <ProtectedRoute>
+              <MarketingPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/ads" element={
+            <ProtectedRoute>
+              <AdsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/ai-marketing" element={
+            <ProtectedRoute>
+              <AIMarketingHub />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/social-media" element={
+            <ProtectedRoute>
+              <SocialMediaIntegration />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/crm" element={
+            <ProtectedRoute>
+              <CRMDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/crm" element={
+            <ProtectedRoute>
+              <CRMDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/business-dashboard" element={
+            <ProtectedRoute>
+              <BusinessDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/photos" element={
+            <ProtectedRoute>
+              <PhotosManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/reviews" element={
+            <ProtectedRoute>
+              <ReviewsManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/festivals" element={
+            <ProtectedRoute>
+              <FestivalsManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/govt-news" element={
+            <ProtectedRoute>
+              <GovtNewsManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/security" element={
+            <ProtectedRoute>
+              <SecurityCenter />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

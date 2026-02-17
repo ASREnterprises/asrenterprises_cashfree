@@ -1074,11 +1074,13 @@ Write ONLY the testimonial text, nothing else."""
 
             response = await llm.send_message_async([UserMessage(prompt)])
             testimonial_text = response.content.strip().strip('"').strip("'")
+            logger.info(f"AI-generated testimonial for {name}: {testimonial_text[:50]}...")
         except Exception as e:
-            print(f"AI testimonial generation failed: {e}")
+            logger.error(f"AI testimonial generation failed: {e}")
     
-    # Fallback to template if AI fails
+    # Fallback to template if AI fails or returns empty
     if not testimonial_text:
+        logger.info(f"Using fallback template for testimonial (AI returned empty or failed)")
         templates = [
             f"After installing {solar_capacity} kW solar panels from ASR Enterprises, my electricity bill dropped from ₹{bill_before} to just ₹{bill_after}! Best decision for my home in {address}.",
             f"ASR Enterprises installed a {solar_capacity} kW system at my {address} residence. Saving ₹{savings_amount} every month now. Professional team, excellent work!",

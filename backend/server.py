@@ -1212,16 +1212,29 @@ async def calculate_solar(calc_request: SolarCalculationRequest):
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
+    """Optimized dashboard stats with parallel queries"""
+    results = await asyncio.gather(
+        db.leads.count_documents({}),
+        db.chat_messages.count_documents({}),
+        db.solar_calculations.count_documents({}),
+        db.campaigns.count_documents({}),
+        db.leads.count_documents({"lead_score": {"$gte": 80}}),
+        db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5),
+        db.leads.count_documents({"status": "new"}),
+        db.work_photos.count_documents({}),
+        db.customer_reviews.count_documents({})
+    )
+    
     return {
-        "total_leads": await db.leads.count_documents({}),
-        "total_chats": await db.chat_messages.count_documents({}),
-        "total_calculations": await db.solar_calculations.count_documents({}),
-        "total_campaigns": await db.campaigns.count_documents({}),
-        "high_score_leads": await db.leads.count_documents({"lead_score": {"$gte": 80}}),
-        "recent_leads": await db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5),
-        "new_leads": await db.leads.count_documents({"status": "new"}),
-        "total_photos": await db.work_photos.count_documents({}),
-        "total_reviews": await db.customer_reviews.count_documents({})
+        "total_leads": results[0],
+        "total_chats": results[1],
+        "total_calculations": results[2],
+        "total_campaigns": results[3],
+        "high_score_leads": results[4],
+        "recent_leads": results[5],
+        "new_leads": results[6],
+        "total_photos": results[7],
+        "total_reviews": results[8]
     }
 
 # Analytics Endpoint for detailed business insights

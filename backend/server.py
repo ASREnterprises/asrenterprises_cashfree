@@ -1048,8 +1048,8 @@ async def generate_testimonial(data: Dict[str, Any]):
             llm = LlmChat(
                 api_key=EMERGENT_LLM_KEY,
                 session_id=str(uuid.uuid4()),
-                system_message="You are a testimonial writer for ASR Enterprises, a solar installation company in Bihar, India."
-            )
+                system_message="You are a testimonial writer for ASR Enterprises, a solar installation company in Bihar, India. Write authentic, unique customer testimonials."
+            ).with_model("openai", "gpt-4o")
             
             prompt = f"""Generate a unique, authentic customer testimonial for ASR Enterprises (solar installation company in Bihar, India).
 
@@ -1072,7 +1072,8 @@ Requirements:
 
 Write ONLY the testimonial text, nothing else."""
 
-            response = await llm.send_message(model="gpt-4o-mini", messages=[UserMessage(text=prompt)])
+            user_message = UserMessage(text=prompt)
+            response = await llm.send_message(user_message)
             testimonial_text = response.strip().strip('"').strip("'")
             logger.info(f"AI-generated testimonial for {name}: {testimonial_text[:50]}...")
         except Exception as e:

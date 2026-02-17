@@ -614,7 +614,7 @@ const HomePage = () => {
               >
                 <div className="animate-marquee whitespace-nowrap flex items-center">
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
+                    Switch to Solar & Make Your Electricity Bill ZERO!
                   </span>
                   <span className="mx-8 text-amber-100 font-bold text-sm md:text-base flex items-center">
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
@@ -626,7 +626,7 @@ const HomePage = () => {
                     📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
                   </span>
                   <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
-                    3kW Solar System @ ₹1,32,000 (After ₹78,000 Govt Subsidy) - LIMITED TIME!
+                    Switch to Solar & Make Your Electricity Bill ZERO!
                   </span>
                 </div>
               </a>

@@ -1018,7 +1018,7 @@ async def add_review(review_data: Dict[str, Any]):
 
 @api_router.post("/crm/generate-testimonial")
 async def generate_testimonial(data: Dict[str, Any]):
-    """Generate customer testimonial from CRM data and save it"""
+    """Generate unique AI-powered customer testimonial and save it"""
     name = sanitize_input(data.get("name", ""))
     address = sanitize_input(data.get("address", ""))
     solar_capacity = data.get("solar_capacity", "")
@@ -1026,16 +1026,67 @@ async def generate_testimonial(data: Dict[str, Any]):
     bill_after = data.get("bill_after", "0")
     rating = int(data.get("rating", 5))
     
-    # Auto-generate testimonial text
-    savings = ""
+    # Calculate savings
+    savings_amount = 0
     if bill_before:
         try:
-            saved = int(bill_before) - int(bill_after or 0)
-            savings = f" Now I save ₹{saved}/month on electricity!"
+            savings_amount = int(bill_before) - int(bill_after or 0)
         except ValueError:
             pass
     
-    testimonial_text = f"I got a {solar_capacity} kW solar system installed by ASR Enterprises at my home in {address}. My electricity bill was ₹{bill_before}/month before solar.{savings} The installation was quick and professional. Highly recommend ASR Enterprises for solar solutions!"
+    # Get existing testimonials to ensure uniqueness
+    existing_testimonials = await db.customer_reviews.find(
+        {"is_testimonial": True}, 
+        {"review_text": 1, "_id": 0}
+    ).to_list(20)
+    existing_texts = [t.get("review_text", "")[:100] for t in existing_testimonials]
+    
+    # Generate unique testimonial using AI
+    testimonial_text = ""
+    if EMERGENT_LLM_KEY:
+        try:
+            llm = LlmChat(
+                api_key=EMERGENT_LLM_KEY,
+                model="gpt-4o-mini"
+            )
+            
+            prompt = f"""Generate a unique, authentic customer testimonial for ASR Enterprises (solar installation company in Bihar, India).
+
+Customer Details:
+- Name: {name}
+- Location: {address}, Bihar
+- System: {solar_capacity} kW Solar System
+- Previous Bill: ₹{bill_before}/month
+- Current Bill: ₹{bill_after}/month
+- Monthly Savings: ₹{savings_amount}
+- Rating: {rating}/5 stars
+
+Requirements:
+1. Write in first person as the customer
+2. Keep it natural and conversational (2-3 sentences)
+3. Mention specific details like location, savings, or system size
+4. Vary the tone - some happy, some thankful, some professional
+5. MUST be different from these existing testimonials (avoid similar phrases):
+{chr(10).join(existing_texts[:5]) if existing_texts else 'None yet'}
+
+Write ONLY the testimonial text, nothing else."""
+
+            response = await llm.send_message_async([UserMessage(prompt)])
+            testimonial_text = response.content.strip().strip('"').strip("'")
+        except Exception as e:
+            print(f"AI testimonial generation failed: {e}")
+    
+    # Fallback to template if AI fails
+    if not testimonial_text:
+        templates = [
+            f"After installing {solar_capacity} kW solar panels from ASR Enterprises, my electricity bill dropped from ₹{bill_before} to just ₹{bill_after}! Best decision for my home in {address}.",
+            f"ASR Enterprises installed a {solar_capacity} kW system at my {address} residence. Saving ₹{savings_amount} every month now. Professional team, excellent work!",
+            f"Switched to solar with ASR Enterprises. {solar_capacity} kW system running perfectly at my {address} home. Bills went from ₹{bill_before} to ₹{bill_after}!",
+            f"Got solar installed by ASR Enterprises in {address}. My {solar_capacity} kW system saves me ₹{savings_amount}/month. Highly recommended for Bihar residents!",
+            f"Happy customer from {address}! ASR Enterprises installed {solar_capacity} kW solar. Bill reduced from ₹{bill_before} to ₹{bill_after}. Great service!"
+        ]
+        import random
+        testimonial_text = random.choice(templates)
     
     review = CustomerReview(
         customer_name=name,

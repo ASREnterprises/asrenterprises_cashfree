@@ -91,7 +91,7 @@ const TestimonialsTab = memo(() => {
       </div>
     </div>
   );
-};
+});
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New Lead", color: "bg-blue-500" },

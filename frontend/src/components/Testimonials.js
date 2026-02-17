@@ -74,7 +74,7 @@ export const TestimonialsSection = () => {
         </div>
         
         <div className="text-center mt-10">
-          <a href="https://g.co/kgs/JB3mDVn" target="_blank" rel="noopener noreferrer" 
+          <a href="https://www.google.com/search?q=ASR+Enterprises+Patna+Solar&hl=en#lrd=local" target="_blank" rel="noopener noreferrer" 
             className="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-3 rounded-lg font-bold hover:from-amber-600 hover:to-orange-600 transition" data-testid="review-google-btn">
             <Star className="w-5 h-5" />
             <span>Review Us on Google</span>

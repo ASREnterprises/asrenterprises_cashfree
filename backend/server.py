@@ -1073,7 +1073,7 @@ Requirements:
 Write ONLY the testimonial text, nothing else."""
 
             response = await llm.send_message(model="gpt-4o-mini", messages=[UserMessage(text=prompt)])
-            testimonial_text = response.content.strip().strip('"').strip("'")
+            testimonial_text = response.strip().strip('"').strip("'")
             logger.info(f"AI-generated testimonial for {name}: {testimonial_text[:50]}...")
         except Exception as e:
             logger.error(f"AI testimonial generation failed: {e}")

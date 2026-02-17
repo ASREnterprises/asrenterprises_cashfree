@@ -1005,7 +1005,48 @@ async def add_review(review_data: Dict[str, Any]):
         rating=int(review_data.get("rating", 5)),
         review_text=sanitize_input(review_data.get("review_text", "")),
         system_installed=review_data.get("system_installed", ""),
-        photo_url=review_data.get("photo_url", "")
+        solar_capacity=review_data.get("solar_capacity", ""),
+        monthly_bill_before=review_data.get("monthly_bill_before", ""),
+        monthly_bill_after=review_data.get("monthly_bill_after", ""),
+        photo_url=review_data.get("photo_url", ""),
+        is_testimonial=review_data.get("is_testimonial", False)
+    )
+    doc = review.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.customer_reviews.insert_one(doc)
+    return review
+
+@api_router.post("/crm/generate-testimonial")
+async def generate_testimonial(data: Dict[str, Any]):
+    """Generate customer testimonial from CRM data and save it"""
+    name = sanitize_input(data.get("name", ""))
+    address = sanitize_input(data.get("address", ""))
+    solar_capacity = data.get("solar_capacity", "")
+    bill_before = data.get("bill_before", "")
+    bill_after = data.get("bill_after", "0")
+    rating = int(data.get("rating", 5))
+    
+    # Auto-generate testimonial text
+    savings = ""
+    if bill_before:
+        try:
+            saved = int(bill_before) - int(bill_after or 0)
+            savings = f" Now I save ₹{saved}/month on electricity!"
+        except ValueError:
+            pass
+    
+    testimonial_text = f"I got a {solar_capacity} kW solar system installed by ASR Enterprises at my home in {address}. My electricity bill was ₹{bill_before}/month before solar.{savings} The installation was quick and professional. Highly recommend ASR Enterprises for solar solutions!"
+    
+    review = CustomerReview(
+        customer_name=name,
+        location=address,
+        rating=rating,
+        review_text=testimonial_text,
+        system_installed=f"{solar_capacity} kW Solar System",
+        solar_capacity=str(solar_capacity),
+        monthly_bill_before=str(bill_before),
+        monthly_bill_after=str(bill_after),
+        is_testimonial=True
     )
     doc = review.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()

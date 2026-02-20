@@ -508,25 +508,33 @@ const HomePage = () => {
       <nav className="bg-gradient-to-r from-[#0a1628] via-[#0f2240] to-[#0a1628] shadow-2xl sticky top-0 z-50 border-b border-amber-500/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-4">
+            <Link to="/" className="flex items-center space-x-4 hover:opacity-90 transition">
               <img 
                 src="/asr_logo_dark.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
               />
-              <div className="flex flex-col">
-                <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 tracking-tight leading-tight">ASR ENTERPRISES</span>
-                <span className="text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
+              <div className="flex flex-col items-center">
+                <span className="text-4xl md:text-5xl font-black tracking-tight leading-tight"
+                  style={{
+                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 25%, #FF8C00 50%, #FFD700 75%, #FFEC8B 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 2px 4px rgba(255, 165, 0, 0.3), 0 4px 8px rgba(255, 140, 0, 0.2)',
+                    filter: 'drop-shadow(2px 2px 4px rgba(255, 165, 0, 0.4)) drop-shadow(-1px -1px 2px rgba(255, 215, 0, 0.3))',
+                  }}>ASR ENTERPRISES</span>
+                <span className="text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide text-center">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
-            </div>
+            </Link>
             
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6 items-center">
               <Link to="/" className="text-slate-300 hover:text-amber-400 transition font-medium">Home</Link>
+              <Link to="/about" className="text-slate-300 hover:text-amber-400 transition font-medium">About Us</Link>
               <Link to="/gallery" className="text-slate-300 hover:text-amber-400 transition font-medium">Gallery</Link>
               <Link to="/calculator" className="text-slate-300 hover:text-amber-400 transition font-medium">Calculator</Link>
               <Link to="/govt-schemes" className="text-slate-300 hover:text-amber-400 transition font-medium">Govt Schemes</Link>
-              <Link to="/contact" className="text-slate-300 hover:text-amber-400 transition font-medium">Contact</Link>
+              <Link to="/contact" className="text-slate-300 hover:text-amber-400 transition font-medium">Contact Us</Link>
               <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
             </div>
 
@@ -545,10 +553,11 @@ const HomePage = () => {
           <div className="md:hidden bg-slate-800 border-t border-slate-700">
             <div className="px-4 py-2 space-y-2">
               <Link to="/" className="block py-2 text-slate-300 hover:text-amber-400">Home</Link>
+              <Link to="/about" className="block py-2 text-slate-300 hover:text-amber-400">About Us</Link>
               <Link to="/gallery" className="block py-2 text-slate-300 hover:text-amber-400">Gallery</Link>
               <Link to="/calculator" className="block py-2 text-slate-300 hover:text-amber-400">Calculator</Link>
               <Link to="/govt-schemes" className="block py-2 text-slate-300 hover:text-amber-400">Govt Schemes</Link>
-              <Link to="/contact" className="block py-2 text-slate-300 hover:text-amber-400">Contact</Link>
+              <Link to="/contact" className="block py-2 text-slate-300 hover:text-amber-400">Contact Us</Link>
               <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-amber-400 font-semibold">Login (Admin/Staff)</a>
             </div>
           </div>

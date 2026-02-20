@@ -4042,7 +4042,7 @@ async def get_business_insights():
     }
 
 # ==================== SOCIAL MEDIA WEBHOOK CONFIGURATION ====================
-WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', 'asr_solar_verify_2024')
+WEBHOOK_VERIFY_TOKEN = os.environ.get('WEBHOOK_VERIFY_TOKEN', 'ASR_VERIFY_123')
 WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID', '')
 WHATSAPP_ACCESS_TOKEN = os.environ.get('WHATSAPP_ACCESS_TOKEN', '')
 FACEBOOK_APP_ID = os.environ.get('FACEBOOK_APP_ID', '')

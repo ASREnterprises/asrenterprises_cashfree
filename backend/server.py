@@ -4218,6 +4218,51 @@ async def create_lead_from_social_message(
         logger.error(f"Error creating lead from {source}: {e}")
         return {"action": "error", "error": str(e)}
 
+# ==================== UNIFIED WEBHOOK ENDPOINT (for Meta) ====================
+
+@api_router.get("/webhook")
+async def verify_unified_webhook(request: Request):
+    """Unified webhook verification for Meta (WhatsApp & Facebook)"""
+    hub_mode = request.query_params.get("hub.mode")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    hub_challenge = request.query_params.get("hub.challenge")
+    
+    logger.info(f"Meta webhook verification: mode={hub_mode}, token={hub_verify_token}")
+    
+    if hub_mode == "subscribe" and hub_verify_token == WEBHOOK_VERIFY_TOKEN:
+        logger.info("Meta webhook verified successfully!")
+        from starlette.responses import PlainTextResponse
+        return PlainTextResponse(hub_challenge)
+    
+    logger.warning(f"Meta webhook verification failed: expected token={WEBHOOK_VERIFY_TOKEN}, got={hub_verify_token}")
+    raise HTTPException(status_code=403, detail="Verification failed")
+
+@api_router.post("/webhook")
+async def receive_unified_webhook(request: Request):
+    """Unified webhook receiver for WhatsApp & Facebook messages"""
+    try:
+        body = await request.body()
+        data = await request.json()
+        
+        logger.info(f"Meta webhook received: {json.dumps(data, indent=2)[:500]}")
+        
+        # Route to appropriate handler based on object type
+        obj_type = data.get("object", "")
+        
+        if obj_type == "whatsapp_business_account":
+            # Handle WhatsApp messages
+            return await receive_whatsapp_webhook(request)
+        elif obj_type == "page":
+            # Handle Facebook Messenger messages
+            return await receive_facebook_webhook(request)
+        else:
+            logger.info(f"Unknown webhook object type: {obj_type}")
+            return {"status": "ok", "message": f"Unknown object type: {obj_type}"}
+            
+    except Exception as e:
+        logger.error(f"Unified webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
 # ==================== WHATSAPP WEBHOOK ENDPOINTS ====================
 
 @api_router.get("/webhook/whatsapp")

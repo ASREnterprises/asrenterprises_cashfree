@@ -1294,10 +1294,10 @@ const HomePage = () => {
               <h4 className="font-bold mb-4">Quick Links</h4>
               <div className="space-y-2 text-gray-400">
                 <div><Link to="/" className="hover:text-white transition">Home</Link></div>
+                <div><Link to="/about" className="hover:text-white transition">About Us</Link></div>
                 <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
-                <div><Link to="/leads" className="hover:text-white transition">Lead Capture</Link></div>
                 <div><Link to="/calculator" className="hover:text-white transition">Solar Calculator</Link></div>
-                <div><Link to="/admin/dashboard" className="hover:text-white transition">Dashboard</Link></div>
+                <div><Link to="/contact" className="hover:text-white transition">Contact Us</Link></div>
               </div>
             </div>
             <div>

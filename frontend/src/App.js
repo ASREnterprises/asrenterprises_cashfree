@@ -509,32 +509,32 @@ const HomePage = () => {
       <nav className="bg-gradient-to-r from-[#0a1628] via-[#0f2240] to-[#0a1628] shadow-2xl sticky top-0 z-50 border-b border-amber-500/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">
+            <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300 group">
               <img 
                 src="/asr_logo_dark.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
               />
               <div className="flex flex-col items-center">
-                <div className="relative">
-                  {/* Background glow effect */}
-                  <span className="absolute inset-0 text-4xl md:text-5xl font-black tracking-tight leading-tight blur-sm opacity-60"
+                <div className="relative overflow-hidden">
+                  {/* Main text with premium gold effect */}
+                  <span className="relative text-4xl md:text-5xl font-black tracking-wide leading-tight"
                     style={{
-                      background: 'linear-gradient(180deg, #FFD700, #FF8C00)',
+                      background: 'linear-gradient(135deg, #FFE5B4 0%, #FFD700 15%, #DAA520 30%, #FFD700 50%, #FFA500 65%, #FFD700 80%, #FFE5B4 100%)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
+                      filter: 'drop-shadow(0 2px 4px rgba(218, 165, 32, 0.5)) drop-shadow(0 4px 8px rgba(255, 165, 0, 0.3))',
+                      fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif",
                     }}>ASR ENTERPRISES</span>
-                  {/* Main text with metallic gold effect */}
-                  <span className="relative text-4xl md:text-5xl font-black tracking-tight leading-tight"
-                    style={{
-                      background: 'linear-gradient(180deg, #FFF7CC 0%, #FFD700 20%, #FFA500 40%, #FF8C00 60%, #FFD700 80%, #FFFACD 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      textShadow: '0 0 30px rgba(255, 215, 0, 0.5), 0 0 60px rgba(255, 165, 0, 0.3)',
-                      letterSpacing: '0.05em',
-                    }}>ASR ENTERPRISES</span>
+                  {/* Shine animation overlay */}
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></span>
                 </div>
-                <span className="text-[10px] md:text-xs text-emerald-400 font-semibold tracking-widest text-center uppercase mt-1">Trusted Solar Rooftop Installation Experts in Bihar</span>
+                <span className="text-[10px] md:text-xs font-semibold tracking-[0.2em] text-center mt-1"
+                  style={{
+                    background: 'linear-gradient(90deg, #10B981, #34D399, #10B981)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}>TRUSTED SOLAR ROOFTOP INSTALLATION EXPERTS IN BIHAR</span>
               </div>
             </Link>
             

@@ -515,26 +515,18 @@ const HomePage = () => {
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
               />
-              <div className="flex flex-col items-center">
-                <div className="relative overflow-hidden">
-                  {/* Main text with premium gold effect */}
-                  <span className="relative text-4xl md:text-5xl font-black tracking-wide leading-tight"
-                    style={{
-                      background: 'linear-gradient(135deg, #FFE5B4 0%, #FFD700 15%, #DAA520 30%, #FFD700 50%, #FFA500 65%, #FFD700 80%, #FFE5B4 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      filter: 'drop-shadow(0 2px 4px rgba(218, 165, 32, 0.5)) drop-shadow(0 4px 8px rgba(255, 165, 0, 0.3))',
-                      fontFamily: "'Arial Black', 'Helvetica Neue', sans-serif",
-                    }}>ASR ENTERPRISES</span>
-                  {/* Shine animation overlay */}
-                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></span>
-                </div>
-                <span className="text-[10px] md:text-xs font-semibold tracking-[0.2em] text-center mt-1"
+              <div className="flex flex-col">
+                {/* Premium 3D Embossed Gold Title */}
+                <span className="text-4xl md:text-5xl font-black tracking-wide leading-tight"
                   style={{
-                    background: 'linear-gradient(90deg, #10B981, #34D399, #10B981)',
+                    background: 'linear-gradient(180deg, #FFF8DC 0%, #FFD700 25%, #DAA520 50%, #B8860B 75%, #FFD700 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                  }}>TRUSTED SOLAR ROOFTOP INSTALLATION EXPERTS IN BIHAR</span>
+                    textShadow: '2px 2px 0px #8B6914, 3px 3px 0px #6B5210, 0 0 20px rgba(255, 215, 0, 0.4)',
+                    fontFamily: "'Impact', 'Arial Black', sans-serif",
+                    letterSpacing: '0.08em',
+                  }}>ASR ENTERPRISES</span>
+                <span className="text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </Link>
             

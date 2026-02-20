@@ -509,24 +509,22 @@ const HomePage = () => {
       <nav className="bg-gradient-to-r from-[#0a1628] via-[#0f2240] to-[#0a1628] shadow-2xl sticky top-0 z-50 border-b border-amber-500/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300 group">
+            <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">
               <img 
                 src="/asr_logo_dark.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
               />
               <div className="flex flex-col">
-                {/* Premium 3D Embossed Gold Title */}
-                <span className="text-4xl md:text-5xl font-black tracking-wide leading-tight"
+                {/* Clean Bold Golden Title */}
+                <span className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-none whitespace-nowrap"
                   style={{
-                    background: 'linear-gradient(180deg, #FFF8DC 0%, #FFD700 25%, #DAA520 50%, #B8860B 75%, #FFD700 100%)',
+                    background: 'linear-gradient(180deg, #FFFACD 0%, #FFD700 30%, #FFA500 70%, #FF8C00 100%)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    textShadow: '2px 2px 0px #8B6914, 3px 3px 0px #6B5210, 0 0 20px rgba(255, 215, 0, 0.4)',
-                    fontFamily: "'Impact', 'Arial Black', sans-serif",
-                    letterSpacing: '0.08em',
+                    filter: 'drop-shadow(1px 1px 0px rgba(139, 69, 19, 0.8)) drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3))',
                   }}>ASR ENTERPRISES</span>
-                <span className="text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
+                <span className="text-[9px] sm:text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </Link>
             

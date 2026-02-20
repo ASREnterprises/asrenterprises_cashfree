@@ -4299,6 +4299,10 @@ async def receive_whatsapp_webhook(request: Request):
                     )
                     results.append(result)
                     
+                    # Send auto-reply to new leads
+                    is_new_lead = result.get('action') == 'created'
+                    await send_whatsapp_auto_reply(sender_id, is_new_lead)
+                    
                     logger.info(f"WhatsApp lead processed: {sender_name} ({sender_id}) - {result.get('action')}")
         
         return {"status": "ok", "processed": len(results), "results": results}

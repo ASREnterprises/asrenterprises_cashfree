@@ -4065,6 +4065,64 @@ def verify_facebook_signature(payload: bytes, signature: str) -> bool:
         logger.error(f"Signature verification error: {e}")
     return False
 
+async def send_whatsapp_auto_reply(phone_number: str, is_new_lead: bool = True) -> bool:
+    """Send auto-reply message to WhatsApp user"""
+    if not WHATSAPP_PHONE_NUMBER_ID or not WHATSAPP_ACCESS_TOKEN:
+        logger.warning("WhatsApp credentials not configured, skipping auto-reply")
+        return False
+    
+    try:
+        # Different messages for new vs returning customers
+        if is_new_lead:
+            message_body = """Hi 👋 Welcome to ASR Enterprises Solar - Bihar's Trusted Solar Partner!
+
+Please share your details:
+1️⃣ Your Name
+2️⃣ City/District
+3️⃣ Monthly Electricity Bill Amount
+4️⃣ Required Solar Capacity (if known)
+
+We will calculate your PM Surya Ghar subsidy (up to ₹78,000) instantly! ☀️
+
+📞 Call: 8877896889
+📍 Office: Shop 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna"""
+        else:
+            message_body = """Thank you for contacting ASR Enterprises again! 🙏
+
+Our team will get back to you shortly.
+
+For immediate assistance:
+📞 Call: 8877896889
+💬 WhatsApp: 8877896889"""
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
+                headers={
+                    "Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "messaging_product": "whatsapp",
+                    "to": phone_number,
+                    "text": {
+                        "body": message_body
+                    }
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"WhatsApp auto-reply sent successfully to {phone_number}")
+                return True
+            else:
+                logger.error(f"WhatsApp auto-reply failed: {response.status_code} - {response.text}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"Error sending WhatsApp auto-reply: {e}")
+        return False
+
 async def create_lead_from_social_message(
     source: str,
     sender_id: str,

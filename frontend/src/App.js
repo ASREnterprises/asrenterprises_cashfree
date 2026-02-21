@@ -586,13 +586,13 @@ const HomePage = () => {
                 className="h-16 w-auto"
               />
               <div className="flex flex-col">
-                {/* Clean Bold Golden Title */}
+                {/* Dynamic Month-wise Color Title */}
                 <span className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-none whitespace-nowrap"
                   style={{
-                    background: 'linear-gradient(180deg, #FFFACD 0%, #FFD700 30%, #FFA500 70%, #FF8C00 100%)',
+                    background: getHeaderColorScheme().gradient,
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    filter: 'drop-shadow(1px 1px 0px rgba(139, 69, 19, 0.8)) drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3))',
+                    filter: `drop-shadow(1px 1px 0px ${getHeaderColorScheme().shadow}) drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.3))`,
                   }}>ASR ENTERPRISES</span>
                 <span className="text-[9px] sm:text-[10px] md:text-xs text-emerald-400 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>

@@ -7,8 +7,9 @@ import {
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy,
-  Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star
+  Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, ShoppingBag
 } from "lucide-react";
+import { ProductManagement } from "./ProductManagement";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

@@ -14,7 +14,7 @@ import os
 import random
 import string
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-production.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://solar-ecommerce-dev.preview.emergentagent.com').rstrip('/')
 
 
 class TestAITestimonialGeneration:

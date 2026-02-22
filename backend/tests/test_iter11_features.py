@@ -12,7 +12,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-production.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://solar-ecommerce-dev.preview.emergentagent.com')
 
 # ===== FIXTURES =====
 @pytest.fixture

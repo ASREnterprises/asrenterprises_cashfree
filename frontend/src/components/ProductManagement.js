@@ -51,12 +51,73 @@ export const ProductManagement = () => {
     is_featured: false,
     delivery_available: true,
     pickup_available: true,
-    images: []
+    images: [],
+    // Wire-specific fields
+    wire_type: "AC", // AC or DC
+    wire_size: "4sqmm", // 4sqmm or 6sqmm
+    // Service-specific fields
+    service_type: "installation"
   });
 
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Wire price reference (per meter)
+  const wirePrices = {
+    "AC_4sqmm": 35,
+    "AC_6sqmm": 55,
+    "DC_4sqmm": 45,
+    "DC_6sqmm": 65
+  };
+
+  // Service base price
+  const serviceBasePrice = 1500;
+
+  // Auto-update name and price when wire options change
+  const handleWireChange = (field, value) => {
+    const newFormData = { ...formData, [field]: value };
+    
+    if (newFormData.category === "wire") {
+      const wireType = field === "wire_type" ? value : newFormData.wire_type;
+      const wireSize = field === "wire_size" ? value : newFormData.wire_size;
+      const priceKey = `${wireType}_${wireSize}`;
+      
+      newFormData.name = `${wireType} Wire ${wireSize} (per meter)`;
+      newFormData.price = wirePrices[priceKey] || "";
+      newFormData.description = `${wireType === "AC" ? "AC" : "Solar DC"} wire ${wireSize}. ${wireType === "DC" ? "Double insulated, UV resistant for outdoor solar installations." : "High quality copper conductor with PVC insulation for solar installations."} Price is per meter.`;
+    }
+    
+    setFormData(newFormData);
+  };
+
+  // Auto-set service defaults
+  const handleCategoryChange = (category) => {
+    const newFormData = { ...formData, category };
+    
+    if (category === "wire") {
+      const priceKey = `${formData.wire_type}_${formData.wire_size}`;
+      newFormData.name = `${formData.wire_type} Wire ${formData.wire_size} (per meter)`;
+      newFormData.price = wirePrices[priceKey] || 35;
+      newFormData.description = `${formData.wire_type === "AC" ? "AC" : "Solar DC"} wire ${formData.wire_size}. High quality copper conductor for solar installations. Price is per meter.`;
+      newFormData.stock = 1000;
+    } else if (category === "service") {
+      newFormData.name = "Solar Installation Service";
+      newFormData.price = serviceBasePrice;
+      newFormData.description = "Professional solar installation service by ASR Enterprises certified technicians. Includes site assessment, mounting, wiring and commissioning.";
+      newFormData.stock = 999;
+      newFormData.delivery_available = false;
+      newFormData.pickup_available = true;
+    } else {
+      // Reset to defaults for other categories
+      newFormData.name = "";
+      newFormData.description = "";
+      newFormData.price = "";
+      newFormData.stock = "";
+    }
+    
+    setFormData(newFormData);
+  };
 
   useEffect(() => {
     fetchProducts();

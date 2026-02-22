@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard } from "lucide-react";
+import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, ShoppingBag } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -12,9 +12,15 @@ export const AdminDashboard = ({ onLogout }) => {
     total_photos: 0,
     total_reviews: 0
   });
+  const [shopStats, setShopStats] = useState({
+    total_products: 0,
+    total_orders: 0,
+    pending_orders: 0
+  });
 
   useEffect(() => {
     fetchStats();
+    fetchShopStats();
   }, []);
 
   const fetchStats = async () => {
@@ -23,6 +29,15 @@ export const AdminDashboard = ({ onLogout }) => {
       setStats(res.data);
     } catch (err) {
       console.error("Error fetching stats:", err);
+    }
+  };
+
+  const fetchShopStats = async () => {
+    try {
+      const res = await axios.get(`${API}/shop/stats`);
+      setShopStats(res.data);
+    } catch (err) {
+      console.error("Error fetching shop stats:", err);
     }
   };
 
@@ -40,6 +55,14 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/crm",
       color: "from-indigo-500 to-purple-600",
       count: "Full CRM"
+    },
+    {
+      title: "Shop Management",
+      description: "Products, orders & payments",
+      icon: <ShoppingBag className="w-10 h-10" />,
+      link: "/admin/shop",
+      color: "from-amber-500 to-orange-600",
+      count: `${shopStats.total_orders || 0} Orders`
     },
     {
       title: "Leads Management",

@@ -745,6 +745,7 @@ export const ProductManagement = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

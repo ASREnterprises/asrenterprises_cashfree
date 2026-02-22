@@ -684,9 +684,29 @@ export const ProductManagement = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="mt-3 bg-gray-800/50 rounded-lg p-3 flex items-center justify-between">
-                        <span className="text-gray-400">Auto-calculated Price:</span>
-                        <span className="text-amber-400 font-bold text-xl">₹{formData.price}/meter</span>
+                      <div className="mt-4 grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">Price per Meter (₹) *</label>
+                          <input
+                            type="number"
+                            required
+                            value={formData.price}
+                            onChange={(e) => setFormData({...formData, price: e.target.value})}
+                            className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            placeholder="e.g., 35"
+                          />
+                          <p className="text-gray-500 text-xs mt-1">Suggested: AC 4sqmm=₹35, AC 6sqmm=₹55, DC 4sqmm=₹45, DC 6sqmm=₹65</p>
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">Sale Price per Meter (₹)</label>
+                          <input
+                            type="number"
+                            value={formData.sale_price}
+                            onChange={(e) => setFormData({...formData, sale_price: e.target.value})}
+                            className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            placeholder="Leave empty if no sale"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

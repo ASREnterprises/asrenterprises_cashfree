@@ -1033,9 +1033,10 @@ export const ProductManagement = () => {
                         ))}
                       </div>
                     )}
-                  </div>
+                    </div>
+                  )}
 
-                  {/* Options */}
+                  {/* Options - Simplified for Service (only Active) */}
                   <div className="md:col-span-2 flex flex-wrap gap-4">
                     <label className="flex items-center space-x-2 text-white">
                       <input
@@ -1046,33 +1047,37 @@ export const ProductManagement = () => {
                       />
                       <span>Active</span>
                     </label>
-                    <label className="flex items-center space-x-2 text-white">
-                      <input
-                        type="checkbox"
-                        checked={formData.is_featured}
-                        onChange={(e) => setFormData({...formData, is_featured: e.target.checked})}
-                        className="w-4 h-4 rounded"
-                      />
-                      <span>Featured</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-white">
-                      <input
-                        type="checkbox"
-                        checked={formData.delivery_available}
-                        onChange={(e) => setFormData({...formData, delivery_available: e.target.checked})}
-                        className="w-4 h-4 rounded"
-                      />
-                      <span>Delivery Available</span>
-                    </label>
-                    <label className="flex items-center space-x-2 text-white">
-                      <input
-                        type="checkbox"
-                        checked={formData.pickup_available}
-                        onChange={(e) => setFormData({...formData, pickup_available: e.target.checked})}
-                        className="w-4 h-4 rounded"
-                      />
-                      <span>Store Pickup</span>
-                    </label>
+                    {formData.category !== "service" && (
+                      <>
+                        <label className="flex items-center space-x-2 text-white">
+                          <input
+                            type="checkbox"
+                            checked={formData.is_featured}
+                            onChange={(e) => setFormData({...formData, is_featured: e.target.checked})}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span>Featured</span>
+                        </label>
+                        <label className="flex items-center space-x-2 text-white">
+                          <input
+                            type="checkbox"
+                            checked={formData.delivery_available}
+                            onChange={(e) => setFormData({...formData, delivery_available: e.target.checked})}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span>Delivery Available</span>
+                        </label>
+                        <label className="flex items-center space-x-2 text-white">
+                          <input
+                            type="checkbox"
+                            checked={formData.pickup_available}
+                            onChange={(e) => setFormData({...formData, pickup_available: e.target.checked})}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span>Store Pickup</span>
+                        </label>
+                      </>
+                    )}
                   </div>
                 </div>
 

@@ -793,7 +793,6 @@ export const ProductManagement = () => {
                       />
                     </div>
                   )}
-                  </div>
 
                   <div>
                     <label className="text-gray-400 text-sm mb-1 block">Sale Price (₹)</label>

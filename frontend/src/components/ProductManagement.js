@@ -764,24 +764,20 @@ export const ProductManagement = () => {
                             onChange={(e) => {
                               const serviceType = e.target.value;
                               let serviceName = "Solar Installation Service";
-                              let serviceDesc = "Professional solar installation service by ASR Enterprises certified technicians.";
                               
                               if (serviceType === "maintenance") {
                                 serviceName = "Solar Maintenance Service";
-                                serviceDesc = "Annual maintenance and cleaning service for solar panels. Includes inspection, cleaning, and performance check.";
                               } else if (serviceType === "repair") {
                                 serviceName = "Solar Repair Service";
-                                serviceDesc = "Repair and troubleshooting service for solar systems. Covers inverters, panels, and wiring issues.";
                               } else if (serviceType === "consultation") {
                                 serviceName = "Solar Consultation Service";
-                                serviceDesc = "Expert consultation for solar system design and planning. Site assessment and customized recommendations.";
                               }
                               
                               setFormData({
                                 ...formData, 
                                 service_type: serviceType,
                                 name: serviceName,
-                                description: serviceDesc
+                                description: "" // Clear description so user can generate new one
                               });
                             }}
                             className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
@@ -792,16 +788,51 @@ export const ProductManagement = () => {
                             <option value="consultation">Consultation Service</option>
                           </select>
                         </div>
-                        <div className="flex items-center">
-                          <div className="bg-gray-800/50 rounded-lg p-3 w-full flex items-center justify-between">
-                            <span className="text-gray-400">Base Price:</span>
-                            <span className="text-green-400 font-bold text-xl">₹{serviceBasePrice}</span>
-                          </div>
+                        <div>
+                          <label className="text-gray-400 text-sm mb-2 block">Service Price (₹) *</label>
+                          <input
+                            type="number"
+                            required
+                            value={formData.price}
+                            onChange={(e) => setFormData({...formData, price: e.target.value})}
+                            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            placeholder="1500"
+                          />
+                          <p className="text-gray-500 text-xs mt-1">Suggested base price: ₹1,500</p>
                         </div>
                       </div>
-                      <p className="text-gray-500 text-sm mt-3">
-                        * Service is available for store visit/pickup only. Home delivery not applicable.
-                      </p>
+                      
+                      {/* AI Description Generator for Service */}
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-gray-400 text-sm">Service Description</label>
+                          <button
+                            type="button"
+                            onClick={generateServiceDescription}
+                            disabled={generatingDescription}
+                            className="flex items-center gap-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                          >
+                            {generatingDescription ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4" />
+                                Generate with AI
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <textarea
+                          value={formData.description}
+                          onChange={(e) => setFormData({...formData, description: e.target.value})}
+                          rows={4}
+                          className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                          placeholder="Click 'Generate with AI' or write your own service description..."
+                        />
+                      </div>
                     </div>
                   )}
 

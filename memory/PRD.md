@@ -22,6 +22,12 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 ### E-commerce Shop System (February 2026) ✅ NEW
 - **Shop page** at `/shop` with product catalog, category filtering, search
 - **Product categories:** Solar Panels, Inverters, Batteries, **Solar Wire (AC/DC, 4sqmm/6sqmm)**, Accessories, Services (₹1,500 base)
+- **Product Detail Modal:** Click product image or "Details" button to view:
+  - Full product info (name, price, description, stock, category badge)
+  - **Image gallery** with navigation arrows and thumbnails
+  - Delivery options (Home Delivery, Store Pickup)
+  - "View Details" overlay on hover
+  - Add to Cart from modal
 - **Shopping cart** with localStorage persistence, quantity controls
 - **Checkout flow:**
   - Customer details (name, phone, email)

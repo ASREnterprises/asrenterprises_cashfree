@@ -3275,9 +3275,24 @@ PRODUCT_CATEGORIES = [
     {"id": "solar_panel", "name": "Solar Panels", "icon": "sun"},
     {"id": "inverter", "name": "Inverters", "icon": "zap"},
     {"id": "battery", "name": "Batteries", "icon": "battery"},
+    {"id": "wire", "name": "Solar Wire", "icon": "cable"},
     {"id": "accessory", "name": "Accessories", "icon": "settings"},
-    {"id": "service", "name": "Services", "icon": "wrench"}
+    {"id": "service", "name": "Services", "icon": "wrench", "base_price": 1500}
 ]
+
+# Delivery fee based on distance (km)
+DELIVERY_FEES = {
+    "0-5": 50,      # 0-5 km
+    "5-10": 100,    # 5-10 km
+    "10-20": 150,   # 10-20 km
+    "20-30": 200,   # 20-30 km
+    "30+": 300      # 30+ km
+}
+
+@api_router.get("/shop/delivery-fees")
+async def get_delivery_fees():
+    """Get delivery fee structure based on distance"""
+    return DELIVERY_FEES
 
 @api_router.get("/shop/categories")
 async def get_product_categories():

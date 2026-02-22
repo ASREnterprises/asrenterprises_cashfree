@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { 
-  ShoppingCart, ChevronRight, Sun, Zap, Battery, Settings, Wrench,
+  ShoppingCart, ChevronRight, ChevronLeft, Sun, Zap, Battery, Settings, Wrench,
   Plus, Minus, X, MapPin, CreditCard, Banknote, Truck, Store,
-  Package, CheckCircle, AlertCircle, Loader2, Search, Filter
+  Package, CheckCircle, AlertCircle, Loader2, Search, Filter, Eye, Cable,
+  Star, Shield, Clock, Tag
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -16,6 +17,7 @@ const categoryIcons = {
   solar_panel: <Sun className="w-5 h-5" />,
   inverter: <Zap className="w-5 h-5" />,
   battery: <Battery className="w-5 h-5" />,
+  wire: <Cable className="w-5 h-5" />,
   accessory: <Settings className="w-5 h-5" />,
   service: <Wrench className="w-5 h-5" />
 };

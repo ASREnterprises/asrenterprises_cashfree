@@ -3300,9 +3300,9 @@ async def generate_service_description(data: Dict[str, Any]):
     price = data.get("price", 1500)
     
     try:
-        from emergentintegrations.llm import LlmChat
+        from emergentintegrations.llm.chat import LlmChat as ServiceLlmChat
         
-        llm = LlmChat(
+        llm = ServiceLlmChat(
             api_key=EMERGENT_LLM_KEY,
             model="gpt-4o-mini",
             system_prompt="""You are a professional copywriter for ASR Enterprises, a solar energy company in Bihar, India. 

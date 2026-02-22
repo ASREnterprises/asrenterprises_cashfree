@@ -3477,10 +3477,15 @@ async def update_order_status(order_id: str, data: Dict[str, Any]):
 
 @api_router.post("/shop/orders/{order_id}/payment-verify")
 async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
-    """Verify Razorpay payment"""
+    """Verify Razorpay payment and send WhatsApp notification"""
     razorpay_payment_id = data.get("razorpay_payment_id")
     razorpay_order_id = data.get("razorpay_order_id")
     razorpay_signature = data.get("razorpay_signature")
+    
+    # Get order details for notification
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
     
     # In production, verify signature with Razorpay
     # For now, just update the order
@@ -3495,7 +3500,47 @@ async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
         }}
     )
     
-    return {"status": "success", "message": "Payment verified"}
+    # Generate WhatsApp payment confirmation notification
+    admin_phone = "8877896889"
+    payment_message = f"""✅ *PAYMENT CONFIRMED - ASR Solar Shop*
+
+📦 Order #: {order.get('order_number', 'N/A')}
+👤 Customer: {order.get('customer_name', 'N/A')}
+📞 Phone: {order.get('customer_phone', 'N/A')}
+
+💳 *Payment Details:*
+Amount: ₹{order.get('total', 0):,.0f}
+Payment ID: {razorpay_payment_id}
+Status: ✅ PAID
+
+📍 Delivery: {"🏪 Store Pickup" if order.get('delivery_type') == "pickup" else "🚚 Home Delivery"}
+{f"Address: {order.get('delivery_address', '')}" if order.get('delivery_type') == "delivery" else ""}
+
+_Order is now CONFIRMED. Please prepare for dispatch!_"""
+    
+    whatsapp_notification_url = get_whatsapp_url(admin_phone, payment_message)
+    
+    # Add CRM notification for payment confirmation
+    try:
+        crm_message = CRMMessage(
+            sender_id="system",
+            sender_name="Payment System",
+            sender_type="system",
+            receiver_id="admin",
+            receiver_name="Admin",
+            message=f"✅ Payment CONFIRMED for Order #{order.get('order_number', 'N/A')} - ₹{order.get('total', 0):,.0f} (Razorpay: {razorpay_payment_id})"
+        )
+        msg_doc = crm_message.model_dump()
+        msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
+        await db.crm_messages.insert_one(msg_doc)
+    except Exception as e:
+        logger.error(f"Failed to create CRM notification for payment: {e}")
+    
+    return {
+        "status": "success", 
+        "message": "Payment verified",
+        "whatsapp_notification_url": whatsapp_notification_url
+    }
 
 @api_router.get("/shop/orders/track/{order_number}")
 async def track_order(order_number: str):

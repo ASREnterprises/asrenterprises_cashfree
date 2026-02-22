@@ -37,9 +37,19 @@ export const ShopPage = () => {
     customer_email: "",
     delivery_type: "pickup", // pickup or delivery
     delivery_address: "",
+    delivery_distance: "0-5", // distance range for delivery fee
     payment_method: "cod", // cod or razorpay
     notes: ""
   });
+
+  // Distance-based delivery fees
+  const DELIVERY_FEES = {
+    "0-5": 50,      // 0-5 km - ₹50
+    "5-10": 100,    // 5-10 km - ₹100
+    "10-20": 150,   // 10-20 km - ₹150
+    "20-30": 200,   // 20-30 km - ₹200
+    "30+": 300      // 30+ km - ₹300
+  };
 
   useEffect(() => {
     fetchProducts();

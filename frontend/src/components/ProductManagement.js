@@ -272,62 +272,75 @@ export const ProductManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-4 text-white">
-          <Package className="w-8 h-8 mb-2 opacity-80" />
-          <p className="text-3xl font-bold">{shopStats.total_products || 0}</p>
-          <p className="text-sm opacity-80">Products</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header with Back Button */}
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <Link to="/admin/dashboard" className="inline-flex items-center text-gray-400 hover:text-white mb-2">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Admin Dashboard
+            </Link>
+            <h1 className="text-3xl font-bold text-white">Shop Management</h1>
+            <p className="text-gray-400">Manage products, orders & payments</p>
+          </div>
         </div>
-        <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 text-white">
-          <ShoppingBag className="w-8 h-8 mb-2 opacity-80" />
-          <p className="text-3xl font-bold">{shopStats.total_orders || 0}</p>
-          <p className="text-sm opacity-80">Total Orders</p>
-        </div>
-        <div className="bg-gradient-to-br from-yellow-500 to-amber-500 rounded-2xl p-4 text-white">
-          <AlertCircle className="w-8 h-8 mb-2 opacity-80" />
-          <p className="text-3xl font-bold">{shopStats.pending_orders || 0}</p>
-          <p className="text-sm opacity-80">Pending</p>
-        </div>
-        <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-4 text-white">
-          <DollarSign className="w-8 h-8 mb-2 opacity-80" />
-          <p className="text-3xl font-bold">₹{(shopStats.total_revenue || 0).toLocaleString()}</p>
-          <p className="text-sm opacity-80">Revenue</p>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex space-x-2 border-b border-gray-700 pb-2">
-        <button
-          onClick={() => setActiveTab("products")}
-          className={`px-4 py-2 rounded-t-lg font-medium transition ${
-            activeTab === "products" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Package className="w-4 h-4 inline mr-2" />
-          Products
-        </button>
-        <button
-          onClick={() => setActiveTab("orders")}
-          className={`px-4 py-2 rounded-t-lg font-medium transition ${
-            activeTab === "orders" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <ShoppingBag className="w-4 h-4 inline mr-2" />
-          Orders
-        </button>
-      </div>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-4 text-white">
+            <Package className="w-8 h-8 mb-2 opacity-80" />
+            <p className="text-3xl font-bold">{shopStats.total_products || 0}</p>
+            <p className="text-sm opacity-80">Products</p>
+          </div>
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 text-white">
+            <ShoppingBag className="w-8 h-8 mb-2 opacity-80" />
+            <p className="text-3xl font-bold">{shopStats.total_orders || 0}</p>
+            <p className="text-sm opacity-80">Total Orders</p>
+          </div>
+          <div className="bg-gradient-to-br from-yellow-500 to-amber-500 rounded-2xl p-4 text-white">
+            <AlertCircle className="w-8 h-8 mb-2 opacity-80" />
+            <p className="text-3xl font-bold">{shopStats.pending_orders || 0}</p>
+            <p className="text-sm opacity-80">Pending</p>
+          </div>
+          <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-4 text-white">
+            <DollarSign className="w-8 h-8 mb-2 opacity-80" />
+            <p className="text-3xl font-bold">₹{(shopStats.total_revenue || 0).toLocaleString()}</p>
+            <p className="text-sm opacity-80">Revenue</p>
+          </div>
+        </div>
 
-      {/* Products Tab */}
-      {activeTab === "products" && (
-        <div>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search products..."
+        {/* Tabs */}
+        <div className="flex space-x-2 border-b border-gray-700 pb-2 mb-6">
+          <button
+            onClick={() => setActiveTab("products")}
+            className={`px-4 py-2 rounded-t-lg font-medium transition ${
+              activeTab === "products" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Package className="w-4 h-4 inline mr-2" />
+            Products
+          </button>
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`px-4 py-2 rounded-t-lg font-medium transition ${
+              activeTab === "orders" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4 inline mr-2" />
+            Orders
+          </button>
+        </div>
+
+        {/* Products Tab */}
+        {activeTab === "products" && (
+          <div>
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400"

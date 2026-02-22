@@ -956,48 +956,53 @@ export const ProductManagement = () => {
                         className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
                       placeholder="Brief product description for listing"
                     />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-1 block">Full Description</label>
-                    <textarea
-                      rows={3}
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="Detailed product description"
-                    />
-                  </div>
-
-                  {/* Images */}
-                  <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-1 block">Product Images</label>
-                    
-                    {/* Upload from Mobile/Desktop */}
-                    <div className="mb-3">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        onChange={(e) => handleImageUpload(e)}
-                        className="hidden"
-                        id="mobile-image-upload"
-                      />
-                      <label
-                        htmlFor="mobile-image-upload"
-                        className={`flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer hover:border-amber-500 transition ${uploadingImage ? 'opacity-50' : ''}`}
-                      >
-                        <Upload className="w-5 h-5 text-amber-400" />
-                        <span className="text-gray-300">
-                          {uploadingImage ? 'Uploading...' : 'Upload from Mobile/Gallery'}
-                        </span>
-                      </label>
-                      <p className="text-gray-500 text-xs mt-1">Max 5MB • JPEG, PNG, WebP, GIF</p>
                     </div>
+                  )}
 
-                    {/* Or paste URL */}
-                    <div className="flex gap-2 mb-2">
-                      <input
+                  {/* Full Description - Hidden for Service (has its own AI-powered description field) */}
+                  {formData.category !== "service" && (
+                    <div className="md:col-span-2">
+                      <label className="text-gray-400 text-sm mb-1 block">Full Description</label>
+                      <textarea
+                        rows={3}
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder="Detailed product description"
+                      />
+                    </div>
+                  )}
+
+                  {/* Images - Hidden for Service */}
+                  {formData.category !== "service" && (
+                    <div className="md:col-span-2">
+                      <label className="text-gray-400 text-sm mb-1 block">Product Images</label>
+                      
+                      {/* Upload from Mobile/Desktop */}
+                      <div className="mb-3">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          onChange={(e) => handleImageUpload(e)}
+                          className="hidden"
+                          id="mobile-image-upload"
+                        />
+                        <label
+                          htmlFor="mobile-image-upload"
+                          className={`flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer hover:border-amber-500 transition ${uploadingImage ? 'opacity-50' : ''}`}
+                        >
+                          <Upload className="w-5 h-5 text-amber-400" />
+                          <span className="text-gray-300">
+                            {uploadingImage ? 'Uploading...' : 'Upload from Mobile/Gallery'}
+                          </span>
+                        </label>
+                        <p className="text-gray-500 text-xs mt-1">Max 5MB • JPEG, PNG, WebP, GIF</p>
+                      </div>
+
+                      {/* Or paste URL */}
+                      <div className="flex gap-2 mb-2">
+                        <input
                         type="url"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}

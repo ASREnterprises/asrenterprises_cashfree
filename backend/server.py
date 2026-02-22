@@ -585,6 +585,60 @@ class StaffTask(BaseModel):
     created_by: str = "admin"
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# ==================== SHOP/E-COMMERCE MODELS ====================
+
+class Product(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    description: str = ""
+    short_description: str = ""
+    category: str = "solar_panel"  # solar_panel, inverter, battery, accessory, service
+    price: float
+    sale_price: Optional[float] = None
+    stock: int = 0
+    sku: str = ""
+    brand: str = ""
+    specifications: Dict[str, Any] = {}
+    images: List[str] = []  # List of image URLs
+    is_active: bool = True
+    is_featured: bool = False
+    warranty: str = ""
+    delivery_available: bool = True
+    pickup_available: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class CartItem(BaseModel):
+    product_id: str
+    product_name: str
+    quantity: int
+    price: float
+    image: str = ""
+
+class Order(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    order_number: str = Field(default_factory=lambda: f"ASR{datetime.now().strftime('%Y%m%d')}{str(uuid.uuid4())[:6].upper()}")
+    customer_name: str
+    customer_phone: str
+    customer_email: str = ""
+    items: List[Dict[str, Any]] = []
+    subtotal: float
+    delivery_charge: float = 0
+    total: float
+    delivery_type: str = "pickup"  # pickup, delivery
+    delivery_address: str = ""
+    delivery_district: str = "Patna"
+    payment_method: str = "cod"  # cod, razorpay
+    payment_status: str = "pending"  # pending, paid, failed
+    razorpay_order_id: str = ""
+    razorpay_payment_id: str = ""
+    order_status: str = "pending"  # pending, confirmed, processing, ready, delivered, cancelled
+    notes: str = ""
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 # Activity Log for Lead Timeline
 class ActivityLog(BaseModel):
     model_config = ConfigDict(extra="ignore")

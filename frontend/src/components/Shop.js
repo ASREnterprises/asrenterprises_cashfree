@@ -30,6 +30,8 @@ export const ShopPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [orderSuccess, setOrderSuccess] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null); // Product detail modal
+  const [activeImageIndex, setActiveImageIndex] = useState(0); // Image gallery index
   
   const [checkoutData, setCheckoutData] = useState({
     customer_name: "",

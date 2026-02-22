@@ -627,6 +627,7 @@ const HomePage = () => {
             <div className="px-4 py-2 space-y-2">
               <Link to="/" className="block py-2 text-slate-300 hover:text-amber-400">Home</Link>
               <Link to="/about" className="block py-2 text-slate-300 hover:text-amber-400">About Us</Link>
+              <Link to="/shop" className="block py-2 text-slate-300 hover:text-amber-400">Shop</Link>
               <Link to="/gallery" className="block py-2 text-slate-300 hover:text-amber-400">Gallery</Link>
               <Link to="/calculator" className="block py-2 text-slate-300 hover:text-amber-400">Calculator</Link>
               <Link to="/govt-schemes" className="block py-2 text-slate-300 hover:text-amber-400">Govt Schemes</Link>

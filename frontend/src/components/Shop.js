@@ -293,8 +293,12 @@ export const ShopPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map(product => (
               <div key={product.id} className="bg-gray-800/50 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-amber-500/50 transition group">
-                {/* Product Image */}
-                <div className="aspect-square bg-gray-900 relative overflow-hidden">
+                {/* Product Image - Clickable */}
+                <div 
+                  className="aspect-square bg-gray-900 relative overflow-hidden cursor-pointer"
+                  onClick={() => openProductDetail(product)}
+                  data-testid={`product-image-${product.id}`}
+                >
                   {product.images?.[0] ? (
                     <img 
                       src={product.images[0]} 
@@ -312,11 +316,23 @@ export const ShopPage = () => {
                   {product.sale_price && (
                     <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">Sale</span>
                   )}
+                  {/* View Details Overlay */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    <span className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                      <Eye className="w-4 h-4" />
+                      <span>View Details</span>
+                    </span>
+                  </div>
                 </div>
                 
                 {/* Product Info */}
                 <div className="p-4">
-                  <h3 className="text-white font-semibold text-lg mb-1 line-clamp-2">{product.name}</h3>
+                  <h3 
+                    className="text-white font-semibold text-lg mb-1 line-clamp-2 cursor-pointer hover:text-amber-400 transition"
+                    onClick={() => openProductDetail(product)}
+                  >
+                    {product.name}
+                  </h3>
                   {product.brand && (
                     <p className="text-gray-400 text-sm mb-2">{product.brand}</p>
                   )}
@@ -341,15 +357,25 @@ export const ShopPage = () => {
                     )}
                   </div>
                   
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={() => addToCart(product)}
-                    disabled={product.stock === 0}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 transition"
-                  >
-                    <ShoppingCart className="w-5 h-5" />
-                    <span>Add to Cart</span>
-                  </button>
+                  {/* Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openProductDetail(product)}
+                      className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 transition"
+                      data-testid={`view-details-btn-${product.id}`}
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>Details</span>
+                    </button>
+                    <button
+                      onClick={() => addToCart(product)}
+                      disabled={product.stock === 0}
+                      className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 transition"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      <span>Add</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

@@ -3522,7 +3522,7 @@ async def update_order_status(order_id: str, data: Dict[str, Any]):
 
 @api_router.post("/shop/orders/{order_id}/payment-verify")
 async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
-    """Verify Razorpay payment and send WhatsApp notification"""
+    """Verify Razorpay payment and send WhatsApp notification to admin and customer"""
     razorpay_payment_id = data.get("razorpay_payment_id")
     razorpay_order_id = data.get("razorpay_order_id")
     razorpay_signature = data.get("razorpay_signature")
@@ -3545,7 +3545,7 @@ async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
         }}
     )
     
-    # Generate WhatsApp payment confirmation notification
+    # Generate WhatsApp payment confirmation notification for admin
     admin_phone = "8877896889"
     payment_message = f"""✅ *PAYMENT CONFIRMED - ASR Solar Shop*
 
@@ -3564,6 +3564,37 @@ Status: ✅ PAID
 _Order is now CONFIRMED. Please prepare for dispatch!_"""
     
     whatsapp_notification_url = get_whatsapp_url(admin_phone, payment_message)
+    
+    # Generate customer payment confirmation WhatsApp message
+    items_text = "\n".join([f"• {item.get('product_name', 'Item')} x{item.get('quantity', 1)} - ₹{item.get('price', 0) * item.get('quantity', 1):,.0f}" for item in order.get('items', [])])
+    customer_confirmation = f"""🌞 *Payment Successful!*
+*ASR Enterprises - Solar Solutions*
+
+Dear {order.get('customer_name', 'Customer')},
+
+Your payment has been confirmed! ✅
+
+📦 *Order Number:* {order.get('order_number', 'N/A')}
+
+📋 *Your Items:*
+{items_text}
+
+💰 *Amount Paid:* ₹{order.get('total', 0):,.0f}
+💳 *Payment ID:* {razorpay_payment_id}
+
+📍 *{"Pickup Location" if order.get('delivery_type') == "pickup" else "Delivery Address"}:*
+{("Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503" if order.get('delivery_type') == "pickup" else order.get('delivery_address', 'N/A'))}
+
+⏰ *{"Pickup" if order.get('delivery_type') == "pickup" else "Delivery"} Time:*
+{"Visit our store during business hours (9 AM - 7 PM)" if order.get('delivery_type') == "pickup" else "Within 2-3 business days"}
+
+📞 *Need Help?*
+Call: 8877896889
+
+_Thank you for choosing ASR Enterprises!_
+_Powering Bihar's future with clean energy_ ☀️"""
+    
+    customer_whatsapp_url = get_whatsapp_url(order.get('customer_phone', ''), customer_confirmation)
     
     # Add CRM notification for payment confirmation
     try:
@@ -3584,7 +3615,8 @@ _Order is now CONFIRMED. Please prepare for dispatch!_"""
     return {
         "status": "success", 
         "message": "Payment verified",
-        "whatsapp_notification_url": whatsapp_notification_url
+        "whatsapp_notification_url": whatsapp_notification_url,
+        "customer_whatsapp_url": customer_whatsapp_url
     }
 
 @api_router.get("/shop/orders/track/{order_number}")

@@ -3348,7 +3348,7 @@ async def remove_product_image(product_id: str, image_url: str):
 
 # Order Management
 def generate_order_whatsapp_message(order: Order) -> str:
-    """Generate WhatsApp notification message for new order"""
+    """Generate WhatsApp notification message for admin (new order alert)"""
     items_text = "\n".join([f"• {item.get('product_name', 'Item')} x{item.get('quantity', 1)} - ₹{item.get('price', 0) * item.get('quantity', 1):,.0f}" for item in order.items])
     
     message = f"""🛒 *NEW ORDER - ASR Solar Shop*
@@ -3378,6 +3378,46 @@ Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FRE
 ⏰ Order Time: {datetime.now(timezone.utc).strftime('%d-%b-%Y %I:%M %p')}
 
 _Please process this order promptly!_"""
+    return message
+
+def generate_customer_order_confirmation(order: Order, is_payment_confirmed: bool = False) -> str:
+    """Generate WhatsApp order confirmation message for customer"""
+    items_text = "\n".join([f"• {item.get('product_name', 'Item')} x{item.get('quantity', 1)} - ₹{item.get('price', 0) * item.get('quantity', 1):,.0f}" for item in order.items])
+    
+    payment_status = "✅ PAID" if is_payment_confirmed else ("💳 Pay Online" if order.payment_method == "razorpay" else "💵 Pay on " + ("Pickup" if order.delivery_type == "pickup" else "Delivery"))
+    
+    message = f"""🌞 *Thank You for Your Order!*
+*ASR Enterprises - Solar Solutions*
+
+Dear {order.customer_name},
+
+Your order has been {"confirmed" if is_payment_confirmed else "received"}! 🎉
+
+📦 *Order Number:* {order.order_number}
+
+📋 *Your Items:*
+{items_text}
+
+💰 *Order Summary:*
+Subtotal: ₹{order.subtotal:,.0f}
+Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FREE"}
+━━━━━━━━━━━━━━━
+*Total: ₹{order.total:,.0f}*
+
+💳 *Payment:* {payment_status}
+
+📍 *{"Pickup Location" if order.delivery_type == "pickup" else "Delivery Address"}:*
+{("Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503" if order.delivery_type == "pickup" else order.delivery_address)}
+
+📞 *Need Help?*
+Call: 8877896889
+WhatsApp: 8877896889
+
+⏰ *{"Pickup" if order.delivery_type == "pickup" else "Delivery"} Time:*
+{"Visit our store during business hours (9 AM - 7 PM)" if order.delivery_type == "pickup" else "Within 2-3 business days"}
+
+_Thank you for choosing ASR Enterprises!_
+_Powering Bihar's future with clean energy_ ☀️"""
     return message
 
 @api_router.post("/shop/orders")

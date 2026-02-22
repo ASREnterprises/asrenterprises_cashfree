@@ -96,10 +96,14 @@ export const ProductManagement = () => {
     const newFormData = { ...formData, category };
     
     if (category === "wire") {
-      const priceKey = `${formData.wire_type}_${formData.wire_size}`;
-      newFormData.name = `${formData.wire_type} Wire ${formData.wire_size} (per meter)`;
+      const wireType = newFormData.wire_type || "AC";
+      const wireSize = newFormData.wire_size || "4sqmm";
+      const priceKey = `${wireType}_${wireSize}`;
+      newFormData.wire_type = wireType;
+      newFormData.wire_size = wireSize;
+      newFormData.name = `${wireType} Wire ${wireSize} (per meter)`;
       newFormData.price = wirePrices[priceKey] || 35;
-      newFormData.description = `${formData.wire_type === "AC" ? "AC" : "Solar DC"} wire ${formData.wire_size}. High quality copper conductor for solar installations. Price is per meter.`;
+      newFormData.description = `${wireType === "AC" ? "AC" : "Solar DC"} wire ${wireSize}. High quality copper conductor for solar installations. Price is per meter.`;
       newFormData.stock = 1000;
     } else if (category === "service") {
       newFormData.name = "Solar Installation Service";

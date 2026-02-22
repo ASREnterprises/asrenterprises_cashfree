@@ -1490,6 +1490,7 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutUsPage />} />
+          <Route path="/shop" element={<ShopPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/calculator" element={<SolarCalculatorPage />} />

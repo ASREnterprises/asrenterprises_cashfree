@@ -55,6 +55,8 @@ export const ProductManagement = () => {
   });
 
   const [imageUrl, setImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchProducts();
@@ -88,6 +90,60 @@ export const ProductManagement = () => {
       setShopStats(res.data);
     } catch (err) {
       console.error("Error fetching shop stats:", err);
+    }
+  };
+
+  // Handle image upload from mobile/desktop storage
+  const handleImageUpload = async (e, productId = null) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, WebP, GIF)');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      if (productId) {
+        // Upload to existing product
+        const formDataUpload = new FormData();
+        formDataUpload.append('file', file);
+        const res = await axios.post(`${API}/shop/products/${productId}/upload-image`, formDataUpload, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        if (res.data.status === 'success') {
+          fetchProducts();
+          alert('Image uploaded successfully!');
+        }
+      } else {
+        // Add to form for new product - convert to base64
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, reader.result]
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.error('Image upload error:', err);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 

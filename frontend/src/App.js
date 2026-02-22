@@ -19,6 +19,7 @@ const GalleryPage = lazy(() => import("@/components/Gallery").then(m => ({ defau
 const ContactPage = lazy(() => import("@/components/Contact").then(m => ({ default: m.ContactPage })));
 const TestimonialsSection = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.TestimonialsSection })));
 const AboutUsPage = lazy(() => import("@/components/AboutUs").then(m => ({ default: m.AboutUsPage })));
+const ShopPage = lazy(() => import("@/components/Shop").then(m => ({ default: m.ShopPage })));
 
 // Admin Panel - Lazy load (heavy components)
 const AIMarketingHub = lazy(() => import("@/components/AIMarketing").then(m => ({ default: m.AIMarketingHub })));

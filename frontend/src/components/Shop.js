@@ -483,12 +483,27 @@ export const ShopPage = () => {
                     >
                       <Truck className="w-8 h-8 text-blue-400" />
                       <span className="text-white font-semibold">Home Delivery</span>
-                      <span className="text-amber-400 text-sm">₹100 (Patna Only)</span>
+                      <span className="text-amber-400 text-sm">Patna District</span>
                     </button>
                   </div>
 
                   {checkoutData.delivery_type === "delivery" && (
-                    <div className="mt-4">
+                    <div className="mt-4 space-y-4">
+                      {/* Distance Selection for Delivery Fee */}
+                      <div>
+                        <label className="text-gray-300 text-sm mb-2 block">Select Distance from Store (for delivery fee)</label>
+                        <select
+                          value={checkoutData.delivery_distance}
+                          onChange={(e) => setCheckoutData({...checkoutData, delivery_distance: e.target.value})}
+                          className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:border-amber-500 focus:outline-none"
+                        >
+                          <option value="0-5">0-5 km - ₹50</option>
+                          <option value="5-10">5-10 km - ₹100</option>
+                          <option value="10-20">10-20 km - ₹150</option>
+                          <option value="20-30">20-30 km - ₹200</option>
+                          <option value="30+">30+ km - ₹300</option>
+                        </select>
+                      </div>
                       <textarea
                         placeholder="Delivery Address in Patna District *"
                         value={checkoutData.delivery_address}
@@ -496,7 +511,7 @@ export const ShopPage = () => {
                         rows={3}
                         className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none"
                       />
-                      <p className="text-yellow-400 text-sm mt-2 flex items-center">
+                      <p className="text-yellow-400 text-sm flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
                         Delivery available only in Patna District
                       </p>

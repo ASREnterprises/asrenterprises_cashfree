@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
   Plus, Edit, Trash2, Package, Image, Save, X, Search,
   Sun, Zap, Battery, Settings, Wrench, Eye, EyeOff, Star,
-  Upload, ShoppingBag, DollarSign, TrendingUp, AlertCircle
+  Upload, ShoppingBag, DollarSign, TrendingUp, AlertCircle, Cable, ArrowLeft
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -12,8 +13,17 @@ const categoryOptions = [
   { id: "solar_panel", name: "Solar Panels", icon: Sun },
   { id: "inverter", name: "Inverters", icon: Zap },
   { id: "battery", name: "Batteries", icon: Battery },
+  { id: "wire", name: "Solar Wire", icon: Cable },
   { id: "accessory", name: "Accessories", icon: Settings },
-  { id: "service", name: "Services", icon: Wrench }
+  { id: "service", name: "Services", icon: Wrench, basePrice: 1500 }
+];
+
+// Wire options with sqmm sizes
+const wireOptions = [
+  { id: "ac_4sqmm", name: "AC Wire 4 sqmm", type: "AC", size: "4sqmm", unit: "per meter" },
+  { id: "ac_6sqmm", name: "AC Wire 6 sqmm", type: "AC", size: "6sqmm", unit: "per meter" },
+  { id: "dc_4sqmm", name: "DC Wire 4 sqmm", type: "DC", size: "4sqmm", unit: "per meter" },
+  { id: "dc_6sqmm", name: "DC Wire 6 sqmm", type: "DC", size: "6sqmm", unit: "per meter" }
 ];
 
 export const ProductManagement = () => {

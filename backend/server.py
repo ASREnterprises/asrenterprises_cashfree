@@ -3461,6 +3461,10 @@ async def create_order(order_data: Dict[str, Any]):
     whatsapp_message = generate_order_whatsapp_message(order)
     whatsapp_notification_url = get_whatsapp_url(admin_phone, whatsapp_message)
     
+    # Generate WhatsApp confirmation for customer
+    customer_confirmation_message = generate_customer_order_confirmation(order, is_payment_confirmed=(order.payment_method == "cod"))
+    customer_whatsapp_url = get_whatsapp_url(order.customer_phone, customer_confirmation_message)
+    
     # Add CRM notification for the order
     try:
         crm_message = CRMMessage(
@@ -3481,7 +3485,8 @@ async def create_order(order_data: Dict[str, Any]):
         "status": "success", 
         "order": order,
         "order_number": order.order_number,
-        "whatsapp_notification_url": whatsapp_notification_url
+        "whatsapp_notification_url": whatsapp_notification_url,
+        "customer_whatsapp_url": customer_whatsapp_url
     }
 
 @api_router.get("/shop/orders")

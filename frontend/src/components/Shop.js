@@ -142,6 +142,12 @@ export const ShopPage = () => {
         window.open(`${RAZORPAY_PAYMENT_LINK}?amount=${grandTotal}`, "_blank");
       }
 
+      // Open WhatsApp notification for admin (auto-notify about new order)
+      if (res.data.whatsapp_notification_url) {
+        // Auto-open WhatsApp notification in new tab for admin to see
+        window.open(res.data.whatsapp_notification_url, "_blank");
+      }
+
       setOrderSuccess(res.data);
       setCart([]);
       localStorage.removeItem("asr_cart");

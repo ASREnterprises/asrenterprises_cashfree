@@ -10,9 +10,6 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Razorpay Payment Link (using existing)
-const RAZORPAY_PAYMENT_LINK = "https://razorpay.me/@asrenterprises9465";
-
 const categoryIcons = {
   solar_panel: <Sun className="w-5 h-5" />,
   inverter: <Zap className="w-5 h-5" />,

@@ -585,13 +585,26 @@ export const ShopPage = () => {
                         <span>₹{cartTotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-gray-300">
-                        <span>Delivery</span>
+                        <span>Delivery {checkoutData.delivery_type === "delivery" && `(${checkoutData.delivery_distance} km)`}</span>
                         <span>{deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}</span>
                       </div>
                       <div className="flex justify-between text-white font-bold text-lg mt-2">
                         <span>Total</span>
                         <span className="text-amber-400">₹{grandTotal.toLocaleString()}</span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Return Policy Notice */}
+                <div className="bg-red-900/30 border border-red-700/50 rounded-xl p-4">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-red-300 font-semibold text-sm">No Return Policy</p>
+                      <p className="text-red-400/80 text-xs mt-1">
+                        Goods once sold cannot be taken back or exchanged. Please verify your order before placing.
+                      </p>
                     </div>
                   </div>
                 </div>

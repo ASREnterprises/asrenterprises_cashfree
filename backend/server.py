@@ -3660,6 +3660,29 @@ _Powering Bihar's future with clean energy_ ☀️"""
     except Exception as e:
         logger.error(f"Failed to create CRM notification for payment: {e}")
     
+    # AUTO-CREATE PAYMENT RECORD IN CRM for Razorpay payments
+    try:
+        payment_record = {
+            "id": str(uuid.uuid4()),
+            "order_id": order_id,
+            "order_number": order.get('order_number', ''),
+            "customer_name": order.get('customer_name', ''),
+            "customer_phone": order.get('customer_phone', ''),
+            "amount": order.get('total', 0),
+            "payment_method": "razorpay",
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_order_id": razorpay_order_id,
+            "status": "completed",
+            "payment_type": "shop_order",
+            "notes": f"Online payment for Order #{order.get('order_number', '')}",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "auto_recorded": True
+        }
+        await db.payments.insert_one(payment_record)
+        logger.info(f"Auto-created payment record for Order #{order.get('order_number', '')}")
+    except Exception as e:
+        logger.error(f"Failed to auto-create payment record: {e}")
+    
     return {
         "status": "success", 
         "message": "Payment verified",

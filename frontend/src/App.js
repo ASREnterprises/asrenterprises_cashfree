@@ -1553,6 +1553,11 @@ export default function App() {
               <CRMDashboard />
             </ProtectedRoute>
           } />
+          <Route path="/admin/shop" element={
+            <ProtectedRoute>
+              <ProductManagementPage />
+            </ProtectedRoute>
+          } />
           <Route path="/crm" element={
             <ProtectedRoute>
               <CRMDashboard />

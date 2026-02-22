@@ -746,7 +746,7 @@ export const ShopPage = () => {
 
             {checkoutData.payment_method === "razorpay" && (
               <p className="text-yellow-400 text-sm mb-4">
-                Please complete your payment on the Razorpay page that opened.
+                Complete your payment in the Razorpay window. Your order will be confirmed after payment.
               </p>
             )}
 

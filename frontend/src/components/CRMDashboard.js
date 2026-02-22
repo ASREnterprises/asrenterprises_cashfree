@@ -1213,11 +1213,6 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Shop Management Tab */}
-        {activeTab === "shop" && (
-          <ProductManagement />
-        )}
-
         {/* Testimonials Generator Tab */}
         {activeTab === "testimonials" && (
           <TestimonialsTab />

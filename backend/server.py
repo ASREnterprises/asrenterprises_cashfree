@@ -3347,9 +3347,42 @@ async def remove_product_image(product_id: str, image_url: str):
     return {"status": "success", "message": "Image removed"}
 
 # Order Management
+def generate_order_whatsapp_message(order: Order) -> str:
+    """Generate WhatsApp notification message for new order"""
+    items_text = "\n".join([f"• {item.get('product_name', 'Item')} x{item.get('quantity', 1)} - ₹{item.get('price', 0) * item.get('quantity', 1):,.0f}" for item in order.items])
+    
+    message = f"""🛒 *NEW ORDER - ASR Solar Shop*
+
+📦 Order #: {order.order_number}
+
+👤 *Customer Details:*
+Name: {order.customer_name}
+Phone: {order.customer_phone}
+{f"Email: {order.customer_email}" if order.customer_email else ""}
+
+📋 *Items Ordered:*
+{items_text}
+
+💰 *Payment Details:*
+Subtotal: ₹{order.subtotal:,.0f}
+Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FREE"}
+*Total: ₹{order.total:,.0f}*
+
+📍 *Delivery Type:* {"🏪 Store Pickup" if order.delivery_type == "pickup" else "🚚 Home Delivery"}
+{f"Address: {order.delivery_address}" if order.delivery_type == "delivery" else "Pickup: Shop 10, AMAN SKS COMPLEX, Khagaul Saguna Road"}
+
+💳 *Payment Method:* {"💵 Cash on " + ("Store" if order.delivery_type == "pickup" else "Delivery") if order.payment_method == "cod" else "💳 Razorpay Online"}
+
+{f"📝 Notes: {order.notes}" if order.notes else ""}
+
+⏰ Order Time: {datetime.now(timezone.utc).strftime('%d-%b-%Y %I:%M %p')}
+
+_Please process this order promptly!_"""
+    return message
+
 @api_router.post("/shop/orders")
 async def create_order(order_data: Dict[str, Any]):
-    """Create a new order"""
+    """Create a new order with WhatsApp notification"""
     order = Order(
         customer_name=sanitize_input(order_data.get("customer_name", "")),
         customer_phone=sanitize_input(order_data.get("customer_phone", "")),
@@ -3383,10 +3416,32 @@ async def create_order(order_data: Dict[str, Any]):
             {"$inc": {"stock": -item.get("quantity", 0)}}
         )
     
+    # Generate WhatsApp notification URL for admin (business number: 8877896889)
+    admin_phone = "8877896889"
+    whatsapp_message = generate_order_whatsapp_message(order)
+    whatsapp_notification_url = get_whatsapp_url(admin_phone, whatsapp_message)
+    
+    # Add CRM notification for the order
+    try:
+        crm_message = CRMMessage(
+            sender_id="system",
+            sender_name="ASR Solar Shop",
+            sender_type="system",
+            receiver_id="admin",
+            receiver_name="Admin",
+            message=f"🛒 New Order #{order.order_number} from {order.customer_name} - ₹{order.total:,.0f} ({order.payment_method.upper()})"
+        )
+        msg_doc = crm_message.model_dump()
+        msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
+        await db.crm_messages.insert_one(msg_doc)
+    except Exception as e:
+        logger.error(f"Failed to create CRM notification for order: {e}")
+    
     return {
         "status": "success", 
         "order": order,
-        "order_number": order.order_number
+        "order_number": order.order_number,
+        "whatsapp_notification_url": whatsapp_notification_url
     }
 
 @api_router.get("/shop/orders")

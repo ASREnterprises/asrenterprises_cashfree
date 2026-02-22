@@ -1135,7 +1135,7 @@ Write ONLY the testimonial text, nothing else."""
     
     # Fallback to template if AI fails or returns empty
     if not testimonial_text:
-        logger.info(f"Using fallback template for testimonial (AI returned empty or failed)")
+        logger.info("Using fallback template for testimonial (AI returned empty or failed)")
         templates = [
             f"After installing {solar_capacity} kW solar panels from ASR Enterprises, my electricity bill dropped from ₹{bill_before} to just ₹{bill_after}! Best decision for my home in {address}.",
             f"ASR Enterprises installed a {solar_capacity} kW system at my {address} residence. Saving ₹{savings_amount} every month now. Professional team, excellent work!",
@@ -3160,7 +3160,7 @@ Suggest: 1) Best time to call 2) Key talking points 3) Offer to make 4) Objectio
         return {"success": True, "suggestions": response}
     except Exception as e:
         logger.error(f"AI followup error: {e}")
-        return {"success": True, "suggestions": f"Call between 10 AM - 12 PM or 4 PM - 6 PM. Highlight PM Surya Ghar subsidy of ₹78,000 and 25-year warranty. Offer free site survey."}
+        return {"success": True, "suggestions": "Call between 10 AM - 12 PM or 4 PM - 6 PM. Highlight PM Surya Ghar subsidy of ₹78,000 and 25-year warranty. Offer free site survey."}
 
 @api_router.get("/crm/reports/monthly")
 async def get_monthly_report():
@@ -4641,7 +4641,7 @@ async def verify_whatsapp_webhook(request: Request):
         from starlette.responses import PlainTextResponse
         return PlainTextResponse(hub_challenge)
     
-    logger.warning(f"WhatsApp webhook verification failed: token mismatch")
+    logger.warning("WhatsApp webhook verification failed: token mismatch")
     raise HTTPException(status_code=403, detail="Verification failed")
 
 @api_router.post("/webhook/whatsapp")
@@ -4735,7 +4735,7 @@ async def verify_facebook_webhook(request: Request):
         from starlette.responses import PlainTextResponse
         return PlainTextResponse(hub_challenge)
     
-    logger.warning(f"Facebook webhook verification failed: token mismatch")
+    logger.warning("Facebook webhook verification failed: token mismatch")
     raise HTTPException(status_code=403, detail="Verification failed")
 
 @api_router.post("/webhook/facebook")
@@ -4849,7 +4849,7 @@ async def get_webhook_status():
         "instructions": {
             "step1": "Go to Meta for Developers (developers.facebook.com)",
             "step2": "Select your app → WhatsApp/Messenger → Settings",
-            "step3": f"Add webhook URL: YOUR_DOMAIN/api/webhook/whatsapp or /api/webhook/facebook",
+            "step3": "Add webhook URL: YOUR_DOMAIN/api/webhook/whatsapp or /api/webhook/facebook",
             "step4": f"Use verify token: {WEBHOOK_VERIFY_TOKEN}",
             "step5": "Subscribe to 'messages' events",
             "step6": "Add your credentials to backend/.env file"

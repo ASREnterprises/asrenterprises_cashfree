@@ -3352,6 +3352,39 @@ async def add_product_image(product_id: str, image_url: str = Form(...)):
     )
     return {"status": "success", "message": "Image added"}
 
+@api_router.post("/shop/products/{product_id}/upload-image")
+async def upload_product_image(product_id: str, file: UploadFile = File(...)):
+    """Upload product image directly from mobile/desktop storage"""
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Validate file size (max 5MB for products)
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Max 5MB allowed.")
+        
+        # Validate file type
+        allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"]
+        if file.content_type not in allowed_types:
+            raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: JPEG, PNG, WebP, GIF")
+        
+        # Convert to base64 data URL for storage
+        base64_content = base64.b64encode(content).decode('utf-8')
+        data_url = f"data:{file.content_type};base64,{base64_content}"
+        
+        # Add image to product
+        await db.products.update_one(
+            {"id": product_id}, 
+            {"$push": {"images": data_url}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        return {"status": "success", "message": "Image uploaded", "image_url": data_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Product image upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image")
+
 @api_router.delete("/shop/products/{product_id}/images")
 async def remove_product_image(product_id: str, image_url: str):
     """Remove image from product"""

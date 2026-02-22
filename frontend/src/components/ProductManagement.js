@@ -592,8 +592,165 @@ export const ProductManagement = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Category Selection - First so it can auto-populate fields */}
                   <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-1 block">Product Name *</label>
+                    <label className="text-gray-400 text-sm mb-1 block">Category *</label>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                      {categoryOptions.map(cat => {
+                        const IconComponent = cat.icon;
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleCategoryChange(cat.id)}
+                            className={`p-3 rounded-xl border-2 transition flex flex-col items-center space-y-1 ${
+                              formData.category === cat.id 
+                                ? 'border-amber-500 bg-amber-500/20 text-amber-400' 
+                                : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                            }`}
+                          >
+                            <IconComponent className="w-5 h-5" />
+                            <span className="text-xs">{cat.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Wire-Specific Options */}
+                  {formData.category === "wire" && (
+                    <div className="md:col-span-2 bg-blue-900/20 border border-blue-700/50 rounded-xl p-4">
+                      <h3 className="text-blue-400 font-semibold mb-3 flex items-center">
+                        <Cable className="w-5 h-5 mr-2" />
+                        Wire Configuration
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-gray-400 text-sm mb-2 block">Wire Type</label>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleWireChange("wire_type", "AC")}
+                              className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
+                                formData.wire_type === "AC"
+                                  ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                              }`}
+                            >
+                              AC Wire
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleWireChange("wire_type", "DC")}
+                              className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
+                                formData.wire_type === "DC"
+                                  ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                              }`}
+                            >
+                              DC Wire
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-sm mb-2 block">Wire Size</label>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleWireChange("wire_size", "4sqmm")}
+                              className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
+                                formData.wire_size === "4sqmm"
+                                  ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                              }`}
+                            >
+                              4 sqmm
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleWireChange("wire_size", "6sqmm")}
+                              className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
+                                formData.wire_size === "6sqmm"
+                                  ? 'border-amber-500 bg-amber-500/20 text-amber-400'
+                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                              }`}
+                            >
+                              6 sqmm
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 bg-gray-800/50 rounded-lg p-3 flex items-center justify-between">
+                        <span className="text-gray-400">Auto-calculated Price:</span>
+                        <span className="text-amber-400 font-bold text-xl">₹{formData.price}/meter</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Service-Specific Options */}
+                  {formData.category === "service" && (
+                    <div className="md:col-span-2 bg-green-900/20 border border-green-700/50 rounded-xl p-4">
+                      <h3 className="text-green-400 font-semibold mb-3 flex items-center">
+                        <Wrench className="w-5 h-5 mr-2" />
+                        Service Configuration
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-gray-400 text-sm mb-2 block">Service Type</label>
+                          <select
+                            value={formData.service_type}
+                            onChange={(e) => {
+                              const serviceType = e.target.value;
+                              let serviceName = "Solar Installation Service";
+                              let serviceDesc = "Professional solar installation service by ASR Enterprises certified technicians.";
+                              
+                              if (serviceType === "maintenance") {
+                                serviceName = "Solar Maintenance Service";
+                                serviceDesc = "Annual maintenance and cleaning service for solar panels. Includes inspection, cleaning, and performance check.";
+                              } else if (serviceType === "repair") {
+                                serviceName = "Solar Repair Service";
+                                serviceDesc = "Repair and troubleshooting service for solar systems. Covers inverters, panels, and wiring issues.";
+                              } else if (serviceType === "consultation") {
+                                serviceName = "Solar Consultation Service";
+                                serviceDesc = "Expert consultation for solar system design and planning. Site assessment and customized recommendations.";
+                              }
+                              
+                              setFormData({
+                                ...formData, 
+                                service_type: serviceType,
+                                name: serviceName,
+                                description: serviceDesc
+                              });
+                            }}
+                            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                          >
+                            <option value="installation">Installation Service</option>
+                            <option value="maintenance">Maintenance Service</option>
+                            <option value="repair">Repair Service</option>
+                            <option value="consultation">Consultation Service</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center">
+                          <div className="bg-gray-800/50 rounded-lg p-3 w-full flex items-center justify-between">
+                            <span className="text-gray-400">Base Price:</span>
+                            <span className="text-green-400 font-bold text-xl">₹{serviceBasePrice}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-500 text-sm mt-3">
+                        * Service is available for store visit/pickup only. Home delivery not applicable.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Product Name - Auto-filled for Wire/Service */}
+                  <div className="md:col-span-2">
+                    <label className="text-gray-400 text-sm mb-1 block">
+                      Product Name * 
+                      {(formData.category === "wire" || formData.category === "service") && (
+                        <span className="text-amber-400 ml-2">(Auto-generated)</span>
+                      )}
+                    </label>
                     <input
                       type="text"
                       required
@@ -601,43 +758,41 @@ export const ProductManagement = () => {
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
                       placeholder="e.g., 5kW Solar Panel System"
+                      readOnly={formData.category === "wire"}
                     />
                   </div>
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Category</label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                    >
-                      {categoryOptions.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Brand - Hidden for Wire and Service */}
+                  {formData.category !== "wire" && formData.category !== "service" && (
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">Brand</label>
+                      <input
+                        type="text"
+                        value={formData.brand}
+                        onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder="e.g., Luminous, Tata Power"
+                      />
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Brand</label>
-                    <input
-                      type="text"
-                      value={formData.brand}
-                      onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="e.g., Luminous, Tata Power"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Price (₹) *</label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="25000"
-                    />
+                  {/* Price - Hidden for Wire (auto-calculated), Editable for Service */}
+                  {formData.category !== "wire" && (
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">
+                        Price (₹) * 
+                        {formData.category === "service" && <span className="text-green-400 ml-1">(Base: ₹1,500)</span>}
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        value={formData.price}
+                        onChange={(e) => setFormData({...formData, price: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder="25000"
+                      />
+                    </div>
+                  )}
                   </div>
 
                   <div>

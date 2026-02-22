@@ -167,13 +167,57 @@ export const ShopPage = () => {
       const res = await axios.post(`${API}/shop/orders`, orderData);
       
       if (checkoutData.payment_method === "razorpay") {
-        // Open Razorpay payment link
-        window.open(`${RAZORPAY_PAYMENT_LINK}?amount=${grandTotal}`, "_blank");
+        // Use Razorpay Checkout SDK
+        try {
+          const configRes = await axios.get(`${API}/shop/razorpay-config`);
+          const razorpayKeyId = configRes.data.key_id;
+          
+          if (!razorpayKeyId || !window.Razorpay) {
+            alert("Payment gateway is not available. Please try again.");
+            return;
+          }
+
+          const options = {
+            key: razorpayKeyId,
+            amount: Math.round(grandTotal * 100), // Razorpay expects amount in paisa
+            currency: "INR",
+            name: "ASR Enterprises",
+            description: `Order #${res.data.order_number}`,
+            handler: async function (response) {
+              // Payment successful - verify on backend
+              try {
+                await axios.post(`${API}/shop/orders/${res.data.order?.id}/payment-verify`, {
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id || "",
+                  razorpay_signature: response.razorpay_signature || ""
+                });
+              } catch (verifyErr) {
+                console.error("Payment verification error:", verifyErr);
+              }
+            },
+            prefill: {
+              name: checkoutData.customer_name,
+              contact: checkoutData.customer_phone,
+              email: checkoutData.customer_email || ""
+            },
+            theme: {
+              color: "#f59e0b"
+            },
+            notes: {
+              order_number: res.data.order_number,
+              order_id: res.data.order?.id || ""
+            }
+          };
+
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+        } catch (rzpErr) {
+          console.error("Razorpay error:", rzpErr);
+        }
       }
 
       // Send order confirmation to customer via WhatsApp
       if (res.data.customer_whatsapp_url) {
-        // Open WhatsApp with pre-filled confirmation message for customer
         window.open(res.data.customer_whatsapp_url, "_blank");
       }
 

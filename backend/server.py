@@ -3339,6 +3339,11 @@ async def get_delivery_fees():
     """Get delivery fee structure based on distance"""
     return DELIVERY_FEES
 
+@api_router.get("/shop/razorpay-config")
+async def get_razorpay_config():
+    """Get Razorpay key for frontend checkout"""
+    return {"key_id": RAZORPAY_KEY_ID}
+
 @api_router.get("/shop/categories")
 async def get_product_categories():
     """Get all product categories"""

@@ -886,58 +886,74 @@ export const ProductManagement = () => {
                     </div>
                   )}
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Sale Price (₹)</label>
-                    <input
-                      type="number"
-                      value={formData.sale_price}
-                      onChange={(e) => setFormData({...formData, sale_price: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="22000 (leave empty if no sale)"
-                    />
-                  </div>
+                  {/* Sale Price - Hidden for Service, shown for Wire with per meter label */}
+                  {formData.category !== "service" && formData.category !== "wire" && (
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">Sale Price (₹)</label>
+                      <input
+                        type="number"
+                        value={formData.sale_price}
+                        onChange={(e) => setFormData({...formData, sale_price: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder="22000 (leave empty if no sale)"
+                      />
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Stock Quantity *</label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.stock}
-                      onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="10"
-                    />
-                  </div>
+                  {/* Stock - Hidden for Service */}
+                  {formData.category !== "service" && (
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">
+                        Stock Quantity * {formData.category === "wire" && "(meters)"}
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        value={formData.stock}
+                        onChange={(e) => setFormData({...formData, stock: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder={formData.category === "wire" ? "1000" : "10"}
+                      />
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">SKU</label>
-                    <input
-                      type="text"
-                      value={formData.sku}
-                      onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="ASR-SP-5KW-001"
-                    />
-                  </div>
+                  {/* SKU - Hidden for Wire and Service */}
+                  {formData.category !== "wire" && formData.category !== "service" && (
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">SKU</label>
+                      <input
+                        type="text"
+                        value={formData.sku}
+                        onChange={(e) => setFormData({...formData, sku: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder="ASR-SP-5KW-001"
+                      />
+                    </div>
+                  )}
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Warranty</label>
-                    <input
-                      type="text"
-                      value={formData.warranty}
-                      onChange={(e) => setFormData({...formData, warranty: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
-                      placeholder="5 Years"
-                    />
-                  </div>
+                  {/* Warranty - Hidden for Wire and Service */}
+                  {formData.category !== "wire" && formData.category !== "service" && (
+                    <div>
+                      <label className="text-gray-400 text-sm mb-1 block">Warranty</label>
+                      <input
+                        type="text"
+                        value={formData.warranty}
+                        onChange={(e) => setFormData({...formData, warranty: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        placeholder="5 Years"
+                      />
+                    </div>
+                  )}
 
-                  <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-1 block">Short Description</label>
-                    <input
-                      type="text"
-                      value={formData.short_description}
-                      onChange={(e) => setFormData({...formData, short_description: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                  {/* Short Description - Hidden for Service (uses AI generated full description) */}
+                  {formData.category !== "service" && (
+                    <div className="md:col-span-2">
+                      <label className="text-gray-400 text-sm mb-1 block">Short Description</label>
+                      <input
+                        type="text"
+                        value={formData.short_description}
+                        onChange={(e) => setFormData({...formData, short_description: e.target.value})}
+                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
                       placeholder="Brief product description for listing"
                     />
                   </div>

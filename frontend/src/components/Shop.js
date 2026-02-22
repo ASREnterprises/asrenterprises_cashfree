@@ -122,6 +122,24 @@ export const ShopPage = () => {
     setCart(prev => prev.filter(item => item.product_id !== productId));
   };
 
+  // Open product detail modal
+  const openProductDetail = (product) => {
+    setSelectedProduct(product);
+    setActiveImageIndex(0);
+  };
+
+  // Close product detail modal
+  const closeProductDetail = () => {
+    setSelectedProduct(null);
+    setActiveImageIndex(0);
+  };
+
+  // Get category name from ID
+  const getCategoryName = (categoryId) => {
+    const cat = categories.find(c => c.id === categoryId);
+    return cat ? cat.name : categoryId;
+  };
+
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const deliveryCharge = checkoutData.delivery_type === "delivery" ? DELIVERY_FEES[checkoutData.delivery_distance] : 0;
   const grandTotal = cartTotal + deliveryCharge;

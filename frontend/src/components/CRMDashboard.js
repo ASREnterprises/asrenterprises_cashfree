@@ -582,7 +582,6 @@ export const CRMDashboard = () => {
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
-              { id: "shop", label: "Shop", icon: <ShoppingBag className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> },
               { id: "gallery", label: "Gallery", icon: <Camera className="w-4 h-4" /> },

@@ -27,7 +27,10 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
   - Customer details (name, phone, email)
   - Delivery options: Store Pickup (FREE) or Home Delivery (₹100, Patna district only)
   - Payment methods: Cash on Delivery/Store, Razorpay online payment
-- **WhatsApp notifications:** Auto-generated WhatsApp message URL for admin (8877896889) on every order
+- **WhatsApp notifications:** 
+  - Admin notification: Auto-generated WhatsApp message URL for admin (8877896889) on every order
+  - **Customer confirmation:** Order confirmation sent to customer's phone via WhatsApp after checkout
+  - Payment confirmation sent to customer after successful Razorpay payment
 - **CRM notifications:** Order alerts posted to CRM messages
 - **CRM Shop Tab:** Full product and order management
   - Products tab: Add, edit, delete products with images

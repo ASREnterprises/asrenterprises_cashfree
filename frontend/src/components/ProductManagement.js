@@ -62,9 +62,10 @@ export const ProductManagement = () => {
 
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Wire price reference (per meter)
+  // Wire price reference (per meter) - just for suggestions
   const wirePrices = {
     "AC_4sqmm": 35,
     "AC_6sqmm": 55,

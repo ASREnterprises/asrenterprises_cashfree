@@ -3311,14 +3311,11 @@ async def generate_service_description(data: Dict[str, Any]):
             - Quality assurance
             Keep descriptions concise (3-4 sentences), professional, and persuasive.
             Do not use markdown formatting. Write in plain text."""
-        )
+        ).with_model("openai", "gpt-4o-mini")
         
         prompt = f"Write a professional service description for '{service_name}' (type: {service_type}, price: ₹{price}). Focus on solar energy services in Patna, Bihar."
         
-        response = await chat.send_message(
-            model="gpt-4o-mini",
-            messages=[UserMessage(text=prompt)]
-        )
+        response = await chat.send_message(UserMessage(text=prompt))
         
         return {"description": response, "generated": True}
         

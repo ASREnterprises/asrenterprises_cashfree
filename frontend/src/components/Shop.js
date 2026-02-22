@@ -142,10 +142,10 @@ export const ShopPage = () => {
         window.open(`${RAZORPAY_PAYMENT_LINK}?amount=${grandTotal}`, "_blank");
       }
 
-      // Open WhatsApp notification for admin (auto-notify about new order)
-      if (res.data.whatsapp_notification_url) {
-        // Auto-open WhatsApp notification in new tab for admin to see
-        window.open(res.data.whatsapp_notification_url, "_blank");
+      // Send order confirmation to customer via WhatsApp
+      if (res.data.customer_whatsapp_url) {
+        // Open WhatsApp with pre-filled confirmation message for customer
+        window.open(res.data.customer_whatsapp_url, "_blank");
       }
 
       setOrderSuccess(res.data);

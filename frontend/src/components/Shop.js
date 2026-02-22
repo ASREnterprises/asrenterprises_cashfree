@@ -121,7 +121,7 @@ export const ShopPage = () => {
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const deliveryCharge = checkoutData.delivery_type === "delivery" ? 100 : 0;
+  const deliveryCharge = checkoutData.delivery_type === "delivery" ? DELIVERY_FEES[checkoutData.delivery_distance] : 0;
   const grandTotal = cartTotal + deliveryCharge;
 
   const handleCheckout = async () => {

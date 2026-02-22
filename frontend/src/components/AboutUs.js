@@ -72,8 +72,12 @@ export const AboutUsPage = () => {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full mb-6 shadow-2xl">
-              <Sun className="w-10 h-10 text-white" />
+            <div className="inline-flex items-center justify-center mb-6">
+              <img 
+                src="/asr_logo_dark.png" 
+                alt="ASR Enterprises" 
+                className="h-24 w-auto"
+              />
             </div>
             <h1 className="text-5xl md:text-6xl font-black text-white mb-4">
               About <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">ASR Enterprises</span>

@@ -21,28 +21,32 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 ### E-commerce Shop System (February 2026) ✅ NEW
 - **Shop page** at `/shop` with product catalog, category filtering, search
-- **Product categories:** Solar Panels, Inverters, Batteries, Accessories, Services
+- **Product categories:** Solar Panels, Inverters, Batteries, **Solar Wire (AC/DC, 4sqmm/6sqmm)**, Accessories, Services (₹1,500 base)
 - **Shopping cart** with localStorage persistence, quantity controls
 - **Checkout flow:**
   - Customer details (name, phone, email)
-  - Delivery options: Store Pickup (FREE) or Home Delivery (₹100, Patna district only)
+  - Delivery options: Store Pickup (FREE) or Home Delivery (**distance-based fee**: ₹50-₹300)
   - Payment methods: Cash on Delivery/Store, Razorpay online payment
+  - **No Return Policy notice:** "Goods once sold cannot be taken back"
 - **WhatsApp notifications:** 
   - Admin notification: Auto-generated WhatsApp message URL for admin (8877896889) on every order
   - **Customer confirmation:** Order confirmation sent to customer's phone via WhatsApp after checkout
   - Payment confirmation sent to customer after successful Razorpay payment
 - **CRM notifications:** Order alerts posted to CRM messages
-- **CRM Shop Tab:** Full product and order management
-  - Products tab: Add, edit, delete products with images
-  - Orders tab: View all orders, update status (pending → confirmed → processing → shipped → delivered)
+- **Shop Management moved to Admin Dashboard:** Full product and order management at `/admin/shop`
+  - Products tab: Add, edit, delete products with **mobile image upload**
+  - Orders tab: View all orders, update status
   - Shop stats dashboard
+- **Auto Payment Recording:** Razorpay payments auto-create records in CRM Payments; COD payments manual
 - **APIs:**
   - `GET/POST/PUT/DELETE /api/shop/products` - Full CRUD
+  - `POST /api/shop/products/{id}/upload-image` - Mobile image upload
   - `GET/POST /api/shop/orders` - Order management
   - `PUT /api/shop/orders/{id}/status` - Update order status
-  - `POST /api/shop/orders/{id}/payment-verify` - Razorpay payment confirmation
+  - `POST /api/shop/orders/{id}/payment-verify` - Razorpay payment confirmation + auto payment record
   - `GET /api/shop/stats` - Shop analytics
-  - `GET /api/shop/categories` - Category list
+  - `GET /api/shop/categories` - Category list with Wire
+  - `GET /api/shop/delivery-fees` - Distance-based delivery fee structure
 
 ### Core Features (Previously Implemented)
 - Full dark navy-blue theme across ALL pages

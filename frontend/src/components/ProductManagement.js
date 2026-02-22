@@ -160,6 +160,42 @@ export const ProductManagement = () => {
     }
   };
 
+  // Generate AI description for service
+  const generateServiceDescription = async () => {
+    if (!formData.name) {
+      alert("Please enter a service name first");
+      return;
+    }
+
+    setGeneratingDescription(true);
+    try {
+      const res = await axios.post(`${API}/generate-service-description`, {
+        service_name: formData.name,
+        service_type: formData.service_type,
+        price: formData.price || serviceBasePrice
+      });
+      
+      if (res.data.description) {
+        setFormData({ ...formData, description: res.data.description });
+      }
+    } catch (err) {
+      console.error("Error generating description:", err);
+      // Fallback to template-based description
+      const templates = {
+        installation: `Professional ${formData.name} by ASR Enterprises. Our certified technicians provide expert solar installation services including site assessment, mounting, electrical wiring, inverter setup, and system commissioning. We ensure optimal panel placement for maximum energy generation. Service includes safety checks and post-installation support.`,
+        maintenance: `Comprehensive ${formData.name} from ASR Enterprises. Keep your solar system running at peak efficiency with our annual maintenance package. Includes thorough panel cleaning, connection inspection, performance analysis, and detailed system health report. Preventive care to maximize your investment.`,
+        repair: `Expert ${formData.name} by ASR Enterprises. Quick diagnosis and repair of all solar system issues - inverter faults, panel damage, wiring problems, and more. Our experienced technicians carry genuine spare parts for on-site repairs. Fast turnaround to minimize your downtime.`,
+        consultation: `Expert ${formData.name} from ASR Enterprises. Get personalized guidance for your solar journey. Our consultants assess your energy needs, roof suitability, and budget to recommend the ideal solar solution. Includes detailed cost-benefit analysis and subsidy guidance under PM Surya Ghar Yojana.`
+      };
+      setFormData({ 
+        ...formData, 
+        description: templates[formData.service_type] || templates.installation 
+      });
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
   // Handle image upload from mobile/desktop storage
   const handleImageUpload = async (e, productId = null) => {
     const file = e.target.files[0];

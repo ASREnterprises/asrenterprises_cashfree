@@ -3268,6 +3268,214 @@ async def upload_gallery_photo_file(
         logger.error(f"Photo upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==================== SHOP/E-COMMERCE API ENDPOINTS ====================
+
+# Product Categories
+PRODUCT_CATEGORIES = [
+    {"id": "solar_panel", "name": "Solar Panels", "icon": "sun"},
+    {"id": "inverter", "name": "Inverters", "icon": "zap"},
+    {"id": "battery", "name": "Batteries", "icon": "battery"},
+    {"id": "accessory", "name": "Accessories", "icon": "settings"},
+    {"id": "service", "name": "Services", "icon": "wrench"}
+]
+
+@api_router.get("/shop/categories")
+async def get_product_categories():
+    """Get all product categories"""
+    return PRODUCT_CATEGORIES
+
+@api_router.get("/shop/products")
+async def get_products(category: str = None, featured: bool = None, active_only: bool = True):
+    """Get all products for the shop"""
+    query = {}
+    if active_only:
+        query["is_active"] = True
+    if category:
+        query["category"] = category
+    if featured is not None:
+        query["is_featured"] = featured
+    
+    products = await db.products.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return products
+
+@api_router.get("/shop/products/{product_id}")
+async def get_product(product_id: str):
+    """Get single product details"""
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+@api_router.post("/shop/products")
+async def create_product(product: Product):
+    """Create a new product (CRM)"""
+    doc = product.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    await db.products.insert_one(doc)
+    return {"status": "success", "product": product}
+
+@api_router.put("/shop/products/{product_id}")
+async def update_product(product_id: str, data: Dict[str, Any]):
+    """Update product details (CRM)"""
+    data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    await db.products.update_one({"id": product_id}, {"$set": data})
+    return {"status": "success", "message": "Product updated"}
+
+@api_router.delete("/shop/products/{product_id}")
+async def delete_product(product_id: str):
+    """Delete a product (CRM)"""
+    await db.products.delete_one({"id": product_id})
+    return {"status": "success", "message": "Product deleted"}
+
+@api_router.post("/shop/products/{product_id}/images")
+async def add_product_image(product_id: str, image_url: str = Form(...)):
+    """Add image to product"""
+    await db.products.update_one(
+        {"id": product_id}, 
+        {"$push": {"images": image_url}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"status": "success", "message": "Image added"}
+
+@api_router.delete("/shop/products/{product_id}/images")
+async def remove_product_image(product_id: str, image_url: str):
+    """Remove image from product"""
+    await db.products.update_one(
+        {"id": product_id}, 
+        {"$pull": {"images": image_url}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"status": "success", "message": "Image removed"}
+
+# Order Management
+@api_router.post("/shop/orders")
+async def create_order(order_data: Dict[str, Any]):
+    """Create a new order"""
+    order = Order(
+        customer_name=sanitize_input(order_data.get("customer_name", "")),
+        customer_phone=sanitize_input(order_data.get("customer_phone", "")),
+        customer_email=sanitize_input(order_data.get("customer_email", "")),
+        items=order_data.get("items", []),
+        subtotal=float(order_data.get("subtotal", 0)),
+        delivery_charge=float(order_data.get("delivery_charge", 0)),
+        total=float(order_data.get("total", 0)),
+        delivery_type=order_data.get("delivery_type", "pickup"),
+        delivery_address=sanitize_input(order_data.get("delivery_address", "")),
+        delivery_district=order_data.get("delivery_district", "Patna"),
+        payment_method=order_data.get("payment_method", "cod"),
+        notes=sanitize_input(order_data.get("notes", ""))
+    )
+    
+    doc = order.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    
+    # If Razorpay payment, create Razorpay order
+    if order.payment_method == "razorpay":
+        # Razorpay order will be created on frontend
+        pass
+    
+    await db.orders.insert_one(doc)
+    
+    # Update product stock
+    for item in order.items:
+        await db.products.update_one(
+            {"id": item.get("product_id")},
+            {"$inc": {"stock": -item.get("quantity", 0)}}
+        )
+    
+    return {
+        "status": "success", 
+        "order": order,
+        "order_number": order.order_number
+    }
+
+@api_router.get("/shop/orders")
+async def get_orders(status: str = None):
+    """Get all orders (CRM)"""
+    query = {}
+    if status:
+        query["order_status"] = status
+    
+    orders = await db.orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return orders
+
+@api_router.get("/shop/orders/{order_id}")
+async def get_order(order_id: str):
+    """Get single order details"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+@api_router.put("/shop/orders/{order_id}/status")
+async def update_order_status(order_id: str, data: Dict[str, Any]):
+    """Update order status (CRM)"""
+    update_data = {
+        "order_status": data.get("order_status"),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if data.get("payment_status"):
+        update_data["payment_status"] = data.get("payment_status")
+    
+    await db.orders.update_one({"id": order_id}, {"$set": update_data})
+    return {"status": "success", "message": "Order status updated"}
+
+@api_router.post("/shop/orders/{order_id}/payment-verify")
+async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
+    """Verify Razorpay payment"""
+    razorpay_payment_id = data.get("razorpay_payment_id")
+    razorpay_order_id = data.get("razorpay_order_id")
+    razorpay_signature = data.get("razorpay_signature")
+    
+    # In production, verify signature with Razorpay
+    # For now, just update the order
+    await db.orders.update_one(
+        {"id": order_id},
+        {"$set": {
+            "payment_status": "paid",
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_order_id": razorpay_order_id,
+            "order_status": "confirmed",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"status": "success", "message": "Payment verified"}
+
+@api_router.get("/shop/orders/track/{order_number}")
+async def track_order(order_number: str):
+    """Track order by order number (public)"""
+    order = await db.orders.find_one(
+        {"order_number": order_number}, 
+        {"_id": 0, "customer_name": 1, "order_number": 1, "order_status": 1, 
+         "payment_status": 1, "delivery_type": 1, "total": 1, "created_at": 1, "items": 1}
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+@api_router.get("/shop/stats")
+async def get_shop_stats():
+    """Get shop statistics for CRM dashboard"""
+    results = await asyncio.gather(
+        db.products.count_documents({"is_active": True}),
+        db.orders.count_documents({}),
+        db.orders.count_documents({"order_status": "pending"}),
+        db.orders.count_documents({"payment_status": "paid"}),
+        db.orders.aggregate([
+            {"$match": {"payment_status": "paid"}},
+            {"$group": {"_id": None, "total": {"$sum": "$total"}}}
+        ]).to_list(1)
+    )
+    
+    return {
+        "total_products": results[0],
+        "total_orders": results[1],
+        "pending_orders": results[2],
+        "paid_orders": results[3],
+        "total_revenue": results[4][0]["total"] if results[4] else 0
+    }
+
 # ==================== BULK LEAD IMPORT ====================
 
 @api_router.post("/crm/leads/bulk-import")

@@ -214,6 +214,9 @@ api_router = APIRouter(prefix="/api")
 # LLM Configuration
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
+# Razorpay Configuration
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
+
 # OTP Storage with expiry (In production, use Redis)
 otp_storage = {}
 OTP_EXPIRY_SECONDS = 300  # 5 minutes

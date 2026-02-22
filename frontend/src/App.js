@@ -603,6 +603,7 @@ const HomePage = () => {
             <div className="hidden md:flex space-x-6 items-center">
               <Link to="/" className="text-slate-300 hover:text-amber-400 transition font-medium">Home</Link>
               <Link to="/about" className="text-slate-300 hover:text-amber-400 transition font-medium">About Us</Link>
+              <Link to="/shop" className="text-slate-300 hover:text-amber-400 transition font-medium">Shop</Link>
               <Link to="/gallery" className="text-slate-300 hover:text-amber-400 transition font-medium">Gallery</Link>
               <Link to="/calculator" className="text-slate-300 hover:text-amber-400 transition font-medium">Calculator</Link>
               <Link to="/govt-schemes" className="text-slate-300 hover:text-amber-400 transition font-medium">Govt Schemes</Link>

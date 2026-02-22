@@ -836,12 +836,12 @@ export const ProductManagement = () => {
                     </div>
                   )}
 
-                  {/* Product Name - Auto-filled for Wire/Service */}
+                  {/* Product Name - Editable for all categories */}
                   <div className="md:col-span-2">
                     <label className="text-gray-400 text-sm mb-1 block">
                       Product Name * 
                       {(formData.category === "wire" || formData.category === "service") && (
-                        <span className="text-amber-400 ml-2">(Auto-generated)</span>
+                        <span className="text-amber-400 ml-2">(Auto-filled, editable)</span>
                       )}
                     </label>
                     <input
@@ -851,7 +851,6 @@ export const ProductManagement = () => {
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
                       placeholder="e.g., 5kW Solar Panel System"
-                      readOnly={formData.category === "wire"}
                     />
                   </div>
 

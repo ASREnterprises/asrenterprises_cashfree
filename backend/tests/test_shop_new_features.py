@@ -197,7 +197,8 @@ class TestPaymentVerification:
         assert order_res.status_code == 200
         
         order_data_result = order_res.json()
-        order_id = order_data_result.get("order_id")
+        # order_id is inside the 'order' object
+        order_id = order_data_result.get("order", {}).get("id")
         order_number = order_data_result.get("order_number")
         
         # Simulate Razorpay payment verification

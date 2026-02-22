@@ -726,6 +726,202 @@ export const ShopPage = () => {
           </div>
         </div>
       )}
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="product-detail-modal">
+          <div className="absolute inset-0 bg-black/70" onClick={closeProductDetail} />
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            {/* Close Button */}
+            <button 
+              onClick={closeProductDetail}
+              className="absolute top-4 right-4 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-full p-2 transition"
+              data-testid="close-product-detail"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            <div className="grid md:grid-cols-2 gap-0">
+              {/* Image Gallery */}
+              <div className="bg-gray-900 p-6">
+                {/* Main Image */}
+                <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden mb-4 relative">
+                  {selectedProduct.images?.length > 0 ? (
+                    <>
+                      <img 
+                        src={selectedProduct.images[activeImageIndex]} 
+                        alt={selectedProduct.name}
+                        className="w-full h-full object-contain"
+                        data-testid="product-main-image"
+                      />
+                      {/* Navigation Arrows */}
+                      {selectedProduct.images.length > 1 && (
+                        <>
+                          <button 
+                            onClick={() => setActiveImageIndex(prev => prev === 0 ? selectedProduct.images.length - 1 : prev - 1)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={() => setActiveImageIndex(prev => prev === selectedProduct.images.length - 1 ? 0 : prev + 1)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Sun className="w-32 h-32 text-gray-700" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Image Thumbnails */}
+                {selectedProduct.images?.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {selectedProduct.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${
+                          activeImageIndex === idx ? 'border-amber-500' : 'border-transparent hover:border-gray-600'
+                        }`}
+                        data-testid={`product-thumbnail-${idx}`}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Image Count */}
+                {selectedProduct.images?.length > 0 && (
+                  <p className="text-center text-gray-500 text-sm mt-2">
+                    Image {activeImageIndex + 1} of {selectedProduct.images.length}
+                  </p>
+                )}
+              </div>
+
+              {/* Product Details */}
+              <div className="p-6">
+                {/* Category Badge */}
+                <div className="flex items-center space-x-2 mb-3">
+                  <span className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                    {categoryIcons[selectedProduct.category]}
+                    <span>{getCategoryName(selectedProduct.category)}</span>
+                  </span>
+                  {selectedProduct.is_featured && (
+                    <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                      <Star className="w-4 h-4" />
+                      <span>Featured</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Product Name */}
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2" data-testid="product-detail-name">
+                  {selectedProduct.name}
+                </h2>
+
+                {/* Brand */}
+                {selectedProduct.brand && (
+                  <p className="text-gray-400 text-sm mb-4">Brand: {selectedProduct.brand}</p>
+                )}
+
+                {/* Price */}
+                <div className="mb-6">
+                  {selectedProduct.sale_price ? (
+                    <div className="flex items-center space-x-3">
+                      <span className="text-3xl font-bold text-amber-400">₹{selectedProduct.sale_price.toLocaleString()}</span>
+                      <span className="text-xl text-gray-500 line-through">₹{selectedProduct.price.toLocaleString()}</span>
+                      <span className="bg-red-500 text-white px-2 py-1 rounded text-sm">
+                        {Math.round((1 - selectedProduct.sale_price / selectedProduct.price) * 100)}% OFF
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-3xl font-bold text-amber-400">₹{selectedProduct.price.toLocaleString()}</span>
+                  )}
+                  {selectedProduct.category === 'wire' && (
+                    <p className="text-gray-400 text-sm mt-1">Price per meter</p>
+                  )}
+                </div>
+
+                {/* Stock Status */}
+                <div className="flex items-center space-x-4 mb-6">
+                  {selectedProduct.stock > 0 ? (
+                    <span className="flex items-center text-green-400">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      In Stock ({selectedProduct.stock} available)
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-red-400">
+                      <AlertCircle className="w-5 h-5 mr-2" />
+                      Out of Stock
+                    </span>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-white mb-2">Description</h3>
+                  <p className="text-gray-300 leading-relaxed" data-testid="product-detail-description">
+                    {selectedProduct.description || "No description available."}
+                  </p>
+                </div>
+
+                {/* Specifications */}
+                {selectedProduct.specifications && Object.keys(selectedProduct.specifications).length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-white mb-2">Specifications</h3>
+                    <div className="bg-gray-800/50 rounded-xl p-4 space-y-2">
+                      {Object.entries(selectedProduct.specifications).map(([key, value]) => (
+                        <div key={key} className="flex justify-between text-sm">
+                          <span className="text-gray-400">{key}</span>
+                          <span className="text-white">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Warranty */}
+                {selectedProduct.warranty && (
+                  <div className="flex items-center space-x-2 text-gray-300 mb-6">
+                    <Shield className="w-5 h-5 text-green-400" />
+                    <span>Warranty: {selectedProduct.warranty}</span>
+                  </div>
+                )}
+
+                {/* Delivery Info */}
+                <div className="bg-gray-800/50 rounded-xl p-4 mb-6 space-y-2">
+                  <div className="flex items-center space-x-2 text-gray-300">
+                    <Truck className="w-5 h-5 text-blue-400" />
+                    <span>{selectedProduct.delivery_available !== false ? 'Home Delivery Available (Patna District)' : 'Delivery Not Available'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-gray-300">
+                    <Store className="w-5 h-5 text-amber-400" />
+                    <span>{selectedProduct.pickup_available !== false ? 'Store Pickup Available' : 'Pickup Not Available'}</span>
+                  </div>
+                </div>
+
+                {/* Add to Cart Button */}
+                <button
+                  onClick={() => { addToCart(selectedProduct); closeProductDetail(); }}
+                  disabled={selectedProduct.stock === 0}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center space-x-2 transition"
+                  data-testid="add-to-cart-detail"
+                >
+                  <ShoppingCart className="w-6 h-6" />
+                  <span>{selectedProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3300,12 +3300,10 @@ async def generate_service_description(data: Dict[str, Any]):
     price = data.get("price", 1500)
     
     try:
-        from emergentintegrations.llm.chat import LlmChat as ServiceLlmChat
-        
-        llm = ServiceLlmChat(
+        chat = LlmChat(
             api_key=EMERGENT_LLM_KEY,
-            model="gpt-4o-mini",
-            system_prompt="""You are a professional copywriter for ASR Enterprises, a solar energy company in Bihar, India. 
+            session_id=str(uuid.uuid4()),
+            system_message="""You are a professional copywriter for ASR Enterprises, a solar energy company in Bihar, India. 
             Write compelling, professional service descriptions that highlight:
             - The expertise of ASR Enterprises certified technicians
             - Benefits to the customer
@@ -3317,15 +3315,15 @@ async def generate_service_description(data: Dict[str, Any]):
         
         prompt = f"Write a professional service description for '{service_name}' (type: {service_type}, price: ₹{price}). Focus on solar energy services in Patna, Bihar."
         
-        response = await asyncio.get_event_loop().run_in_executor(
-            None, llm.chat, prompt
+        response = await chat.send_message(
+            model="gpt-4o-mini",
+            messages=[UserMessage(text=prompt)]
         )
         
         return {"description": response, "generated": True}
         
     except Exception as e:
         logger.error(f"AI service description generation failed: {e}")
-        # Return template-based fallback
         templates = {
             "installation": f"Professional {service_name} by ASR Enterprises. Our certified technicians provide expert solar installation services including site assessment, mounting, electrical wiring, inverter setup, and system commissioning. We ensure optimal panel placement for maximum energy generation. Service includes safety checks and post-installation support.",
             "maintenance": f"Comprehensive {service_name} from ASR Enterprises. Keep your solar system running at peak efficiency with our annual maintenance package. Includes thorough panel cleaning, connection inspection, performance analysis, and detailed system health report.",

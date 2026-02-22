@@ -1,7 +1,7 @@
 # ASR Enterprises - Solar Business Website PRD
 
 ## Original Problem Statement
-Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, and AI-powered features.
+Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and e-commerce system.
 
 ## Core Architecture
 - **Frontend:** React + Tailwind CSS + Lucide React icons
@@ -18,6 +18,30 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - Used across ALL pages: header, footer, calculator, admin login, staff login, CRM, staff portal, contact, gallery
 
 ## What's Been Implemented
+
+### E-commerce Shop System (February 2026) ✅ NEW
+- **Shop page** at `/shop` with product catalog, category filtering, search
+- **Product categories:** Solar Panels, Inverters, Batteries, Accessories, Services
+- **Shopping cart** with localStorage persistence, quantity controls
+- **Checkout flow:**
+  - Customer details (name, phone, email)
+  - Delivery options: Store Pickup (FREE) or Home Delivery (₹100, Patna district only)
+  - Payment methods: Cash on Delivery/Store, Razorpay online payment
+- **WhatsApp notifications:** Auto-generated WhatsApp message URL for admin (8877896889) on every order
+- **CRM notifications:** Order alerts posted to CRM messages
+- **CRM Shop Tab:** Full product and order management
+  - Products tab: Add, edit, delete products with images
+  - Orders tab: View all orders, update status (pending → confirmed → processing → shipped → delivered)
+  - Shop stats dashboard
+- **APIs:**
+  - `GET/POST/PUT/DELETE /api/shop/products` - Full CRUD
+  - `GET/POST /api/shop/orders` - Order management
+  - `PUT /api/shop/orders/{id}/status` - Update order status
+  - `POST /api/shop/orders/{id}/payment-verify` - Razorpay payment confirmation
+  - `GET /api/shop/stats` - Shop analytics
+  - `GET /api/shop/categories` - Category list
+
+### Core Features (Previously Implemented)
 - Full dark navy-blue theme across ALL pages
 - Premium header with large "ASR ENTERPRISES" and green subtitle
 - Honeypot spam protection on inquiry form (reCAPTCHA disabled for preview domain)
@@ -35,25 +59,22 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - Falls back to templates if AI unavailable
 
 ### Performance Optimizations (December 2025)
-- **React.lazy() code splitting** - 23 components lazy-loaded on demand
+- **React.lazy() code splitting** - 24 components lazy-loaded on demand (including ShopPage)
 - **Suspense wrapper** with PageLoader fallback for smooth UX
-- **asyncio.gather** parallel DB queries in 3 major endpoints:
-  - `/api/crm/dashboard` - ~130ms response (was sequential)
-  - `/api/dashboard/stats` - ~132ms response (was sequential)
-  - `/api/admin/analytics` - ~178ms response (was sequential)
-- **Memoization** added to TestimonialsTab component in CRMDashboard
-
-### Recent Fixes (December 2025)
-- Fixed Contact & Gallery page logos (white background → transparent)
-- Removed Social Media Hub from Admin Dashboard
-- Fixed Google Review button (broken g.co link → working Google search URL)
-- Fixed AI testimonial generation (correct LlmChat API usage)
+- **asyncio.gather** parallel DB queries in 3 major endpoints
 
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993
 - Staff: ASR1001 / password: asr@123 / OTP: 131993
 
+## Sample Products (Pre-seeded)
+1. Loom Solar 400W Mono Panel - ₹15,500
+2. Luminous 3kVA Solar Inverter - ₹42,000
+3. Exide 150Ah Solar Battery - ₹18,500
+4. MC4 Connector Set - ₹450
+
 ## Pending/Upcoming Tasks
+- P1: Add product images to shop items (currently showing placeholders)
 - P1: Configure Meta webhooks (WhatsApp/Facebook) - needs user credentials
 - P1: Add valid reCAPTCHA keys for production domain (currently disabled for preview)
 - P2: Persist staff notifications in MongoDB

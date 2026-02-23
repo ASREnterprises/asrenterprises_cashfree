@@ -1162,141 +1162,141 @@ const HomePage = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-16">
-            <div className="bg-gray-800/70 rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-blue-500/30">
+            <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition border-2 border-blue-200">
               <div className="flex items-center mb-6">
                 <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
                   <Users className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-3xl font-bold text-white">Residential Solutions</h3>
+                <h3 className="text-3xl font-bold text-[#0a355e]">Residential Solutions</h3>
               </div>
-              <p className="text-gray-400 mb-4">Perfect solar rooftop systems for homes and apartments</p>
-              <ul className="text-sm text-gray-300 space-y-3 mb-6">
+              <p className="text-gray-600 mb-4">Perfect solar rooftop systems for homes and apartments</p>
+              <ul className="text-sm text-gray-700 space-y-3 mb-6">
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>1-10 kW Systems:</strong> Ideal for houses, villas, and bungalows</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>On-Grid & Off-Grid:</strong> Choose based on your requirements</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>PM Surya Ghar Subsidy:</strong> Up to 40% subsidy available</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Easy EMI:</strong> Starting ₹3,000/month from banks</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Net Metering:</strong> Sell excess power back to grid</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Quick Installation:</strong> 3-5 days complete setup</span>
                 </li>
               </ul>
-              <div className="bg-blue-500/10 p-4 rounded-lg">
-                <p className="text-sm font-semibold text-blue-900">💡 Save 85-90% on electricity bills!</p>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-sm font-semibold text-blue-700">💡 Save 85-90% on electricity bills!</p>
               </div>
             </div>
 
-            <div className="bg-gray-800/70 rounded-2xl p-8 shadow-2xl hover:shadow-3xl transition border-2 border-green-500/30">
+            <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition border-2 border-green-200">
               <div className="flex items-center mb-6">
                 <div className="bg-gradient-to-r from-green-500 to-green-600 w-16 h-16 rounded-full flex items-center justify-center mr-4">
                   <BarChart3 className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-3xl font-bold text-white">Commercial Solutions</h3>
+                <h3 className="text-3xl font-bold text-[#0a355e]">Commercial Solutions</h3>
               </div>
-              <p className="text-gray-400 mb-4">High-capacity solar systems for businesses and industries</p>
-              <ul className="text-sm text-gray-300 space-y-3 mb-6">
+              <p className="text-gray-600 mb-4">High-capacity solar systems for businesses and industries</p>
+              <ul className="text-sm text-gray-700 space-y-3 mb-6">
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>10-100+ kW Systems:</strong> For factories, offices, hospitals, schools</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Industrial Scale:</strong> Custom solutions for large power requirements</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Tax Benefits:</strong> 80% accelerated depreciation available</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Bank Financing:</strong> Loans available up to ₹1 Crore at 7-9% interest</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>ROI:</strong> 3-4 years payback period with savings</span>
                 </li>
                 <li className="flex items-start">
-                  <CheckCircle className="w-5 h-5 text-green-400 mr-2 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
                   <span><strong>Maintenance:</strong> AMC contracts with 24/7 support</span>
                 </li>
               </ul>
-              <div className="bg-green-500/10 p-4 rounded-lg">
-                <p className="text-sm font-semibold text-green-400">📈 Reduce operational costs by 70%!</p>
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <p className="text-sm font-semibold text-green-700">📈 Reduce operational costs by 70%!</p>
               </div>
             </div>
           </div>
 
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-white mb-4">Why Choose ASR Enterprises?</h2>
-            <p className="text-xl text-gray-400">Your trusted partner for solar energy in Bihar</p>
+            <h2 className="text-4xl font-bold text-[#0a355e] mb-4">Why Choose ASR Enterprises?</h2>
+            <p className="text-xl text-gray-600">Your trusted partner for solar energy in Bihar</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition text-center border border-sky-200">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Award className="w-8 h-8 text-blue-400" />
+                <Award className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">MNRE Registered</h3>
-              <p className="text-gray-400">Official MNRE Bihar vendor ensuring quality and compliance</p>
+              <h3 className="text-xl font-bold text-[#0a355e] mb-3">MNRE Registered</h3>
+              <p className="text-gray-600">Official MNRE Bihar vendor ensuring quality and compliance</p>
             </div>
 
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition text-center border border-sky-200">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-green-400" />
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">End-to-End Support</h3>
-              <p className="text-gray-400">From site survey to after-sales service - we handle everything</p>
+              <h3 className="text-xl font-bold text-[#0a355e] mb-3">End-to-End Support</h3>
+              <p className="text-gray-600">From site survey to after-sales service - we handle everything</p>
             </div>
 
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
-              <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-yellow-600" />
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition text-center border border-sky-200">
+              <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-amber-600" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Subsidy Guidance</h3>
-              <p className="text-gray-400">Complete documentation and approval support for PM Surya Ghar</p>
+              <h3 className="text-xl font-bold text-[#0a355e] mb-3">Subsidy Guidance</h3>
+              <p className="text-gray-600">Complete documentation and approval support for PM Surya Ghar</p>
             </div>
 
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-lg hover:shadow-2xl transition text-center border border-gray-700/50">
+            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition text-center border border-sky-200">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-purple-400" />
+                <Zap className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">Trusted Brands</h3>
-              <p className="text-gray-400">High-quality panels with 25-year performance warranty</p>
+              <h3 className="text-xl font-bold text-[#0a355e] mb-3">Trusted Brands</h3>
+              <p className="text-gray-600">High-quality panels with 25-year performance warranty</p>
             </div>
           </div>
 
-          <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 md:p-12 border border-gray-700/50">
-            <h3 className="text-3xl font-bold text-white text-center mb-8">Our Installation Process</h3>
+          <div className="bg-gradient-to-r from-sky-100 to-blue-100 rounded-2xl shadow-xl p-8 md:p-12 border border-sky-200">
+            <h3 className="text-3xl font-bold text-[#0a355e] text-center mb-8">Our Installation Process</h3>
             <div className="grid md:grid-cols-5 gap-6">
               <div className="text-center">
                 <div className="bg-blue-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">1</div>
-                <h4 className="font-bold text-white mb-2">Free Site Survey</h4>
-                <p className="text-sm text-gray-400">Expert assessment of your property</p>
+                <h4 className="font-bold text-[#0a355e] mb-2">Free Site Survey</h4>
+                <p className="text-sm text-gray-600">Expert assessment of your property</p>
               </div>
               <div className="text-center">
                 <div className="bg-green-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">2</div>
-                <h4 className="font-bold text-white mb-2">System Design</h4>
-                <p className="text-sm text-gray-400">Customized solar solution proposal</p>
+                <h4 className="font-bold text-[#0a355e] mb-2">System Design</h4>
+                <p className="text-sm text-gray-600">Customized solar solution proposal</p>
               </div>
               <div className="text-center">
-                <div className="bg-yellow-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">3</div>
-                <h4 className="font-bold text-white mb-2">Subsidy Approval</h4>
-                <p className="text-sm text-gray-400">Complete documentation support</p>
+                <div className="bg-amber-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">3</div>
+                <h4 className="font-bold text-[#0a355e] mb-2">Subsidy Approval</h4>
+                <p className="text-sm text-gray-600">Complete documentation support</p>
               </div>
               <div className="text-center">
                 <div className="bg-purple-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">4</div>

@@ -609,6 +609,8 @@ class Product(BaseModel):
     warranty: str = ""
     delivery_available: bool = True
     pickup_available: bool = True
+    delivery_districts: List[str] = []  # List of Bihar districts this product delivers to (empty = all)
+    delivery_fees: Dict[str, float] = {}  # District-wise delivery fees
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

@@ -3442,10 +3442,21 @@ async def sync_razorpay_payments(data: Dict[str, Any] = {}):
                 amount = payment.get("amount", 0) / 100  # Convert paise to rupees
                 
                 # Extract customer details from Razorpay payment
-                customer_name = payment.get("notes", {}).get("customer_name", "") or payment.get("email", "").split("@")[0] if payment.get("email") else "Razorpay Customer"
-                customer_phone = payment.get("contact", "")
-                customer_email = payment.get("email", "")
-                description = payment.get("description", "")
+                # Notes can be a dict or list, handle both cases
+                notes = payment.get("notes", {})
+                if isinstance(notes, list):
+                    notes = {}
+                
+                # Get customer name from notes or email
+                customer_name = notes.get("customer_name", "") if isinstance(notes, dict) else ""
+                if not customer_name and payment.get("email"):
+                    customer_name = payment.get("email", "").split("@")[0]
+                if not customer_name:
+                    customer_name = "Razorpay Customer"
+                
+                customer_phone = payment.get("contact", "") or ""
+                customer_email = payment.get("email", "") or ""
+                description = payment.get("description", "") or ""
                 created_at_ts = payment.get("created_at", 0)
                 created_at = datetime.fromtimestamp(created_at_ts, tz=timezone.utc).isoformat() if created_at_ts else datetime.now(timezone.utc).isoformat()
                 

@@ -22,7 +22,23 @@
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
         <title>ASR ENTERPRISES - Solar Rooftop Solutions | Patna, Bihar | MNRE Registered</title>
-        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <!-- Razorpay will be loaded dynamically when needed -->
+        <script>
+            // Lazy load Razorpay only when needed (on checkout pages)
+            window.loadRazorpay = function() {
+                return new Promise((resolve) => {
+                    if (window.Razorpay) {
+                        resolve(window.Razorpay);
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                    script.async = true;
+                    script.onload = () => resolve(window.Razorpay);
+                    document.head.appendChild(script);
+                });
+            };
+        </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--
         These two scripts have been added for the Visual Edits, please do not edit or remove them

@@ -53,16 +53,19 @@ export const ProductManagement = () => {
     delivery_available: true,
     pickup_available: true,
     images: [],
+    delivery_districts: [],
+    delivery_fees: {},
     // Wire-specific fields
     wire_type: "AC", // AC or DC
     wire_size: "4sqmm", // 4sqmm or 6sqmm
     // Service-specific fields
-    service_type: "installation"
+    service_type: "cleaning"
   });
 
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [biharDistricts, setBiharDistricts] = useState({ districts: [], delivery_fees: {} });
   const fileInputRef = useRef(null);
 
   // Wire price reference (per meter) - just for suggestions

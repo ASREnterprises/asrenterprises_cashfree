@@ -304,7 +304,9 @@ export const ProductManagement = () => {
       is_featured: product.is_featured,
       delivery_available: product.delivery_available,
       pickup_available: product.pickup_available,
-      images: product.images || []
+      images: product.images || [],
+      delivery_districts: product.delivery_districts || [],
+      delivery_fees: product.delivery_fees || {}
     });
     setShowForm(true);
   };

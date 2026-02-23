@@ -46,6 +46,15 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - Backend endpoint `/api/shop/orders/{order_id}/payment-verify` returns `email_sent` field
 - Consistent notification experience across all payment types (Book Service + Shop Orders)
 
+#### Razorpay Payment Sync (Feb 23, 2026)
+- **Sync Payments button** in Orders tab to import all successful Razorpay payments
+- Auto-creates orders from Razorpay with customer details (name, phone, email)
+- Works for **older transactions** - syncs entire payment history
+- Synced orders marked with "RZP-" prefix and "Synced" badge
+- Customer phone numbers cleaned (removes +91 country code)
+- Backend endpoints: `GET /api/admin/razorpay/payments`, `POST /api/admin/razorpay/sync`
+- 17 historical payments successfully synced with customer details
+
 #### Premium Shop UI (Flipkart/Amazon-style)
 - White/light product grid, sticky header + search, category strip
 - Product cards: wishlist hearts, share, quantity controls, discount badges, star ratings

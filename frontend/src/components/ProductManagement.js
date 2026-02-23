@@ -1113,6 +1113,42 @@ export const ProductManagement = () => {
                       </>
                     )}
                   </div>
+
+                  {/* Delivery Districts Configuration */}
+                  {formData.delivery_available && formData.category !== "service" && (
+                    <div className="md:col-span-2 bg-blue-900/20 border border-blue-700/50 rounded-xl p-4">
+                      <h3 className="text-blue-400 font-semibold mb-3 flex items-center">
+                        <MapPin className="w-5 h-5 mr-2" />
+                        Delivery Districts (Bihar)
+                      </h3>
+                      <p className="text-gray-400 text-sm mb-3">Select districts where this product can be delivered. Leave empty to deliver to all districts.</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
+                        {biharDistricts.districts.map(district => (
+                          <label key={district} className="flex items-center gap-2 text-sm text-white bg-gray-800/50 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-700/50">
+                            <input
+                              type="checkbox"
+                              checked={formData.delivery_districts?.includes(district) || false}
+                              onChange={(e) => {
+                                const updated = e.target.checked
+                                  ? [...(formData.delivery_districts || []), district]
+                                  : (formData.delivery_districts || []).filter(d => d !== district);
+                                setFormData({...formData, delivery_districts: updated});
+                              }}
+                              className="w-3 h-3 rounded"
+                            />
+                            <span className="truncate">{district}</span>
+                            <span className="text-gray-500 text-xs ml-auto">₹{biharDistricts.delivery_fees[district] || 200}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {formData.delivery_districts?.length > 0 && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-blue-400 text-xs">{formData.delivery_districts.length} districts selected</span>
+                          <button type="button" onClick={() => setFormData({...formData, delivery_districts: []})} className="text-red-400 text-xs hover:text-red-300">Clear all</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">

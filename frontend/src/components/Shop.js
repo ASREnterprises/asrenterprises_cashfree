@@ -755,7 +755,17 @@ export const ShopPage = () => {
                   {selectedProduct.is_featured && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1"><Star className="w-3 h-3" />Featured</span>}
                 </div>
 
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3" data-testid="product-detail-name">{selectedProduct.name}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2" data-testid="product-detail-name">{selectedProduct.name}</h1>
+
+                {/* Rating in detail */}
+                {reviewsSummary[selectedProduct.id] && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="bg-green-600 text-white px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1">
+                      {reviewsSummary[selectedProduct.id].avg_rating} <Star className="w-3 h-3 fill-white" />
+                    </div>
+                    <span className="text-sm text-gray-500">{reviewsSummary[selectedProduct.id].count} Rating{reviewsSummary[selectedProduct.id].count !== 1 ? "s" : ""}</span>
+                  </div>
+                )}
 
                 {/* Price */}
                 <div className="mb-4 pb-4 border-b">

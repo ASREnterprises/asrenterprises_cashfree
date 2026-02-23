@@ -10,6 +10,38 @@ import { Link } from "react-router-dom";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Book Service Price Config (inline mini-component)
+const BookServiceConfig = () => {
+  const [price, setPrice] = useState(1500);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API}/shop/book-service-config`).then(res => { setPrice(res.data.price); setLoaded(true); }).catch(() => setLoaded(true));
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try { await axios.put(`${API}/shop/book-service-config`, { price: Number(price) }); alert("Price updated!"); }
+    catch { alert("Failed to update."); }
+    finally { setSaving(false); }
+  };
+
+  if (!loaded) return null;
+  return (
+    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
+      <DollarSign className="w-5 h-5 text-amber-400" />
+      <span className="text-white font-semibold text-sm">Book Service Price:</span>
+      <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
+        className="w-32 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm" />
+      <button onClick={save} disabled={saving}
+        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600"
+      >{saving ? "Saving..." : "Update Price"}</button>
+      <span className="text-gray-400 text-xs">This is the price shown on homepage "Book Service" button</span>
+    </div>
+  );
+};
+
 const categoryOptions = [
   { id: "solar_panel", name: "Solar Panels", icon: Sun },
   { id: "inverter", name: "Inverters", icon: Zap },

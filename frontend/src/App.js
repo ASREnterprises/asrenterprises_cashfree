@@ -1392,7 +1392,7 @@ const HomePage = () => {
                 <div><Link to="/" className="hover:text-white transition">Home</Link></div>
                 <div><Link to="/about" className="hover:text-white transition">About Us</Link></div>
                 <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
-                <div><Link to="/calculator" className="hover:text-white transition">Solar Calculator</Link></div>
+                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Shop</a></div>
                 <div><Link to="/contact" className="hover:text-white transition">Contact Us</Link></div>
               </div>
             </div>
@@ -1400,7 +1400,7 @@ const HomePage = () => {
               <h4 className="font-bold mb-4">Services</h4>
               <div className="space-y-2 text-gray-400">
                 <div><Link to="/chat" className="hover:text-white transition">WhatsApp Support</Link></div>
-                <div><Link to="/calculator" className="hover:text-white transition">Solar Calculator</Link></div>
+                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Solar Products</a></div>
                 <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
                 <div><Link to="/contact" className="hover:text-white transition">Get Quote</Link></div>
               </div>

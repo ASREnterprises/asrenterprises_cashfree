@@ -840,6 +840,72 @@ export const ShopPage = () => {
                   ))}
                 </div>
 
+                {/* Customer Reviews */}
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-800 text-sm">Customer Reviews</h3>
+                    <button onClick={() => setShowReviewForm(!showReviewForm)}
+                      className="text-amber-600 hover:text-amber-700 text-sm font-semibold" data-testid="write-review-btn"
+                    >{showReviewForm ? "Cancel" : "Write a Review"}</button>
+                  </div>
+
+                  {/* Review Summary */}
+                  {reviewsSummary[selectedProduct.id] && (
+                    <div className="flex items-center gap-3 mb-3 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-gray-900">{reviewsSummary[selectedProduct.id].avg_rating}</p>
+                        <StarRating rating={Math.round(reviewsSummary[selectedProduct.id].avg_rating)} size="w-4 h-4" />
+                      </div>
+                      <p className="text-sm text-gray-600">{reviewsSummary[selectedProduct.id].count} review{reviewsSummary[selectedProduct.id].count !== 1 ? "s" : ""}</p>
+                    </div>
+                  )}
+
+                  {/* Review Form */}
+                  {showReviewForm && (
+                    <div className="bg-gray-50 rounded-lg p-4 border mb-4" data-testid="review-form">
+                      <h4 className="font-semibold text-gray-800 text-sm mb-3">Write Your Review</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-gray-600 text-xs mb-1 block">Rating</label>
+                          <StarRating rating={reviewForm.rating} size="w-6 h-6" interactive={true} onChange={(r) => setReviewForm({...reviewForm, rating: r})} />
+                        </div>
+                        <input type="text" placeholder="Your Name *" value={reviewForm.customer_name} onChange={(e) => setReviewForm({...reviewForm, customer_name: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-amber-500 focus:outline-none" data-testid="review-name" />
+                        <input type="text" placeholder="Review Title (Optional)" value={reviewForm.title} onChange={(e) => setReviewForm({...reviewForm, title: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-amber-500 focus:outline-none" />
+                        <textarea placeholder="Your Review *" value={reviewForm.review_text} onChange={(e) => setReviewForm({...reviewForm, review_text: e.target.value})} rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:border-amber-500 focus:outline-none" data-testid="review-text" />
+                        <button onClick={() => submitReview(selectedProduct.id)} disabled={submittingReview}
+                          className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white px-6 py-2 rounded text-sm font-semibold transition"
+                          data-testid="submit-review-btn"
+                        >{submittingReview ? "Submitting..." : "Submit Review"}</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reviews List */}
+                  {productReviews.length > 0 ? (
+                    <div className="space-y-3">
+                      {productReviews.slice(0, 5).map(review => (
+                        <div key={review.id} className="bg-gray-50 rounded-lg p-3 border">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-bold text-xs">{review.customer_name[0]?.toUpperCase()}</div>
+                              <span className="text-sm font-semibold text-gray-800">{review.customer_name}</span>
+                            </div>
+                            <StarRating rating={review.rating} />
+                          </div>
+                          {review.title && <p className="font-semibold text-gray-800 text-sm mb-1">{review.title}</p>}
+                          <p className="text-gray-600 text-sm">{review.review_text}</p>
+                          <p className="text-gray-400 text-xs mt-1">{new Date(review.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : !showReviewForm && (
+                    <p className="text-gray-400 text-sm">No reviews yet. Be the first to review!</p>
+                  )}
+                </div>
+
                 {/* Related Products */}
                 {relatedProducts.length > 0 && (
                   <div className="border-t pt-4">

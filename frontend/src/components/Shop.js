@@ -797,7 +797,7 @@ export const ShopPage = () => {
                   {productPincode.result && (
                     <div className={`mt-2 text-sm ${productPincode.result.deliverable ? "text-green-600" : "text-red-500"}`}>
                       {productPincode.result.deliverable 
-                        ? <span>Delivery to <strong>{productPincode.result.district}</strong> - ₹{productPincode.result.fee} ({productPincode.result.estimated_days} days)</span>
+                        ? <span>Delivery to <strong>{productPincode.result.district}</strong> | Delivery Fee: <strong>₹{productPincode.result.fee}</strong> | Est: {productPincode.result.estimated_days} days</span>
                         : <span>{productPincode.result.note}</span>}
                     </div>
                   )}

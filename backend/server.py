@@ -3373,6 +3373,198 @@ async def update_book_service_config(data: Dict[str, Any]):
     )
     return {"status": "success", "price": price}
 
+@api_router.post("/shop/book-service")
+async def book_service(data: Dict[str, Any]):
+    """Create a service booking and return booking details"""
+    customer_name = sanitize_input(data.get("customer_name", ""))
+    customer_phone = sanitize_input(data.get("customer_phone", ""))
+    customer_email = sanitize_input(data.get("customer_email", ""))
+    
+    if not customer_name or not customer_phone:
+        raise HTTPException(status_code=400, detail="Name and phone are required")
+    
+    # Get service price
+    config = await db.settings.find_one({"key": "book_service_price"}, {"_id": 0})
+    price = config.get("value", 1500) if config else 1500
+    
+    booking = {
+        "id": str(uuid.uuid4()),
+        "booking_number": f"BSK-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "customer_email": customer_email,
+        "service": "Solar Maintenance Service",
+        "amount": price,
+        "payment_status": "pending",
+        "payment_id": "",
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.service_bookings.insert_one(booking)
+    booking.pop("_id", None)
+    
+    return {"status": "success", "booking": booking, "key_id": RAZORPAY_KEY_ID}
+
+@api_router.post("/shop/book-service/{booking_id}/confirm")
+async def confirm_service_booking(booking_id: str, data: Dict[str, Any]):
+    """Confirm service booking after successful payment - sends WhatsApp + Email"""
+    payment_id = data.get("razorpay_payment_id", "")
+    
+    booking = await db.service_bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Update booking status
+    await db.service_bookings.update_one(
+        {"id": booking_id},
+        {"$set": {
+            "payment_status": "paid",
+            "payment_id": payment_id,
+            "status": "confirmed",
+            "confirmed_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    customer_name = booking.get("customer_name", "Customer")
+    customer_phone = booking.get("customer_phone", "")
+    customer_email = booking.get("customer_email", "")
+    booking_number = booking.get("booking_number", "N/A")
+    amount = booking.get("amount", 1500)
+    
+    # ===== WHATSAPP CONFIRMATION TO CUSTOMER =====
+    customer_whatsapp_msg = f"""*Payment Successful!*
+*ASR Enterprises - Solar Solutions*
+
+Dear {customer_name},
+
+Your service booking has been confirmed!
+
+*Booking Number:* {booking_number}
+*Service:* Solar Maintenance Service
+*Amount Paid:* Rs.{amount:,.0f}
+*Payment ID:* {payment_id}
+
+Our team will contact you within 24 hours to schedule your service appointment.
+
+*Need Help?*
+Call: 8877896889
+WhatsApp: 8877896889
+
+_Thank you for choosing ASR Enterprises!_
+_Powering Bihar's future with clean energy_"""
+    
+    customer_whatsapp_url = get_whatsapp_url(customer_phone, customer_whatsapp_msg)
+    
+    # ===== WHATSAPP NOTIFICATION TO ADMIN =====
+    admin_phone = "8877896889"
+    admin_whatsapp_msg = f"""*NEW SERVICE BOOKING*
+
+*Booking #:* {booking_number}
+*Customer:* {customer_name}
+*Phone:* {customer_phone}
+{f"*Email:* {customer_email}" if customer_email else ""}
+
+*Service:* Solar Maintenance Service
+*Amount:* Rs.{amount:,.0f}
+*Payment:* PAID (Razorpay: {payment_id})
+
+_Please contact the customer within 24 hours to schedule the service!_"""
+    
+    admin_whatsapp_url = get_whatsapp_url(admin_phone, admin_whatsapp_msg)
+    
+    # ===== EMAIL CONFIRMATION TO CUSTOMER =====
+    email_sent = False
+    if customer_email and RESEND_API_KEY:
+        try:
+            email_html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
+                <div style="background: linear-gradient(135deg, #1a2332, #0f1824); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                    <h1 style="color: #f59e0b; font-size: 24px; margin: 0;">Payment Successful!</h1>
+                    <p style="color: #94a3b8; font-size: 14px; margin: 8px 0 0 0;">ASR Enterprises - Solar Solutions</p>
+                </div>
+                <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb;">
+                    <p style="color: #333; font-size: 16px;">Dear <strong>{customer_name}</strong>,</p>
+                    <p style="color: #333; font-size: 15px;">Your service booking has been confirmed! Our team will contact you within 24 hours.</p>
+                    
+                    <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <table style="width: 100%; font-size: 14px; color: #333;">
+                            <tr><td style="padding: 6px 0; color: #666;">Booking Number</td><td style="padding: 6px 0; font-weight: bold; text-align: right;">{booking_number}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Service</td><td style="padding: 6px 0; font-weight: bold; text-align: right;">Solar Maintenance Service</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Amount Paid</td><td style="padding: 6px 0; font-weight: bold; text-align: right; color: #16a34a;">₹{amount:,.0f}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Payment ID</td><td style="padding: 6px 0; text-align: right; font-size: 12px;">{payment_id}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Status</td><td style="padding: 6px 0; font-weight: bold; text-align: right; color: #16a34a;">CONFIRMED</td></tr>
+                        </table>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="color: #333; font-size: 14px; margin: 0 0 5px 0;"><strong>What's Next?</strong></p>
+                        <p style="color: #666; font-size: 13px; margin: 0;">Our service team will call you at <strong>{customer_phone}</strong> within 24 hours to schedule your appointment.</p>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 13px;">Need immediate help? Call us at <strong>8877896889</strong></p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
+                    <p style="color: #999; font-size: 11px; margin: 5px 0 0 0;">Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503</p>
+                </div>
+            </div>"""
+            
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [customer_email],
+                "subject": f"Booking Confirmed - {booking_number} | ASR Enterprises",
+                "html": email_html
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+            email_sent = True
+            logger.info(f"Booking confirmation email sent to {customer_email}")
+        except Exception as e:
+            logger.error(f"Failed to send booking email: {e}")
+    
+    # ===== CRM NOTIFICATION =====
+    try:
+        crm_message = CRMMessage(
+            sender_id="system",
+            sender_name="Booking System",
+            sender_type="system",
+            receiver_id="admin",
+            receiver_name="Admin",
+            message=f"NEW SERVICE BOOKING #{booking_number} - {customer_name} - Rs.{amount:,.0f} PAID (Razorpay: {payment_id})"
+        )
+        msg_doc = crm_message.model_dump()
+        msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
+        await db.crm_messages.insert_one(msg_doc)
+    except Exception as e:
+        logger.error(f"Failed to create CRM notification for booking: {e}")
+    
+    # ===== PAYMENT RECORD =====
+    try:
+        payment_record = {
+            "id": str(uuid.uuid4()),
+            "booking_id": booking_id,
+            "booking_number": booking_number,
+            "amount": amount,
+            "method": "razorpay",
+            "status": "paid",
+            "transaction_id": payment_id,
+            "customer_name": customer_name,
+            "customer_phone": customer_phone,
+            "type": "service_booking",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.payments.insert_one(payment_record)
+    except Exception as e:
+        logger.error(f"Failed to create payment record: {e}")
+    
+    return {
+        "status": "success",
+        "booking_number": booking_number,
+        "customer_whatsapp_url": customer_whatsapp_url,
+        "admin_whatsapp_url": admin_whatsapp_url,
+        "email_sent": email_sent
+    }
+
 # Bihar districts list for product delivery configuration
 BIHAR_DISTRICT_LIST = [
     "Patna", "Nalanda", "Gaya", "Muzaffarpur", "Saran (Chapra)", "East Champaran",

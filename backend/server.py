@@ -5557,6 +5557,74 @@ def verify_facebook_signature(payload: bytes, signature: str) -> bool:
         logger.error(f"Signature verification error: {e}")
     return False
 
+async def send_whatsapp_order_confirmation(phone_number: str, order_data: dict) -> bool:
+    """Send order confirmation via WhatsApp Business API"""
+    if not WHATSAPP_PHONE_NUMBER_ID or not WHATSAPP_ACCESS_TOKEN:
+        logger.warning("WhatsApp credentials not configured, skipping order confirmation")
+        return False
+    
+    # Format phone number (ensure it has country code)
+    phone = phone_number.strip()
+    if not phone.startswith("+") and not phone.startswith("91"):
+        phone = "91" + phone
+    elif phone.startswith("+"):
+        phone = phone[1:]
+    
+    try:
+        # Build order items text
+        items = order_data.get("items", [])
+        items_text = "\n".join([f"• {item.get('product_name', 'Item')} x{item.get('quantity', 1)} - ₹{item.get('price', 0) * item.get('quantity', 1):,.0f}" for item in items])
+        
+        delivery_info = "🏪 Store Pickup" if order_data.get("delivery_type") == "pickup" else f"🚚 Home Delivery to {order_data.get('delivery_address', 'N/A')}"
+        
+        message_body = f"""✅ *Order Confirmed!*
+*ASR Enterprises - Solar Solutions*
+
+Dear {order_data.get('customer_name', 'Customer')},
+
+Your order has been received! 🎉
+
+📦 *Order ID:* {order_data.get('order_number', 'N/A')}
+
+📋 *Products:*
+{items_text}
+
+💰 *Amount:* ₹{order_data.get('total', 0):,.0f}
+
+📍 *Delivery:* {delivery_info}
+
+📞 *Support:* 8877896889
+
+_Thank you for choosing ASR Enterprises!_
+_Powering Bihar with clean energy_ ☀️"""
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
+                headers={
+                    "Authorization": f"Bearer {WHATSAPP_ACCESS_TOKEN}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "messaging_product": "whatsapp",
+                    "to": phone,
+                    "text": {
+                        "body": message_body
+                    }
+                },
+                timeout=30.0
+            )
+            
+            if response.status_code == 200:
+                logger.info(f"WhatsApp order confirmation sent to {phone}")
+                return True
+            else:
+                logger.error(f"Failed to send WhatsApp order confirmation: {response.text}")
+                return False
+    except Exception as e:
+        logger.error(f"Error sending WhatsApp order confirmation: {e}")
+        return False
+
 async def send_whatsapp_auto_reply(phone_number: str, is_new_lead: bool = True) -> bool:
     """Send auto-reply message to WhatsApp user"""
     if not WHATSAPP_PHONE_NUMBER_ID or not WHATSAPP_ACCESS_TOKEN:

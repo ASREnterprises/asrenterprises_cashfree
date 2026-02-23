@@ -3,7 +3,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
 import axios from "axios";
 import { 
-  MessageSquare, Calculator, Users, TrendingUp, BarChart3, 
+  MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
   Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award, CreditCard
 } from "lucide-react";
@@ -645,11 +645,11 @@ const HomePage = () => {
       link: "/contact"
     },
     {
-      icon: <Calculator className="w-12 h-12" />,
-      title: "Solar Calculator",
-      description: "Calculate costs, savings, and ROI with AI recommendations",
-      color: "bg-yellow-500",
-      link: "/calculator"
+      icon: <Sun className="w-12 h-12" />,
+      title: "Solar Solutions",
+      description: "Premium rooftop solar installations with government subsidies",
+      color: "bg-amber-500",
+      link: "/shop"
     }
   ];
 
@@ -685,7 +685,6 @@ const HomePage = () => {
               <Link to="/about" className="text-gray-700 hover:text-amber-600 transition font-medium">About Us</Link>
               <a href="/shop" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-amber-600 transition font-medium">Shop</a>
               <Link to="/gallery" className="text-gray-700 hover:text-amber-600 transition font-medium">Gallery</Link>
-              <Link to="/calculator" className="text-gray-700 hover:text-amber-600 transition font-medium">Calculator</Link>
               <Link to="/contact" className="text-gray-700 hover:text-amber-600 transition font-medium">Contact Us</Link>
               <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
             </div>
@@ -708,7 +707,6 @@ const HomePage = () => {
               <Link to="/about" className="block py-2 text-gray-700 hover:text-amber-600">About Us</Link>
               <a href="/shop" target="_blank" rel="noopener noreferrer" className="block py-2 text-gray-700 hover:text-amber-600">Shop</a>
               <Link to="/gallery" className="block py-2 text-gray-700 hover:text-amber-600">Gallery</Link>
-              <Link to="/calculator" className="block py-2 text-gray-700 hover:text-amber-600">Calculator</Link>
               <Link to="/contact" className="block py-2 text-gray-700 hover:text-amber-600">Contact Us</Link>
               <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-amber-600 font-semibold">Login (Admin/Staff)</a>
             </div>

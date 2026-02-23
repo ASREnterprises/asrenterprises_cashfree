@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 
 export const ContactPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50">
       {/* Header */}
-      <div className="bg-[#0a1628] shadow-md">
+      <div className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-sky-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+          <Link to="/" className="inline-flex items-center text-amber-600 hover:text-amber-500 mb-4">
             <ChevronRight className="w-5 h-5 rotate-180" />
             <span>Back to Home</span>
           </Link>
@@ -19,45 +19,45 @@ export const ContactPage = () => {
         <div className="text-center mb-16">
           <div className="flex justify-center mb-6">
             <img 
-              src="/asr_logo_dark.png" 
+              src="/asr_logo_transparent.png" 
               alt="ASR Enterprises Patna" 
               className="h-20 w-auto"
             />
           </div>
-          <h1 className="text-5xl font-extrabold text-white mb-4">Contact Us</h1>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+          <h1 className="text-5xl font-extrabold text-[#0a355e] mb-4">Contact Us</h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Get in touch with Bihar's leading solar energy solutions provider
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           {/* Contact Information Card */}
-          <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
-            <h2 className="text-3xl font-bold text-white mb-6">Get In Touch</h2>
+          <div className="bg-white rounded-2xl shadow-2xl p-8 border border-sky-200">
+            <h2 className="text-3xl font-bold text-[#0a355e] mb-6">Get In Touch</h2>
             
             <div className="space-y-6">
               {/* Phone */}
-              <div className="flex items-start space-x-4 p-4 bg-blue-900/30 rounded-lg hover:bg-blue-500/20 transition border border-blue-800/50">
+              <div className="flex items-start space-x-4 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition border border-blue-200">
                 <div className="bg-blue-500 p-3 rounded-lg">
                   <Phone className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white mb-1">Phone</h3>
-                  <a href="tel:8877896889" className="text-blue-400 hover:text-blue-300 text-lg font-medium">
+                  <h3 className="font-semibold text-[#0a355e] mb-1">Phone</h3>
+                  <a href="tel:8877896889" className="text-blue-600 hover:text-blue-500 text-lg font-medium">
                     8877896889
                   </a>
-                  <p className="text-sm text-gray-400 mt-1">Available 9 AM - 7 PM</p>
+                  <p className="text-sm text-gray-500 mt-1">Available 9 AM - 7 PM</p>
                 </div>
               </div>
 
               {/* Email */}
-              <div className="flex items-start space-x-4 p-4 bg-green-900/30 rounded-lg hover:bg-green-500/20 transition border border-green-800/50">
+              <div className="flex items-start space-x-4 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition border border-green-200">
                 <div className="bg-green-500 p-3 rounded-lg">
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white mb-1">Email</h3>
-                  <a href="mailto:asrenterprisespatna@gmail.com" className="text-green-400 hover:text-green-300 font-medium break-all">
+                  <h3 className="font-semibold text-[#0a355e] mb-1">Email</h3>
+                  <a href="mailto:asrenterprisespatna@gmail.com" className="text-green-600 hover:text-green-500 font-medium break-all">
                     asrenterprisespatna@gmail.com
                   </a>
                   <p className="text-sm text-gray-400 mt-1">We'll respond within 24 hours</p>

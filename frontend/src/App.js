@@ -1466,6 +1466,101 @@ const HomePage = () => {
       </footer>
 
       {/* Floating WhatsApp Button */}
+      
+      {/* Book Service Modal */}
+      {showBookService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowBookService(false)} />
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
+              <Zap className="w-10 h-10 text-white mx-auto mb-2" />
+              <h2 className="text-xl font-bold text-white">Book Solar Service</h2>
+              <p className="text-amber-100 text-sm mt-1">Professional solar maintenance by ASR Enterprises</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Full Name *</label>
+                <input type="text" placeholder="Enter your name" value={bookingData.customer_name}
+                  onChange={(e) => setBookingData({...bookingData, customer_name: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                  data-testid="booking-name" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Phone Number *</label>
+                <input type="tel" placeholder="Enter phone number" value={bookingData.customer_phone}
+                  onChange={(e) => setBookingData({...bookingData, customer_phone: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                  data-testid="booking-phone" />
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Email (for confirmation)</label>
+                <input type="email" placeholder="Enter email for receipt" value={bookingData.customer_email}
+                  onChange={(e) => setBookingData({...bookingData, customer_email: e.target.value})}
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                  data-testid="booking-email" />
+              </div>
+              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">Service Amount</span>
+                  <span className="text-2xl font-bold text-amber-400">₹1,500</span>
+                </div>
+                <p className="text-gray-500 text-xs mt-1">Payment via Razorpay (UPI / Card / NetBanking)</p>
+              </div>
+              <button
+                onClick={handleBookService}
+                disabled={bookingLoading}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
+                data-testid="booking-pay-btn"
+              >
+                {bookingLoading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+                ) : (
+                  <><CreditCard className="w-5 h-5" /> Pay Now</>
+                )}
+              </button>
+              <p className="text-gray-500 text-xs text-center">You will receive confirmation on WhatsApp & Email</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Success Modal */}
+      {bookingSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-12 h-12 text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Booking Confirmed!</h2>
+            <p className="text-gray-400 mb-4">Your solar service has been booked successfully</p>
+            <div className="bg-gray-800/50 rounded-xl p-4 mb-4 border border-gray-700">
+              <p className="text-gray-400 text-sm">Booking Number</p>
+              <p className="text-amber-400 font-bold text-xl" data-testid="booking-number">{bookingSuccess.booking_number}</p>
+            </div>
+            <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-3 mb-4">
+              <p className="text-green-300 text-sm">Payment Confirmed</p>
+            </div>
+            {bookingSuccess.email_sent && (
+              <p className="text-blue-400 text-xs mb-3">Confirmation email sent!</p>
+            )}
+            {bookingSuccess.customer_whatsapp_url && (
+              <a href={bookingSuccess.customer_whatsapp_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition mb-4"
+                data-testid="booking-whatsapp-btn"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Get Confirmation on WhatsApp
+              </a>
+            )}
+            <p className="text-gray-400 text-sm mb-4">Our team will call you within 24 hours to schedule your service.</p>
+            <button onClick={() => setBookingSuccess(null)}
+              className="w-full bg-gray-700 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition"
+            >Close</button>
+          </div>
+        </div>
+      )}
+
       <div className="fixed bottom-6 right-6 z-50 flex flex-col space-y-3">
         <a
           href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."

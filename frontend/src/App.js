@@ -834,13 +834,15 @@ const HomePage = () => {
               >
                 Request Free Consultation
               </button>
-              <button
-                onClick={() => navigate('/calculator')}
+              <a
+                href="/shop"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:border-amber-500 hover:text-amber-600 transition shadow-md"
-                data-testid="try-calculator-btn"
+                data-testid="explore-shop-btn"
               >
-                Calculate Savings
-              </button>
+                Explore Products
+              </a>
             </div>
 
             {/* Trust Badges - Visible on Light Theme */}

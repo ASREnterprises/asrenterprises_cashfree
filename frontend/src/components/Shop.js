@@ -285,8 +285,8 @@ export const ShopPage = () => {
           <div className="flex items-center h-14 gap-3">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <Sun className="w-6 h-6 text-amber-400" />
-              <span className="text-white font-bold text-lg hidden sm:block">ASR Solar</span>
+              <img src="/asr_logo_transparent.png" alt="ASR" className="h-8 w-8 object-contain" />
+              <span className="text-white font-bold text-lg hidden sm:block">ASR Solar Shop</span>
             </Link>
 
             {/* Search Bar */}

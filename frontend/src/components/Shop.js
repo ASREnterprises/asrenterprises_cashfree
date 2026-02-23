@@ -381,7 +381,7 @@ export const ShopPage = () => {
               </div>
               {pincodeCheck.result && (
                 <span className={`text-xs ${pincodeCheck.result.deliverable ? "text-green-600" : "text-red-500"}`} data-testid="pincode-result">
-                  {pincodeCheck.result.deliverable ? `Delivery to ${pincodeCheck.result.district} (${pincodeCheck.result.estimated_days} days)` : (pincodeCheck.result.note || "Not available")}
+                  {pincodeCheck.result.deliverable ? `Delivery to ${pincodeCheck.result.district} (${pincodeCheck.result.estimated_days} days) | Delivery Fee: ₹${biharDistricts.delivery_fees[pincodeCheck.result.district] || 200}` : (pincodeCheck.result.note || "Not available")}
                 </span>
               )}
             </div>

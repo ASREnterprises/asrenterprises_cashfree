@@ -227,6 +227,8 @@ export const ShopPage = () => {
       if (checkoutData.payment_method === "razorpay") {
         try {
           const configRes = await axios.get(`${API}/shop/razorpay-config`);
+          // Lazy load Razorpay script
+          if (window.loadRazorpay) await window.loadRazorpay();
           if (!configRes.data.key_id || !window.Razorpay) { alert("Payment gateway unavailable."); setPlacingOrder(false); return; }
           const options = {
             key: configRes.data.key_id, amount: Math.round(grandTotal * 100), currency: "INR",

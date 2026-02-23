@@ -1046,10 +1046,9 @@ export const ProductManagement = () => {
                     </div>
                   )}
 
-                  {/* Images - Hidden for Service */}
-                  {formData.category !== "service" && (
-                    <div className="md:col-span-2">
-                      <label className="text-gray-400 text-sm mb-1 block">Product Images</label>
+                  {/* Images - Available for all categories including service */}
+                  <div className="md:col-span-2">
+                      <label className="text-gray-400 text-sm mb-1 block">Product Images {formData.category === "service" && "(Service Photos)"}</label>
                       
                       {/* Upload from Mobile/Desktop */}
                       <div className="mb-3">

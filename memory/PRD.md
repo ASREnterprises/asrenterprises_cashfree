@@ -90,7 +90,14 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - AI-powered testimonials & service descriptions (GPT-4o-mini)
 - WhatsApp notifications for orders
 - Admin order deletion (pending/cancelled)
-- Premium dark navy-blue theme (main site)
+
+#### Premium Light Theme (Feb 23, 2026)
+- Entire website updated to premium light solar-themed design
+- Transparent ASR logo used throughout
+- White navigation with amber accents
+- Light amber/orange gradient hero section
+- White benefit cards with colored icons
+- Clean, natural solar installation aesthetic
 
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993

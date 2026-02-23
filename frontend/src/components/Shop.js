@@ -282,7 +282,7 @@ export const ShopPage = () => {
     <div className="min-h-screen bg-[#f1f3f6]" style={{ fontFamily: "'Segoe UI', Roboto, Arial, sans-serif" }}>
       
       {/* === TOP HEADER BAR === */}
-      <header className="bg-[#1a2332] sticky top-0 z-50 shadow-lg">
+      <header className="bg-gradient-to-r from-sky-600 to-blue-600 sticky top-0 z-50 shadow-lg">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-6">
           <div className="flex items-center h-14 gap-3">
             {/* Logo */}
@@ -310,13 +310,13 @@ export const ShopPage = () => {
 
             {/* Nav Items */}
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              <Link to="/track-order" className="text-white hover:text-amber-400 transition hidden sm:flex items-center gap-1 text-sm" data-testid="track-order-link">
+              <Link to="/track-order" className="text-white hover:text-amber-200 transition hidden sm:flex items-center gap-1 text-sm" data-testid="track-order-link">
                 <Package className="w-4 h-4" />
                 <span>Track</span>
               </Link>
               <button 
                 onClick={() => setShowCart(true)}
-                className="relative text-white hover:text-amber-400 transition flex items-center gap-1"
+                className="relative text-white hover:text-amber-200 transition flex items-center gap-1"
                 data-testid="cart-button"
               >
                 <ShoppingCart className="w-5 h-5" />
@@ -329,16 +329,16 @@ export const ShopPage = () => {
           </div>
         </div>
         {/* Category Strip */}
-        <div className="bg-[#0f1824] border-t border-gray-700/50">
+        <div className="bg-sky-700 border-t border-sky-500/50">
           <div className="max-w-[1400px] mx-auto px-3 sm:px-6 overflow-x-auto">
             <div className="flex items-center gap-1 py-1.5">
               <button onClick={() => { setSelectedCategory(null); fetchProducts(); }}
-                className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition ${!selectedCategory ? 'bg-amber-500 text-white' : 'text-gray-300 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition ${!selectedCategory ? 'bg-amber-500 text-white' : 'text-white/90 hover:text-white hover:bg-sky-600'}`}
                 data-testid="category-all"
               >All</button>
               {categories.map(cat => (
                 <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); fetchProducts(cat.id); }}
-                  className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap flex items-center gap-1 transition ${selectedCategory === cat.id ? 'bg-amber-500 text-white' : 'text-gray-300 hover:text-white'}`}
+                  className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap flex items-center gap-1 transition ${selectedCategory === cat.id ? 'bg-amber-500 text-white' : 'text-white/90 hover:text-white hover:bg-sky-600'}`}
                   data-testid={`category-${cat.id}`}
                 >{categoryIcons[cat.id]}<span>{cat.name}</span></button>
               ))}
@@ -549,9 +549,9 @@ export const ShopPage = () => {
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowCart(false)} />
           <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
-            <div className="p-4 border-b flex items-center justify-between bg-[#1a2332]">
+            <div className="p-4 border-b flex items-center justify-between bg-gradient-to-r from-sky-600 to-blue-600">
               <h2 className="text-lg font-bold text-white flex items-center gap-2"><ShoppingCart className="w-5 h-5" /> Cart ({cartItemCount})</h2>
-              <button onClick={() => setShowCart(false)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+              <button onClick={() => setShowCart(false)} className="text-white/80 hover:text-white"><X className="w-6 h-6" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               {cart.length === 0 ? (
@@ -597,9 +597,9 @@ export const ShopPage = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => !placingOrder && setShowCheckout(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-            <div className="sticky top-0 z-10 bg-[#1a2332] px-6 py-4 flex items-center justify-between rounded-t-xl">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-sky-600 to-blue-600 px-6 py-4 flex items-center justify-between rounded-t-xl">
               <h2 className="text-lg font-bold text-white">Checkout</h2>
-              <button onClick={() => !placingOrder && setShowCheckout(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => !placingOrder && setShowCheckout(false)} className="text-white/80 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-5">
               {/* Customer */}

@@ -92,11 +92,11 @@ export const GalleryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50">
       {/* Header */}
-      <div className="bg-[#0a1628] shadow-md">
+      <div className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-sky-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+          <Link to="/" className="inline-flex items-center text-amber-600 hover:text-amber-500 mb-4">
             <ChevronRight className="w-5 h-5 rotate-180" />
             <span>Back to Home</span>
           </Link>
@@ -104,47 +104,47 @@ export const GalleryPage = () => {
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="/asr_logo_dark.png" 
+                src="/asr_logo_transparent.png" 
                 alt="ASR Enterprises Patna" 
                 className="h-16 w-auto"
               />
             </div>
-            <h1 className="text-5xl font-extrabold text-white mb-4">
-              Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">Solar Projects</span>
+            <h1 className="text-5xl font-extrabold text-[#0a355e] mb-4">
+              Our <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">Solar Projects</span>
             </h1>
-            <p className="text-xl text-gray-400 mb-2">Transforming Bihar with Clean Energy Solutions</p>
-            <div className="flex items-center justify-center space-x-2 text-blue-600">
+            <p className="text-xl text-gray-600 mb-2">Transforming Bihar with Clean Energy Solutions</p>
+            <div className="flex items-center justify-center space-x-2 text-amber-600">
               <Award className="w-5 h-5" />
               <span className="font-semibold">Follow us: @asr_enterprises_patna</span>
             </div>
-            <div className="text-gray-400 text-sm mt-2">
-              <a href="tel:8877896889" className="hover:text-blue-600">📞 8877896889</a>
+            <div className="text-gray-500 text-sm mt-2">
+              <a href="tel:8877896889" className="hover:text-amber-600">📞 8877896889</a>
               <span className="mx-2">|</span>
-              <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-blue-600">✉️ asrenterprisespatna@gmail.com</a>
+              <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-amber-600">✉️ asrenterprisespatna@gmail.com</a>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Banner */}
-      <div className="bg-gradient-to-r from-yellow-600 to-orange-600 py-8">
+      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-white text-center">
             <div>
               <div className="text-4xl font-bold mb-1">25+</div>
-              <div className="text-yellow-100 text-sm">Happy Customers</div>
+              <div className="text-amber-100 text-sm">Happy Customers</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-1">100kW+</div>
-              <div className="text-yellow-100 text-sm">Total Capacity</div>
+              <div className="text-amber-100 text-sm">Total Capacity</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-1">MNRE</div>
-              <div className="text-yellow-100 text-sm">Registered Vendor</div>
+              <div className="text-amber-100 text-sm">Registered Vendor</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-1">5★</div>
-              <div className="text-yellow-100 text-sm">Rated Service</div>
+              <div className="text-amber-100 text-sm">Rated Service</div>
             </div>
           </div>
         </div>
@@ -156,7 +156,7 @@ export const GalleryPage = () => {
         <div className="flex justify-end mb-6">
           <button 
             onClick={fetchGalleryPhotos} 
-            className="flex items-center space-x-2 text-gray-400 hover:text-blue-600 transition"
+            className="flex items-center space-x-2 text-gray-500 hover:text-amber-600 transition"
             disabled={loading}
             data-testid="refresh-gallery-btn"
           >
@@ -167,19 +167,19 @@ export const GalleryPage = () => {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-yellow-600 animate-spin" />
+            <Loader2 className="w-10 h-10 text-amber-600 animate-spin" />
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {galleryItems.map((item, index) => (
               <div
                 key={index}
-                className="relative group cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+                className="relative group cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-sky-200 bg-white"
                 onClick={() => openModal(item)}
                 data-testid={`gallery-item-${index}`}
               >
                 {/* Image/Video Thumbnail */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
+                <div className="relative aspect-[4/3] overflow-hidden bg-sky-50">
                   <img
                     src={item.type === "video" ? item.thumbnail : item.url}
                     alt={item.title}
@@ -190,14 +190,14 @@ export const GalleryPage = () => {
                   {/* Play button for video */}
                   {item.type === "video" && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-                      <div className="bg-gray-800 rounded-full p-4 group-hover:scale-110 transition-transform">
-                        <Play className="w-8 h-8 text-yellow-600" fill="currentColor" />
+                      <div className="bg-white rounded-full p-4 group-hover:scale-110 transition-transform shadow-lg">
+                        <Play className="w-8 h-8 text-amber-600" fill="currentColor" />
                       </div>
                     </div>
                   )}
 
                   {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-50"></div>
                   
                   {/* Info Overlay */}
                   <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -213,7 +213,7 @@ export const GalleryPage = () => {
                       </div>
                     )}
                     {item.systemSize && (
-                      <div className="text-xs text-yellow-400 mt-1 font-semibold">
+                      <div className="text-xs text-amber-400 mt-1 font-semibold">
                         System: {item.systemSize}
                       </div>
                     )}
@@ -225,19 +225,19 @@ export const GalleryPage = () => {
         )}
 
         {/* CTA Section */}
-        <div className="mt-16 bg-gray-800/80 rounded-2xl shadow-2xl p-8 md:p-12 text-center border border-gray-700/50">
-          <h2 className="text-3xl font-bold text-white mb-4">Ready to Go Solar?</h2>
-          <p className="text-xl text-gray-400 mb-8">Join hundreds of satisfied customers in Bihar who have switched to clean energy</p>
+        <div className="mt-16 bg-gradient-to-br from-sky-100 to-blue-100 rounded-2xl shadow-xl p-8 md:p-12 text-center border border-sky-200">
+          <h2 className="text-3xl font-bold text-[#0a355e] mb-4">Ready to Go Solar?</h2>
+          <p className="text-xl text-gray-600 mb-8">Join hundreds of satisfied customers in Bihar who have switched to clean energy</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
               to="/leads"
-              className="bg-yellow-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-yellow-700 transition"
+              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition shadow-lg"
             >
               Get Free Consultation
             </Link>
             <Link
               to="/calculator"
-              className="bg-yellow-600 text-white border-2 border-yellow-600 px-8 py-4 rounded-lg font-semibold hover:bg-yellow-50 transition"
+              className="bg-white text-amber-600 border-2 border-amber-500 px-8 py-4 rounded-lg font-semibold hover:bg-amber-50 transition shadow-md"
             >
               Calculate Savings
             </Link>
@@ -248,15 +248,15 @@ export const GalleryPage = () => {
       {/* Modal */}
       {selectedMedia && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4"
           onClick={closeModal}
         >
           <button
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition"
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition bg-black/50 rounded-full p-2"
             onClick={closeModal}
             data-testid="close-modal-btn"
           >
-            <X className="w-10 h-10" />
+            <X className="w-8 h-8" />
           </button>
 
           <div className="max-w-6xl w-full" onClick={(e) => e.stopPropagation()}>
@@ -281,20 +281,20 @@ export const GalleryPage = () => {
             )}
 
             {/* Image Info */}
-            <div className="bg-gray-800 rounded-b-lg p-6 mt-2">
-              <h3 className="text-2xl font-bold text-white mb-2">{selectedMedia.title}</h3>
-              <div className="flex items-center text-gray-400 mb-2">
-                <MapPin className="w-5 h-5 mr-2" />
+            <div className="bg-white rounded-b-lg p-6 mt-2 border border-sky-200">
+              <h3 className="text-2xl font-bold text-[#0a355e] mb-2">{selectedMedia.title}</h3>
+              <div className="flex items-center text-gray-600 mb-2">
+                <MapPin className="w-5 h-5 mr-2 text-amber-600" />
                 <span>{selectedMedia.location}</span>
               </div>
               {selectedMedia.date && (
-                <div className="flex items-center text-gray-400 mb-2">
-                  <Calendar className="w-5 h-5 mr-2" />
+                <div className="flex items-center text-gray-600 mb-2">
+                  <Calendar className="w-5 h-5 mr-2 text-amber-600" />
                   <span>{selectedMedia.date}</span>
                 </div>
               )}
               {selectedMedia.systemSize && (
-                <div className="text-yellow-600 font-semibold">
+                <div className="text-amber-600 font-semibold">
                   System Size: {selectedMedia.systemSize}
                 </div>
               )}

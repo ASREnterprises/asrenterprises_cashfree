@@ -108,12 +108,13 @@ export const ProductManagement = () => {
       newFormData.description = `${wireType === "AC" ? "AC" : "Solar DC"} wire ${wireSize}. High quality copper conductor for solar installations. Price is per meter.`;
       newFormData.stock = 1000;
     } else if (category === "service") {
-      newFormData.name = "Solar Installation Service";
+      newFormData.name = "Solar Cleaning Service";
       newFormData.price = serviceBasePrice;
-      newFormData.description = "Professional solar installation service by ASR Enterprises certified technicians. Includes site assessment, mounting, wiring and commissioning.";
+      newFormData.description = "Professional solar panel cleaning service by ASR Enterprises certified technicians. Thorough cleaning for optimal energy generation.";
       newFormData.stock = 999;
       newFormData.delivery_available = false;
       newFormData.pickup_available = true;
+      newFormData.service_type = "cleaning";
     } else {
       // Reset to defaults for other categories
       newFormData.name = "";

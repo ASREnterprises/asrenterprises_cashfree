@@ -3996,6 +3996,67 @@ async def get_shop_stats():
         "total_revenue": results[4][0]["total"] if results[4] else 0
     }
 
+
+# ==================== PRODUCT REVIEWS ====================
+
+@api_router.get("/shop/products/{product_id}/reviews")
+async def get_product_reviews(product_id: str):
+    """Get all approved reviews for a product"""
+    reviews = await db.product_reviews.find(
+        {"product_id": product_id, "is_approved": True},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Calculate average rating
+    avg_rating = 0
+    if reviews:
+        avg_rating = round(sum(r["rating"] for r in reviews) / len(reviews), 1)
+    
+    return {"reviews": reviews, "average_rating": avg_rating, "total_reviews": len(reviews)}
+
+@api_router.post("/shop/products/{product_id}/reviews")
+async def create_product_review(product_id: str, data: Dict[str, Any]):
+    """Submit a product review"""
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    review = ProductReview(
+        product_id=product_id,
+        customer_name=data.get("customer_name", "Anonymous"),
+        customer_phone=data.get("customer_phone", ""),
+        rating=min(5, max(1, int(data.get("rating", 5)))),
+        title=data.get("title", ""),
+        review_text=data.get("review_text", ""),
+        is_verified_purchase=False,
+        is_approved=True
+    )
+    
+    doc = review.model_dump()
+    doc["created_at"] = doc["created_at"].isoformat()
+    await db.product_reviews.insert_one(doc)
+    doc.pop("_id", None)
+    
+    return {"status": "success", "review": doc}
+
+@api_router.get("/shop/reviews/summary")
+async def get_all_reviews_summary():
+    """Get review summary (avg rating + count) for all products"""
+    pipeline = [
+        {"$match": {"is_approved": True}},
+        {"$group": {
+            "_id": "$product_id",
+            "avg_rating": {"$avg": "$rating"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    results = await db.product_reviews.aggregate(pipeline).to_list(500)
+    summary = {}
+    for r in results:
+        summary[r["_id"]] = {"avg_rating": round(r["avg_rating"], 1), "count": r["count"]}
+    return summary
+
+
 # ==================== BULK LEAD IMPORT ====================
 
 @api_router.post("/crm/leads/bulk-import")

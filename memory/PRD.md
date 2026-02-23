@@ -56,6 +56,18 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - Backend endpoints: `GET /api/admin/razorpay/payments`, `POST /api/admin/razorpay/sync`
 - 17 historical payments successfully synced with customer details
 
+#### Admin Enhancements (Feb 23, 2026)
+- **Editable District Delivery Fees** - Admin can modify per-district charges in Shop Management
+- **Service Bookings Sync** - Sync paid service bookings to Orders section
+- **CRM Payments linked to Razorpay** - Fetch all payments from Razorpay API for CRM
+- **Auto WhatsApp Order Confirmation** - WhatsApp API sends instant order confirmation (requires API config)
+
+#### Performance Optimizations (Feb 23, 2026)
+- **GZIP Compression** - GZipMiddleware enabled with minimum_size=500
+- **Image Optimization** - Auto convert to WebP, keep under 200KB
+- **Lazy Load Razorpay** - Payment script loaded only on checkout page
+- **Image Caching** - 1-year cache headers for uploaded images
+
 #### Premium Shop UI (Flipkart/Amazon-style)
 - White/light product grid, sticky header + search, category strip
 - Product cards: wishlist hearts, share, quantity controls, discount badges, star ratings

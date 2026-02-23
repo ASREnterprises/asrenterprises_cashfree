@@ -200,19 +200,19 @@ const SolarInquiryForm = () => {
     <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 py-20" id="inquiry-form">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h2 className="text-4xl font-bold text-white mb-3">Get Free Solar Consultation</h2>
-          <p className="text-lg text-gray-300">Fill the form and our team will contact you within 24 hours</p>
+          <h2 className="text-4xl font-bold text-gray-800 mb-3">Get Free Solar Consultation</h2>
+          <p className="text-lg text-gray-600">Fill the form and our team will contact you within 24 hours</p>
         </div>
 
-        <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-gray-700/50">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-amber-200">
           {success && (
-            <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6 flex items-center">
+            <div className="bg-green-50 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center">
               <CheckCircle className="w-5 h-5 mr-2" />
               Thank you! Our team will contact you soon.
             </div>
           )}
           {error && (
-            <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6 flex items-center">
+            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center">
               <AlertCircle className="w-5 h-5 mr-2" />
               {error}
             </div>
@@ -225,29 +225,29 @@ const SolarInquiryForm = () => {
             
             <div className="grid md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-gray-300 font-semibold mb-2">Full Name *</label>
+                <label className="block text-gray-700 font-semibold mb-2">Full Name *</label>
                 <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="Your full name" required data-testid="inquiry-name" />
               </div>
               <div>
-                <label className="block text-gray-300 font-semibold mb-2">Mobile Number *</label>
+                <label className="block text-gray-700 font-semibold mb-2">Mobile Number *</label>
                 <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="10-digit mobile number" required data-testid="inquiry-phone" />
               </div>
               <div>
-                <label className="block text-gray-300 font-semibold mb-2">District (Bihar) *</label>
+                <label className="block text-gray-700 font-semibold mb-2">District (Bihar) *</label>
                 <select value={formData.district} onChange={(e) => setFormData({...formData, district: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" required>
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent" required>
                   <option value="">Select district</option>
                   {BIHAR_DISTRICTS.map((dist) => (<option key={dist} value={dist}>{dist}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-gray-300 font-semibold mb-2">Property Type *</label>
+                <label className="block text-gray-700 font-semibold mb-2">Property Type *</label>
                 <select value={formData.property_type} onChange={(e) => setFormData({...formData, property_type: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
                   <option value="residential">Residential</option>
                   <option value="commercial">Commercial</option>
                   <option value="industrial">Industrial</option>
@@ -255,15 +255,15 @@ const SolarInquiryForm = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-gray-300 font-semibold mb-2">Monthly Electricity Bill (₹)</label>
+                <label className="block text-gray-700 font-semibold mb-2">Monthly Electricity Bill (₹)</label>
                 <input type="number" value={formData.monthly_bill} onChange={(e) => setFormData({...formData, monthly_bill: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                   placeholder="e.g., 3000" />
               </div>
               <div>
-                <label className="block text-gray-300 font-semibold mb-2">Required Solar Capacity (kW)</label>
+                <label className="block text-gray-700 font-semibold mb-2">Required Solar Capacity (kW)</label>
                 <select value={formData.solar_capacity} onChange={(e) => setFormData({...formData, solar_capacity: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
                   <option value="">Select capacity</option>
                   <option value="1">1 kW</option>
                   <option value="2">2 kW</option>
@@ -281,7 +281,7 @@ const SolarInquiryForm = () => {
             )}
 
             <button type="submit" disabled={loading}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-lg font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 flex items-center justify-center"
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-lg font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 flex items-center justify-center shadow-lg"
               data-testid="inquiry-submit-btn">
               {loading ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />Submitting...</>) : (<><Send className="w-5 h-5 mr-2" />Get Free Consultation</>)}
             </button>

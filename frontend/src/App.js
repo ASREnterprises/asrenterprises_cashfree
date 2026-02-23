@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Calculator, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award, CreditCard
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 

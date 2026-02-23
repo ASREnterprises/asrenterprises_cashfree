@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { 
@@ -6,25 +6,27 @@ import {
   Plus, Minus, X, MapPin, CreditCard, Banknote, Truck, Store,
   Package, CheckCircle, AlertCircle, Loader2, Search, Eye, Cable,
   Star, Shield, Clock, Tag, Share2, ArrowUpDown, Copy, Mail,
-  Facebook, MapPinCheck, ChevronDown
+  Facebook, MapPinCheck, Heart, Filter, ChevronDown, ExternalLink,
+  Sparkles, BadgePercent, ThumbsUp, Phone
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const categoryIcons = {
-  solar_panel: <Sun className="w-5 h-5" />,
-  inverter: <Zap className="w-5 h-5" />,
-  battery: <Battery className="w-5 h-5" />,
-  wire: <Cable className="w-5 h-5" />,
-  accessory: <Settings className="w-5 h-5" />,
-  service: <Wrench className="w-5 h-5" />
+  solar_panel: <Sun className="w-4 h-4" />,
+  inverter: <Zap className="w-4 h-4" />,
+  battery: <Battery className="w-4 h-4" />,
+  wire: <Cable className="w-4 h-4" />,
+  accessory: <Settings className="w-4 h-4" />,
+  service: <Wrench className="w-4 h-4" />
 };
 
 const SORT_OPTIONS = [
+  { id: "relevance", label: "Relevance" },
   { id: "newest", label: "Newest First" },
-  { id: "price_low", label: "Price: Low to High" },
-  { id: "price_high", label: "Price: High to Low" },
-  { id: "name_az", label: "Name: A to Z" }
+  { id: "price_low", label: "Price -- Low to High" },
+  { id: "price_high", label: "Price -- High to Low" },
+  { id: "name_az", label: "Name A-Z" }
 ];
 
 export const ShopPage = () => {
@@ -39,11 +41,18 @@ export const ShopPage = () => {
   const [orderSuccess, setOrderSuccess] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState("relevance");
   const [showShareMenu, setShowShareMenu] = useState(null);
   const [pincodeCheck, setPincodeCheck] = useState({ pincode: "", result: null, loading: false });
+  const [productPincode, setProductPincode] = useState({ pincode: "", result: null, loading: false });
   const [placingOrder, setPlacingOrder] = useState(false);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [addedToCart, setAddedToCart] = useState(null);
+  const [wishlist, setWishlist] = useState([]);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [biharDistricts, setBiharDistricts] = useState({ districts: [], delivery_fees: {} });
+  
+  const searchRef = useRef(null);
   
   const [checkoutData, setCheckoutData] = useState({
     customer_name: "",
@@ -51,28 +60,25 @@ export const ShopPage = () => {
     customer_email: "",
     delivery_type: "pickup",
     delivery_address: "",
-    delivery_distance: "0-5",
-    delivery_pincode: "",
+    delivery_district: "Patna",
     payment_method: "cod",
     notes: ""
   });
 
-  const DELIVERY_FEES = {
-    "0-5": 50, "5-10": 100, "10-20": 150, "20-30": 200, "30+": 300
-  };
-
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchBiharDistricts();
     const savedCart = localStorage.getItem("asr_cart");
     if (savedCart) setCart(JSON.parse(savedCart));
     const viewed = localStorage.getItem("asr_recently_viewed");
     if (viewed) setRecentlyViewed(JSON.parse(viewed));
+    const saved_wishlist = localStorage.getItem("asr_wishlist");
+    if (saved_wishlist) setWishlist(JSON.parse(saved_wishlist));
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("asr_cart", JSON.stringify(cart));
-  }, [cart]);
+  useEffect(() => { localStorage.setItem("asr_cart", JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem("asr_wishlist", JSON.stringify(wishlist)); }, [wishlist]);
 
   const fetchProducts = async (category = null) => {
     try {
@@ -80,40 +86,30 @@ export const ShopPage = () => {
       const url = category ? `${API}/shop/products?category=${category}` : `${API}/shop/products`;
       const res = await axios.get(url);
       setProducts(res.data);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error("Error fetching products:", err); }
+    finally { setLoading(false); }
   };
 
   const fetchCategories = async () => {
-    try {
-      const res = await axios.get(`${API}/shop/categories`);
-      setCategories(res.data);
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-    }
+    try { const res = await axios.get(`${API}/shop/categories`); setCategories(res.data); }
+    catch (err) { console.error(err); }
+  };
+
+  const fetchBiharDistricts = async () => {
+    try { const res = await axios.get(`${API}/shop/bihar-districts`); setBiharDistricts(res.data); }
+    catch (err) { console.error(err); }
   };
 
   const addToCart = (product, qty = 1) => {
     setCart(prev => {
       const existing = prev.find(item => item.product_id === product.id);
       if (existing) {
-        return prev.map(item => 
-          item.product_id === product.id 
-            ? { ...item, quantity: item.quantity + qty }
-            : item
-        );
+        return prev.map(item => item.product_id === product.id ? { ...item, quantity: item.quantity + qty } : item);
       }
-      return [...prev, {
-        product_id: product.id,
-        product_name: product.name,
-        price: product.sale_price || product.price,
-        quantity: qty,
-        image: product.images?.[0] || ""
-      }];
+      return [...prev, { product_id: product.id, product_name: product.name, price: product.sale_price || product.price, quantity: qty, image: product.images?.[0] || "" }];
     });
+    setAddedToCart(product.id);
+    setTimeout(() => setAddedToCart(null), 2000);
   };
 
   const updateCartQuantity = (productId, delta) => {
@@ -126,14 +122,16 @@ export const ShopPage = () => {
     }).filter(item => item.quantity > 0));
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prev => prev.filter(item => item.product_id !== productId));
+  const removeFromCart = (productId) => { setCart(prev => prev.filter(item => item.product_id !== productId)); };
+
+  const toggleWishlist = (productId) => {
+    setWishlist(prev => prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]);
   };
 
   const openProductDetail = (product) => {
     setSelectedProduct(product);
     setActiveImageIndex(0);
-    // Track recently viewed
+    setProductPincode({ pincode: "", result: null, loading: false });
     setRecentlyViewed(prev => {
       const filtered = prev.filter(p => p.id !== product.id);
       const updated = [product, ...filtered].slice(0, 8);
@@ -142,75 +140,54 @@ export const ShopPage = () => {
     });
   };
 
-  const closeProductDetail = () => {
-    setSelectedProduct(null);
-    setActiveImageIndex(0);
-  };
-
   const getCategoryName = (categoryId) => {
     const cat = categories.find(c => c.id === categoryId);
     return cat ? cat.name : categoryId;
   };
 
-  // Pincode delivery check
   const checkPincode = async () => {
     if (!pincodeCheck.pincode || pincodeCheck.pincode.length !== 6) return;
     setPincodeCheck(p => ({ ...p, loading: true }));
     try {
       const res = await axios.get(`${API}/shop/check-delivery/${pincodeCheck.pincode}`);
       setPincodeCheck(p => ({ ...p, result: res.data, loading: false }));
-    } catch {
-      setPincodeCheck(p => ({ ...p, result: { deliverable: false, note: "Unable to check. Try again." }, loading: false }));
-    }
+    } catch { setPincodeCheck(p => ({ ...p, result: { deliverable: false, note: "Unable to check." }, loading: false })); }
   };
 
-  // Share product
+  const checkProductPincode = async (productId) => {
+    if (!productPincode.pincode || productPincode.pincode.length !== 6) return;
+    setProductPincode(p => ({ ...p, loading: true }));
+    try {
+      const res = await axios.get(`${API}/shop/products/${productId}/check-delivery/${productPincode.pincode}`);
+      setProductPincode(p => ({ ...p, result: res.data, loading: false }));
+    } catch { setProductPincode(p => ({ ...p, result: { deliverable: false, note: "Unable to check." }, loading: false })); }
+  };
+
   const shareProduct = (product, platform) => {
     const url = `${window.location.origin}/shop`;
-    const text = `Check out ${product.name} - ₹${(product.sale_price || product.price).toLocaleString()} at ASR Enterprises Solar Shop!`;
-    const imageUrl = product.images?.[0] || "";
-    
+    const text = `Check out ${product.name} - ₹${(product.sale_price || product.price).toLocaleString()} at ASR Enterprises!`;
     const shareUrls = {
-      whatsapp: `https://wa.me/?text=${encodeURIComponent(text + "\n" + url + (imageUrl ? "\n" + imageUrl : ""))}`,
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(text + "\n" + url)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`,
-      email: `mailto:?subject=${encodeURIComponent(`${product.name} - ASR Solar Shop`)}&body=${encodeURIComponent(text + "\n\n" + url)}`,
-      copy: null
+      email: `mailto:?subject=${encodeURIComponent(product.name)}&body=${encodeURIComponent(text + "\n\n" + url)}`,
     };
-
-    if (platform === "copy") {
-      navigator.clipboard.writeText(text + "\n" + url);
-      alert("Link copied to clipboard!");
-    } else {
-      window.open(shareUrls[platform], "_blank");
-    }
+    if (platform === "copy") { navigator.clipboard.writeText(text + "\n" + url); alert("Link copied!"); }
+    else { window.open(shareUrls[platform], "_blank"); }
     setShowShareMenu(null);
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const deliveryCharge = checkoutData.delivery_type === "delivery" ? DELIVERY_FEES[checkoutData.delivery_distance] : 0;
-  const grandTotal = cartTotal + deliveryCharge;
+  const deliveryFee = checkoutData.delivery_type === "delivery" 
+    ? (biharDistricts.delivery_fees[checkoutData.delivery_district] || 200) 
+    : 0;
+  const grandTotal = cartTotal + deliveryFee;
 
   const handleCheckout = async () => {
-    if (!checkoutData.customer_name || !checkoutData.customer_phone) {
-      alert("Please fill in your name and phone number");
-      return;
-    }
-    if (checkoutData.delivery_type === "delivery" && !checkoutData.delivery_address) {
-      alert("Please enter delivery address");
-      return;
-    }
+    if (!checkoutData.customer_name || !checkoutData.customer_phone) { alert("Please fill name and phone"); return; }
+    if (checkoutData.delivery_type === "delivery" && !checkoutData.delivery_address) { alert("Please enter delivery address"); return; }
     setPlacingOrder(true);
-
     try {
-      const orderData = {
-        ...checkoutData,
-        items: cart,
-        subtotal: cartTotal,
-        delivery_charge: deliveryCharge,
-        total: grandTotal,
-        delivery_district: "Patna"
-      };
-
+      const orderData = { ...checkoutData, items: cart, subtotal: cartTotal, delivery_charge: deliveryFee, total: grandTotal };
       const res = await axios.post(`${API}/shop/orders`, orderData);
       const orderId = res.data.order?.id;
       const orderNumber = res.data.order_number;
@@ -218,634 +195,499 @@ export const ShopPage = () => {
       if (checkoutData.payment_method === "razorpay") {
         try {
           const configRes = await axios.get(`${API}/shop/razorpay-config`);
-          const razorpayKeyId = configRes.data.key_id;
-          
-          if (!razorpayKeyId || !window.Razorpay) {
-            alert("Payment gateway is not available. Please try again.");
-            setPlacingOrder(false);
-            return;
-          }
-
+          if (!configRes.data.key_id || !window.Razorpay) { alert("Payment gateway unavailable."); setPlacingOrder(false); return; }
           const options = {
-            key: razorpayKeyId,
-            amount: Math.round(grandTotal * 100),
-            currency: "INR",
-            name: "ASR Enterprises",
-            description: `Order #${orderNumber}`,
+            key: configRes.data.key_id, amount: Math.round(grandTotal * 100), currency: "INR",
+            name: "ASR Enterprises", description: `Order #${orderNumber}`,
             handler: async function (response) {
-              // Payment SUCCESS
-              try {
-                await axios.post(`${API}/shop/orders/${orderId}/payment-verify`, {
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_order_id: response.razorpay_order_id || "",
-                  razorpay_signature: response.razorpay_signature || ""
-                });
-              } catch (verifyErr) {
-                console.error("Payment verification error:", verifyErr);
-              }
-              // Show success only after payment
-              setOrderSuccess({ ...res.data, payment_completed: true });
-              setCart([]);
-              localStorage.removeItem("asr_cart");
-              setShowCheckout(false);
-              setPlacingOrder(false);
+              try { await axios.post(`${API}/shop/orders/${orderId}/payment-verify`, { razorpay_payment_id: response.razorpay_payment_id, razorpay_order_id: response.razorpay_order_id || "", razorpay_signature: response.razorpay_signature || "" }); } catch (e) { console.error(e); }
+              setOrderSuccess({ ...res.data, payment_completed: true }); setCart([]); localStorage.removeItem("asr_cart"); setShowCheckout(false); setPlacingOrder(false);
             },
-            modal: {
-              ondismiss: function() {
-                // Payment cancelled/dismissed - mark as failed
-                axios.put(`${API}/shop/orders/${orderId}/status`, { 
-                  order_status: "cancelled", 
-                  payment_status: "failed" 
-                }).catch(() => {});
-                setPlacingOrder(false);
-                alert("Payment was cancelled. Your order has been cancelled.");
-              }
-            },
-            prefill: {
-              name: checkoutData.customer_name,
-              contact: checkoutData.customer_phone,
-              email: checkoutData.customer_email || ""
-            },
-            theme: { color: "#f59e0b" },
-            notes: { order_number: orderNumber, order_id: orderId || "" }
+            modal: { ondismiss: () => { axios.put(`${API}/shop/orders/${orderId}/status`, { order_status: "cancelled", payment_status: "failed" }).catch(() => {}); setPlacingOrder(false); alert("Payment cancelled."); } },
+            prefill: { name: checkoutData.customer_name, contact: checkoutData.customer_phone, email: checkoutData.customer_email || "" },
+            theme: { color: "#f59e0b" }
           };
-
           const rzp = new window.Razorpay(options);
-          rzp.on("payment.failed", function() {
-            axios.put(`${API}/shop/orders/${orderId}/status`, { 
-              order_status: "cancelled", 
-              payment_status: "failed" 
-            }).catch(() => {});
-            setPlacingOrder(false);
-            alert("Payment failed. Please try again.");
-          });
-          rzp.open();
-          // Don't show success yet - wait for handler
-          return;
-        } catch (rzpErr) {
-          console.error("Razorpay error:", rzpErr);
-          setPlacingOrder(false);
-          return;
-        }
+          rzp.on("payment.failed", () => { axios.put(`${API}/shop/orders/${orderId}/status`, { order_status: "cancelled", payment_status: "failed" }).catch(() => {}); setPlacingOrder(false); alert("Payment failed."); });
+          rzp.open(); return;
+        } catch { setPlacingOrder(false); return; }
       }
-
-      // COD - show success immediately
-      setOrderSuccess(res.data);
-      setCart([]);
-      localStorage.removeItem("asr_cart");
-      setShowCheckout(false);
-      setPlacingOrder(false);
-    } catch (err) {
-      console.error("Order error:", err);
-      alert("Failed to place order. Please try again.");
-      setPlacingOrder(false);
-    }
+      setOrderSuccess(res.data); setCart([]); localStorage.removeItem("asr_cart"); setShowCheckout(false); setPlacingOrder(false);
+    } catch (err) { console.error(err); alert("Failed to place order."); setPlacingOrder(false); }
   };
 
-  // Sort and filter products
   const sortedProducts = [...products]
-    .filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description?.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
       switch (sortBy) {
         case "price_low": return (a.sale_price || a.price) - (b.sale_price || b.price);
         case "price_high": return (b.sale_price || b.price) - (a.sale_price || a.price);
         case "name_az": return a.name.localeCompare(b.name);
+        case "newest": return -1;
         default: return 0;
       }
     });
 
-  // Related products for detail modal
-  const relatedProducts = selectedProduct 
-    ? products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 4) 
-    : [];
+  const relatedProducts = selectedProduct ? products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 4) : [];
+  const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
-      {/* Header */}
-      <div className="bg-[#0a1628]/90 backdrop-blur-sm border-b border-gray-800 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="inline-flex items-center text-amber-400 hover:text-amber-300 transition">
-              <ChevronRight className="w-5 h-5 rotate-180 mr-1" />
-              <span>Back to Home</span>
+    <div className="min-h-screen bg-[#f1f3f6]" style={{ fontFamily: "'Segoe UI', Roboto, Arial, sans-serif" }}>
+      
+      {/* === TOP HEADER BAR === */}
+      <header className="bg-[#1a2332] sticky top-0 z-50 shadow-lg">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6">
+          <div className="flex items-center h-14 gap-3">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
+              <Sun className="w-6 h-6 text-amber-400" />
+              <span className="text-white font-bold text-lg hidden sm:block">ASR Solar</span>
             </Link>
-            
-            <div className="flex items-center gap-3">
-              <Link to="/track-order" className="text-gray-300 hover:text-amber-400 transition text-sm flex items-center gap-1" data-testid="track-order-link">
+
+            {/* Search Bar */}
+            <div className="flex-1 max-w-2xl relative" ref={searchRef}>
+              <div className="flex items-center bg-white rounded-md overflow-hidden">
+                <input
+                  type="text"
+                  placeholder="Search for solar products, inverters, batteries..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 px-4 py-2.5 text-sm text-gray-800 outline-none placeholder-gray-400"
+                  data-testid="search-input"
+                />
+                <button className="bg-amber-500 px-4 py-2.5 hover:bg-amber-600 transition">
+                  <Search className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Nav Items */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <Link to="/track-order" className="text-white hover:text-amber-400 transition hidden sm:flex items-center gap-1 text-sm" data-testid="track-order-link">
                 <Package className="w-4 h-4" />
-                <span className="hidden sm:inline">Track Order</span>
+                <span>Track</span>
               </Link>
               <button 
                 onClick={() => setShowCart(true)}
-                className="relative bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition"
+                className="relative text-white hover:text-amber-400 transition flex items-center gap-1"
                 data-testid="cart-button"
               >
                 <ShoppingCart className="w-5 h-5" />
-                <span>Cart</span>
-                {cart.length > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
-                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                  </span>
+                <span className="text-sm hidden sm:block">Cart</span>
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">{cartItemCount}</span>
                 )}
               </button>
             </div>
           </div>
         </div>
+        {/* Category Strip */}
+        <div className="bg-[#0f1824] border-t border-gray-700/50">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-6 overflow-x-auto">
+            <div className="flex items-center gap-1 py-1.5">
+              <button onClick={() => { setSelectedCategory(null); fetchProducts(); }}
+                className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition ${!selectedCategory ? 'bg-amber-500 text-white' : 'text-gray-300 hover:text-white'}`}
+                data-testid="category-all"
+              >All</button>
+              {categories.map(cat => (
+                <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); fetchProducts(cat.id); }}
+                  className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap flex items-center gap-1 transition ${selectedCategory === cat.id ? 'bg-amber-500 text-white' : 'text-gray-300 hover:text-white'}`}
+                  data-testid={`category-${cat.id}`}
+                >{categoryIcons[cat.id]}<span>{cat.name}</span></button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* === PROMO BANNER === */}
+      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 py-2">
+        <div className="max-w-[1400px] mx-auto px-4 flex items-center justify-center gap-4 text-white text-xs sm:text-sm">
+          <span className="flex items-center gap-1"><Truck className="w-4 h-4" /> Free Pickup from Store</span>
+          <span className="hidden sm:block">|</span>
+          <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> Quality Guaranteed</span>
+          <span className="hidden sm:block">|</span>
+          <span className="hidden sm:flex items-center gap-1"><CreditCard className="w-4 h-4" /> Secure Payments</span>
+          <span className="hidden md:block">|</span>
+          <span className="hidden md:flex items-center gap-1"><Phone className="w-4 h-4" /> 8877896889</span>
+        </div>
       </div>
 
-      {/* Hero */}
-      <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
-            ASR <span className="text-amber-400">Solar Shop</span>
-          </h1>
-          <p className="text-gray-300 text-lg max-w-2xl mx-auto mb-4">
-            Quality solar products delivered across Bihar
-          </p>
-          
-          {/* Pincode Delivery Check */}
-          <div className="max-w-md mx-auto">
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <MapPinCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* === DELIVERY CHECKER STRIP === */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <MapPin className="w-4 h-4 text-amber-600" />
+              <span className="text-sm text-gray-600">Deliver to</span>
+              <div className="flex items-center gap-2">
                 <input
-                  type="text"
-                  placeholder="Enter pincode to check delivery"
-                  maxLength={6}
+                  type="text" maxLength={6} placeholder="Enter Pincode"
                   value={pincodeCheck.pincode}
                   onChange={(e) => setPincodeCheck({ pincode: e.target.value.replace(/\D/g, ""), result: null, loading: false })}
                   onKeyDown={(e) => e.key === "Enter" && checkPincode()}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-800/70 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-sm focus:border-amber-500 focus:outline-none"
+                  className="w-28 px-3 py-1.5 border border-gray-300 rounded text-sm focus:border-amber-500 focus:outline-none"
                   data-testid="pincode-input"
                 />
+                <button onClick={checkPincode} disabled={pincodeCheck.loading || pincodeCheck.pincode.length !== 6}
+                  className="text-amber-600 hover:text-amber-700 font-semibold text-sm disabled:text-gray-400"
+                  data-testid="check-pincode-btn"
+                >{pincodeCheck.loading ? "..." : "Check"}</button>
               </div>
-              <button
-                onClick={checkPincode}
-                disabled={pincodeCheck.loading || pincodeCheck.pincode.length !== 6}
-                className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
-                data-testid="check-pincode-btn"
-              >
-                {pincodeCheck.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Check"}
-              </button>
+              {pincodeCheck.result && (
+                <span className={`text-xs ${pincodeCheck.result.deliverable ? "text-green-600" : "text-red-500"}`} data-testid="pincode-result">
+                  {pincodeCheck.result.deliverable ? `Delivery to ${pincodeCheck.result.district} (${pincodeCheck.result.estimated_days} days)` : (pincodeCheck.result.note || "Not available")}
+                </span>
+              )}
             </div>
-            {pincodeCheck.result && (
-              <div className={`mt-2 text-sm px-3 py-2 rounded-lg ${pincodeCheck.result.deliverable ? "bg-green-900/40 text-green-300" : "bg-red-900/40 text-red-300"}`} data-testid="pincode-result">
-                {pincodeCheck.result.deliverable ? (
-                  <span>Delivery available to <strong>{pincodeCheck.result.district}</strong> ({pincodeCheck.result.estimated_days} days) {pincodeCheck.result.note || ""}</span>
-                ) : (
-                  <span>{pincodeCheck.result.note || "Delivery not available for this pincode"}</span>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <span>{sortedProducts.length} Products</span>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:border-amber-500 focus:outline-none bg-white cursor-pointer"
+                data-testid="sort-select"
+              >
+                {SORT_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search, Filter & Sort */}
-        <div className="flex flex-col gap-4 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none"
-                data-testid="search-input"
-              />
-            </div>
-            {/* Sort */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none bg-gray-800/50 border border-gray-700 text-white px-4 py-3 pr-10 rounded-xl focus:border-amber-500 focus:outline-none cursor-pointer"
-                data-testid="sort-select"
-              >
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.id} value={opt.id}>{opt.label}</option>
-                ))}
-              </select>
-              <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-          </div>
-          
-          {/* Category Filter */}
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <button
-              onClick={() => { setSelectedCategory(null); fetchProducts(); }}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition ${!selectedCategory ? 'bg-amber-500 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
-              data-testid="category-all"
-            >All</button>
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => { setSelectedCategory(cat.id); fetchProducts(cat.id); }}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap flex items-center space-x-2 transition ${selectedCategory === cat.id ? 'bg-amber-500 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700'}`}
-                data-testid={`category-${cat.id}`}
-              >
-                {categoryIcons[cat.id]}
-                <span>{cat.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Products Count */}
-        <p className="text-gray-400 text-sm mb-4">{sortedProducts.length} product{sortedProducts.length !== 1 ? "s" : ""} found</p>
-
-        {/* Products Grid */}
+      {/* === MAIN CONTENT === */}
+      <div className="max-w-[1400px] mx-auto px-3 sm:px-6 py-4">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
-          </div>
+          <div className="flex items-center justify-center py-32"><Loader2 className="w-10 h-10 text-amber-500 animate-spin" /></div>
         ) : sortedProducts.length === 0 ? (
-          <div className="text-center py-20">
-            <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl text-gray-400">No products found</h3>
+          <div className="flex flex-col items-center justify-center py-32 bg-white rounded-lg shadow-sm">
+            <Package className="w-20 h-20 text-gray-300 mb-4" />
+            <h3 className="text-xl text-gray-500 font-medium">No products found</h3>
+            <p className="text-gray-400 text-sm mt-1">Try a different search or category</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {sortedProducts.map(product => (
-              <div key={product.id} className="bg-gray-800/50 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-amber-500/50 transition group relative" data-testid={`product-card-${product.id}`}>
-                {/* Share Button */}
-                <div className="absolute top-2 right-2 z-10">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setShowShareMenu(showShareMenu === product.id ? null : product.id); }}
-                    className="bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white p-2 rounded-full transition"
-                    data-testid={`share-btn-${product.id}`}
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                  {showShareMenu === product.id && (
-                    <div className="absolute right-0 top-10 bg-gray-800 border border-gray-600 rounded-xl p-2 shadow-xl min-w-[140px] z-20">
-                      <button onClick={() => shareProduct(product, "whatsapp")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-lg">
-                        <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
-                        WhatsApp
-                      </button>
-                      <button onClick={() => shareProduct(product, "facebook")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-lg">
-                        <Facebook className="w-4 h-4 text-blue-400" />
-                        Facebook
-                      </button>
-                      <button onClick={() => shareProduct(product, "email")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-lg">
-                        <Mail className="w-4 h-4 text-red-400" />
-                        Email
-                      </button>
-                      <button onClick={() => shareProduct(product, "copy")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-lg">
-                        <Copy className="w-4 h-4 text-gray-400" />
-                        Copy Link
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Product Image */}
-                <div 
-                  className="aspect-square bg-gray-900 relative overflow-hidden cursor-pointer"
-                  onClick={() => openProductDetail(product)}
-                  data-testid={`product-image-${product.id}`}
-                >
-                  {product.images?.[0] ? (
-                    <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Sun className="w-20 h-20 text-gray-700" /></div>
-                  )}
-                  {product.is_featured && <span className="absolute top-2 left-2 bg-amber-500 text-white text-xs px-2 py-1 rounded">Featured</span>}
-                  {product.sale_price && <span className="absolute top-10 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded">{Math.round((1 - product.sale_price / product.price) * 100)}% OFF</span>}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                    <span className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                      <Eye className="w-4 h-4" /><span>View Details</span>
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Product Info */}
-                <div className="p-3 md:p-4">
-                  <h3 className="text-white font-semibold text-sm md:text-base mb-1 line-clamp-2 cursor-pointer hover:text-amber-400 transition" onClick={() => openProductDetail(product)}>
-                    {product.name}
-                  </h3>
-                  {product.brand && <p className="text-gray-400 text-xs mb-1">{product.brand}</p>}
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {sortedProducts.map(product => {
+              const discount = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
+              const isInCart = cart.some(item => item.product_id === product.id);
+              const isWished = wishlist.includes(product.id);
+              return (
+                <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group relative border border-gray-100" data-testid={`product-card-${product.id}`}>
+                  {/* Badges */}
+                  {discount > 0 && <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">{discount}% OFF</div>}
                   
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      {product.sale_price ? (
-                        <div className="flex items-center space-x-1">
-                          <span className="text-lg md:text-xl font-bold text-amber-400">₹{product.sale_price.toLocaleString()}</span>
-                          <span className="text-gray-500 line-through text-xs">₹{product.price.toLocaleString()}</span>
+                  {/* Wishlist + Share */}
+                  <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                      className="bg-white shadow-md p-1.5 rounded-full hover:bg-gray-50 transition"
+                      data-testid={`wishlist-btn-${product.id}`}
+                    ><Heart className={`w-4 h-4 ${isWished ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} /></button>
+                    <div className="relative">
+                      <button onClick={(e) => { e.stopPropagation(); setShowShareMenu(showShareMenu === product.id ? null : product.id); }}
+                        className="bg-white shadow-md p-1.5 rounded-full hover:bg-gray-50 transition" data-testid={`share-btn-${product.id}`}
+                      ><Share2 className="w-4 h-4 text-gray-400" /></button>
+                      {showShareMenu === product.id && (
+                        <div className="absolute right-0 top-8 bg-white border shadow-xl rounded-lg p-1 min-w-[130px] z-30">
+                          {[["whatsapp","WhatsApp","text-green-600"],["facebook","Facebook","text-blue-600"],["email","Email","text-red-500"],["copy","Copy Link","text-gray-600"]].map(([key,label,color]) => (
+                            <button key={key} onClick={() => shareProduct(product, key)} className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-50 rounded ${color}`}>{label}</button>
+                          ))}
                         </div>
-                      ) : (
-                        <span className="text-lg md:text-xl font-bold text-amber-400">₹{product.price.toLocaleString()}</span>
                       )}
-                      {product.category === "wire" && <span className="text-gray-500 text-xs">/meter</span>}
                     </div>
-                    {product.stock > 0 ? (
-                      <span className="text-green-400 text-xs">In Stock</span>
+                  </div>
+
+                  {/* Product Image */}
+                  <div className="aspect-square bg-white p-4 relative cursor-pointer overflow-hidden" onClick={() => openProductDetail(product)} data-testid={`product-image-${product.id}`}>
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     ) : (
-                      <span className="text-red-400 text-xs">Out of Stock</span>
+                      <div className="w-full h-full flex items-center justify-center"><Sun className="w-16 h-16 text-gray-200" /></div>
                     )}
                   </div>
-                  
-                  <button
-                    onClick={() => addToCart(product)}
-                    disabled={product.stock === 0}
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-2.5 rounded-xl font-semibold flex items-center justify-center space-x-2 transition text-sm"
-                    data-testid={`add-to-cart-${product.id}`}
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Add to Cart</span>
-                  </button>
+
+                  {/* Product Info */}
+                  <div className="p-3 border-t border-gray-50">
+                    {product.brand && <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-0.5">{product.brand}</p>}
+                    <h3 className="text-gray-800 font-medium text-sm line-clamp-2 mb-1.5 cursor-pointer hover:text-amber-600 transition leading-snug" onClick={() => openProductDetail(product)}>
+                      {product.name}
+                    </h3>
+                    
+                    {/* Price */}
+                    <div className="mb-2">
+                      {product.sale_price ? (
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-lg font-bold text-gray-900">₹{product.sale_price.toLocaleString()}</span>
+                          <span className="text-xs text-gray-400 line-through">₹{product.price.toLocaleString()}</span>
+                          <span className="text-xs text-green-600 font-semibold">{discount}% off</span>
+                        </div>
+                      ) : (
+                        <span className="text-lg font-bold text-gray-900">₹{product.price.toLocaleString()}</span>
+                      )}
+                      {product.category === "wire" && <span className="text-gray-400 text-[10px] ml-1">/meter</span>}
+                    </div>
+
+                    {/* Delivery Info */}
+                    <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-2">
+                      <Truck className="w-3 h-3" />
+                      <span>Delivery across Bihar</span>
+                    </div>
+
+                    {/* Stock */}
+                    {product.stock <= 5 && product.stock > 0 && <p className="text-red-500 text-[10px] font-semibold mb-1">Only {product.stock} left!</p>}
+
+                    {/* Add to Cart */}
+                    {isInCart ? (
+                      <div className="flex items-center justify-between bg-amber-50 rounded-lg px-2 py-1.5">
+                        <button onClick={() => updateCartQuantity(product.id, -1)} className="w-7 h-7 bg-white border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50"><Minus className="w-3 h-3" /></button>
+                        <span className="text-sm font-semibold text-gray-800">{cart.find(i => i.product_id === product.id)?.quantity}</span>
+                        <button onClick={() => updateCartQuantity(product.id, 1)} className="w-7 h-7 bg-white border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50"><Plus className="w-3 h-3" /></button>
+                      </div>
+                    ) : (
+                      <button onClick={() => addToCart(product)} disabled={product.stock === 0}
+                        className={`w-full py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-1.5 ${product.stock === 0 ? 'bg-gray-100 text-gray-400' : addedToCart === product.id ? 'bg-green-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+                        data-testid={`add-to-cart-${product.id}`}
+                      >
+                        {addedToCart === product.id ? <><CheckCircle className="w-4 h-4" /> Added</> : product.stock === 0 ? 'Out of Stock' : <><ShoppingCart className="w-4 h-4" /> Add to Cart</>}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* Recently Viewed */}
         {recentlyViewed.length > 0 && !selectedProduct && (
-          <div className="mt-12">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-gray-400" /> Recently Viewed
-            </h2>
-            <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="mt-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-gray-400" /> Recently Viewed</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {recentlyViewed.map(product => (
-                <div key={product.id} className="flex-shrink-0 w-40 bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 cursor-pointer hover:border-amber-500/50 transition" onClick={() => openProductDetail(product)}>
-                  <div className="aspect-square bg-gray-900">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center"><Sun className="w-10 h-10 text-gray-700" /></div>
-                    )}
-                  </div>
-                  <div className="p-2">
-                    <p className="text-white text-xs line-clamp-2">{product.name}</p>
-                    <p className="text-amber-400 font-semibold text-sm">₹{(product.sale_price || product.price).toLocaleString()}</p>
+                <div key={product.id} className="flex-shrink-0 w-36 bg-white rounded-lg border border-gray-100 cursor-pointer hover:shadow-md transition overflow-hidden" onClick={() => openProductDetail(product)}>
+                  <div className="aspect-square p-2">{product.images?.[0] ? <img src={product.images[0]} alt="" className="w-full h-full object-contain" /> : <div className="w-full h-full flex items-center justify-center"><Sun className="w-8 h-8 text-gray-200" /></div>}</div>
+                  <div className="p-2 border-t border-gray-50">
+                    <p className="text-gray-700 text-xs line-clamp-1">{product.name}</p>
+                    <p className="text-gray-900 font-bold text-sm">₹{(product.sale_price || product.price).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Trust Badges */}
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { icon: <Shield className="w-6 h-6 text-blue-500" />, title: "Genuine Products", sub: "100% authentic solar equipment" },
+            { icon: <Truck className="w-6 h-6 text-green-500" />, title: "Bihar Delivery", sub: "All districts covered" },
+            { icon: <CreditCard className="w-6 h-6 text-purple-500" />, title: "Secure Payment", sub: "UPI, Card, NetBanking" },
+            { icon: <ThumbsUp className="w-6 h-6 text-amber-500" />, title: "Expert Support", sub: "MNRE registered vendor" }
+          ].map((badge, i) => (
+            <div key={i} className="bg-white rounded-lg shadow-sm p-4 flex items-center gap-3 border border-gray-100">
+              <div className="flex-shrink-0">{badge.icon}</div>
+              <div><p className="text-gray-800 font-semibold text-sm">{badge.title}</p><p className="text-gray-400 text-xs">{badge.sub}</p></div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Cart Sidebar */}
+      {/* === CART SIDEBAR === */}
       {showCart && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowCart(false)} />
-          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-[#0d1b33] shadow-2xl overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Shopping Cart</h2>
-                <button onClick={() => setShowCart(false)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
-              </div>
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCart(false)} />
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between bg-[#1a2332]">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2"><ShoppingCart className="w-5 h-5" /> Cart ({cartItemCount})</h2>
+              <button onClick={() => setShowCart(false)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
               {cart.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingCart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400">Your cart is empty</p>
-                </div>
+                <div className="text-center py-16"><ShoppingCart className="w-16 h-16 text-gray-200 mx-auto mb-4" /><p className="text-gray-400">Your cart is empty</p></div>
               ) : (
-                <>
-                  <div className="space-y-4 mb-6">
-                    {cart.map(item => (
-                      <div key={item.product_id} className="bg-gray-800/50 rounded-xl p-4 flex items-center space-x-4">
-                        {item.image ? (
-                          <img src={item.image} alt={item.product_name} className="w-16 h-16 rounded-lg object-cover" />
-                        ) : (
-                          <div className="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center"><Sun className="w-8 h-8 text-gray-500" /></div>
-                        )}
-                        <div className="flex-1">
-                          <h4 className="text-white font-medium line-clamp-1 text-sm">{item.product_name}</h4>
-                          <p className="text-amber-400 font-semibold">₹{item.price.toLocaleString()}</p>
+                <div className="space-y-3">
+                  {cart.map(item => (
+                    <div key={item.product_id} className="bg-gray-50 rounded-lg p-3 flex gap-3">
+                      {item.image ? <img src={item.image} alt="" className="w-16 h-16 rounded object-cover border" /> : <div className="w-16 h-16 bg-gray-200 rounded flex items-center justify-center"><Sun className="w-8 h-8 text-gray-300" /></div>}
+                      <div className="flex-1">
+                        <h4 className="text-gray-800 font-medium text-sm line-clamp-1">{item.product_name}</h4>
+                        <p className="text-gray-900 font-bold">₹{item.price.toLocaleString()}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <button onClick={() => updateCartQuantity(item.product_id, -1)} className="w-6 h-6 bg-white border rounded flex items-center justify-center"><Minus className="w-3 h-3" /></button>
+                          <span className="text-sm font-medium">{item.quantity}</span>
+                          <button onClick={() => updateCartQuantity(item.product_id, 1)} className="w-6 h-6 bg-white border rounded flex items-center justify-center"><Plus className="w-3 h-3" /></button>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <button onClick={() => updateCartQuantity(item.product_id, -1)} className="w-7 h-7 bg-gray-700 rounded-lg flex items-center justify-center text-white hover:bg-gray-600"><Minus className="w-3 h-3" /></button>
-                          <span className="text-white w-6 text-center text-sm">{item.quantity}</span>
-                          <button onClick={() => updateCartQuantity(item.product_id, 1)} className="w-7 h-7 bg-gray-700 rounded-lg flex items-center justify-center text-white hover:bg-gray-600"><Plus className="w-3 h-3" /></button>
-                        </div>
-                        <button onClick={() => removeFromCart(item.product_id)} className="text-red-400 hover:text-red-300"><X className="w-5 h-5" /></button>
                       </div>
-                    ))}
-                  </div>
-                  <div className="border-t border-gray-700 pt-4">
-                    <div className="flex justify-between text-gray-300 mb-2">
-                      <span>Subtotal ({cart.reduce((s, i) => s + i.quantity, 0)} items)</span>
-                      <span>₹{cartTotal.toLocaleString()}</span>
+                      <div className="flex flex-col items-end justify-between">
+                        <button onClick={() => removeFromCart(item.product_id)} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                        <span className="text-gray-900 font-bold text-sm">₹{(item.price * item.quantity).toLocaleString()}</span>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => { setShowCart(false); setShowCheckout(true); }}
-                      className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition"
-                      data-testid="proceed-checkout-btn"
-                    >Proceed to Checkout</button>
-                  </div>
-                </>
+                  ))}
+                </div>
               )}
             </div>
+            {cart.length > 0 && (
+              <div className="border-t p-4 bg-gray-50">
+                <div className="flex justify-between text-gray-800 font-bold text-lg mb-3"><span>Total</span><span>₹{cartTotal.toLocaleString()}</span></div>
+                <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3.5 rounded-lg font-bold text-base transition shadow-lg shadow-amber-500/30"
+                  data-testid="proceed-checkout-btn"
+                >PLACE ORDER</button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Checkout Modal */}
+      {/* === CHECKOUT MODAL === */}
       {showCheckout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => !placingOrder && setShowCheckout(false)} />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Checkout</h2>
-                <button onClick={() => !placingOrder && setShowCheckout(false)} className="text-gray-400 hover:text-white"><X className="w-6 h-6" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => !placingOrder && setShowCheckout(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-[#1a2332] px-6 py-4 flex items-center justify-between rounded-t-xl">
+              <h2 className="text-lg font-bold text-white">Checkout</h2>
+              <button onClick={() => !placingOrder && setShowCheckout(false)} className="text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6 space-y-5">
+              {/* Customer */}
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Customer Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input type="text" placeholder="Full Name *" value={checkoutData.customer_name} onChange={(e) => setCheckoutData({...checkoutData, customer_name: e.target.value})} className="px-4 py-3 border border-gray-300 rounded-lg text-gray-800 text-sm focus:border-amber-500 focus:outline-none" data-testid="checkout-name" />
+                  <input type="tel" placeholder="Phone Number *" value={checkoutData.customer_phone} onChange={(e) => setCheckoutData({...checkoutData, customer_phone: e.target.value})} className="px-4 py-3 border border-gray-300 rounded-lg text-gray-800 text-sm focus:border-amber-500 focus:outline-none" data-testid="checkout-phone" />
+                  <input type="email" placeholder="Email (Optional)" value={checkoutData.customer_email} onChange={(e) => setCheckoutData({...checkoutData, customer_email: e.target.value})} className="sm:col-span-2 px-4 py-3 border border-gray-300 rounded-lg text-gray-800 text-sm focus:border-amber-500 focus:outline-none" />
+                </div>
               </div>
-
-              <div className="space-y-6">
-                {/* Customer Details */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">Customer Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" placeholder="Full Name *" value={checkoutData.customer_name} onChange={(e) => setCheckoutData({...checkoutData, customer_name: e.target.value})} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none" data-testid="checkout-name" />
-                    <input type="tel" placeholder="Phone Number *" value={checkoutData.customer_phone} onChange={(e) => setCheckoutData({...checkoutData, customer_phone: e.target.value})} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none" data-testid="checkout-phone" />
-                    <input type="email" placeholder="Email (Optional)" value={checkoutData.customer_email} onChange={(e) => setCheckoutData({...checkoutData, customer_email: e.target.value})} className="w-full md:col-span-2 px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none" />
-                  </div>
+              {/* Delivery */}
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Delivery</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setCheckoutData({...checkoutData, delivery_type: "pickup"})}
+                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.delivery_type === "pickup" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`}>
+                    <Store className="w-6 h-6 text-amber-600 mx-auto mb-1" />
+                    <p className="text-sm font-semibold text-gray-800">Store Pickup</p>
+                    <p className="text-xs text-green-600 font-semibold">FREE</p>
+                  </button>
+                  <button onClick={() => setCheckoutData({...checkoutData, delivery_type: "delivery"})}
+                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.delivery_type === "delivery" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`}>
+                    <Truck className="w-6 h-6 text-blue-500 mx-auto mb-1" />
+                    <p className="text-sm font-semibold text-gray-800">Home Delivery</p>
+                    <p className="text-xs text-gray-500">Bihar Only</p>
+                  </button>
                 </div>
-
-                {/* Delivery Options */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">Delivery Option</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setCheckoutData({...checkoutData, delivery_type: "pickup"})} className={`p-4 rounded-xl border-2 transition flex flex-col items-center space-y-2 ${checkoutData.delivery_type === "pickup" ? "border-amber-500 bg-amber-500/20" : "border-gray-700 hover:border-gray-600"}`}>
-                      <Store className="w-8 h-8 text-amber-400" />
-                      <span className="text-white font-semibold">Store Pickup</span>
-                      <span className="text-green-400 text-sm">FREE</span>
-                    </button>
-                    <button onClick={() => setCheckoutData({...checkoutData, delivery_type: "delivery"})} className={`p-4 rounded-xl border-2 transition flex flex-col items-center space-y-2 ${checkoutData.delivery_type === "delivery" ? "border-amber-500 bg-amber-500/20" : "border-gray-700 hover:border-gray-600"}`}>
-                      <Truck className="w-8 h-8 text-blue-400" />
-                      <span className="text-white font-semibold">Home Delivery</span>
-                      <span className="text-amber-400 text-sm">Bihar Only</span>
-                    </button>
+                {checkoutData.delivery_type === "delivery" && (
+                  <div className="mt-3 space-y-3">
+                    <select value={checkoutData.delivery_district} onChange={(e) => setCheckoutData({...checkoutData, delivery_district: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-800 focus:border-amber-500 focus:outline-none">
+                      {biharDistricts.districts.map(d => (
+                        <option key={d} value={d}>{d} - ₹{biharDistricts.delivery_fees[d] || 200} delivery</option>
+                      ))}
+                    </select>
+                    <textarea placeholder="Full Address *" value={checkoutData.delivery_address} onChange={(e) => setCheckoutData({...checkoutData, delivery_address: e.target.value})} rows={2} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-800 focus:border-amber-500 focus:outline-none" data-testid="checkout-address" />
                   </div>
-
-                  {checkoutData.delivery_type === "delivery" && (
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <label className="text-gray-300 text-sm mb-2 block">Distance from Store</label>
-                        <select value={checkoutData.delivery_distance} onChange={(e) => setCheckoutData({...checkoutData, delivery_distance: e.target.value})} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:border-amber-500 focus:outline-none">
-                          <option value="0-5">0-5 km - ₹50</option>
-                          <option value="5-10">5-10 km - ₹100</option>
-                          <option value="10-20">10-20 km - ₹150</option>
-                          <option value="20-30">20-30 km - ₹200</option>
-                          <option value="30+">30+ km - ₹300</option>
-                        </select>
-                      </div>
-                      <textarea placeholder="Full Delivery Address *" value={checkoutData.delivery_address} onChange={(e) => setCheckoutData({...checkoutData, delivery_address: e.target.value})} rows={3} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none" data-testid="checkout-address" />
-                    </div>
-                  )}
-
-                  {checkoutData.delivery_type === "pickup" && (
-                    <div className="mt-4 bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                      <p className="text-white font-medium mb-2">Pickup Address:</p>
-                      <p className="text-gray-300">Shop no 10, AMAN SKS COMPLEX</p>
-                      <p className="text-gray-300">Khagaul Saguna Road, Patna 801503</p>
-                      <p className="text-amber-400 text-sm mt-2">Open: 9 AM - 7 PM (Mon-Sat)</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Payment Method */}
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-4">Payment Method</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setCheckoutData({...checkoutData, payment_method: "cod"})} className={`p-4 rounded-xl border-2 transition flex flex-col items-center space-y-2 ${checkoutData.payment_method === "cod" ? "border-amber-500 bg-amber-500/20" : "border-gray-700 hover:border-gray-600"}`} data-testid="payment-cod">
-                      <Banknote className="w-8 h-8 text-green-400" />
-                      <span className="text-white font-semibold">Cash on {checkoutData.delivery_type === "pickup" ? "Store" : "Delivery"}</span>
-                    </button>
-                    <button onClick={() => setCheckoutData({...checkoutData, payment_method: "razorpay"})} className={`p-4 rounded-xl border-2 transition flex flex-col items-center space-y-2 ${checkoutData.payment_method === "razorpay" ? "border-amber-500 bg-amber-500/20" : "border-gray-700 hover:border-gray-600"}`} data-testid="payment-razorpay">
-                      <CreditCard className="w-8 h-8 text-blue-400" />
-                      <span className="text-white font-semibold">Pay Online</span>
-                      <span className="text-gray-400 text-xs">UPI / Card / NetBanking</span>
-                    </button>
+                )}
+                {checkoutData.delivery_type === "pickup" && (
+                  <div className="mt-3 bg-amber-50 rounded-lg p-3 border border-amber-200 text-sm">
+                    <p className="text-gray-800 font-medium">Shop no 10, AMAN SKS COMPLEX</p>
+                    <p className="text-gray-600">Khagaul Saguna Road, Patna 801503</p>
+                    <p className="text-amber-600 text-xs mt-1">Open: 9 AM - 7 PM (Mon-Sat)</p>
                   </div>
-                </div>
-
-                {/* Order Notes */}
-                <textarea placeholder="Order Notes (Optional)" value={checkoutData.notes} onChange={(e) => setCheckoutData({...checkoutData, notes: e.target.value})} rows={2} className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:border-amber-500 focus:outline-none" />
-
-                {/* Order Summary */}
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <h4 className="text-white font-semibold mb-3">Order Summary</h4>
-                  <div className="space-y-2 text-sm">
-                    {cart.map(item => (
-                      <div key={item.product_id} className="flex justify-between text-gray-300">
-                        <span>{item.product_name} x {item.quantity}</span>
-                        <span>₹{(item.price * item.quantity).toLocaleString()}</span>
-                      </div>
-                    ))}
-                    <div className="border-t border-gray-600 pt-2 mt-2">
-                      <div className="flex justify-between text-gray-300">
-                        <span>Subtotal</span>
-                        <span>₹{cartTotal.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-300">
-                        <span>Delivery</span>
-                        <span>{deliveryCharge === 0 ? "FREE" : `₹${deliveryCharge}`}</span>
-                      </div>
-                      <div className="flex justify-between text-white font-bold text-lg mt-2">
-                        <span>Total</span>
-                        <span className="text-amber-400">₹{grandTotal.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Place Order Button */}
-                <button
-                  onClick={handleCheckout}
-                  disabled={placingOrder}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-500 text-white py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-600 disabled:from-gray-600 disabled:to-gray-600 transition flex items-center justify-center space-x-2"
-                  data-testid="place-order-btn"
-                >
-                  {placingOrder ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle className="w-6 h-6" />}
-                  <span>{placingOrder ? "Processing..." : `Place Order - ₹${grandTotal.toLocaleString()}`}</span>
-                </button>
+                )}
               </div>
+              {/* Payment */}
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Payment</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setCheckoutData({...checkoutData, payment_method: "cod"})}
+                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.payment_method === "cod" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`} data-testid="payment-cod">
+                    <Banknote className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                    <p className="text-sm font-semibold text-gray-800">Cash on {checkoutData.delivery_type === "pickup" ? "Store" : "Delivery"}</p>
+                  </button>
+                  <button onClick={() => setCheckoutData({...checkoutData, payment_method: "razorpay"})}
+                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.payment_method === "razorpay" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`} data-testid="payment-razorpay">
+                    <CreditCard className="w-6 h-6 text-blue-500 mx-auto mb-1" />
+                    <p className="text-sm font-semibold text-gray-800">Pay Online</p>
+                    <p className="text-[10px] text-gray-500">UPI / Card / Net Banking</p>
+                  </button>
+                </div>
+              </div>
+              {/* Notes */}
+              <textarea placeholder="Order Notes (Optional)" value={checkoutData.notes} onChange={(e) => setCheckoutData({...checkoutData, notes: e.target.value})} rows={2} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-800 focus:border-amber-500 focus:outline-none" />
+              {/* Summary */}
+              <div className="bg-gray-50 rounded-lg p-4 border">
+                <h4 className="font-semibold text-gray-800 mb-2 text-sm">Order Summary</h4>
+                {cart.map(item => (
+                  <div key={item.product_id} className="flex justify-between text-sm text-gray-600 py-1"><span>{item.product_name} x{item.quantity}</span><span>₹{(item.price * item.quantity).toLocaleString()}</span></div>
+                ))}
+                <div className="border-t mt-2 pt-2 space-y-1">
+                  <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>₹{cartTotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-sm text-gray-600"><span>Delivery</span><span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}</span></div>
+                  <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t"><span>Total</span><span className="text-amber-600">₹{grandTotal.toLocaleString()}</span></div>
+                </div>
+              </div>
+              <button onClick={handleCheckout} disabled={placingOrder}
+                className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white py-4 rounded-lg font-bold text-base transition shadow-lg flex items-center justify-center gap-2"
+                data-testid="place-order-btn"
+              >{placingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />} {placingOrder ? "Processing..." : `Pay ₹${grandTotal.toLocaleString()}`}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Order Success Modal */}
+      {/* === ORDER SUCCESS === */}
       {orderSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
-            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-12 h-12 text-green-400" />
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Order Placed Successfully!</h2>
-            <p className="text-gray-400 mb-4">Thank you for your order</p>
-            
-            <div className="bg-gray-800/50 rounded-xl p-4 mb-4">
-              <p className="text-gray-400 text-sm">Order Number</p>
-              <p className="text-amber-400 font-bold text-xl" data-testid="order-number">{orderSuccess.order_number}</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Order Placed!</h2>
+            <p className="text-gray-500 mb-4">Thank you for shopping with ASR Solar</p>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 border">
+              <p className="text-gray-500 text-xs">ORDER NUMBER</p>
+              <p className="text-amber-600 font-bold text-xl" data-testid="order-number">{orderSuccess.order_number}</p>
             </div>
-
-            {orderSuccess.payment_completed && (
-              <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-3 mb-4">
-                <p className="text-green-300 text-sm font-semibold">Payment Confirmed</p>
-              </div>
-            )}
-
-            {/* WhatsApp Confirmation - Manual button only */}
+            {orderSuccess.payment_completed && <div className="bg-green-50 border border-green-200 rounded-lg p-2 mb-4"><p className="text-green-700 text-sm font-semibold">Payment Confirmed</p></div>}
             {orderSuccess.customer_whatsapp_url && (
               <a href={orderSuccess.customer_whatsapp_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition mb-4"
-                data-testid="whatsapp-confirmation-btn"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Get Order Confirmation on WhatsApp
+                className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition mb-3" data-testid="whatsapp-confirmation-btn">
+                Get Confirmation on WhatsApp
               </a>
             )}
-
-            <div className="flex gap-4">
-              <Link to="/" className="flex-1 bg-gray-700 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition">Go Home</Link>
-              <button onClick={() => setOrderSuccess(null)} className="flex-1 bg-amber-500 text-white py-3 rounded-xl font-semibold hover:bg-amber-600 transition">Continue Shopping</button>
+            <div className="flex gap-3">
+              <Link to="/" className="flex-1 bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-200 transition text-sm">Home</Link>
+              <button onClick={() => setOrderSuccess(null)} className="flex-1 bg-amber-500 text-white py-3 rounded-lg font-semibold hover:bg-amber-600 transition text-sm">Continue Shopping</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Product Detail Modal */}
+      {/* === PRODUCT DETAIL MODAL === */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="product-detail-modal">
-          <div className="absolute inset-0 bg-black/70" onClick={closeProductDetail} />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <button onClick={closeProductDetail} className="absolute top-4 right-4 z-10 bg-gray-800/80 hover:bg-gray-700 text-white rounded-full p-2 transition" data-testid="close-product-detail">
-              <X className="w-6 h-6" />
-            </button>
-
-            <div className="grid md:grid-cols-2 gap-0">
-              {/* Image Gallery */}
-              <div className="bg-gray-900 p-6">
-                <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden mb-4 relative">
+        <div className="fixed inset-0 z-50" data-testid="product-detail-modal">
+          <div className="absolute inset-0 bg-black/60" onClick={() => { setSelectedProduct(null); setActiveImageIndex(0); }} />
+          <div className="absolute inset-2 sm:inset-4 md:inset-8 bg-white rounded-xl shadow-2xl overflow-y-auto">
+            <button onClick={() => { setSelectedProduct(null); setActiveImageIndex(0); }} className="absolute top-3 right-3 z-20 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition" data-testid="close-product-detail"><X className="w-5 h-5 text-gray-600" /></button>
+            
+            <div className="grid md:grid-cols-2 min-h-full">
+              {/* Images */}
+              <div className="bg-gray-50 p-4 sm:p-8 flex flex-col sticky top-0">
+                <div className="flex-1 flex items-center justify-center aspect-square bg-white rounded-lg relative overflow-hidden mb-4 border">
                   {selectedProduct.images?.length > 0 ? (
                     <>
-                      <img src={selectedProduct.images[activeImageIndex]} alt={selectedProduct.name} className="w-full h-full object-contain" data-testid="product-main-image" />
+                      <img src={selectedProduct.images[activeImageIndex]} alt={selectedProduct.name} className="max-w-full max-h-full object-contain" data-testid="product-main-image" />
                       {selectedProduct.images.length > 1 && (
                         <>
-                          <button onClick={() => setActiveImageIndex(prev => prev === 0 ? selectedProduct.images.length - 1 : prev - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"><ChevronLeft className="w-5 h-5" /></button>
-                          <button onClick={() => setActiveImageIndex(prev => prev === selectedProduct.images.length - 1 ? 0 : prev + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition"><ChevronRight className="w-5 h-5" /></button>
+                          <button onClick={() => setActiveImageIndex(p => p === 0 ? selectedProduct.images.length - 1 : p - 1)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white shadow-lg p-2 rounded-full hover:bg-gray-50"><ChevronLeft className="w-5 h-5" /></button>
+                          <button onClick={() => setActiveImageIndex(p => p === selectedProduct.images.length - 1 ? 0 : p + 1)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white shadow-lg p-2 rounded-full hover:bg-gray-50"><ChevronRight className="w-5 h-5" /></button>
                         </>
                       )}
                     </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Sun className="w-32 h-32 text-gray-700" /></div>
-                  )}
+                  ) : <Sun className="w-32 h-32 text-gray-200" />}
                 </div>
                 {selectedProduct.images?.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2">
+                  <div className="flex gap-2 overflow-x-auto">
                     {selectedProduct.images.map((img, idx) => (
-                      <button key={idx} onClick={() => setActiveImageIndex(idx)} className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${activeImageIndex === idx ? 'border-amber-500' : 'border-transparent hover:border-gray-600'}`}>
+                      <button key={idx} onClick={() => setActiveImageIndex(idx)} className={`flex-shrink-0 w-14 h-14 rounded border-2 overflow-hidden ${activeImageIndex === idx ? 'border-amber-500' : 'border-gray-200'}`}>
                         <img src={img} alt="" className="w-full h-full object-cover" />
                       </button>
                     ))}
@@ -853,95 +695,114 @@ export const ShopPage = () => {
                 )}
               </div>
 
-              {/* Product Details */}
-              <div className="p-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <span className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-sm flex items-center space-x-1">
-                    {categoryIcons[selectedProduct.category]}<span>{getCategoryName(selectedProduct.category)}</span>
-                  </span>
-                  {selectedProduct.is_featured && <span className="bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full text-sm flex items-center space-x-1"><Star className="w-4 h-4" /><span>Featured</span></span>}
+              {/* Details */}
+              <div className="p-4 sm:p-8">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1">{categoryIcons[selectedProduct.category]}{getCategoryName(selectedProduct.category)}</span>
+                  {selectedProduct.is_featured && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-semibold flex items-center gap-1"><Star className="w-3 h-3" />Featured</span>}
                 </div>
 
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-2" data-testid="product-detail-name">{selectedProduct.name}</h2>
-                {selectedProduct.brand && <p className="text-gray-400 text-sm mb-4">Brand: {selectedProduct.brand}</p>}
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3" data-testid="product-detail-name">{selectedProduct.name}</h1>
 
-                <div className="mb-4">
+                {/* Price */}
+                <div className="mb-4 pb-4 border-b">
                   {selectedProduct.sale_price ? (
-                    <div className="flex items-center space-x-3">
-                      <span className="text-3xl font-bold text-amber-400">₹{selectedProduct.sale_price.toLocaleString()}</span>
-                      <span className="text-xl text-gray-500 line-through">₹{selectedProduct.price.toLocaleString()}</span>
-                      <span className="bg-red-500 text-white px-2 py-1 rounded text-sm">{Math.round((1 - selectedProduct.sale_price / selectedProduct.price) * 100)}% OFF</span>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-2xl sm:text-3xl font-bold text-gray-900">₹{selectedProduct.sale_price.toLocaleString()}</span>
+                      <span className="text-lg text-gray-400 line-through">₹{selectedProduct.price.toLocaleString()}</span>
+                      <span className="text-green-600 font-bold text-sm">{Math.round((1 - selectedProduct.sale_price / selectedProduct.price) * 100)}% off</span>
                     </div>
-                  ) : (
-                    <span className="text-3xl font-bold text-amber-400">₹{selectedProduct.price.toLocaleString()}</span>
-                  )}
-                  {selectedProduct.category === 'wire' && <p className="text-gray-400 text-sm mt-1">Price per meter</p>}
+                  ) : <span className="text-2xl sm:text-3xl font-bold text-gray-900">₹{selectedProduct.price.toLocaleString()}</span>}
+                  {selectedProduct.category === "wire" && <p className="text-gray-500 text-sm mt-1">Price per meter</p>}
                 </div>
 
-                <div className="flex items-center space-x-4 mb-4">
-                  {selectedProduct.stock > 0 ? (
-                    <span className="flex items-center text-green-400"><CheckCircle className="w-5 h-5 mr-2" />In Stock</span>
-                  ) : (
-                    <span className="flex items-center text-red-400"><AlertCircle className="w-5 h-5 mr-2" />Out of Stock</span>
-                  )}
-                  {selectedProduct.warranty && <span className="flex items-center text-blue-400 text-sm"><Shield className="w-4 h-4 mr-1" />{selectedProduct.warranty} Warranty</span>}
+                {/* Availability */}
+                <div className="flex items-center gap-3 mb-4">
+                  {selectedProduct.stock > 0 ? <span className="text-green-600 font-semibold text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />In Stock</span> : <span className="text-red-500 font-semibold text-sm flex items-center gap-1"><AlertCircle className="w-4 h-4" />Out of Stock</span>}
+                  {selectedProduct.warranty && <span className="text-sm text-gray-600 flex items-center gap-1"><Shield className="w-4 h-4 text-blue-500" />{selectedProduct.warranty} Warranty</span>}
                 </div>
 
+                {/* Description */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white mb-2">Description</h3>
-                  <p className="text-gray-300 leading-relaxed text-sm" data-testid="product-detail-description">{selectedProduct.description || "No description available."}</p>
+                  <h3 className="font-semibold text-gray-800 text-sm mb-1">Description</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed" data-testid="product-detail-description">{selectedProduct.description || "No description available."}</p>
                 </div>
 
-                {/* Share Buttons */}
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-gray-400 text-sm">Share:</span>
-                  <button onClick={() => shareProduct(selectedProduct, "whatsapp")} className="bg-green-600/20 hover:bg-green-600/40 text-green-400 p-2 rounded-lg transition" data-testid="share-whatsapp">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
-                  </button>
-                  <button onClick={() => shareProduct(selectedProduct, "facebook")} className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 p-2 rounded-lg transition"><Facebook className="w-4 h-4" /></button>
-                  <button onClick={() => shareProduct(selectedProduct, "email")} className="bg-red-600/20 hover:bg-red-600/40 text-red-400 p-2 rounded-lg transition"><Mail className="w-4 h-4" /></button>
-                  <button onClick={() => shareProduct(selectedProduct, "copy")} className="bg-gray-600/20 hover:bg-gray-600/40 text-gray-400 p-2 rounded-lg transition"><Copy className="w-4 h-4" /></button>
-                </div>
-
-                {/* Add to Cart */}
-                <button
-                  onClick={() => { addToCart(selectedProduct); closeProductDetail(); setShowCart(true); }}
-                  disabled={selectedProduct.stock === 0}
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center space-x-2"
-                  data-testid="modal-add-to-cart"
-                >
-                  <ShoppingCart className="w-6 h-6" />
-                  <span>Add to Cart</span>
-                </button>
-
-                {/* Delivery Info */}
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center text-gray-400 text-sm"><Truck className="w-4 h-4 mr-2 text-blue-400" />Free pickup from store</div>
-                  <div className="flex items-center text-gray-400 text-sm"><MapPin className="w-4 h-4 mr-2 text-green-400" />Delivery across Bihar</div>
-                  <div className="flex items-center text-gray-400 text-sm"><Shield className="w-4 h-4 mr-2 text-amber-400" />Quality guaranteed</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Related Products */}
-            {relatedProducts.length > 0 && (
-              <div className="border-t border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Related Products</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {relatedProducts.map(rp => (
-                    <div key={rp.id} className="bg-gray-800/50 rounded-xl overflow-hidden border border-gray-700/50 cursor-pointer hover:border-amber-500/50 transition" onClick={() => { setSelectedProduct(rp); setActiveImageIndex(0); }}>
-                      <div className="aspect-square bg-gray-900">
-                        {rp.images?.[0] ? <img src={rp.images[0]} alt={rp.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Sun className="w-10 h-10 text-gray-700" /></div>}
-                      </div>
-                      <div className="p-3">
-                        <p className="text-white text-sm line-clamp-1">{rp.name}</p>
-                        <p className="text-amber-400 font-semibold">₹{(rp.sale_price || rp.price).toLocaleString()}</p>
-                      </div>
+                {/* Delivery Check */}
+                <div className="bg-gray-50 rounded-lg p-4 border mb-4">
+                  <h3 className="font-semibold text-gray-800 text-sm mb-2 flex items-center gap-1"><Truck className="w-4 h-4 text-blue-500" />Check Delivery</h3>
+                  <div className="flex gap-2">
+                    <input type="text" maxLength={6} placeholder="Enter Pincode"
+                      value={productPincode.pincode} onChange={(e) => setProductPincode({ pincode: e.target.value.replace(/\D/g, ""), result: null, loading: false })}
+                      onKeyDown={(e) => e.key === "Enter" && checkProductPincode(selectedProduct.id)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:border-amber-500 focus:outline-none" />
+                    <button onClick={() => checkProductPincode(selectedProduct.id)} disabled={productPincode.loading || productPincode.pincode.length !== 6}
+                      className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 text-white px-4 py-2 rounded text-sm font-semibold transition">
+                      {productPincode.loading ? "..." : "Check"}
+                    </button>
+                  </div>
+                  {productPincode.result && (
+                    <div className={`mt-2 text-sm ${productPincode.result.deliverable ? "text-green-600" : "text-red-500"}`}>
+                      {productPincode.result.deliverable 
+                        ? <span>Delivery to <strong>{productPincode.result.district}</strong> - ₹{productPincode.result.fee} ({productPincode.result.estimated_days} days)</span>
+                        : <span>{productPincode.result.note}</span>}
                     </div>
+                  )}
+                </div>
+
+                {/* Share */}
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-sm text-gray-500">Share:</span>
+                  {[["whatsapp","bg-green-50 text-green-600 hover:bg-green-100"],["facebook","bg-blue-50 text-blue-600 hover:bg-blue-100"],["email","bg-red-50 text-red-500 hover:bg-red-100"],["copy","bg-gray-50 text-gray-600 hover:bg-gray-100"]].map(([key,cls]) => (
+                    <button key={key} onClick={() => shareProduct(selectedProduct, key)} className={`p-2 rounded-lg transition ${cls}`} data-testid={key === "whatsapp" ? "share-whatsapp" : undefined}>
+                      {key === "whatsapp" ? <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+                        : key === "facebook" ? <Facebook className="w-4 h-4" />
+                        : key === "email" ? <Mail className="w-4 h-4" />
+                        : <Copy className="w-4 h-4" />}
+                    </button>
                   ))}
                 </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 mb-6">
+                  <button onClick={() => { addToCart(selectedProduct); }} disabled={selectedProduct.stock === 0}
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 text-white py-3.5 rounded-lg font-bold transition flex items-center justify-center gap-2 shadow-lg"
+                    data-testid="modal-add-to-cart"
+                  ><ShoppingCart className="w-5 h-5" />ADD TO CART</button>
+                  <button onClick={() => toggleWishlist(selectedProduct.id)}
+                    className={`px-4 py-3.5 rounded-lg border-2 transition ${wishlist.includes(selectedProduct.id) ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <Heart className={`w-5 h-5 ${wishlist.includes(selectedProduct.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+                  </button>
+                </div>
+
+                {/* Services */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {[
+                    { icon: <Truck className="w-4 h-4 text-blue-500" />, text: "Bihar Delivery", sub: "All districts" },
+                    { icon: <Shield className="w-4 h-4 text-green-500" />, text: "Quality Assured", sub: "Genuine products" },
+                    { icon: <CreditCard className="w-4 h-4 text-purple-500" />, text: "Secure Payment", sub: "UPI/Card/COD" },
+                    { icon: <Store className="w-4 h-4 text-amber-500" />, text: "Free Pickup", sub: "Patna store" }
+                  ].map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 border"><div>{s.icon}</div><div><p className="text-xs font-semibold text-gray-700">{s.text}</p><p className="text-[10px] text-gray-400">{s.sub}</p></div></div>
+                  ))}
+                </div>
+
+                {/* Related Products */}
+                {relatedProducts.length > 0 && (
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold text-gray-800 text-sm mb-3">Similar Products</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {relatedProducts.map(rp => (
+                        <div key={rp.id} className="bg-gray-50 rounded-lg overflow-hidden border cursor-pointer hover:shadow-md transition" onClick={() => { setSelectedProduct(rp); setActiveImageIndex(0); setProductPincode({ pincode: "", result: null, loading: false }); }}>
+                          <div className="aspect-square p-2 bg-white">{rp.images?.[0] ? <img src={rp.images[0]} alt="" className="w-full h-full object-contain" /> : <Sun className="w-8 h-8 text-gray-200 mx-auto" />}</div>
+                          <div className="p-2"><p className="text-xs text-gray-700 line-clamp-1">{rp.name}</p><p className="font-bold text-sm text-gray-900">₹{(rp.sale_price || rp.price).toLocaleString()}</p></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

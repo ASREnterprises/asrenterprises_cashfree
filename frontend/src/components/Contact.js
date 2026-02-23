@@ -201,10 +201,10 @@ export const ContactPage = () => {
               <h3 className="text-2xl font-bold text-[#0a355e] mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <Link
-                  to="/calculator"
+                  to="/shop"
                   className="block w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg font-semibold text-center hover:from-amber-600 hover:to-orange-600 transition shadow-lg"
                 >
-                  Calculate Solar Savings
+                  Explore Products
                 </Link>
                 <Link
                   to="/leads"

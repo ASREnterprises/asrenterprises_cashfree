@@ -236,10 +236,10 @@ export const GalleryPage = () => {
               Get Free Consultation
             </Link>
             <Link
-              to="/calculator"
+              to="/shop"
               className="bg-white text-amber-600 border-2 border-amber-500 px-8 py-4 rounded-lg font-semibold hover:bg-amber-50 transition shadow-md"
             >
-              Calculate Savings
+              Explore Products
             </Link>
           </div>
         </div>

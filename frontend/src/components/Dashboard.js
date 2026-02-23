@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Users, MessageSquare, Calculator, TrendingUp, ChevronRight, Award, Clock } from "lucide-react";
+import { Users, MessageSquare, ShoppingBag, TrendingUp, ChevronRight, Award, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -85,14 +85,14 @@ export const DashboardPage = () => {
 
           <div className="bg-white rounded-xl shadow-lg p-6" data-testid="total-calculations-stat">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Calculator className="w-6 h-6 text-yellow-600" />
+              <div className="p-3 bg-amber-100 rounded-lg">
+                <ShoppingBag className="w-6 h-6 text-amber-600" />
               </div>
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.total_calculations || 0}</div>
-            <div className="text-sm text-gray-600">Solar Calculations</div>
-            <div className="text-xs text-purple-600 font-semibold mt-2">
-              With AI recommendations
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.total_orders || 0}</div>
+            <div className="text-sm text-gray-600">Shop Orders</div>
+            <div className="text-xs text-amber-600 font-semibold mt-2">
+              E-commerce sales
             </div>
           </div>
 
@@ -173,11 +173,11 @@ export const DashboardPage = () => {
             <p className="text-sm text-blue-100">AI-powered lead forms</p>
           </Link>
 
-          <Link to="/calculator" className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
-            <Calculator className="w-8 h-8 mb-3" />
-            <h3 className="font-bold mb-1">Solar Calculator</h3>
-            <p className="text-sm text-yellow-100">Calculate ROI & savings</p>
-          </Link>
+          <a href="/shop" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
+            <ShoppingBag className="w-8 h-8 mb-3" />
+            <h3 className="font-bold mb-1">Solar Shop</h3>
+            <p className="text-sm text-amber-100">Browse & buy products</p>
+          </a>
 
           <Link to="/marketing" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
             <TrendingUp className="w-8 h-8 mb-3" />

@@ -162,6 +162,8 @@ export const ShopPage = () => {
     setSelectedProduct(product);
     setActiveImageIndex(0);
     setProductPincode({ pincode: "", result: null, loading: false });
+    setShowReviewForm(false);
+    fetchProductReviews(product.id);
     setRecentlyViewed(prev => {
       const filtered = prev.filter(p => p.id !== product.id);
       const updated = [product, ...filtered].slice(0, 8);

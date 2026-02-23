@@ -788,7 +788,7 @@ export const ProductManagement = () => {
                             value={formData.service_type}
                             onChange={(e) => {
                               const serviceType = e.target.value;
-                              let serviceName = "Solar Installation Service";
+                              let serviceName = "Solar Cleaning Service";
                               
                               if (serviceType === "maintenance") {
                                 serviceName = "Solar Maintenance Service";
@@ -807,7 +807,7 @@ export const ProductManagement = () => {
                             }}
                             className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
                           >
-                            <option value="installation">Installation Service</option>
+                            <option value="cleaning">Cleaning Service</option>
                             <option value="maintenance">Maintenance Service</option>
                             <option value="repair">Repair Service</option>
                             <option value="consultation">Consultation Service</option>

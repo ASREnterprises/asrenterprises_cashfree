@@ -3355,6 +3355,217 @@ async def get_razorpay_config():
     """Get Razorpay key for frontend checkout"""
     return {"key_id": RAZORPAY_KEY_ID}
 
+# ==================== RAZORPAY PAYMENT SYNC ====================
+
+@api_router.get("/admin/razorpay/payments")
+async def fetch_razorpay_payments(count: int = 100, skip: int = 0):
+    """Fetch payments directly from Razorpay API"""
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Razorpay API keys not configured")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # Razorpay API uses Basic Auth with key_id:key_secret
+            auth = (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
+            response = await client.get(
+                f"https://api.razorpay.com/v1/payments",
+                auth=auth,
+                params={"count": count, "skip": skip}
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Razorpay API error: {response.text}")
+                raise HTTPException(status_code=response.status_code, detail="Failed to fetch from Razorpay")
+            
+            data = response.json()
+            payments = data.get("items", [])
+            
+            # Filter only captured (successful) payments
+            successful_payments = [p for p in payments if p.get("status") == "captured"]
+            
+            return {
+                "status": "success",
+                "total": len(successful_payments),
+                "payments": successful_payments
+            }
+    except httpx.RequestError as e:
+        logger.error(f"Razorpay API request failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to connect to Razorpay API")
+
+@api_router.post("/admin/razorpay/sync")
+async def sync_razorpay_payments(data: Dict[str, Any] = {}):
+    """Sync all successful Razorpay payments to orders database"""
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Razorpay API keys not configured")
+    
+    sync_all = data.get("sync_all", True)
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            auth = (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
+            
+            # Fetch all payments (paginate if needed)
+            all_payments = []
+            skip = 0
+            batch_size = 100
+            
+            while True:
+                response = await client.get(
+                    f"https://api.razorpay.com/v1/payments",
+                    auth=auth,
+                    params={"count": batch_size, "skip": skip}
+                )
+                
+                if response.status_code != 200:
+                    break
+                
+                batch = response.json().get("items", [])
+                if not batch:
+                    break
+                
+                all_payments.extend(batch)
+                skip += batch_size
+                
+                # Safety limit
+                if skip >= 1000:
+                    break
+            
+            # Filter successful payments
+            successful_payments = [p for p in all_payments if p.get("status") == "captured"]
+            
+            synced_count = 0
+            new_orders_count = 0
+            updated_orders_count = 0
+            
+            for payment in successful_payments:
+                payment_id = payment.get("id")
+                amount = payment.get("amount", 0) / 100  # Convert paise to rupees
+                
+                # Extract customer details from Razorpay payment
+                customer_name = payment.get("notes", {}).get("customer_name", "") or payment.get("email", "").split("@")[0] if payment.get("email") else "Razorpay Customer"
+                customer_phone = payment.get("contact", "")
+                customer_email = payment.get("email", "")
+                description = payment.get("description", "")
+                created_at_ts = payment.get("created_at", 0)
+                created_at = datetime.fromtimestamp(created_at_ts, tz=timezone.utc).isoformat() if created_at_ts else datetime.now(timezone.utc).isoformat()
+                
+                # Clean phone number (remove country code if present)
+                if customer_phone and customer_phone.startswith("+91"):
+                    customer_phone = customer_phone[3:]
+                elif customer_phone and customer_phone.startswith("91") and len(customer_phone) > 10:
+                    customer_phone = customer_phone[2:]
+                
+                # Check if this payment already exists in orders
+                existing_order = await db.orders.find_one({"razorpay_payment_id": payment_id}, {"_id": 0})
+                
+                if existing_order:
+                    # Update existing order with latest Razorpay data if customer details are missing
+                    update_fields = {}
+                    if not existing_order.get("customer_name") and customer_name:
+                        update_fields["customer_name"] = customer_name
+                    if not existing_order.get("customer_phone") and customer_phone:
+                        update_fields["customer_phone"] = customer_phone
+                    if not existing_order.get("customer_email") and customer_email:
+                        update_fields["customer_email"] = customer_email
+                    
+                    if update_fields:
+                        await db.orders.update_one(
+                            {"razorpay_payment_id": payment_id},
+                            {"$set": update_fields}
+                        )
+                        updated_orders_count += 1
+                else:
+                    # Check if payment exists in service bookings
+                    existing_booking = await db.service_bookings.find_one({"payment_id": payment_id}, {"_id": 0})
+                    
+                    if not existing_booking:
+                        # Create new order from Razorpay payment
+                        order_number = f"RZP-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
+                        
+                        new_order = {
+                            "id": str(uuid.uuid4()),
+                            "order_number": order_number,
+                            "customer_name": customer_name or "Razorpay Customer",
+                            "customer_phone": customer_phone or "",
+                            "customer_email": customer_email or "",
+                            "items": [{
+                                "product_id": "razorpay_direct",
+                                "product_name": description or "Razorpay Payment",
+                                "quantity": 1,
+                                "price": amount
+                            }],
+                            "subtotal": amount,
+                            "delivery_charge": 0,
+                            "total": amount,
+                            "delivery_type": "pickup",
+                            "delivery_address": "",
+                            "delivery_district": "Patna",
+                            "payment_method": "razorpay",
+                            "payment_status": "paid",
+                            "razorpay_payment_id": payment_id,
+                            "razorpay_order_id": payment.get("order_id", ""),
+                            "order_status": "confirmed",
+                            "notes": f"Auto-synced from Razorpay. Original description: {description}",
+                            "source": "razorpay_sync",
+                            "created_at": created_at,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                        
+                        await db.orders.insert_one(new_order)
+                        new_orders_count += 1
+                
+                synced_count += 1
+            
+            # Create CRM notification for sync
+            try:
+                crm_message = CRMMessage(
+                    sender_id="system",
+                    sender_name="Razorpay Sync",
+                    sender_type="system",
+                    receiver_id="admin",
+                    receiver_name="Admin",
+                    message=f"🔄 Razorpay Sync Complete: {synced_count} payments processed, {new_orders_count} new orders created, {updated_orders_count} orders updated"
+                )
+                msg_doc = crm_message.model_dump()
+                msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
+                await db.crm_messages.insert_one(msg_doc)
+            except Exception as e:
+                logger.error(f"Failed to create sync notification: {e}")
+            
+            return {
+                "status": "success",
+                "message": f"Synced {synced_count} Razorpay payments",
+                "total_processed": synced_count,
+                "new_orders_created": new_orders_count,
+                "orders_updated": updated_orders_count
+            }
+            
+    except httpx.RequestError as e:
+        logger.error(f"Razorpay sync failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to sync with Razorpay")
+
+@api_router.get("/admin/razorpay/payment/{payment_id}")
+async def get_razorpay_payment_details(payment_id: str):
+    """Get detailed info about a specific Razorpay payment"""
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        raise HTTPException(status_code=500, detail="Razorpay API keys not configured")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            auth = (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
+            response = await client.get(
+                f"https://api.razorpay.com/v1/payments/{payment_id}",
+                auth=auth
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=404, detail="Payment not found in Razorpay")
+            
+            return {"status": "success", "payment": response.json()}
+    except httpx.RequestError as e:
+        logger.error(f"Failed to fetch Razorpay payment: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch from Razorpay")
+
 # Book Service - configurable price stored in settings collection
 @api_router.get("/shop/book-service-config")
 async def get_book_service_config():

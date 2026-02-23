@@ -2,240 +2,227 @@
 The user wants to build a feature-rich website for their solar energy business, ASR Enterprises. The project has evolved to include a customer-facing website, a comprehensive admin/CRM panel, AI-powered features, and a full e-commerce system.
 
 **LATEST USER REQUESTS (In this session):**
-1.  **[Notifications]** Ensure that a proper payment auto-confirmation message (WhatsApp and Email) is delivered to the customer for ALL payment options, not just the Book Service flow.
-2.  **[Features from last user message #290]**
-    *   Add customer product reviews with star ratings.
-    *   Add a transparent ASR logo to the Shop page.
-    *   Allow admins to add/update images for the Solar Maintenance Service.
-    *   Mention that an extra delivery fee may apply based on distance in the delivery search results.
-    *   Fix the Back to Shop button on the Track Order page to not open a new tab.
-3.  **[Features from last user message #206]**
-    *   Fix the Become an ASR Solar Advisor page.
-    *   Change Solar Maintenance Service button to Book Service and have it open a direct payment page with a price configurable by the admin.
-    *   Allow admin to set product-specific delivery availability for districts in Bihar.
-    *   Enhance the Shop UI to feel more premium, like Flipkart or Amazon.
-4.  **[Features from last user message #108]**
-    *   Add a customer order tracking page.
-    *   Fix an issue where WhatsApp opened automatically during payment.
-    *   Fix an issue where unsuccessful payments were marked as confirmed orders.
-    *   Add a product sharing option for social media.
-    *   Add a pincode-based delivery check for all districts of Bihar.
-    *   Allow admins to delete pending/cancelled orders.
-    -   Remove the goods once sold cannot be taken back notice.
+1.  **[UI/UX Overhaul]** Update the entire website to a premium, light-themed interface that feels natural for a solar business. Use a specific color palette (sky blue, orange, green) from a reference image and ensure the transparent ASR logo is used everywhere.
+2.  **[Bug Fix]** The MNRE Registered, PM Surya Ghar Partner, and Free Site Survey trust badges are not visible on the homepage; they need to be fixed.
+3.  **[Admin Features]**
+    *   Allow admins to set and edit delivery charges for each district in Bihar.
+    *   Ensure Book Service payments appear in the main orders list in the admin panel.
+    *   Link the CRM Payments section to fetch all successful payments directly from Razorpay.
+    *   Remove the service registration fee from the CRM.
+4.  **[Customer & Order Flow]**
+    *   Send an automated WhatsApp confirmation (with Order ID, product details, amount, etc.) to the customer instantly after a successful order.
+    *   Ensure customers receive a confirmation message for all successful payments, including an order ID.
+5.  **[Performance & Optimization]**
+    *   Automatically optimize all uploaded images to WebP format (< 200KB) and use lazy loading.
+    *   Enable GZIP compression.
+    *   Load the payment gateway script only on the checkout page.
+    *   Perform database optimizations (clean old logs, remove expired sessions, optimize tables).
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a React frontend and a monolithic FastAPI backend on MongoDB. The application features a premium dark theme, a CRM for managing leads and staff, AI-powered testimonials, and a sophisticated e-commerce system.
+A full-stack application with a React frontend and a monolithic FastAPI backend on MongoDB. The application features a CRM, AI-powered testimonials, and a sophisticated e-commerce system.
 
-In this session, the e-commerce platform was significantly enhanced with:
-*   A complete UI/UX overhaul of the shop page to a premium Flipkart/Amazon style.
-*   A full product review and star rating system.
-*   An order tracking page for customers.
-*   A Book Service feature with a dedicated payment flow and automated WhatsApp/Email notifications.
-*   Advanced admin controls for per-product delivery zones (Bihar districts) and configurable service pricing.
-*   Numerous bug fixes and UX improvements, including product sharing, order deletion, and fixing broken navigation/payment flows.
+In this session, the following was accomplished:
+*   A major feature to sync all successful Razorpay payments (both historical and new) directly into the admin order management system was implemented.
+*   Automated email and WhatsApp notifications for all successful shop orders were added.
+*   Admins can now set per-district delivery fees.
+*   Significant performance optimizations were implemented, including GZIP compression, dynamic loading for the Razorpay script, and a backend utility for image optimization (WebP conversion).
+*   A major sitewide UI overhaul from a dark theme to a premium light theme was started, with the homepage and several other components being partially updated.
 
 **Last working item**:
-- **Last item agent was working:** The user requested that the automated WhatsApp and Email confirmation messages, recently implemented for the Book Service feature, be applied to all other payment options, specifically for regular product orders from the shop. The agent had just started investigating the existing shop checkout flow in  and .
+- **Last item agent was working:** A complete, sitewide UI/UX redesign. The agent was in the process of updating all pages from the old dark theme to a new premium light theme based on a user-provided color palette (sky blue, orange, green). The homepage and  page were partially updated, but the agent was interrupted while working on  and fixing corrupted code in .
 - **Status:** IN PROGRESS
 - **Agent Testing Done:** N
-- **Which testing method agent to use?** both
+- **Which testing method agent to use?** frontend testing agent
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Standardize Payment Notifications (P0)**
--   **Issue 2: Live Google Reviews vs. Implemented Testimonials (P2)**
--   **Issue 3: Re-enable Google reCAPTCHA (P3)**
--   **Issue 4: Deployment & Final Configuration (P3)**
+-   **Issue 1: Complete Sitewide UI Redesign (P0)**
+-   **Issue 2: Database & Server Optimization (P1)**
+-   **Issue 3: Live Google Reviews vs. Implemented Testimonials (P2)**
+-   **Issue 4: Re-enable Google reCAPTCHA (P3)**
+-   **Issue 5: Deployment & Final Configuration (P3)**
 
 **Issues Detail:**
--   **Issue 1: Standardize Payment Notifications (P0)**
-    -   **Attempted fixes:** None yet. The agent was investigating the existing code in  and .
+-   **Issue 1: Complete Sitewide UI Redesign (P0)**
+    -   **Attempted fixes:** The agent has updated  with new color variables and has partially refactored  (for the homepage) and . The agent was fixing corrupted/duplicated code blocks in  and had just started on .
     -   **Next debug checklist:**
-        1.  Analyze the  function in  to confirm the customer's email is passed during order creation.
-        2.  Locate the  endpoint in . This endpoint currently handles payment verification and sends a WhatsApp message.
-        3.  Modify the  endpoint to also trigger an email confirmation using the  utility, similar to how it's done in the  endpoint.
-        4.  Ensure the email logic is only triggered for successful Razorpay payments and not for Cash on Delivery orders.
-        5.  Test the entire shop checkout flow to confirm both WhatsApp and Email notifications are sent correctly.
-    -   **Why fix this issue and what will be achieved with the fix?** To create a consistent and professional user experience by ensuring customers receive confirmation for all successful online payments.
+        1.  Finish applying the new light theme to .
+        2.  Systematically update all remaining pages and components (, , , , , , and all modals) to use the new color scheme.
+        3.  Ensure the transparent logo is used consistently across all pages.
+        4.  Verify that all text is readable and all interactive elements are clearly visible against the new backgrounds.
+        5.  Run the frontend testing agent to ensure visual consistency and functionality across the entire site.
+    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the user's explicit and high-priority request for a complete visual rebranding of the website.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** No.
 
--   **Issue 2: Live Google Reviews vs. Implemented Testimonials (P2)**
-    -   **Attempted fixes:** An admin-controlled AI testimonial system was implemented as a substitute.
+-   **Issue 2: Database & Server Optimization (P1)**
+    -   **Attempted fixes:** None yet.
     -   **Next debug checklist:**
-        1.  Clarify with the user if the current AI system is sufficient or if they still want to integrate live Google Reviews.
-        2.  If required, plan an integration with the Google Places API.
+        1.  Clarify with the user that PHP OPcache is not applicable as the backend is Python, not PHP.
+        2.  Ask for clarification on remove unused plugins.
+        3.  Plan and implement a backend utility (e.g., a protected admin endpoint) to perform database cleanup tasks: clean old logs, remove expired sessions, and run collection optimization ( command in MongoDB).
+    -   **Why fix this issue and what will be achieved with the fix?** Fulfills a direct user request and improves long-term database performance and hygiene.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** User clarification needed for some items.
+
+-   **Issue 3: Live Google Reviews vs. Implemented Testimonials (P2)**
+    -   **Attempted fixes:** An admin-controlled AI testimonial system was implemented as a substitute.
+    -   **Next debug checklist:** Clarify with the user if the current AI system is sufficient or if they still want to integrate live Google Reviews.
     -   **Why fix this issue and what will be achieved with the fix?** The implemented feature doesn't match the original request. This needs user validation.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** User clarification.
 
--   **Issue 3: Re-enable Google reCAPTCHA (P3)**
-    -   **Attempted fixes:** The feature was disabled to fix a domain key error in the preview environment.
-    -   **Next debug checklist:**
-        1.  Once the site is deployed, guide the user to generate new reCAPTCHA keys for the production domain.
-        2.  Update the environment variables and re-enable the reCAPTCHA code.
+-   **Issue 4: Re-enable Google reCAPTCHA (P3)**
+    -   **Attempted fixes:** The feature was disabled due to a domain key error in the preview environment.
+    -   **Next debug checklist:** Once the site is deployed, guide the user to generate new reCAPTCHA keys for the production domain and update the environment variables.
     -   **Why fix this issue and what will be achieved with the fix?** To restore spam protection on lead forms.
     -   **Status:** BLOCKED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** Issue 4: Deployment & Final Configuration.
+    -   **Blocked on other issue:** Issue 5: Deployment & Final Configuration.
 
--   **Issue 4: Deployment & Final Configuration (P3)**
-    -   **Attempted fixes:** The agent has previously provided deployment guides.
-    -   **Next debug checklist:**
-        1.  After completing current tasks, prompt the user to initiate deployment.
-        2.  Guide the user to update the Meta Webhook URL to the new production URL.
+-   **Issue 5: Deployment & Final Configuration (P3)**
+    -   **Attempted fixes:** None in this session.
+    -   **Next debug checklist:** After completing current tasks, prompt the user to initiate deployment and guide them in updating the Meta Webhook URL to the new production URL.
     -   **Why fix this issue and what will be achieved with the fix?** This is a blocker for the application going live.
     -   **Status:** BLOCKED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** N/A
-    -   **Blocked on other issue:** User action is required (clicking Deploy and setting up DNS).
+    -   **Blocked on other issue:** User action is required.
 
 **In progress Task List**:
--   **Task 1: Unify Payment Notifications (P0)**
-    -   **Where to resume:** Modify the  endpoint in  to add email notifications for shop orders.
-    -   **What will be achieved with this?** All successful online payments will trigger both WhatsApp and email confirmations, creating a uniform experience.
+-   **Task 1: Complete Sitewide UI Redesign (P0)**
+    -   **Where to resume:** Continue applying the light theme styles, starting with  and systematically proceeding to all other pages (, , , etc.).
+    -   **What will be achieved with this?** A fully rebranded website with a consistent, premium light theme that aligns with the user's brand identity.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on something:** No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P2) Finalize Deployment & Webhook Configuration:** Assist user post-deployment.
-    -   **(P3) Re-enable Google reCAPTCHA:** Restore spam protection post-deployment.
+    -   **(P1) Implement Database Optimization:** Create an admin utility for DB cleanup tasks.
+    -   **(P1) Refactor  and :** These monolithic files are critically large and must be broken down into smaller modules/components.
 -   **Future Tasks:**
-    -   **(P1) Refactor  and :** These monolithic files are now critically large and difficult to maintain. They must be broken down into smaller, focused modules/components.
     -   **(P2) Implement Live Google Reviews:** Pending user clarification.
+    -   **(P3) Finalize Deployment & Webhook Configuration:** Assist user post-deployment.
     -   **(P3) Persist Staff Notifications:** Store staff notifications in the database.
 
 **Completed work in this session**
--   **Payment & Notification System:**
-    -   Upgraded Razorpay integration from a simple payment link to the full Checkout SDK with the live API key.
-    -   Created a Book Service feature with a dedicated payment flow and automated WhatsApp/Email notifications.
--   **E-commerce UI/UX Overhaul:**
-    -   Completely redesigned the shop page to a premium, modern UI resembling Flipkart/Amazon.
-    -   Added a transparent company logo to the shop header.
--   **New E-commerce Features:**
-    -   Implemented a full customer product review and star rating system.
-    -   Added a customer-facing Track Order page.
-    -   Implemented a product sharing feature for social media.
--   **Advanced Admin Controls:**
-    -   Admins can now configure delivery availability on a per-product, per-district (Bihar) basis.
-    -   Admins can manage the Book Service price from the CRM.
-    -   Admins can now delete pending or cancelled orders.
-    -   Enabled image uploads for Service type products.
--   **Bug Fixes & Refinements:**
-    -   Fixed a critical bug where unsuccessful payments were being marked as confirmed orders.
-    -   Fixed the broken Become an ASR Solar Advisor page route.
-    -   Removed Govt Schemes section and updated various links/buttons across the site.
-    -   Fixed navigation issues (e.g., Back to Shop button opening new tabs).
--   **Testing:** Used the  extensively after each major feature batch, achieving 100% pass rates and ensuring stability.
+-   **Payment & Order Management:**
+    -   **Unified Payment Notifications:** Implemented email confirmations for all shop orders.
+    -   **Razorpay Payment Sync:** Built a feature for admins to sync all successful Razorpay payments into the order database, automatically creating orders and capturing customer details.
+    -   **Service Bookings in Orders:** Integrated Book Service payments to appear in the main admin order list.
+    -   **Automated WhatsApp Confirmations:** Set up instant WhatsApp notifications with order details for every new successful order.
+-   **Admin & E-commerce Features:**
+    -   **Editable Delivery Charges:** Admins can now set delivery charges for each district in Bihar from the product management page.
+-   **Performance & Optimization:**
+    -   **GZIP Compression:** Enabled GZIP middleware on the backend.
+    -   **Dynamic Script Loading:** Updated the frontend to load the Razorpay script only when needed.
+    -   **Image Optimization:** Created a backend endpoint to convert uploaded images to WebP format.
+-   **UI/UX Redesign (In Progress):**
+    -   Began a complete sitewide overhaul from a dark theme to a premium light theme.
+    -   Fixed visibility of trust badges on the homepage.
+    -   Partially applied the new theme to the homepage and  page.
 
 **Earlier issues found/mentioned but not fixed**
--   The user's original request for live Google reviews was substituted with a DB-driven AI testimonial system. This needs clarification.
--   The technical debt from monolithic files (, ) remains and is growing, posing a risk to maintainability.
+-   **Live Google Reviews:** The user's original request was substituted with a DB-driven AI testimonial system. This needs clarification.
+-   **Technical Debt:** The monolithic files (, ) have grown even larger and pose a significant risk to maintainability. Refactoring is critical.
+-   **Database Cleanup:** The user's request for database optimization (cleaning logs, sessions, etc.) has not been implemented.
 
 **Known issue recurrence from previous fork**
--   The monolithic nature of  and  is a recurring issue. The significant feature additions in this session have made refactoring a high-priority necessity.
+-   The monolithic architecture of  and  is a recurring, high-priority problem that has been exacerbated in this session.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend:** React, React Router, Tailwind CSS, ,  (toasts).
--   **Backend:** FastAPI, Motor (async MongoDB), Pydantic, Resend (for emails).
--   **AI:**  library for  (used for Testimonials and Service Descriptions).
--   **E-commerce:** Razorpay Checkout SDK, custom logic for delivery fees and notifications.
--   **Deployment:** Managed via supervisor in the development environment.
+-   **Frontend:** React, React Router, Tailwind CSS, , .
+-   **Backend:** FastAPI, Motor (async MongoDB), Pydantic, Resend,  (for image processing).
+-   **AI:**  for .
+-   **E-commerce:** Razorpay Checkout SDK.
 
 **key DB schema**
 -   : 
--   : 
--   : 
+-   :  (source can be 'Website' or 'Synced').
 -   : 
 -   : 
 
 **changes in tech stack**
--   No new technologies were added, but the usage of Resend for emails was implemented.
+-    library was installed and used on the backend for image processing.
 
 **All files of reference**
--   : Heavily modified with new endpoints for reviews, order tracking, bookings, delivery configuration, and email notifications.
--   : Completely rewritten to support the new premium UI, reviews, and other features.
--   : Heavily modified to add delivery district configuration and service price management.
--   : Updated with new routes, a Book Service modal and logic.
--   : New file for the customer order tracking feature.
+-   : Heavily modified with new endpoints for payment sync (), booking sync, delivery fees, WhatsApp notifications, and image optimization.
+-   : Modified to add UI for editing delivery fees and triggering payment/booking syncs.
+-   : Majorly refactored for the new light theme, including fixing corrupted code.
+-    & : Modified to support dynamic loading of the Razorpay script.
+-   : Overhauled with new CSS variables for the light theme.
+-   , : Modified to apply the new light theme.
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file is now dangerously large and complex. It MUST be broken down into  modules (e.g., , , ).
--   ** (CRITICAL):** This component is a monolith handling product CRUD, order management, and service configuration. It should be decomposed into smaller, specialized components.
--   ** (HIGH):** This large component manages the product grid, search, filtering, cart, checkout, and the product detail modal. It could be broken down for better maintainability.
--   ** (MEDIUM):** The root component now contains modal state and handlers (like the Book Service flow) that could be extracted into their own components or a global state context.
+-   ** (CRITICAL):** This file is dangerously large. It MUST be broken down into  modules (e.g., , , ).
+-   ** (CRITICAL):** This component is a monolith handling all admin functions. It must be decomposed into smaller, specialized components.
+-   ** (HIGH):** The root component contains too much presentation logic for the homepage. This should be extracted into dedicated homepage components.
 
 **key api endpoints**
--   : Add a review for a product.
--   : Get all reviews for a product.
--   : Track an order by order number and phone.
--   : Delete a pending/cancelled order.
--   : Check delivery availability for a pincode (for all products).
--   : Check delivery for a specific product and pincode.
--   : Get a list of all districts in Bihar.
--   : Create a booking order before payment.
--   : Confirm a booking payment and send notifications.
--   : Manage the price for the Book Service feature.
+-   : Syncs all successful Razorpay payments to the orders collection.
+-   : Syncs successful service bookings into the orders collection.
+-   : Updates delivery fees for all districts.
+-   : Gets current delivery fees.
+-   : Endpoint for uploading and optimizing an image to WebP.
 
 **Critical Info for New Agent**
--   Your immediate task is to implement email notifications for regular shop orders to match the new Book Service flow, as requested by the user. Modify the  endpoint in .
--   The user is providing large, rapid-fire feature requests. The established workflow is: plan the batch of changes, implement them, and then run the  for comprehensive verification. Continue this pattern.
--   Technical debt is a major concern. After completing the current notification task, you should strongly propose a refactoring phase to the user, focusing on breaking down  and .
+-   Your immediate task is to **complete the sitewide UI redesign**. The user wants ALL pages updated to a premium light theme based on their provided color palette (sky blue, orange, green). Resume work in  and ensure all components are updated.
+-   The technical debt in  and  is now **critical**. After the UI redesign is complete, you must propose a refactoring phase to ensure the project's long-term stability.
+-   The user requested several database/server optimizations (PHP Opcache, clean logs). You will need to clarify the non-applicable items (PHP) and plan the implementation for the relevant ones (DB cleanup).
 
 **documents and test reports created in this job**
 -    (Continuously updated)
--   Multiple test reports in , created after each major feature implementation.
+-   Multiple test reports in , created after backend feature implementations.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Please update all payment options to include the same WhatsApp/Email confirmation. *(Status: IN PROGRESS)*
-2.  **User:** A customer's Book Service payment was successful but they received no confirmation. Please fix this and ensure WhatsApp/Email confirmations are working. *(Status: COMPLETED)*
-3.  **User:** Add product reviews/ratings, a transparent logo to the shop, allow image updates for services, add a delivery fee notice, and fix the 'Back to Shop' button. *(Status: COMPLETED)*
-4.  **User:** OK. And also update the shop interface to look premium like Flipkart/Amazon. *(Status: COMPLETED)*
-5.  **User:** The Become an ASR Solar Advisor page is not working. Update Solar Maintenance Service to Book Service with direct payment. Add per-product delivery options for Bihar districts. *(Status: COMPLETED)*
-6.  **User:** Add an order tracking page, fix payment flow bugs (WhatsApp auto-open, unsuccessful payments), add product sharing, and allow admins to delete orders. *(Status: COMPLETED)*
-7.  **User:** yes. *(Status: ADDRESSED)*
-8.  **Agent:** Proposed a large plan to implement a huge batch of new features and fixes. *(Status: ADDRESSED)*
-9.  **User:** Update Razorpay key and all previously requested features. *(Status: COMPLETED)*
-10. **Agent:** Proposed a plan to update the Razorpay key and finalize product configurations. *(Status: ADDRESSED)*
+1.  **User:** Update ALL pages with a specific sky-blue/orange/green light theme and fix invisible trust badges. *(Status: IN PROGRESS)*
+2.  **Agent:** Taking screenshot to show progress on light theme. *(Status: ADDRESSED)*
+3.  **User:** Update entire site to premium light theme, use transparent logo, and implement performance optimizations (image, GZIP, lazy loading). *(Status: IN PROGRESS)*
+4.  **Agent:** Finished implementing a large batch of backend features (sync, notifications, delivery fees) and providing summary. *(Status: ADDRESSED)*
+5.  **User:** OK. Do all the work as requested. *(Status: ADDRESSED)*
+6.  **Agent:** Proposed a plan to implement a large batch of features including UI changes, optimizations, and admin tools. *(Status: ADDRESSED)*
+7.  **User:** Requested a huge list of features: editable delivery fees, all payments in order list, automated WhatsApp confirmations, image/DB/server optimizations, and a new premium UI. *(Status: IN PROGRESS)*
+8.  **Agent:** Finished implementing Razorpay payment sync and providing summary. *(Status: ADDRESSED)*
+9.  **User:** Provided new live Razorpay API keys. *(Status: COMPLETED)*
+10. **Agent:** Asked for Razorpay secret key to implement payment sync. *(Status: ADDRESSED)*
 
 **Project Health Check:**
 -   **Broken:** 0
 -   **Mocked:** 0
--   **Health:** The application is highly functional but brittle. The feature velocity has been extremely high, leading to significant technical debt in monolithic files (, ). Refactoring is now a high-priority task to ensure future maintainability and prevent regressions.
+-   **Health:** The application is highly functional but brittle. The rapid addition of features into monolithic files has created significant technical debt, making the codebase difficult to maintain and prone to regressions. The ongoing UI overhaul is a large, unfinished task.
 
 **3rd Party Integrations**
 -   **OpenAI GPT-4o-mini:** Uses Emergent LLM Key (for AI Testimonials and AI Service Descriptions).
--   **Razorpay:** Integrated for payment processing. Requires a User-provided live API key.
--   **Resend:** Requires User API Key (for staff login OTPs and customer email notifications).
--   **WhatsApp Business API / Facebook Graph API:** Backend is integrated for sending notifications.
--   **Google reCAPTCHA v2 (Invisible):** Temporarily disabled. Requires User-provided keys for the production domain.
+-   **Razorpay:** Requires User-provided live API key and secret.
+-   **Resend:** Requires User API Key (for emails).
+-   **WhatsApp Business API:** Integrated for sending notifications.
+-   **Google reCAPTCHA v2 (Invisible):** Temporarily disabled.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (Used multiple times after each major feature batch, with 100% success rates).
+-   **Testing agent used after significant changes:** YES (Used for backend features like payment sync and notifications).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None
--   **Known regressions:** None
+-   **Known regressions:** None currently, but the large-scale UI change is a high risk for new regressions.
 
 **Credentials to test flow:**
 -   **Admin Login:**
     -   Email: 
     -   OTP: Fallback 
--   **Staff Login (Example):**
-    -   Staff ID: 
-    -   Password: 
-    -   OTP: Fallback 
 
 **What agent forgot to execute**
--   The agent is currently in the process of fulfilling the user's latest request to standardize payment notifications across all services. No tasks have been forgotten.</analysis>
+-   The UI redesign is incomplete and needs to be applied to all pages.
+-   The user's request for database optimization (clean old logs, expired sessions, optimize tables) was not implemented.
+-   The agent did not clarify the non-applicability of PHP OPcache and unused plugins to the user.</analysis>

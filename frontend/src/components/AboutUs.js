@@ -65,24 +65,23 @@ export const AboutUsPage = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 to-orange-500/10"></div>
-        <div className="absolute top-20 left-10 w-72 h-72 bg-amber-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl"></div>
+      <div className="relative py-20 overflow-hidden bg-gradient-to-r from-sky-100 to-blue-100">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-10 right-10 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
             <div className="inline-flex items-center justify-center mb-6">
               <img 
-                src="/asr_logo_dark.png" 
+                src="/asr_logo_transparent.png" 
                 alt="ASR Enterprises" 
                 className="h-24 w-auto"
               />
             </div>
-            <h1 className="text-5xl md:text-6xl font-black text-white mb-4">
-              About <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">ASR Enterprises</span>
+            <h1 className="text-5xl md:text-6xl font-black text-[#0a355e] mb-4">
+              About <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">ASR Enterprises</span>
             </h1>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Powering Bihar's Future with Clean, Affordable Solar Energy
             </p>
           </div>
@@ -93,16 +92,16 @@ export const AboutUsPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         
         {/* Company Introduction */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-gray-700/50 mb-16">
+        <div className="bg-white rounded-3xl p-8 md:p-12 border border-sky-200 shadow-xl mb-16">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-6">Who We Are</h2>
-              <div className="space-y-4 text-gray-300 leading-relaxed">
+              <h2 className="text-3xl font-bold text-[#0a355e] mb-6">Who We Are</h2>
+              <div className="space-y-4 text-gray-700 leading-relaxed">
                 <p>
-                  <span className="text-amber-400 font-semibold">ASR Enterprises</span> is a professionally managed solar energy solutions company committed to accelerating the adoption of clean and sustainable power across residential, commercial, and industrial sectors.
+                  <span className="text-amber-600 font-semibold">ASR Enterprises</span> is a professionally managed solar energy solutions company committed to accelerating the adoption of clean and sustainable power across residential, commercial, and industrial sectors.
                 </p>
                 <p>
-                  Based in <span className="text-amber-400 font-semibold">Patna, Bihar</span>, we specialize in delivering high-performance rooftop solar systems designed to reduce energy costs, enhance power reliability, and support environmental responsibility.
+                  Based in <span className="text-amber-600 font-semibold">Patna, Bihar</span>, we specialize in delivering high-performance rooftop solar systems designed to reduce energy costs, enhance power reliability, and support environmental responsibility.
                 </p>
                 <p>
                   With a strong focus on quality, innovation, and customer satisfaction, we provide comprehensive end-to-end services including energy assessment, customized system design, government subsidy guidance, professional installation, and dedicated after-sales support.
@@ -110,14 +109,14 @@ export const AboutUsPage = () => {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-2xl p-6 text-center border border-amber-500/30">
-                <Home className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-                <h4 className="text-2xl font-bold text-white">Residential</h4>
-                <p className="text-gray-400 text-sm">Home Solar Solutions</p>
+              <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-2xl p-6 text-center border border-amber-300">
+                <Home className="w-10 h-10 text-amber-600 mx-auto mb-3" />
+                <h4 className="text-2xl font-bold text-[#0a355e]">Residential</h4>
+                <p className="text-gray-600 text-sm">Home Solar Solutions</p>
               </div>
-              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl p-6 text-center border border-blue-500/30">
-                <Building2 className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-                <h4 className="text-2xl font-bold text-white">Commercial</h4>
+              <div className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl p-6 text-center border border-blue-300">
+                <Building2 className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+                <h4 className="text-2xl font-bold text-[#0a355e]">Commercial</h4>
                 <p className="text-gray-400 text-sm">Business Solutions</p>
               </div>
               <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl p-6 text-center border border-green-500/30">

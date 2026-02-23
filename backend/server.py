@@ -4245,12 +4245,28 @@ async def create_order(order_data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Failed to create CRM notification for order: {e}")
     
+    # Auto-send WhatsApp order confirmation via API
+    whatsapp_sent = False
+    try:
+        order_data_for_whatsapp = {
+            "order_number": order.order_number,
+            "customer_name": order.customer_name,
+            "items": order.items,
+            "total": order.total,
+            "delivery_type": order.delivery_type,
+            "delivery_address": order.delivery_address
+        }
+        whatsapp_sent = await send_whatsapp_order_confirmation(order.customer_phone, order_data_for_whatsapp)
+    except Exception as e:
+        logger.error(f"Failed to send WhatsApp order confirmation: {e}")
+    
     return {
         "status": "success", 
         "order": order,
         "order_number": order.order_number,
         "whatsapp_notification_url": whatsapp_notification_url,
-        "customer_whatsapp_url": customer_whatsapp_url
+        "customer_whatsapp_url": customer_whatsapp_url,
+        "whatsapp_auto_sent": whatsapp_sent
     }
 
 @api_router.get("/shop/orders")

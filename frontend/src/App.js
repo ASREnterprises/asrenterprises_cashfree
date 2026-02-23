@@ -1044,105 +1044,15 @@ const HomePage = () => {
             <div
               key={index}
               onClick={() => navigate(feature.link)}
-              </p>
-              <ul className="text-sm text-gray-600 space-y-2 mb-4">
-                <li>✓ 1 kW system: ₹30,000 subsidy</li>
-                <li>✓ 2 kW system: ₹60,000 subsidy</li>
-                <li>✓ 3 kW system: ₹78,000 subsidy (Maximum)</li>
-              </ul>
-              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                <p className="text-xs text-green-700 font-semibold">ASR Enterprises handles complete subsidy documentation & approval!</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-2xl border border-amber-200">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Net Metering Benefits</h3>
-              <p className="text-gray-600 mb-4">
-                Sell excess solar power back to the grid and earn credits on your electricity bill.
-              </p>
-              <ul className="text-sm text-gray-600 space-y-2 mb-4">
-                <li>✓ Reduce bills up to 90%</li>
-                <li>✓ Earn from surplus energy</li>
-                <li>✓ 25-year panel warranty</li>
-                <li>✓ 5-year inverter warranty</li>
-                <li>✓ Grid synchronization support</li>
-              </ul>
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <p className="text-xs text-blue-700 font-semibold">Start saving from day one with net metering!</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl p-6 shadow-2xl border border-amber-200">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Zap className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Tax Benefits & Easy EMI</h3>
-              <p className="text-gray-600 mb-4">
-                Enjoy depreciation benefits and easy financing options at low interest rates from leading banks.
-              </p>
-              <ul className="text-sm text-gray-600 space-y-2 mb-4">
-                <li>✓ 80% accelerated depreciation</li>
-                <li>✓ Low-interest bank loans (7-9%)</li>
-                <li>✓ Easy EMI starting ₹3,000/month</li>
-                <li>✓ 3-5 year payback period</li>
-                <li>✓ Zero down payment options</li>
-              </ul>
-              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                <p className="text-xs text-purple-700 font-semibold">Partner with all major banks for easy financing</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <p className="text-white text-lg font-semibold mb-4">
-              ASR Enterprises - Your One-Stop Solution for Residential & Commercial Solar Installations!
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link
-                to="/#inquiry-form"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="inline-block bg-amber-500 text-white px-8 py-4 rounded-lg font-bold hover:bg-amber-600 transition shadow-lg cursor-pointer"
-              >
-                Get Free Consultation →
-              </Link>
-              <a
-                href="tel:8877896889"
-                className="inline-block bg-green-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-green-700 transition shadow-lg"
-              >
-                Call for EMI Details →
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">Powerful AI Features for Your Solar Journey</h2>
-          <p className="text-xl text-gray-600">Smart tools to help you make informed decisions</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              onClick={() => navigate(feature.link)}
-              className="bg-gray-800/70 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 p-8 border border-gray-700/50"
+              className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-2 p-8 border border-sky-200"
               data-testid={`feature-card-${index}`}
             >
               <div className={`${feature.color} text-white w-16 h-16 rounded-lg flex items-center justify-center mb-6`}>
                 {feature.icon}
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-gray-400 mb-4">{feature.description}</p>
-              <div className="flex items-center text-blue-400 font-semibold">
+              <h3 className="text-2xl font-bold text-[#0a355e] mb-3">{feature.title}</h3>
+              <p className="text-gray-600 mb-4">{feature.description}</p>
+              <div className="flex items-center text-blue-600 font-semibold">
                 <span>Explore</span>
                 <ChevronRight className="w-5 h-5 ml-1" />
               </div>
@@ -1151,25 +1061,25 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-green-600 py-16">
+      {/* Stats Section - Light Theme */}
+      <div className="bg-gradient-to-r from-sky-400 to-blue-500 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 text-center text-white">
             <div>
               <div className="text-4xl font-bold mb-2">24/7</div>
-              <div className="text-blue-100">AI Support</div>
+              <div className="text-sky-100">AI Support</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-2">25+</div>
-              <div className="text-blue-100">Happy Customers</div>
+              <div className="text-sky-100">Happy Customers</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-2">100kW+</div>
-              <div className="text-blue-100">Total Capacity Installed</div>
+              <div className="text-sky-100">Total Capacity Installed</div>
             </div>
             <div>
               <div className="text-4xl font-bold mb-2">100%</div>
-              <div className="text-blue-100">Customer Satisfaction</div>
+              <div className="text-sky-100">Customer Satisfaction</div>
             </div>
           </div>
         </div>

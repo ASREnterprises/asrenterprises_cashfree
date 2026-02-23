@@ -1024,8 +1024,8 @@ const HomePage = () => {
                 <li>✓ 3-5 year payback period</li>
                 <li>✓ Zero down payment options</li>
               </ul>
-              <div className="bg-purple-500/10 p-3 rounded-lg">
-                <p className="text-xs text-purple-400 font-semibold">🏦 Partner with all major banks for easy financing</p>
+              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                <p className="text-xs text-purple-700 font-semibold">Partner with all major banks for easy financing</p>
               </div>
             </div>
           </div>
@@ -1059,8 +1059,8 @@ const HomePage = () => {
       {/* Features Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-4">Powerful AI Features for Your Solar Journey</h2>
-          <p className="text-xl text-gray-400">Smart tools to help you make informed decisions</p>
+          <h2 className="text-4xl font-bold text-gray-800 mb-4">Powerful AI Features for Your Solar Journey</h2>
+          <p className="text-xl text-gray-600">Smart tools to help you make informed decisions</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">

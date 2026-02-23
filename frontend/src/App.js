@@ -810,7 +810,7 @@ const HomePage = () => {
               </button>
               <a
                 href="tel:8877896889"
-                className="bg-gray-800 text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-900 transition flex items-center justify-center space-x-2 shadow-lg"
+                className="bg-[#0a355e] text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#0c4270] transition flex items-center justify-center space-x-2 shadow-lg"
                 data-testid="call-now-btn"
               >
                 <Phone className="w-5 h-5" />

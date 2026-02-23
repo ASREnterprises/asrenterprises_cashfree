@@ -15,6 +15,20 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 ### Latest Session (Feb 23, 2026)
 
+#### Calculator Removed
+- **Removed from navigation** - No longer in desktop/mobile menus
+- **Removed from routes** - /calculator route deleted
+- **Updated buttons** - "Calculate Savings" → "Explore Products" (links to shop)
+- **Updated footer** - Calculator links replaced with Shop links
+- **Updated features section** - "Solar Calculator" → "Solar Solutions"
+
+#### Admin Dashboard Light Theme
+- **Premium light theme applied** - sky-50 to sky-100 gradient background
+- **ASR logo added** to header
+- **White stat cards** with colored borders (green, blue, amber, purple)
+- **Colored badges** for stats (Total, New, Gallery, Reviews)
+- **Clean modern design** matching the customer-facing website
+
 #### COMPLETE Sitewide Light Theme Update
 - **Homepage:** Fully updated to premium light theme with sky-blue, orange, green color palette
 - **Gallery:** Updated to light theme with sky-100 backgrounds and amber accents
@@ -22,13 +36,6 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Contact:** Updated to light theme with white cards and sky-blue backgrounds
 - **Trust Badges:** Now visible with white backgrounds and colored borders (green, blue, orange, purple)
 - **ASR ENTERPRISES Heading:** Reduced size to match tagline width (text-lg to text-2xl)
-
-#### Sections Updated in App.js
-- "Our Recent Solar Installations" section - light theme with borders
-- "We Install All Types of Solar Rooftop Systems" - white cards with blue/green borders
-- "Why Choose ASR Enterprises?" - white cards with colored icons
-- "Our Installation Process" - light blue gradient background
-- "Become an ASR Solar Advisor" - white/glass effects on purple gradient
 
 ### Previous Session Features
 

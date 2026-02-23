@@ -1090,73 +1090,75 @@ const HomePage = () => {
       <SolarInquiryForm />
 
       {/* Our Work Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-white mb-4">Our Recent Solar Installations</h2>
-          <p className="text-xl text-gray-400">Proudly serving Bihar with quality solar solutions</p>
-        </div>
+      <div className="bg-gradient-to-b from-white to-sky-50 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-[#0a355e] mb-4">Our Recent Solar Installations</h2>
+            <p className="text-xl text-gray-600">Proudly serving Bihar with quality solar solutions</p>
+          </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
-            <img
-              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/xgz3s4do_IMG-20250826-WA0065.jpg"
-              alt="Solar Installation in Vaishali"
-              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
-            <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-              <h3 className="font-bold text-lg">Vaishali Solar Project</h3>
-              <p className="text-sm text-gray-200">Residential Installation</p>
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-sky-200">
+              <img
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/xgz3s4do_IMG-20250826-WA0065.jpg"
+                alt="Solar Installation in Vaishali"
+                className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                <h3 className="font-bold text-lg">Vaishali Solar Project</h3>
+                <p className="text-sm text-gray-200">Residential Installation</p>
+              </div>
+            </div>
+
+            <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-sky-200">
+              <img
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/q85yfc91_IMG-20250826-WA0070.jpg"
+                alt="Solar Installation in Chak Bhoj"
+                className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                <h3 className="font-bold text-lg">Chak Bhoj Installation</h3>
+                <p className="text-sm text-gray-200">Complete Solar Setup</p>
+              </div>
+            </div>
+
+            <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-sky-200">
+              <img
+                src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/ftxdhwd0_IMG-20250826-WA0064.jpg"
+                alt="Solar Panel System"
+                className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+              <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                <h3 className="font-bold text-lg">Rooftop Solar System</h3>
+                <p className="text-sm text-gray-200">High Efficiency Panels</p>
+              </div>
             </div>
           </div>
 
-          <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
-            <img
-              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/q85yfc91_IMG-20250826-WA0070.jpg"
-              alt="Solar Installation in Chak Bhoj"
-              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
-            <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-              <h3 className="font-bold text-lg">Chak Bhoj Installation</h3>
-              <p className="text-sm text-gray-200">Complete Solar Setup</p>
-            </div>
+          <div className="text-center">
+            <Link
+              to="/gallery"
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition shadow-lg"
+              data-testid="view-gallery-btn"
+            >
+              <Image className="w-5 h-5" />
+              <span>View Full Gallery</span>
+              <ChevronRight className="w-5 h-5" />
+            </Link>
           </div>
-
-          <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
-            <img
-              src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/ftxdhwd0_IMG-20250826-WA0064.jpg"
-              alt="Solar Panel System"
-              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
-            <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-              <h3 className="font-bold text-lg">Rooftop Solar System</h3>
-              <p className="text-sm text-gray-200">High Efficiency Panels</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <Link
-            to="/gallery"
-            className="inline-flex items-center space-x-2 bg-yellow-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-yellow-700 transition"
-            data-testid="view-gallery-btn"
-          >
-            <Image className="w-5 h-5" />
-            <span>View Full Gallery</span>
-            <ChevronRight className="w-5 h-5" />
-          </Link>
         </div>
       </div>
 
       {/* Why Choose ASR Enterprises */}
-      <div className="bg-gradient-to-br from-[#0a1628] to-[#0d1b33] py-20">
+      <div className="bg-gradient-to-br from-sky-100 via-white to-sky-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Residential & Commercial Services */}
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">We Install All Types of Solar Rooftop Systems</h2>
-            <p className="text-xl text-gray-400">Residential & Commercial Solutions Across Bihar</p>
+            <h2 className="text-4xl font-bold text-[#0a355e] mb-4">We Install All Types of Solar Rooftop Systems</h2>
+            <p className="text-xl text-gray-600">Residential & Commercial Solutions Across Bihar</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-16">

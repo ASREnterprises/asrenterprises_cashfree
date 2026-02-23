@@ -629,84 +629,138 @@ export const ProductManagement = () => {
 
       {/* Orders Tab */}
       {activeTab === "orders" && (
-        <div className="bg-gray-800/30 rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-800/50">
-              <tr>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Order #</th>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Customer</th>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Items</th>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Total</th>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Payment</th>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Status</th>
-                <th className="px-4 py-3 text-left text-gray-400 text-sm">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700/50">
-              {orders.map(order => (
-                <tr key={order.id} className="hover:bg-gray-800/20">
-                  <td className="px-4 py-3">
-                    <span className="text-amber-400 font-mono">{order.order_number}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>
-                      <p className="text-white">{order.customer_name}</p>
-                      <p className="text-gray-400 text-sm">{order.customer_phone}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-gray-300">{order.items?.length || 0} items</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-white font-semibold">₹{order.total?.toLocaleString()}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      order.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {order.payment_status?.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs capitalize ${orderStatusColors[order.order_status] || ''}`}>
-                      {order.order_status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                    <select
-                      value={order.order_status}
-                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                      className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirmed</option>
-                      <option value="processing">Processing</option>
-                      <option value="ready">Ready</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                    {(order.order_status === "pending" || order.order_status === "cancelled" || order.payment_status === "pending" || order.payment_status === "failed") && (
-                      <button
-                        onClick={() => handleDeleteOrder(order.id)}
-                        className="text-red-400 hover:text-red-300 p-1"
-                        title="Delete Order"
-                        data-testid={`delete-order-${order.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {orders.length === 0 && (
-            <div className="text-center py-12 text-gray-400">
-              No orders yet
+        <div className="space-y-4">
+          {/* Razorpay Sync Section */}
+          <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <CreditCard className="w-6 h-6 text-blue-400" />
+              <div>
+                <h3 className="text-white font-semibold">Razorpay Payment Sync</h3>
+                <p className="text-gray-400 text-sm">Import all successful payments from Razorpay with customer details</p>
+              </div>
+            </div>
+            <button
+              onClick={syncRazorpayPayments}
+              disabled={syncingPayments}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold transition disabled:bg-gray-600 disabled:cursor-not-allowed"
+              data-testid="sync-razorpay-btn"
+            >
+              {syncingPayments ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Sync Payments
+                </>
+              )}
+            </button>
+          </div>
+          
+          {/* Sync Result Message */}
+          {syncResult && (
+            <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-4 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-400" />
+              <div className="text-green-300">
+                <span className="font-semibold">Sync Complete!</span>
+                <span className="ml-2 text-green-400">
+                  {syncResult.total_processed} payments processed • {syncResult.new_orders_created} new orders • {syncResult.orders_updated} updated
+                </span>
+              </div>
             </div>
           )}
+
+          {/* Orders Table */}
+          <div className="bg-gray-800/30 rounded-xl overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-800/50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Order #</th>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Customer</th>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Items</th>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Total</th>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Payment</th>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Status</th>
+                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/50">
+                {orders.map(order => (
+                  <tr key={order.id} className="hover:bg-gray-800/20">
+                    <td className="px-4 py-3">
+                      <div>
+                        <span className="text-amber-400 font-mono">{order.order_number}</span>
+                        {order.source === "razorpay_sync" && (
+                          <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">Synced</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="text-white">{order.customer_name}</p>
+                        <p className="text-gray-400 text-sm">{order.customer_phone}</p>
+                        {order.customer_email && <p className="text-gray-500 text-xs">{order.customer_email}</p>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-gray-300">{order.items?.length || 0} items</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-white font-semibold">₹{order.total?.toLocaleString()}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs ${
+                        order.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {order.payment_status?.toUpperCase()}
+                      </span>
+                      {order.razorpay_payment_id && (
+                        <p className="text-gray-500 text-xs mt-1 font-mono">{order.razorpay_payment_id.substring(0, 14)}...</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs capitalize ${orderStatusColors[order.order_status] || ''}`}>
+                        {order.order_status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                      <select
+                        value={order.order_status}
+                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                        className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="processing">Processing</option>
+                        <option value="ready">Ready</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                      {(order.order_status === "pending" || order.order_status === "cancelled" || order.payment_status === "pending" || order.payment_status === "failed") && (
+                        <button
+                          onClick={() => handleDeleteOrder(order.id)}
+                          className="text-red-400 hover:text-red-300 p-1"
+                          title="Delete Order"
+                          data-testid={`delete-order-${order.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {orders.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                No orders yet. Click "Sync Payments" to import from Razorpay.
+              </div>
+            )}
+          </div>
         </div>
       )}
 

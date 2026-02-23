@@ -360,6 +360,18 @@ export const ProductManagement = () => {
     }
   };
 
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order?")) return;
+    try {
+      await axios.delete(`${API}/shop/orders/${orderId}`);
+      fetchOrders();
+      fetchShopStats();
+    } catch (err) {
+      console.error("Error deleting order:", err);
+      alert(err.response?.data?.detail || "Failed to delete order. Only pending/cancelled orders can be deleted.");
+    }
+  };
+
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.sku?.toLowerCase().includes(searchQuery.toLowerCase())

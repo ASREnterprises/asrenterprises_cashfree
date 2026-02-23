@@ -4034,7 +4034,7 @@ async def check_delivery(pincode: str):
 
 @api_router.post("/shop/orders/{order_id}/payment-verify")
 async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
-    """Verify Razorpay payment and send WhatsApp notification to admin and customer"""
+    """Verify Razorpay payment and send WhatsApp + Email notifications to admin and customer"""
     razorpay_payment_id = data.get("razorpay_payment_id")
     razorpay_order_id = data.get("razorpay_order_id")
     razorpay_signature = data.get("razorpay_signature")
@@ -4108,6 +4108,85 @@ _Powering Bihar's future with clean energy_ ☀️"""
     
     customer_whatsapp_url = get_whatsapp_url(order.get('customer_phone', ''), customer_confirmation)
     
+    # ===== EMAIL CONFIRMATION TO CUSTOMER =====
+    email_sent = False
+    customer_email = order.get('customer_email', '')
+    if customer_email and RESEND_API_KEY:
+        try:
+            # Generate items HTML for email
+            items_html = ""
+            for item in order.get('items', []):
+                item_total = item.get('price', 0) * item.get('quantity', 1)
+                items_html += f"""<tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">{item.get('product_name', 'Item')}</td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: center; color: #666;">{item.get('quantity', 1)}</td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right; color: #333; font-weight: 500;">₹{item_total:,.0f}</td>
+                </tr>"""
+            
+            delivery_info = "Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503" if order.get('delivery_type') == "pickup" else order.get('delivery_address', 'N/A')
+            delivery_label = "Pickup Location" if order.get('delivery_type') == "pickup" else "Delivery Address"
+            delivery_time = "Visit our store during business hours (9 AM - 7 PM)" if order.get('delivery_type') == "pickup" else "Within 2-3 business days"
+            
+            email_html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0;">
+                <div style="background: linear-gradient(135deg, #1a2332, #0f1824); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                    <h1 style="color: #f59e0b; font-size: 24px; margin: 0;">Payment Successful!</h1>
+                    <p style="color: #94a3b8; font-size: 14px; margin: 8px 0 0 0;">ASR Enterprises - Solar Solutions</p>
+                </div>
+                <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb;">
+                    <p style="color: #333; font-size: 16px;">Dear <strong>{order.get('customer_name', 'Customer')}</strong>,</p>
+                    <p style="color: #333; font-size: 15px;">Your payment has been confirmed and your order is now being processed!</p>
+                    
+                    <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <table style="width: 100%; font-size: 14px; color: #333;">
+                            <tr><td style="padding: 6px 0; color: #666;">Order Number</td><td style="padding: 6px 0; font-weight: bold; text-align: right;">{order.get('order_number', 'N/A')}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Amount Paid</td><td style="padding: 6px 0; font-weight: bold; text-align: right; color: #16a34a;">₹{order.get('total', 0):,.0f}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Payment ID</td><td style="padding: 6px 0; text-align: right; font-size: 12px;">{razorpay_payment_id}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Status</td><td style="padding: 6px 0; font-weight: bold; text-align: right; color: #16a34a;">CONFIRMED</td></tr>
+                        </table>
+                    </div>
+                    
+                    <h3 style="color: #333; font-size: 16px; margin: 25px 0 15px 0; border-bottom: 2px solid #f59e0b; padding-bottom: 8px;">Order Items</h3>
+                    <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                        <tr style="background: #f8fafc;">
+                            <th style="padding: 10px 0; text-align: left; color: #666; font-weight: 600;">Item</th>
+                            <th style="padding: 10px 0; text-align: center; color: #666; font-weight: 600;">Qty</th>
+                            <th style="padding: 10px 0; text-align: right; color: #666; font-weight: 600;">Price</th>
+                        </tr>
+                        {items_html}
+                        <tr style="background: #f8fafc;">
+                            <td colspan="2" style="padding: 12px 0; font-weight: bold; color: #333;">Total</td>
+                            <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #16a34a; font-size: 16px;">₹{order.get('total', 0):,.0f}</td>
+                        </tr>
+                    </table>
+                    
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="color: #333; font-size: 14px; margin: 0 0 5px 0;"><strong>{delivery_label}:</strong></p>
+                        <p style="color: #666; font-size: 13px; margin: 0 0 10px 0;">{delivery_info}</p>
+                        <p style="color: #333; font-size: 14px; margin: 0 0 5px 0;"><strong>Expected {delivery_label.split()[0]}:</strong></p>
+                        <p style="color: #666; font-size: 13px; margin: 0;">{delivery_time}</p>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 13px;">Need help? Call us at <strong>8877896889</strong></p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
+                    <p style="color: #999; font-size: 11px; margin: 5px 0 0 0;">Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503</p>
+                </div>
+            </div>"""
+            
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [customer_email],
+                "subject": f"Order Confirmed - {order.get('order_number', 'N/A')} | ASR Enterprises",
+                "html": email_html
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+            email_sent = True
+            logger.info(f"Order confirmation email sent to {customer_email} for order #{order.get('order_number', '')}")
+        except Exception as e:
+            logger.error(f"Failed to send order confirmation email: {e}")
+    
     # Add CRM notification for payment confirmation
     try:
         crm_message = CRMMessage(
@@ -4151,7 +4230,8 @@ _Powering Bihar's future with clean energy_ ☀️"""
         "status": "success", 
         "message": "Payment verified",
         "whatsapp_notification_url": whatsapp_notification_url,
-        "customer_whatsapp_url": customer_whatsapp_url
+        "customer_whatsapp_url": customer_whatsapp_url,
+        "email_sent": email_sent
     }
 
 @api_router.get("/shop/orders/track/{order_number}")

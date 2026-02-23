@@ -3813,10 +3813,40 @@ DISTRICT_DELIVERY_FEES = {
 
 @api_router.get("/shop/bihar-districts")
 async def get_bihar_districts():
-    """Get list of Bihar districts with delivery fees"""
+    """Get list of Bihar districts with delivery fees (can be admin-customized)"""
+    # Try to get custom fees from database, fallback to defaults
+    custom_fees = await db.settings.find_one({"key": "district_delivery_fees"}, {"_id": 0})
+    fees = custom_fees.get("value", DISTRICT_DELIVERY_FEES) if custom_fees else DISTRICT_DELIVERY_FEES
     return {
         "districts": BIHAR_DISTRICT_LIST,
-        "delivery_fees": DISTRICT_DELIVERY_FEES
+        "delivery_fees": fees
+    }
+
+@api_router.put("/shop/bihar-districts/fees")
+async def update_district_delivery_fees(data: Dict[str, Any]):
+    """Admin: Update delivery fees for districts"""
+    fees = data.get("delivery_fees", {})
+    if not fees:
+        raise HTTPException(status_code=400, detail="No fees provided")
+    
+    await db.settings.update_one(
+        {"key": "district_delivery_fees"},
+        {"$set": {"key": "district_delivery_fees", "value": fees}},
+        upsert=True
+    )
+    
+    logger.info(f"District delivery fees updated")
+    return {"status": "success", "message": "Delivery fees updated", "fees": fees}
+
+@api_router.get("/admin/district-fees")
+async def get_admin_district_fees():
+    """Admin: Get all district fees for editing"""
+    custom_fees = await db.settings.find_one({"key": "district_delivery_fees"}, {"_id": 0})
+    fees = custom_fees.get("value", DISTRICT_DELIVERY_FEES) if custom_fees else DISTRICT_DELIVERY_FEES
+    return {
+        "districts": BIHAR_DISTRICT_LIST,
+        "fees": fees,
+        "default_fees": DISTRICT_DELIVERY_FEES
     }
 
 @api_router.get("/shop/products/{product_id}/check-delivery/{pincode}")

@@ -547,6 +547,9 @@ export const ProductManagement = () => {
 
         {/* Book Service Price Config */}
         <BookServiceConfig />
+        
+        {/* District Delivery Fees Config */}
+        <DistrictFeesConfig />
 
         {/* Tabs */}
         <div className="flex space-x-2 border-b border-gray-700 pb-2 mb-6">

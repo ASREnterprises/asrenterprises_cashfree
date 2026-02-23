@@ -38,6 +38,13 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 #### Book Service Feature
 - **"Book Service" button** on homepage opens Razorpay directly (online-only)
 - **Admin-configurable price** via Shop Management
+- **WhatsApp + Email confirmations** sent to customer after successful payment
+
+#### Unified Payment Notifications (Feb 23, 2026)
+- **Shop order payments** now trigger both WhatsApp AND email confirmations
+- Email template includes: order number, items table, amount paid, payment ID, delivery details
+- Backend endpoint `/api/shop/orders/{order_id}/payment-verify` returns `email_sent` field
+- Consistent notification experience across all payment types (Book Service + Shop Orders)
 
 #### Premium Shop UI (Flipkart/Amazon-style)
 - White/light product grid, sticky header + search, category strip

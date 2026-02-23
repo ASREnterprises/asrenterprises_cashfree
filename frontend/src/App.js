@@ -844,39 +844,39 @@ const HomePage = () => {
               </button>
             </div>
 
-            {/* Trust Badges */}
+            {/* Trust Badges - Visible on Light Theme */}
             <div className="flex flex-wrap justify-center gap-3 text-sm">
-              <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-amber-200 text-gray-700 shadow-sm">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                <span>25+ Happy Customers</span>
+              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full border-2 border-green-500 text-gray-800 shadow-lg">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="font-semibold">25+ Happy Customers</span>
               </div>
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
-                <CheckCircle className="w-4 h-4 text-blue-400" />
-                <span>MNRE Registered</span>
+              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full border-2 border-blue-500 text-gray-800 shadow-lg">
+                <CheckCircle className="w-4 h-4 text-blue-500" />
+                <span className="font-semibold">MNRE Registered</span>
               </div>
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
-                <CheckCircle className="w-4 h-4 text-amber-400" />
-                <span>PM Surya Ghar Partner</span>
+              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full border-2 border-orange-500 text-gray-800 shadow-lg">
+                <CheckCircle className="w-4 h-4 text-orange-500" />
+                <span className="font-semibold">PM Surya Ghar Partner</span>
               </div>
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
-                <CheckCircle className="w-4 h-4 text-purple-400" />
-                <span>Free Site Survey</span>
+              <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-full border-2 border-purple-500 text-gray-800 shadow-lg">
+                <CheckCircle className="w-4 h-4 text-purple-500" />
+                <span className="font-semibold">Free Site Survey</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Brands We Offer Section */}
-      <div className="bg-[#0d1b33] py-12 border-y border-gray-700/30">
+      {/* Brands We Offer Section - Light Theme */}
+      <div className="bg-gradient-to-b from-sky-100 to-white py-12 border-y border-sky-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Top Solar Brands We Offer</h2>
-            <p className="text-gray-400">Premium quality solar panels from India's leading manufacturers</p>
+            <h2 className="text-2xl font-bold text-[#0a355e] mb-2">Top Solar Brands We Offer</h2>
+            <p className="text-gray-600">Premium quality solar panels from India's leading manufacturers</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {/* TATA Power Solar */}
-            <div className="bg-gray-800/60 border-2 border-gray-700/50 rounded-xl p-5 text-center hover:shadow-xl hover:border-blue-500/50 transition-all hover:-translate-y-1 group">
+            <div className="bg-white border-2 border-sky-200 rounded-xl p-5 text-center hover:shadow-xl hover:border-blue-500 transition-all hover:-translate-y-1 group">
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2ec9e58fd2abff0bdf30ff0421355525a7340de1ca2a28c48b166c013ee92e32.png" 

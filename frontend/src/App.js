@@ -774,28 +774,28 @@ const HomePage = () => {
             </div>
 
             {/* Corporate Tagline */}
-            <p className="text-lg md:text-xl text-blue-200 italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
+            <p className="text-lg md:text-xl text-amber-700 italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
               "Powering Bihar's Future with Clean, Affordable Solar Energy"
             </p>
             
-            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full mb-8 border border-white/20">
-              <Award className="w-5 h-5 text-amber-400" />
+            <div className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-3 rounded-full mb-8 border border-amber-300 shadow-md">
+              <Award className="w-5 h-5 text-amber-600" />
               <span className="text-sm font-medium">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
-              <span className="text-white">Transform Your Energy Future with</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500">
+              <span className="text-gray-800">Transform Your Energy Future with</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600">
                 Solar Rooftop Solutions
               </span>
             </h1>
             
-            <p className="text-xl text-blue-100 max-w-4xl mx-auto mb-6 leading-relaxed">
-              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong className="text-amber-400">PM Surya Ghar Yojana</strong>.
+            <p className="text-xl text-gray-700 max-w-4xl mx-auto mb-6 leading-relaxed">
+              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong className="text-amber-600">PM Surya Ghar Yojana</strong>.
             </p>
             
-            <p className="text-lg text-blue-200/80 max-w-3xl mx-auto mb-10">
-              Our mission: Making solar energy <strong className="text-white">affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-10">
+              Our mission: Making solar energy <strong className="text-gray-800">affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
@@ -809,7 +809,7 @@ const HomePage = () => {
               </button>
               <a
                 href="tel:8877896889"
-                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/20"
+                className="bg-gray-800 text-white px-8 py-4 rounded-xl font-semibold hover:bg-gray-900 transition flex items-center justify-center space-x-2 shadow-lg"
                 data-testid="call-now-btn"
               >
                 <Phone className="w-5 h-5" />
@@ -837,7 +837,7 @@ const HomePage = () => {
               </button>
               <button
                 onClick={() => navigate('/calculator')}
-                className="bg-white/10 backdrop-blur-sm text-white border border-white/30 px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition"
+                className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:border-amber-500 hover:text-amber-600 transition shadow-md"
                 data-testid="try-calculator-btn"
               >
                 Calculate Savings
@@ -846,8 +846,8 @@ const HomePage = () => {
 
             {/* Trust Badges */}
             <div className="flex flex-wrap justify-center gap-3 text-sm">
-              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-amber-200 text-gray-700 shadow-sm">
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
                 <span>25+ Happy Customers</span>
               </div>
               <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 text-white/90">

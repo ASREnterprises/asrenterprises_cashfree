@@ -347,20 +347,20 @@ const ServiceRegistration = () => {
 
   if (step === 'success') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a1628] to-[#0d1b33] flex items-center justify-center p-4">
-        <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-gray-700">
-          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-400" />
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center border border-amber-200">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Registration Successful!</h1>
-          <p className="text-gray-400 mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">Registration Successful!</h1>
+          <p className="text-gray-600 mb-6">
             Thank you for registering with ASR Enterprises. Our team will contact you within 24 hours to schedule your solar consultation.
           </p>
-          <div className="bg-green-500/10 rounded-lg p-4 mb-6">
-            <p className="text-green-400 font-semibold">Payment Received: ₹{registrationFee}</p>
-            <p className="text-green-400 text-sm">This amount will be adjusted in your final bill</p>
+          <div className="bg-green-50 rounded-lg p-4 mb-6 border border-green-200">
+            <p className="text-green-700 font-semibold">Payment Received: ₹{registrationFee}</p>
+            <p className="text-green-600 text-sm">This amount will be adjusted in your final bill</p>
           </div>
-          <Link to="/" className="inline-block bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
+          <Link to="/" className="inline-block bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition shadow-lg">
             Back to Home
           </Link>
         </div>
@@ -369,19 +369,19 @@ const ServiceRegistration = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center space-x-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Sun className="w-4 h-4" />
             <span>PM Surya Ghar Yojana Partner</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Book Your Solar Installation</h1>
-          <p className="text-gray-400">Register now and get priority service from Bihar's trusted solar experts</p>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Book Your Solar Installation</h1>
+          <p className="text-gray-600">Register now and get priority service from Bihar's trusted solar experts</p>
         </div>
 
-        <div className="bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 border border-gray-700">
-          <div className="bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl p-4 mb-6 text-white">
+        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-amber-200">
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-4 mb-6 text-white">
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm opacity-90">Registration Fee</p>
@@ -397,7 +397,7 @@ const ServiceRegistration = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Full Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                 <input
                   type="text"
                   value={formData.name}

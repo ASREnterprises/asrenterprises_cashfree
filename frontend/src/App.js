@@ -536,6 +536,78 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [festiveBanner, setFestiveBanner] = useState(null);
+  const [showBookService, setShowBookService] = useState(false);
+  const [bookingData, setBookingData] = useState({ customer_name: "", customer_phone: "", customer_email: "" });
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(null);
+
+  const handleBookService = async () => {
+    if (!bookingData.customer_name || !bookingData.customer_phone) {
+      alert("Please fill in your name and phone number");
+      return;
+    }
+    setBookingLoading(true);
+    try {
+      // Step 1: Create booking record
+      const res = await axios.post(`${API}/shop/book-service`, bookingData);
+      const { booking, key_id } = res.data;
+
+      if (!key_id || !window.Razorpay) {
+        alert("Payment gateway unavailable. Please call 8877896889.");
+        setBookingLoading(false);
+        return;
+      }
+
+      // Step 2: Open Razorpay payment
+      const options = {
+        key: key_id,
+        amount: Math.round(booking.amount * 100),
+        currency: "INR",
+        name: "ASR Enterprises",
+        description: `Service Booking #${booking.booking_number}`,
+        handler: async function(response) {
+          // Step 3: Confirm booking + send notifications
+          try {
+            const confirmRes = await axios.post(`${API}/shop/book-service/${booking.id}/confirm`, {
+              razorpay_payment_id: response.razorpay_payment_id
+            });
+            setBookingSuccess({
+              booking_number: confirmRes.data.booking_number,
+              customer_whatsapp_url: confirmRes.data.customer_whatsapp_url,
+              email_sent: confirmRes.data.email_sent
+            });
+            setShowBookService(false);
+          } catch (err) {
+            console.error("Confirmation error:", err);
+            alert("Payment received but confirmation failed. Our team will contact you. Ref: " + response.razorpay_payment_id);
+          }
+          setBookingLoading(false);
+        },
+        modal: {
+          ondismiss: function() {
+            setBookingLoading(false);
+          }
+        },
+        prefill: {
+          name: bookingData.customer_name,
+          contact: bookingData.customer_phone,
+          email: bookingData.customer_email || ""
+        },
+        theme: { color: "#f59e0b" }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on("payment.failed", function() {
+        setBookingLoading(false);
+        alert("Payment failed. Please try again or call 8877896889.");
+      });
+      rzp.open();
+    } catch (err) {
+      console.error(err);
+      alert("Unable to process. Please call 8877896889.");
+      setBookingLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Fetch active festive post

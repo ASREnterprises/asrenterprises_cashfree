@@ -1300,13 +1300,13 @@ const HomePage = () => {
               </div>
               <div className="text-center">
                 <div className="bg-purple-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">4</div>
-                <h4 className="font-bold text-white mb-2">Installation</h4>
-                <p className="text-sm text-gray-400">Professional setup in 3-5 days</p>
+                <h4 className="font-bold text-[#0a355e] mb-2">Installation</h4>
+                <p className="text-sm text-gray-600">Professional setup in 3-5 days</p>
               </div>
               <div className="text-center">
-                <div className="bg-red-600 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">5</div>
-                <h4 className="font-bold text-white mb-2">After-Sales</h4>
-                <p className="text-sm text-gray-400">Ongoing maintenance & support</p>
+                <div className="bg-red-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">5</div>
+                <h4 className="font-bold text-[#0a355e] mb-2">After-Sales</h4>
+                <p className="text-sm text-gray-600">Ongoing maintenance & support</p>
               </div>
             </div>
           </div>
@@ -1320,22 +1320,22 @@ const HomePage = () => {
           <h2 className="text-4xl font-bold mb-4">Become an ASR Solar Advisor</h2>
           <p className="text-xl text-purple-100 mb-8">Join our network and earn attractive commissions!</p>
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-8">
-            <div className="bg-gray-800/30 rounded-xl p-6 backdrop-blur-lg border border-gray-700/30">
+            <div className="bg-white/20 rounded-xl p-6 backdrop-blur-lg border border-white/30">
               <div className="text-5xl font-bold mb-2">₹5,000</div>
               <p className="text-purple-100">Per successful referral</p>
             </div>
-            <div className="bg-gray-800/30 rounded-xl p-6 backdrop-blur-lg border border-gray-700/30">
+            <div className="bg-white/20 rounded-xl p-6 backdrop-blur-lg border border-white/30">
               <div className="text-5xl font-bold mb-2">FREE</div>
               <p className="text-purple-100">Training & Support</p>
             </div>
-            <div className="bg-gray-800/30 rounded-xl p-6 backdrop-blur-lg border border-gray-700/30">
+            <div className="bg-white/20 rounded-xl p-6 backdrop-blur-lg border border-white/30">
               <div className="text-5xl font-bold mb-2">10%</div>
               <p className="text-purple-100">Commission on deals</p>
             </div>
           </div>
           <Link
             to="/become-agent"
-            className="inline-block bg-purple-600 text-white px-8 py-4 rounded-lg font-bold hover:bg-purple-700 transition shadow-lg"
+            className="inline-block bg-white text-purple-600 px-8 py-4 rounded-lg font-bold hover:bg-purple-50 transition shadow-lg"
             data-testid="become-agent-btn"
           >
             Register as Solar Advisor →

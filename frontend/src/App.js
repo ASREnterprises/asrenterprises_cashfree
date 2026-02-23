@@ -1497,10 +1497,7 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/calculator" element={<SolarCalculatorPage />} />
           <Route path="/chat" element={<WhatsAppChatPage />} />
-          <Route path="/register" element={<ServiceRegistration />} />
-          <Route path="/registration-success" element={<ServiceRegistration />} />
-          <Route path="/become-agent" element={<AgentRegistrationPage />} />
-          <Route path="/govt-schemes" element={<PublicGovtNewsPage />} />
+          <Route path="/track-order" element={<OrderTrackingPage />} />
           
           {/* Admin Login */}
           <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />

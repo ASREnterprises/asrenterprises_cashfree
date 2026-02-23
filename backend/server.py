@@ -213,6 +213,9 @@ db = client[os.environ['DB_NAME']]
 # Create the main app
 app = FastAPI()
 
+# Add GZIP compression middleware for performance
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 # Add security middleware
 app.add_middleware(SecurityMiddleware)
 

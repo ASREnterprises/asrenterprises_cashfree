@@ -6097,6 +6097,97 @@ async def get_recent_social_leads():
         }
     }
 
+# ==================== IMAGE OPTIMIZATION ====================
+
+def optimize_image_to_webp(image_data: bytes, max_size_kb: int = 200) -> bytes:
+    """Convert image to WebP format and optimize to stay under max size"""
+    try:
+        img = Image.open(io.BytesIO(image_data))
+        
+        # Convert to RGB if necessary (for PNG with alpha)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        # Start with quality 85 and reduce if needed
+        quality = 85
+        output = io.BytesIO()
+        
+        while quality > 10:
+            output = io.BytesIO()
+            img.save(output, format='WEBP', quality=quality, optimize=True)
+            
+            if output.tell() <= max_size_kb * 1024:
+                break
+            
+            quality -= 10
+            
+            # Also resize if still too large
+            if quality <= 50 and output.tell() > max_size_kb * 1024:
+                width, height = img.size
+                img = img.resize((int(width * 0.8), int(height * 0.8)), Image.Resampling.LANCZOS)
+        
+        return output.getvalue()
+    except Exception as e:
+        logger.error(f"Image optimization failed: {e}")
+        return image_data
+
+@api_router.post("/upload/optimize-image")
+async def upload_and_optimize_image(file: UploadFile = File(...)):
+    """Upload image, convert to WebP, and optimize to under 200KB"""
+    if not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    try:
+        # Read image data
+        image_data = await file.read()
+        original_size = len(image_data)
+        
+        # Optimize to WebP
+        optimized_data = optimize_image_to_webp(image_data, max_size_kb=200)
+        optimized_size = len(optimized_data)
+        
+        # Save to uploads directory
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}.webp"
+        filepath = UPLOADS_DIR / filename
+        
+        with open(filepath, 'wb') as f:
+            f.write(optimized_data)
+        
+        # Return base64 for immediate use
+        base64_image = base64.b64encode(optimized_data).decode('utf-8')
+        
+        return {
+            "status": "success",
+            "filename": filename,
+            "original_size_kb": round(original_size / 1024, 2),
+            "optimized_size_kb": round(optimized_size / 1024, 2),
+            "compression_ratio": round((1 - optimized_size / original_size) * 100, 1),
+            "data_url": f"data:image/webp;base64,{base64_image}",
+            "url": f"/api/uploads/{filename}"
+        }
+    except Exception as e:
+        logger.error(f"Image upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process image")
+
+@api_router.get("/uploads/{filename}")
+async def get_uploaded_image(filename: str):
+    """Serve uploaded images with caching headers"""
+    filepath = UPLOADS_DIR / filename
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    with open(filepath, 'rb') as f:
+        data = f.read()
+    
+    # Set cache headers for CDN
+    headers = {
+        "Cache-Control": "public, max-age=31536000",  # 1 year
+        "Content-Type": "image/webp"
+    }
+    
+    return Response(content=data, media_type="image/webp", headers=headers)
+
 # ==================== SERVICE REGISTRATION WITH PAYMENT ====================
 
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')

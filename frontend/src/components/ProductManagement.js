@@ -604,6 +604,7 @@ export const ProductManagement = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
                     <select
                       value={order.order_status}
                       onChange={(e) => updateOrderStatus(order.id, e.target.value)}
@@ -616,6 +617,17 @@ export const ProductManagement = () => {
                       <option value="delivered">Delivered</option>
                       <option value="cancelled">Cancelled</option>
                     </select>
+                    {(order.order_status === "pending" || order.order_status === "cancelled" || order.payment_status === "pending" || order.payment_status === "failed") && (
+                      <button
+                        onClick={() => handleDeleteOrder(order.id)}
+                        className="text-red-400 hover:text-red-300 p-1"
+                        title="Delete Order"
+                        data-testid={`delete-order-${order.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    </div>
                   </td>
                 </tr>
               ))}

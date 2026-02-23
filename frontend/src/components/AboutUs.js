@@ -53,11 +53,11 @@ export const AboutUsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628]">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50">
       {/* Header */}
-      <div className="bg-[#0a1628]/80 backdrop-blur-sm border-b border-gray-800">
+      <div className="bg-white/90 backdrop-blur-sm border-b border-sky-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link to="/" className="inline-flex items-center text-amber-400 hover:text-amber-300 transition">
+          <Link to="/" className="inline-flex items-center text-amber-600 hover:text-amber-500 transition">
             <ChevronRight className="w-5 h-5 rotate-180 mr-1" />
             <span>Back to Home</span>
           </Link>

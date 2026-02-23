@@ -197,7 +197,7 @@ const SolarInquiryForm = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#0a1628] via-[#0f2240] to-[#0a1628] py-20" id="inquiry-form">
+    <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50 py-20" id="inquiry-form">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
           <h2 className="text-4xl font-bold text-white mb-3">Get Free Solar Consultation</h2>

@@ -420,6 +420,24 @@ export const ProductManagement = () => {
     }
   };
 
+  // Sync Razorpay Payments
+  const syncRazorpayPayments = async () => {
+    setSyncingPayments(true);
+    setSyncResult(null);
+    try {
+      const res = await axios.post(`${API}/admin/razorpay/sync`, { sync_all: true });
+      setSyncResult(res.data);
+      fetchOrders();
+      fetchShopStats();
+      alert(`Sync complete! ${res.data.new_orders_created} new orders created, ${res.data.orders_updated} orders updated.`);
+    } catch (err) {
+      console.error("Error syncing Razorpay payments:", err);
+      alert(err.response?.data?.detail || "Failed to sync Razorpay payments. Check if API keys are configured.");
+    } finally {
+      setSyncingPayments(false);
+    }
+  };
+
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.sku?.toLowerCase().includes(searchQuery.toLowerCase())

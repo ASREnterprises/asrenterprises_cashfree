@@ -3322,12 +3322,12 @@ async def generate_service_description(data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"AI service description generation failed: {e}")
         templates = {
-            "installation": f"Professional {service_name} by ASR Enterprises. Our certified technicians provide expert solar installation services including site assessment, mounting, electrical wiring, inverter setup, and system commissioning. We ensure optimal panel placement for maximum energy generation. Service includes safety checks and post-installation support.",
+            "cleaning": f"Professional {service_name} by ASR Enterprises. Our expert technicians provide comprehensive solar panel cleaning to restore maximum power output. Service includes dust and debris removal, water spot cleaning, visual inspection, and performance verification. Regular cleaning ensures your panels operate at peak efficiency year-round.",
             "maintenance": f"Comprehensive {service_name} from ASR Enterprises. Keep your solar system running at peak efficiency with our annual maintenance package. Includes thorough panel cleaning, connection inspection, performance analysis, and detailed system health report.",
             "repair": f"Expert {service_name} by ASR Enterprises. Quick diagnosis and repair of all solar system issues - inverter faults, panel damage, wiring problems, and more. Our experienced technicians carry genuine spare parts for on-site repairs.",
             "consultation": f"Expert {service_name} from ASR Enterprises. Get personalized guidance for your solar journey. Our consultants assess your energy needs, roof suitability, and budget to recommend the ideal solar solution. Includes detailed cost-benefit analysis and subsidy guidance."
         }
-        return {"description": templates.get(service_type, templates["installation"]), "generated": False}
+        return {"description": templates.get(service_type, templates["cleaning"]), "generated": False}
 
 @api_router.get("/shop/delivery-fees")
 async def get_delivery_fees():

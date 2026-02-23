@@ -949,35 +949,101 @@ const HomePage = () => {
                   className="h-16 w-auto object-contain"
                 />
               </div>
-              <h3 className="font-bold text-white text-sm">Vikram Solar</h3>
+              <h3 className="font-bold text-[#0a355e] text-sm">Vikram Solar</h3>
               <p className="text-xs text-indigo-600 mt-1 font-medium">Global Standard</p>
             </div>
           </div>
           <div className="text-center mt-8">
-            <p className="text-sm text-gray-400 bg-green-500/10 inline-block px-6 py-2 rounded-full">
-              <CheckCircle className="w-4 h-4 inline mr-2 text-green-400" />
+            <p className="text-sm text-green-700 bg-green-100 inline-block px-6 py-2 rounded-full border border-green-300">
+              <CheckCircle className="w-4 h-4 inline mr-2 text-green-600" />
               All brands come with 25-year performance warranty
             </p>
           </div>
         </div>
       </div>
 
-      {/* Government Benefits Section */}
-      <div className="bg-gradient-to-r from-orange-500 to-red-500 py-16">
+      {/* Government Benefits Section - Sky Blue Theme */}
+      <div className="bg-gradient-to-b from-sky-200 via-sky-100 to-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Government Benefits for Solar Rooftop Installation</h2>
-            <p className="text-orange-100 text-xl">PM Surya Ghar Yojana, MNRE Subsidies & Easy Bank EMI Available</p>
+            <h2 className="text-4xl font-bold text-[#0a355e] mb-4">Maximize Government Benefits!</h2>
+            <p className="text-xl"><span className="text-red-600 font-semibold">Install Solar Rooftop Under</span> <span className="text-green-700 font-bold">PM Surya Ghar Yojana</span></p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div className="bg-white rounded-xl p-6 shadow-2xl border border-amber-200">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Award className="w-8 h-8 text-green-600" />
+            {/* Subsidy Card - Orange */}
+            <div className="bg-[#f87f2b] rounded-xl p-6 shadow-2xl text-white">
+              <div className="text-center mb-4">
+                <p className="text-4xl font-bold">Up to ₹78,000*</p>
+                <p className="text-xl mt-2">Govt. Subsidy</p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">Up to ₹78,000 Subsidy</h3>
-              <p className="text-gray-600 mb-4">
-                Get <strong className="text-gray-800">₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
+              <ul className="text-sm space-y-2 mb-4">
+                <li>✓ 1 kW system: ₹30,000 subsidy</li>
+                <li>✓ 2 kW system: ₹60,000 subsidy</li>
+                <li>✓ 3 kW system: ₹78,000 (Maximum)</li>
+              </ul>
+              <p className="text-xs opacity-80">*Based on solar capacity</p>
+            </div>
+
+            {/* Zero-Cost Loans - Green */}
+            <div className="bg-[#4CAF50] rounded-xl p-6 shadow-2xl text-white">
+              <div className="text-center mb-4">
+                <p className="text-4xl font-bold">Zero-Cost</p>
+                <p className="text-xl mt-2">Solar Loans</p>
+              </div>
+              <ul className="text-sm space-y-2 mb-4">
+                <li>✓ Low-interest loans (7-9%)</li>
+                <li>✓ EMI starting ₹3,000/month</li>
+                <li>✓ 3-5 year payback period</li>
+                <li>✓ Zero down payment</li>
+              </ul>
+              <p className="text-xs opacity-80">Easy bank financing available</p>
+            </div>
+
+            {/* Savings - Blue */}
+            <div className="bg-[#2196f3] rounded-xl p-6 shadow-2xl text-white">
+              <div className="text-center mb-4">
+                <p className="text-3xl font-bold">Significant Savings</p>
+                <p className="text-xl mt-2">on Electricity Bills</p>
+              </div>
+              <ul className="text-sm space-y-2 mb-4">
+                <li>✓ Reduce bills up to 90%</li>
+                <li>✓ Earn from surplus energy</li>
+                <li>✓ 25-year panel warranty</li>
+                <li>✓ Net metering support</li>
+              </ul>
+              <p className="text-xs opacity-80">Start saving from day one!</p>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-[#0a355e] text-xl font-bold mb-4">Get Started Today!</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <a href="tel:8877896889" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white px-8 py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg text-lg">
+                <Phone className="w-5 h-5" />
+                Call: 8877896889
+              </a>
+              <button onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })} className="bg-[#f87f2b] text-white px-8 py-4 rounded-lg font-bold hover:bg-orange-600 transition shadow-lg">
+                Get Free Consultation →
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mt-4">www.asrenterprisespatna.com</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Grid - Light Theme */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-[#0a355e] mb-4">Powerful AI Features for Your Solar Journey</h2>
+          <p className="text-xl text-gray-600">Smart tools to help you make informed decisions</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              onClick={() => navigate(feature.link)}
               </p>
               <ul className="text-sm text-gray-600 space-y-2 mb-4">
                 <li>✓ 1 kW system: ₹30,000 subsidy</li>

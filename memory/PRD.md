@@ -75,8 +75,8 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - Staff: ASR1001 / password: asr@123 / OTP: 131993
 
 ## Pending Tasks
+- **P1:** Refactor server.py into modular APIRouter files (CRITICAL - file is very large)
 - **P2:** Deployment & Webhook Configuration (user action)
 - **P3:** Re-enable Google reCAPTCHA (post-deployment)
 - **P3:** Live Google Reviews (pending user clarification)
-- **P3:** Refactor server.py into modular APIRouter files
-- **P3:** Refactor large frontend components
+- **P3:** Refactor large frontend components (Shop.js, ProductManagementPage.js)

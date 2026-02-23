@@ -133,7 +133,13 @@ export const ProductManagement = () => {
     fetchProducts();
     fetchOrders();
     fetchShopStats();
+    fetchBiharDistricts();
   }, []);
+
+  const fetchBiharDistricts = async () => {
+    try { const res = await axios.get(`${API}/shop/bihar-districts`); setBiharDistricts(res.data); }
+    catch (err) { console.error(err); }
+  };
 
   const fetchProducts = async () => {
     try {

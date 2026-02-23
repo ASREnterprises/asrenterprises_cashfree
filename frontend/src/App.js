@@ -45,9 +45,9 @@ const BusinessDashboard = lazy(() => import("@/components/BusinessDashboard").th
 
 // Loading Spinner Component for Suspense fallback
 const PageLoader = () => (
-  <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] flex items-center justify-center">
+  <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 flex items-center justify-center">
     <div className="text-center">
-      <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
+      <Loader2 className="w-12 h-12 text-amber-600 animate-spin mx-auto mb-4" />
       <p className="text-gray-400 text-sm">Loading...</p>
     </div>
   </div>

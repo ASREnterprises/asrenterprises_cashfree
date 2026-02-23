@@ -3577,6 +3577,130 @@ async def get_razorpay_payment_details(payment_id: str):
         logger.error(f"Failed to fetch Razorpay payment: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch from Razorpay")
 
+# ==================== SYNC SERVICE BOOKINGS TO ORDERS ====================
+
+@api_router.post("/admin/sync-service-bookings")
+async def sync_service_bookings_to_orders():
+    """Sync all paid service bookings to orders table"""
+    bookings = await db.service_bookings.find({"payment_status": "paid"}, {"_id": 0}).to_list(1000)
+    
+    synced_count = 0
+    new_orders = 0
+    
+    for booking in bookings:
+        # Check if already synced to orders
+        existing = await db.orders.find_one({"booking_id": booking.get("id")}, {"_id": 0})
+        if existing:
+            synced_count += 1
+            continue
+        
+        # Create order from booking
+        order = {
+            "id": str(uuid.uuid4()),
+            "order_number": booking.get("booking_number", f"BSK-{str(uuid.uuid4())[:8].upper()}"),
+            "booking_id": booking.get("id"),
+            "customer_name": booking.get("customer_name", ""),
+            "customer_phone": booking.get("customer_phone", ""),
+            "customer_email": booking.get("customer_email", ""),
+            "items": [{
+                "product_id": "service_booking",
+                "product_name": booking.get("service", "Solar Maintenance Service"),
+                "quantity": 1,
+                "price": booking.get("amount", 1500)
+            }],
+            "subtotal": booking.get("amount", 1500),
+            "delivery_charge": 0,
+            "total": booking.get("amount", 1500),
+            "delivery_type": "service",
+            "delivery_address": "",
+            "delivery_district": "",
+            "payment_method": "razorpay",
+            "payment_status": "paid",
+            "razorpay_payment_id": booking.get("payment_id", ""),
+            "order_status": "confirmed",
+            "notes": "Service booking",
+            "source": "service_booking",
+            "created_at": booking.get("created_at", datetime.now(timezone.utc).isoformat()),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.orders.insert_one(order)
+        new_orders += 1
+        synced_count += 1
+    
+    return {
+        "status": "success",
+        "message": f"Synced {synced_count} service bookings",
+        "new_orders_created": new_orders,
+        "total_processed": synced_count
+    }
+
+# ==================== CRM PAYMENTS LINKED TO RAZORPAY ====================
+
+@api_router.get("/crm/razorpay-payments")
+async def get_crm_razorpay_payments(count: int = 100, skip: int = 0):
+    """Get all Razorpay payments for CRM payments section"""
+    if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+        # Return local payments if Razorpay not configured
+        payments = await db.payments.find({}, {"_id": 0}).sort("created_at", -1).to_list(count)
+        return {"status": "success", "payments": payments, "source": "local"}
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            auth = (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
+            response = await client.get(
+                f"https://api.razorpay.com/v1/payments",
+                auth=auth,
+                params={"count": count, "skip": skip}
+            )
+            
+            if response.status_code != 200:
+                raise HTTPException(status_code=response.status_code, detail="Failed to fetch from Razorpay")
+            
+            data = response.json()
+            payments = data.get("items", [])
+            
+            # Format payments for CRM display
+            formatted_payments = []
+            for p in payments:
+                # Clean phone
+                phone = p.get("contact", "") or ""
+                if phone.startswith("+91"):
+                    phone = phone[3:]
+                elif phone.startswith("91") and len(phone) > 10:
+                    phone = phone[2:]
+                
+                formatted_payments.append({
+                    "id": p.get("id"),
+                    "amount": p.get("amount", 0) / 100,
+                    "currency": p.get("currency", "INR"),
+                    "status": p.get("status"),
+                    "method": p.get("method"),
+                    "customer_name": p.get("email", "").split("@")[0] if p.get("email") else "Customer",
+                    "customer_phone": phone,
+                    "customer_email": p.get("email", ""),
+                    "description": p.get("description", ""),
+                    "created_at": datetime.fromtimestamp(p.get("created_at", 0), tz=timezone.utc).isoformat() if p.get("created_at") else "",
+                    "bank": p.get("bank", ""),
+                    "wallet": p.get("wallet", ""),
+                    "vpa": p.get("vpa", ""),
+                    "order_id": p.get("order_id", ""),
+                    "error_code": p.get("error_code", ""),
+                    "error_description": p.get("error_description", "")
+                })
+            
+            return {
+                "status": "success",
+                "payments": formatted_payments,
+                "total": len(formatted_payments),
+                "source": "razorpay"
+            }
+    except Exception as e:
+        logger.error(f"Error fetching Razorpay payments for CRM: {e}")
+        # Fallback to local payments
+        payments = await db.payments.find({}, {"_id": 0}).sort("created_at", -1).to_list(count)
+        return {"status": "success", "payments": payments, "source": "local"}
+
 # Book Service - configurable price stored in settings collection
 @api_router.get("/shop/book-service-config")
 async def get_book_service_config():

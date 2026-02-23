@@ -106,6 +106,30 @@ export const ShopPage = () => {
     catch (err) { console.error(err); }
   };
 
+  const fetchReviewsSummary = async () => {
+    try { const res = await axios.get(`${API}/shop/reviews/summary`); setReviewsSummary(res.data); }
+    catch (err) { console.error(err); }
+  };
+
+  const fetchProductReviews = async (productId) => {
+    try { const res = await axios.get(`${API}/shop/products/${productId}/reviews`); setProductReviews(res.data.reviews || []); }
+    catch (err) { console.error(err); setProductReviews([]); }
+  };
+
+  const submitReview = async (productId) => {
+    if (!reviewForm.customer_name || !reviewForm.review_text) { alert("Please fill name and review"); return; }
+    setSubmittingReview(true);
+    try {
+      await axios.post(`${API}/shop/products/${productId}/reviews`, reviewForm);
+      fetchProductReviews(productId);
+      fetchReviewsSummary();
+      setShowReviewForm(false);
+      setReviewForm({ customer_name: "", rating: 5, title: "", review_text: "" });
+      alert("Thank you for your review!");
+    } catch { alert("Failed to submit review."); }
+    finally { setSubmittingReview(false); }
+  };
+
   const addToCart = (product, qty = 1) => {
     setCart(prev => {
       const existing = prev.find(item => item.product_id === product.id);

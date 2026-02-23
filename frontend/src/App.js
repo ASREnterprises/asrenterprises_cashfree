@@ -723,22 +723,7 @@ const HomePage = () => {
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
               <button
-                onClick={async () => {
-                  try {
-                    const configRes = await axios.get(`${API}/shop/book-service-config`);
-                    const { price, key_id } = configRes.data;
-                    if (!key_id || !window.Razorpay) { alert("Payment gateway unavailable."); return; }
-                    const options = {
-                      key: key_id, amount: Math.round(price * 100), currency: "INR",
-                      name: "ASR Enterprises", description: "Solar Service Booking",
-                      handler: function(response) { alert(`Booking Confirmed! Payment ID: ${response.razorpay_payment_id}. Our team will contact you within 24 hours.`); },
-                      modal: { ondismiss: function() {} },
-                      prefill: { name: "", contact: "" },
-                      theme: { color: "#f59e0b" }
-                    };
-                    new window.Razorpay(options).open();
-                  } catch (err) { console.error(err); alert("Unable to process. Call us at 8877896889."); }
-                }}
+                onClick={() => setShowBookService(true)}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 border border-amber-400/30"
                 data-testid="book-now-btn"
               >

@@ -451,9 +451,17 @@ export const ShopPage = () => {
                   {/* Product Info */}
                   <div className="p-3 border-t border-gray-50">
                     {product.brand && <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-0.5">{product.brand}</p>}
-                    <h3 className="text-gray-800 font-medium text-sm line-clamp-2 mb-1.5 cursor-pointer hover:text-amber-600 transition leading-snug" onClick={() => openProductDetail(product)}>
+                    <h3 className="text-gray-800 font-medium text-sm line-clamp-2 mb-1 cursor-pointer hover:text-amber-600 transition leading-snug" onClick={() => openProductDetail(product)}>
                       {product.name}
                     </h3>
+                    
+                    {/* Rating */}
+                    {reviewsSummary[product.id] && (
+                      <div className="flex items-center gap-1 mb-1">
+                        <StarRating rating={Math.round(reviewsSummary[product.id].avg_rating)} />
+                        <span className="text-xs text-gray-500">({reviewsSummary[product.id].count})</span>
+                      </div>
+                    )}
                     
                     {/* Price */}
                     <div className="mb-2">

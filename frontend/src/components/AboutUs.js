@@ -228,13 +228,15 @@ export const AboutUsPage = () => {
               <Phone className="w-5 h-5 mr-2" />
               Contact Us Today
             </Link>
-            <Link 
-              to="/calculator" 
+            <a 
+              href="/shop"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center justify-center bg-orange-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-orange-700 transition border-2 border-white/30"
             >
               <Zap className="w-5 h-5 mr-2" />
-              Calculate Your Savings
-            </Link>
+              Shop Solar Products
+            </a>
           </div>
         </div>
 

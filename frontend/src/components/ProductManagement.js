@@ -98,6 +98,8 @@ export const ProductManagement = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [biharDistricts, setBiharDistricts] = useState({ districts: [], delivery_fees: {} });
+  const [syncingPayments, setSyncingPayments] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
   const fileInputRef = useRef(null);
 
   // Wire price reference (per meter) - just for suggestions

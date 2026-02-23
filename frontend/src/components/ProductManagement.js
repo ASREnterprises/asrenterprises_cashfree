@@ -359,7 +359,9 @@ export const ProductManagement = () => {
       is_featured: false,
       delivery_available: true,
       pickup_available: true,
-      images: []
+      images: [],
+      delivery_districts: [],
+      delivery_fees: {}
     });
   };
 

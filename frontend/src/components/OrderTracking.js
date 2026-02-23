@@ -63,7 +63,7 @@ export const OrderTrackingPage = () => {
       <div className="bg-[#0a1628]/90 backdrop-blur-sm border-b border-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link to="/shop" target="_blank" className="inline-flex items-center text-amber-400 hover:text-amber-300 transition">
+            <Link to="/shop" className="inline-flex items-center text-amber-400 hover:text-amber-300 transition">
               <ChevronRight className="w-5 h-5 rotate-180 mr-1" />
               <span>Back to Shop</span>
             </Link>

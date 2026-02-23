@@ -614,6 +614,19 @@ class Product(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class ProductReview(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    product_id: str
+    customer_name: str
+    customer_phone: str = ""
+    rating: int = 5  # 1-5 stars
+    title: str = ""
+    review_text: str = ""
+    is_verified_purchase: bool = False
+    is_approved: bool = True
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class CartItem(BaseModel):
     product_id: str
     product_name: str

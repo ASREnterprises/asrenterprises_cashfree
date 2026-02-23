@@ -703,33 +703,40 @@ export const ProductManagement = () => {
       {/* Orders Tab */}
       {activeTab === "orders" && (
         <div className="space-y-4">
-          {/* Razorpay Sync Section */}
-          <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <CreditCard className="w-6 h-6 text-blue-400" />
-              <div>
-                <h3 className="text-white font-semibold">Razorpay Payment Sync</h3>
-                <p className="text-gray-400 text-sm">Import all successful payments from Razorpay with customer details</p>
+          {/* Sync Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Razorpay Sync */}
+            <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CreditCard className="w-6 h-6 text-blue-400" />
+                <div>
+                  <h3 className="text-white font-semibold">Razorpay Payments</h3>
+                  <p className="text-gray-400 text-xs">Sync all successful payments</p>
+                </div>
               </div>
+              <button onClick={syncRazorpayPayments} disabled={syncingPayments}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600"
+                data-testid="sync-razorpay-btn">
+                {syncingPayments ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Sync
+              </button>
             </div>
-            <button
-              onClick={syncRazorpayPayments}
-              disabled={syncingPayments}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold transition disabled:bg-gray-600 disabled:cursor-not-allowed"
-              data-testid="sync-razorpay-btn"
-            >
-              {syncingPayments ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4" />
-                  Sync Payments
-                </>
-              )}
-            </button>
+            
+            {/* Service Bookings Sync */}
+            <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Wrench className="w-6 h-6 text-green-400" />
+                <div>
+                  <h3 className="text-white font-semibold">Service Bookings</h3>
+                  <p className="text-gray-400 text-xs">Sync paid service bookings</p>
+                </div>
+              </div>
+              <button onClick={syncServiceBookings} disabled={syncingPayments}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600">
+                {syncingPayments ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Sync
+              </button>
+            </div>
           </div>
           
           {/* Sync Result Message */}

@@ -1611,7 +1611,6 @@ export default function App() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="/calculator" element={<SolarCalculatorPage />} />
           <Route path="/chat" element={<WhatsAppChatPage />} />
           <Route path="/track-order" element={<OrderTrackingPage />} />
           <Route path="/become-agent" element={<AgentRegistrationPage />} />

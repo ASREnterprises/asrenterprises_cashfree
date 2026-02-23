@@ -42,6 +42,60 @@ const BookServiceConfig = () => {
   );
 };
 
+// District Delivery Fees Config Component
+const DistrictFeesConfig = () => {
+  const [fees, setFees] = useState({});
+  const [districts, setDistricts] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    axios.get(`${API}/admin/district-fees`).then(res => {
+      setFees(res.data.fees || {});
+      setDistricts(res.data.districts || []);
+      setLoaded(true);
+    }).catch(() => setLoaded(true));
+  }, []);
+
+  const updateFee = (district, value) => {
+    setFees(prev => ({ ...prev, [district]: Number(value) || 0 }));
+  };
+
+  const saveFees = async () => {
+    setSaving(true);
+    try {
+      await axios.put(`${API}/shop/bihar-districts/fees`, { delivery_fees: fees });
+      alert("Delivery fees updated successfully!");
+    } catch { alert("Failed to update fees."); }
+    finally { setSaving(false); }
+  };
+
+  if (!loaded) return null;
+  return (
+    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-green-400" />
+          <span className="text-white font-semibold">District Delivery Fees</span>
+        </div>
+        <button onClick={saveFees} disabled={saving}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600">
+          {saving ? "Saving..." : "Save All Fees"}
+        </button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-64 overflow-y-auto">
+        {districts.map(district => (
+          <div key={district} className="flex flex-col">
+            <label className="text-gray-400 text-xs truncate">{district}</label>
+            <input type="number" value={fees[district] || 0} onChange={(e) => updateFee(district, e.target.value)}
+              className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const categoryOptions = [
   { id: "solar_panel", name: "Solar Panels", icon: Sun },
   { id: "inverter", name: "Inverters", icon: Zap },

@@ -107,24 +107,27 @@ export const AdminDashboard = ({ onLogout }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-4xl font-extrabold text-white mb-2">Admin Dashboard</h1>
-            <p className="text-gray-400">ASR ENTERPRISES Management Panel</p>
+          <div className="flex items-center gap-4">
+            <img src="/asr_logo_transparent.png" alt="ASR" className="h-14 w-14 object-contain" />
+            <div>
+              <h1 className="text-3xl font-extrabold text-[#0a355e] mb-1">Admin Dashboard</h1>
+              <p className="text-gray-500">ASR ENTERPRISES Management Panel</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             <Link
               to="/"
-              className="bg-gray-700 text-white px-5 py-2 rounded-lg font-semibold hover:bg-gray-600 transition"
+              className="bg-white text-[#0a355e] px-5 py-2.5 rounded-lg font-semibold hover:bg-sky-50 transition border border-sky-200 shadow-sm"
             >
               View Website
             </Link>
             <button
               onClick={handleLogout}
-              className="bg-red-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-red-700 transition flex items-center space-x-2"
+              className="bg-red-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-red-600 transition flex items-center space-x-2 shadow-md"
               data-testid="admin-logout-btn"
             >
               <LogOut className="w-4 h-4" />
@@ -135,25 +138,37 @@ export const AdminDashboard = ({ onLogout }) => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-5 text-white">
-            <ClipboardList className="w-8 h-8 mb-2 opacity-80" />
-            <div className="text-3xl font-bold">{stats.total_leads || 0}</div>
-            <div className="text-green-200 text-sm">Total Leads</div>
+          <div className="bg-white rounded-xl p-5 shadow-lg border border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <ClipboardList className="w-8 h-8 text-green-600" />
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Total</span>
+            </div>
+            <div className="text-3xl font-bold text-[#0a355e]">{stats.total_leads || 0}</div>
+            <div className="text-gray-500 text-sm">Total Leads</div>
           </div>
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-5 text-white">
-            <ClipboardList className="w-8 h-8 mb-2 opacity-80" />
-            <div className="text-3xl font-bold">{stats.new_leads || 0}</div>
-            <div className="text-blue-200 text-sm">New Leads</div>
+          <div className="bg-white rounded-xl p-5 shadow-lg border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <ClipboardList className="w-8 h-8 text-blue-600" />
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">New</span>
+            </div>
+            <div className="text-3xl font-bold text-[#0a355e]">{stats.new_leads || 0}</div>
+            <div className="text-gray-500 text-sm">New Leads</div>
           </div>
-          <div className="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl p-5 text-white">
-            <Image className="w-8 h-8 mb-2 opacity-80" />
-            <div className="text-3xl font-bold">{stats.total_photos || 0}</div>
-            <div className="text-yellow-200 text-sm">Work Photos</div>
+          <div className="bg-white rounded-xl p-5 shadow-lg border border-amber-200">
+            <div className="flex items-center justify-between mb-2">
+              <Image className="w-8 h-8 text-amber-600" />
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">Gallery</span>
+            </div>
+            <div className="text-3xl font-bold text-[#0a355e]">{stats.total_photos || 0}</div>
+            <div className="text-gray-500 text-sm">Work Photos</div>
           </div>
-          <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-5 text-white">
-            <Star className="w-8 h-8 mb-2 opacity-80" />
-            <div className="text-3xl font-bold">{stats.total_reviews || 0}</div>
-            <div className="text-purple-200 text-sm">Reviews</div>
+          <div className="bg-white rounded-xl p-5 shadow-lg border border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <Star className="w-8 h-8 text-purple-600" />
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Reviews</span>
+            </div>
+            <div className="text-3xl font-bold text-[#0a355e]">{stats.total_reviews || 0}</div>
+            <div className="text-gray-500 text-sm">Reviews</div>
           </div>
         </div>
 
@@ -180,18 +195,20 @@ export const AdminDashboard = ({ onLogout }) => {
         </div>
 
         {/* AI Status */}
-        <div className="mt-8 bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-6 text-white">
+        <div className="mt-8 bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl p-6 text-white shadow-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Shield className="w-10 h-10" />
+              <div className="bg-white/20 p-3 rounded-full">
+                <Shield className="w-8 h-8" />
+              </div>
               <div>
                 <h3 className="text-xl font-bold">AI Security Active</h3>
-                <p className="text-green-200">Your website is protected with AI-powered security</p>
+                <p className="text-green-100">Your website is protected with AI-powered security</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold">100%</div>
-              <div className="text-green-200 text-sm">Secure</div>
+              <div className="text-3xl font-bold">100%</div>
+              <div className="text-green-100 text-sm">Secure</div>
             </div>
           </div>
         </div>

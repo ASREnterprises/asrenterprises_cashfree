@@ -722,14 +722,16 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-              <button
-                onClick={() => navigate('/register')}
+              <a
+                href="/shop"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 border border-amber-400/30"
                 data-testid="book-now-btn"
               >
                 <Zap className="w-5 h-5" />
-                <span>Book Now @ ₹1,500</span>
-              </button>
+                <span>Solar Maintenance Service @ ₹1,500</span>
+              </a>
               <a
                 href="tel:8877896889"
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/20"

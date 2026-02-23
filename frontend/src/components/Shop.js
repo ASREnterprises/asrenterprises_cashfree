@@ -263,6 +263,19 @@ export const ShopPage = () => {
   const relatedProducts = selectedProduct ? products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 4) : [];
   const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
 
+  // Star Rating Component
+  const StarRating = ({ rating, size = "w-3 h-3", interactive = false, onChange }) => (
+    <div className="flex items-center gap-0.5">
+      {[1,2,3,4,5].map(i => (
+        <button key={i} type="button" onClick={() => interactive && onChange?.(i)}
+          className={interactive ? "cursor-pointer" : "cursor-default"}
+        >
+          <Star className={`${size} ${i <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#f1f3f6]" style={{ fontFamily: "'Segoe UI', Roboto, Arial, sans-serif" }}>
       

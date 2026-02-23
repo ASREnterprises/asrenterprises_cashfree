@@ -166,9 +166,9 @@ export const ContactPage = () => {
             </div>
 
             {/* Services Card */}
-            <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
-              <h3 className="text-2xl font-bold text-white mb-4">Our Services</h3>
-              <ul className="space-y-3 text-gray-300">
+            <div className="bg-white rounded-2xl shadow-xl p-8 border border-sky-200">
+              <h3 className="text-2xl font-bold text-[#0a355e] mb-4">Our Services</h3>
+              <ul className="space-y-3 text-gray-700">
                 <li className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span>Residential Solar Installations</span>
@@ -197,24 +197,24 @@ export const ContactPage = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50">
-              <h3 className="text-2xl font-bold text-white mb-4">Quick Actions</h3>
+            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-xl p-8 border border-amber-200">
+              <h3 className="text-2xl font-bold text-[#0a355e] mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 <Link
                   to="/calculator"
-                  className="block w-full bg-yellow-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-yellow-700 transition"
+                  className="block w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg font-semibold text-center hover:from-amber-600 hover:to-orange-600 transition shadow-lg"
                 >
                   Calculate Solar Savings
                 </Link>
                 <Link
                   to="/leads"
-                  className="block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-blue-700 transition"
+                  className="block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-blue-700 transition shadow-md"
                 >
                   Request Free Consultation
                 </Link>
                 <Link
                   to="/gallery"
-                  className="block w-full bg-green-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-green-700 transition"
+                  className="block w-full bg-green-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-green-700 transition shadow-md"
                 >
                   View Our Projects
                 </Link>
@@ -224,36 +224,36 @@ export const ContactPage = () => {
         </div>
 
         {/* Why Choose Us */}
-        <div className="bg-gray-800/80 rounded-2xl shadow-2xl p-8 border border-gray-700/50 md:p-12">
-          <h2 className="text-3xl font-bold text-white text-center mb-8">Why Choose ASR ENTERPRISES?</h2>
+        <div className="bg-gradient-to-r from-sky-100 to-blue-100 rounded-2xl shadow-xl p-8 md:p-12 border border-sky-200">
+          <h2 className="text-3xl font-bold text-[#0a355e] text-center mb-8">Why Choose ASR ENTERPRISES?</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="bg-blue-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-center bg-white rounded-xl p-6 shadow-md border border-sky-100">
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="font-bold text-white mb-2">Certified & Licensed</h3>
-              <p className="text-sm text-gray-400">GSTIN registered with quality certifications</p>
+              <h3 className="font-bold text-[#0a355e] mb-2">Certified & Licensed</h3>
+              <p className="text-sm text-gray-600">GSTIN registered with quality certifications</p>
             </div>
-            <div className="text-center">
-              <div className="bg-green-500/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-center bg-white rounded-xl p-6 shadow-md border border-sky-100">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="font-bold text-white mb-2">25+ Projects</h3>
-              <p className="text-sm text-gray-400">Growing track record across Bihar</p>
+              <h3 className="font-bold text-[#0a355e] mb-2">25+ Projects</h3>
+              <p className="text-sm text-gray-600">Growing track record across Bihar</p>
             </div>
-            <div className="text-center">
-              <div className="bg-yellow-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Award className="w-8 h-8 text-yellow-600" />
+            <div className="text-center bg-white rounded-xl p-6 shadow-md border border-sky-100">
+              <div className="bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Award className="w-8 h-8 text-amber-600" />
               </div>
-              <h3 className="font-bold text-white mb-2">Best Prices</h3>
-              <p className="text-sm text-gray-400">Competitive rates with quality guarantee</p>
+              <h3 className="font-bold text-[#0a355e] mb-2">Best Prices</h3>
+              <p className="text-sm text-gray-600">Competitive rates with quality guarantee</p>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-white rounded-xl p-6 shadow-md border border-sky-100">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Award className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="font-bold text-white mb-2">24/7 Support</h3>
-              <p className="text-sm text-gray-400">Always here for your solar needs</p>
+              <h3 className="font-bold text-[#0a355e] mb-2">24/7 Support</h3>
+              <p className="text-sm text-gray-600">Always here for your solar needs</p>
             </div>
           </div>
         </div>

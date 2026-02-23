@@ -117,30 +117,30 @@ export const AboutUsPage = () => {
               <div className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl p-6 text-center border border-blue-300">
                 <Building2 className="w-10 h-10 text-blue-600 mx-auto mb-3" />
                 <h4 className="text-2xl font-bold text-[#0a355e]">Commercial</h4>
-                <p className="text-gray-400 text-sm">Business Solutions</p>
+                <p className="text-gray-600 text-sm">Business Solutions</p>
               </div>
-              <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl p-6 text-center border border-green-500/30">
-                <Leaf className="w-10 h-10 text-green-400 mx-auto mb-3" />
-                <h4 className="text-2xl font-bold text-white">Eco-Friendly</h4>
-                <p className="text-gray-400 text-sm">Sustainable Power</p>
+              <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-6 text-center border border-green-300">
+                <Leaf className="w-10 h-10 text-green-600 mx-auto mb-3" />
+                <h4 className="text-2xl font-bold text-[#0a355e]">Eco-Friendly</h4>
+                <p className="text-gray-600 text-sm">Sustainable Power</p>
               </div>
-              <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl p-6 text-center border border-purple-500/30">
-                <Award className="w-10 h-10 text-purple-400 mx-auto mb-3" />
-                <h4 className="text-2xl font-bold text-white">MNRE</h4>
-                <p className="text-gray-400 text-sm">Registered Vendor</p>
+              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-2xl p-6 text-center border border-purple-300">
+                <Award className="w-10 h-10 text-purple-600 mx-auto mb-3" />
+                <h4 className="text-2xl font-bold text-[#0a355e]">MNRE</h4>
+                <p className="text-gray-600 text-sm">Registered Vendor</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Our Belief */}
-        <div className="text-center mb-16 py-12 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 rounded-3xl border border-amber-500/20">
-          <Sun className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-          <p className="text-2xl md:text-3xl text-white font-light max-w-4xl mx-auto px-4 italic">
+        <div className="text-center mb-16 py-12 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-100 rounded-3xl border border-amber-300">
+          <Sun className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+          <p className="text-2xl md:text-3xl text-[#0a355e] font-light max-w-4xl mx-auto px-4 italic">
             "At ASR Enterprises, we believe solar energy is not just an alternative — 
-            <span className="text-amber-400 font-semibold"> it is the future of smart energy management.</span>"
+            <span className="text-amber-600 font-semibold"> it is the future of smart energy management.</span>"
           </p>
-          <p className="text-gray-400 mt-4 max-w-3xl mx-auto px-4">
+          <p className="text-gray-600 mt-4 max-w-3xl mx-auto px-4">
             Our team is driven by a vision to empower customers with energy independence while contributing to a cleaner, greener, and more sustainable nation.
           </p>
         </div>
@@ -148,31 +148,31 @@ export const AboutUsPage = () => {
         {/* Vision & Mission */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           {/* Vision */}
-          <div className="bg-gradient-to-br from-amber-500/20 to-orange-600/20 rounded-3xl p-8 border border-amber-500/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/20 rounded-full blur-3xl"></div>
+          <div className="bg-gradient-to-br from-amber-100 to-orange-100 rounded-3xl p-8 border border-amber-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl"></div>
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl mb-6 shadow-xl">
                 <Eye className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">Our Vision</h3>
-              <p className="text-gray-300 leading-relaxed text-lg">
-                To become a <span className="text-amber-400 font-semibold">leading and most trusted</span> solar energy solutions provider in Bihar and across India by promoting clean, affordable, and sustainable power for every home and business.
+              <h3 className="text-3xl font-bold text-[#0a355e] mb-4">Our Vision</h3>
+              <p className="text-gray-700 leading-relaxed text-lg">
+                To become a <span className="text-amber-600 font-semibold">leading and most trusted</span> solar energy solutions provider in Bihar and across India by promoting clean, affordable, and sustainable power for every home and business.
               </p>
             </div>
           </div>
 
           {/* Mission */}
-          <div className="bg-gradient-to-br from-blue-500/20 to-cyan-600/20 rounded-3xl p-8 border border-blue-500/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl"></div>
+          <div className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-3xl p-8 border border-blue-300 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-6 shadow-xl">
                 <Target className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-3xl font-bold text-white mb-4">Our Mission</h3>
+              <h3 className="text-3xl font-bold text-[#0a355e] mb-4">Our Mission</h3>
               <ul className="space-y-3">
                 {missions.map((mission, index) => (
-                  <li key={index} className="flex items-start text-gray-300">
-                    <CheckCircle className="w-5 h-5 text-blue-400 mr-3 mt-0.5 flex-shrink-0" />
+                  <li key={index} className="flex items-start text-gray-700">
+                    <CheckCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
                     <span>{mission}</span>
                   </li>
                 ))}

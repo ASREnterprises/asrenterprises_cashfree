@@ -492,6 +492,22 @@ export const ProductManagement = () => {
     }
   };
 
+  // Sync Service Bookings to Orders
+  const syncServiceBookings = async () => {
+    setSyncingPayments(true);
+    try {
+      const res = await axios.post(`${API}/admin/sync-service-bookings`);
+      fetchOrders();
+      fetchShopStats();
+      alert(`Service bookings synced! ${res.data.new_orders_created} new orders created.`);
+    } catch (err) {
+      console.error("Error syncing service bookings:", err);
+      alert("Failed to sync service bookings.");
+    } finally {
+      setSyncingPayments(false);
+    }
+  };
+
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     p.sku?.toLowerCase().includes(searchQuery.toLowerCase())

@@ -174,7 +174,7 @@ class TestOrderCRUDOperations:
         return data
     
     def test_order_lifecycle(self):
-        """Test full order lifecycle: create -> update status -> delete"""
+        """Test full order lifecycle: create -> update status -> delete restrictions"""
         # Create order
         order_data = {
             "customer_name": "TEST_Lifecycle",
@@ -196,17 +196,18 @@ class TestOrderCRUDOperations:
         assert order_id is not None
         print(f"PASSED: Order created with id={order_id}")
         
-        # Update order status
+        # Update order status to confirmed and payment to paid
         update_res = requests.put(f"{BASE_URL}/api/shop/orders/{order_id}/status", json={
-            "order_status": "confirmed"
+            "order_status": "confirmed",
+            "payment_status": "paid"
         })
         assert update_res.status_code == 200
-        print(f"PASSED: Order status updated to confirmed")
+        print(f"PASSED: Order status updated to confirmed with paid payment")
         
-        # Try to delete confirmed order - should fail
+        # Try to delete confirmed+paid order - should fail (not pending/cancelled AND not pending/failed payment)
         delete_res = requests.delete(f"{BASE_URL}/api/shop/orders/{order_id}")
         assert delete_res.status_code == 400
-        print(f"PASSED: Confirmed order cannot be deleted (status=400)")
+        print(f"PASSED: Confirmed+Paid order cannot be deleted (status=400)")
         
         # Update to cancelled
         cancel_res = requests.put(f"{BASE_URL}/api/shop/orders/{order_id}/status", json={
@@ -214,7 +215,7 @@ class TestOrderCRUDOperations:
         })
         assert cancel_res.status_code == 200
         
-        # Now delete should succeed
+        # Now delete should succeed (order_status is cancelled)
         delete_res = requests.delete(f"{BASE_URL}/api/shop/orders/{order_id}")
         assert delete_res.status_code == 200
         print(f"PASSED: Cancelled order deleted successfully")

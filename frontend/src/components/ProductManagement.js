@@ -4,7 +4,7 @@ import {
   Plus, Edit, Trash2, Package, Image, Save, X, Search,
   Sun, Zap, Battery, Settings, Wrench, Eye, EyeOff, Star,
   Upload, ShoppingBag, DollarSign, TrendingUp, AlertCircle, Cable, ArrowLeft,
-  Sparkles, Loader2, MapPin
+  Sparkles, Loader2, MapPin, RefreshCw, CreditCard, CheckCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 

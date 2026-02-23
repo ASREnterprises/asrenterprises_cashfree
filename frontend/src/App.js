@@ -966,58 +966,58 @@ const HomePage = () => {
       <div className="bg-gradient-to-r from-orange-500 to-red-500 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">🏛️ Government Benefits for Solar Rooftop Installation</h2>
+            <h2 className="text-4xl font-bold text-white mb-4">Government Benefits for Solar Rooftop Installation</h2>
             <p className="text-orange-100 text-xl">PM Surya Ghar Yojana, MNRE Subsidies & Easy Bank EMI Available</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
+            <div className="bg-white rounded-xl p-6 shadow-2xl border border-amber-200">
               <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Award className="w-8 h-8 text-green-400" />
+                <Award className="w-8 h-8 text-green-600" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Up to ₹78,000 Subsidy</h3>
-              <p className="text-gray-400 mb-4">
-                Get <strong>₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">Up to ₹78,000 Subsidy</h3>
+              <p className="text-gray-600 mb-4">
+                Get <strong className="text-gray-800">₹30,000/kW subsidy for first 2 kW</strong> and ₹18,000/kW for additional capacity under PM Surya Ghar Yojana.
               </p>
-              <ul className="text-sm text-gray-300 space-y-2 mb-4">
+              <ul className="text-sm text-gray-600 space-y-2 mb-4">
                 <li>✓ 1 kW system: ₹30,000 subsidy</li>
                 <li>✓ 2 kW system: ₹60,000 subsidy</li>
                 <li>✓ 3 kW system: ₹78,000 subsidy (Maximum)</li>
               </ul>
-              <div className="bg-green-500/10 p-3 rounded-lg">
-                <p className="text-xs text-green-400 font-semibold">📋 ASR Enterprises handles complete subsidy documentation & approval!</p>
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <p className="text-xs text-green-700 font-semibold">ASR Enterprises handles complete subsidy documentation & approval!</p>
               </div>
             </div>
 
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
+            <div className="bg-white rounded-xl p-6 shadow-2xl border border-amber-200">
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <TrendingUp className="w-8 h-8 text-blue-400" />
+                <TrendingUp className="w-8 h-8 text-blue-600" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Net Metering Benefits</h3>
-              <p className="text-gray-400 mb-4">
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">Net Metering Benefits</h3>
+              <p className="text-gray-600 mb-4">
                 Sell excess solar power back to the grid and earn credits on your electricity bill.
               </p>
-              <ul className="text-sm text-gray-300 space-y-2 mb-4">
+              <ul className="text-sm text-gray-600 space-y-2 mb-4">
                 <li>✓ Reduce bills up to 90%</li>
                 <li>✓ Earn from surplus energy</li>
                 <li>✓ 25-year panel warranty</li>
                 <li>✓ 5-year inverter warranty</li>
                 <li>✓ Grid synchronization support</li>
               </ul>
-              <div className="bg-blue-500/10 p-3 rounded-lg">
-                <p className="text-xs text-blue-800 font-semibold">⚡ Start saving from day one with net metering!</p>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-700 font-semibold">Start saving from day one with net metering!</p>
               </div>
             </div>
 
-            <div className="bg-gray-800/70 rounded-xl p-6 shadow-2xl border border-gray-700/50">
+            <div className="bg-white rounded-xl p-6 shadow-2xl border border-amber-200">
               <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                <Zap className="w-8 h-8 text-purple-400" />
+                <Zap className="w-8 h-8 text-purple-600" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">Tax Benefits & Easy EMI</h3>
-              <p className="text-gray-400 mb-4">
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">Tax Benefits & Easy EMI</h3>
+              <p className="text-gray-600 mb-4">
                 Enjoy depreciation benefits and easy financing options at low interest rates from leading banks.
               </p>
-              <ul className="text-sm text-gray-300 space-y-2 mb-4">
+              <ul className="text-sm text-gray-600 space-y-2 mb-4">
                 <li>✓ 80% accelerated depreciation</li>
                 <li>✓ Low-interest bank loans (7-9%)</li>
                 <li>✓ Easy EMI starting ₹3,000/month</li>

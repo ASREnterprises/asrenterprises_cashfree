@@ -1106,7 +1106,6 @@ export const ProductManagement = () => {
                       </div>
                     )}
                     </div>
-                  )}
 
                   {/* Options - Simplified for Service (only Active) */}
                   <div className="md:col-span-2 flex flex-wrap gap-4">

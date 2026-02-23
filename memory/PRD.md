@@ -5,10 +5,11 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 ## Core Architecture
 - **Frontend:** React + Tailwind CSS + Lucide React icons
-- **Backend:** FastAPI (Python) - monolithic server.py  
+- **Backend:** FastAPI (Python) - monolithic server.py with GZIP compression
 - **Database:** MongoDB (Motor async driver)
-- **Payments:** Razorpay Checkout SDK (Live key: rzp_live_SJIqziW7w31a3U)
+- **Payments:** Razorpay Checkout SDK (Live key: rzp_live_SJXJM0ejFejAWd)
 - **AI:** OpenAI GPT-4o-mini via Emergent LLM Key
+- **Image Processing:** Pillow for WebP conversion
 
 ## What's Been Implemented
 

@@ -4,71 +4,72 @@
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
 ## Core Architecture
-- **Frontend:** React + Tailwind CSS + Lucide React icons + Shadcn/UI
-- **Backend:** FastAPI (Python) - monolithic server.py
+- **Frontend:** React + Tailwind CSS + Lucide React icons
+- **Backend:** FastAPI (Python) - monolithic server.py  
 - **Database:** MongoDB (Motor async driver)
 - **Payments:** Razorpay Checkout SDK (Live key: rzp_live_SJIqziW7w31a3U)
-- **AI:** OpenAI GPT-4o-mini via Emergent LLM Key (testimonials, lead analysis, chat, service descriptions)
+- **AI:** OpenAI GPT-4o-mini via Emergent LLM Key
 
 ## What's Been Implemented
 
-### Feb 2026 - Latest Session
+### Latest Session (Feb 2026)
 
-#### P0: Critical Fixes
-- **Razorpay Live Key Updated** — Replaced payment link with Razorpay Checkout SDK, key served via `/api/shop/razorpay-config`
-- **Payment Flow Fixed** — WhatsApp no longer auto-opens during payment. Razorpay modal opens inline. Order confirmation only on successful payment. Failed/cancelled payments mark order as cancelled.
-- **"Goods once sold" notice removed** from checkout
+#### Bug Fixes
+- **Become an ASR Solar Advisor** — Route `/become-agent` restored (was accidentally removed)
+- **Payment Flow** — WhatsApp no longer auto-opens. Failed payments cancel orders. Success only on completion.
 
-#### P1: Core New Features
-- **Customer Order Tracking** — New page at `/track-order` with order number + phone lookup, status timeline, order details
-- **Admin Delete Orders** — Pending/cancelled orders can be deleted from Shop Management
-- **Product Sharing** — WhatsApp, Facebook, Email, Copy Link sharing for every product (card + detail modal)
-- **Pincode Delivery Check** — Bihar district-wise delivery availability check with estimated days, 50+ pincodes configured
-- **AI Service Description** — Fixed LlmChat integration, generates real AI descriptions for service products
+#### Book Service Feature
+- **"Book Service" button** on homepage opens Razorpay payment directly (online payment only)
+- **Admin-configurable price** via Shop Management → Book Service Price section
+- Backend endpoints: `GET/PUT /api/shop/book-service-config`
 
-#### P2: Content/Config Updates
-- **Installation → Solar Cleaning Service** — Default service type changed from Installation to Cleaning
-- **Govt Schemes Removed** — Removed from navigation, homepage sections, and routes
-- **Book Now → Solar Maintenance Service** — Updated CTA to link to shop with ₹1,500 pricing
-- **Shop Opens in New Tab** — All shop navigation links use target="_blank"
+#### Premium Shop UI (Flipkart/Amazon-style)
+- **White/light background** product grid like e-commerce leaders
+- **Sticky header** with search bar, Track Order, Cart
+- **Category navigation strip** below header
+- **Promo banner** with trust badges (Free Pickup, Quality Guaranteed, Secure Payments)
+- **Product cards** with wishlist hearts, share buttons, quantity controls, discount badges
+- **Product detail modal** with image gallery, pincode delivery check, share options, related products
+- **Trust badges section** at bottom (Genuine Products, Bihar Delivery, Secure Payment, Expert Support)
+- **Recently viewed products** with localStorage persistence
 
-#### P3: E-commerce UX Enhancements
-- **Product Sorting** — Newest, Price Low-High, Price High-Low, Name A-Z
-- **Recently Viewed Products** — Shows last 8 viewed products, persisted in localStorage
-- **Related Products** — Shown in product detail modal (same category)
-- **Product Count Display** — Shows filtered product count
-- **Responsive 2-col mobile grid** — Better mobile shopping experience
+#### Per-Product Delivery by Pincode
+- **37 Bihar districts** with distance-based delivery fees (₹50 Patna → ₹350 remote)
+- **Customer pincode check** in header and product detail modal
+- **Product-specific delivery** — Admin sets which districts each product delivers to
+- Backend: `GET /api/shop/bihar-districts`, `GET /api/shop/products/{id}/check-delivery/{pincode}`
+
+#### Admin Enhancements
+- **Delivery district config** per product (checkbox grid of Bihar districts)
+- **Delete orders** (pending/cancelled only)
+- **Book Service Price** management in Shop Management
+
+#### Content Updates
+- Installation Service → **Solar Cleaning Service**
+- Govt Schemes **removed** from site
+- Book Now → **Book Service** (direct Razorpay payment)
+- Shop links open in **new tab**
+- "Goods once sold" notice **removed**
+- **Order Tracking** page at `/track-order`
+- **Product Sharing** (WhatsApp, Facebook, Email, Copy Link)
+- **Product Sorting** (Relevance, Newest, Price, Name)
 
 ### Previously Implemented
-- Full e-commerce: Shop, Cart, Checkout, Orders, WhatsApp notifications
-- Dynamic product forms: Wire (AC/DC, 4sqmm/6sqmm), Service (cleaning, maintenance, repair, consultation)
-- Product detail modal with image gallery
-- Distance-based delivery fees
-- CRM with leads, staff, tasks, payments, gallery, messages
+- Full CRM with leads, staff, tasks, payments, gallery, messages
 - Staff 2FA OTP login, private messaging
-- AI-powered testimonials
-- Premium dark navy-blue theme
+- AI-powered testimonials (GPT-4o-mini)
+- WhatsApp notifications for orders
+- Premium dark navy-blue theme (main site)
 - Code splitting with React.lazy()
 
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993
 - Staff: ASR1001 / password: asr@123 / OTP: 131993
 
-## Key API Endpoints
-- `GET /api/shop/razorpay-config` - Razorpay key for frontend
-- `GET /api/shop/check-delivery/{pincode}` - Pincode delivery check
-- `POST /api/shop/track-order` - Track order by number + phone
-- `DELETE /api/shop/orders/{id}` - Delete pending/cancelled orders
-- `POST /api/generate-service-description` - AI service descriptions
-- `GET,POST,PUT,DELETE /api/shop/products` - Product CRUD
-- `GET,POST /api/shop/orders` - Order management
-- `POST /api/shop/orders/{id}/payment-verify` - Razorpay verification
-
 ## Pending Tasks
-- **P2:** Finalize Deployment & Webhook Configuration (user action needed)
-- **P3:** Re-enable Google reCAPTCHA (post-deployment, needs production keys)
+- **P2:** Finalize Deployment & Webhook Configuration (user action)
+- **P3:** Re-enable Google reCAPTCHA (post-deployment)
 - **P3:** Live Google Reviews (pending user clarification)
 - **P3:** Refactor server.py into modular APIRouter files
-- **P3:** Refactor ProductManagement.js into smaller components
-- **P3:** Refactor Shop.js into sub-components
+- **P3:** Refactor ProductManagement.js & Shop.js into sub-components
 - **P3:** Persist Staff Notifications in MongoDB

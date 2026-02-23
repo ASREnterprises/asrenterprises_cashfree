@@ -605,10 +605,9 @@ const HomePage = () => {
             <div className="hidden md:flex space-x-6 items-center">
               <Link to="/" className="text-slate-300 hover:text-amber-400 transition font-medium">Home</Link>
               <Link to="/about" className="text-slate-300 hover:text-amber-400 transition font-medium">About Us</Link>
-              <Link to="/shop" className="text-slate-300 hover:text-amber-400 transition font-medium">Shop</Link>
+              <a href="/shop" target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:text-amber-400 transition font-medium">Shop</a>
               <Link to="/gallery" className="text-slate-300 hover:text-amber-400 transition font-medium">Gallery</Link>
               <Link to="/calculator" className="text-slate-300 hover:text-amber-400 transition font-medium">Calculator</Link>
-              <Link to="/govt-schemes" className="text-slate-300 hover:text-amber-400 transition font-medium">Govt Schemes</Link>
               <Link to="/contact" className="text-slate-300 hover:text-amber-400 transition font-medium">Contact Us</Link>
               <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
             </div>

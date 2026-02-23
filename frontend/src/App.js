@@ -1507,7 +1507,7 @@ const HomePage = () => {
               <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">Service Amount</span>
-                  <span className="text-2xl font-bold text-amber-400">₹1,500</span>
+                  <span className="text-2xl font-bold text-amber-400">₹{servicePrice.toLocaleString()}</span>
                 </div>
                 <p className="text-gray-500 text-xs mt-1">Payment via Razorpay (UPI / Card / NetBanking)</p>
               </div>

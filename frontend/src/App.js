@@ -722,16 +722,29 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-              <a
-                href="/shop"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={async () => {
+                  try {
+                    const configRes = await axios.get(`${API}/shop/book-service-config`);
+                    const { price, key_id } = configRes.data;
+                    if (!key_id || !window.Razorpay) { alert("Payment gateway unavailable."); return; }
+                    const options = {
+                      key: key_id, amount: Math.round(price * 100), currency: "INR",
+                      name: "ASR Enterprises", description: "Solar Service Booking",
+                      handler: function(response) { alert(`Booking Confirmed! Payment ID: ${response.razorpay_payment_id}. Our team will contact you within 24 hours.`); },
+                      modal: { ondismiss: function() {} },
+                      prefill: { name: "", contact: "" },
+                      theme: { color: "#f59e0b" }
+                    };
+                    new window.Razorpay(options).open();
+                  } catch (err) { console.error(err); alert("Unable to process. Call us at 8877896889."); }
+                }}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 border border-amber-400/30"
                 data-testid="book-now-btn"
               >
                 <Zap className="w-5 h-5" />
-                <span>Solar Maintenance Service @ ₹1,500</span>
-              </a>
+                <span>Book Service</span>
+              </button>
               <a
                 href="tel:8877896889"
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/20"

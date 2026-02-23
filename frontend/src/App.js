@@ -540,6 +540,11 @@ const HomePage = () => {
   const [bookingData, setBookingData] = useState({ customer_name: "", customer_phone: "", customer_email: "" });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [servicePrice, setServicePrice] = useState(1500);
+
+  useEffect(() => {
+    axios.get(`${API}/shop/book-service-config`).then(res => setServicePrice(res.data.price)).catch(() => {});
+  }, []);
 
   const handleBookService = async () => {
     if (!bookingData.customer_name || !bookingData.customer_phone) {

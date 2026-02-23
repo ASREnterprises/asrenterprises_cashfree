@@ -955,42 +955,9 @@ const HomePage = () => {
             </div>
           </div>
 
-          {/* Additional Government Schemes */}
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <Award className="w-6 h-6 text-orange-600 mr-2" />
-                MNRE Rooftop Solar Programme
-              </h3>
-              <ul className="text-sm text-gray-300 space-y-2">
-                <li>✓ <strong>Grid-Connected Systems:</strong> Central Financial Assistance (CFA) up to 40%</li>
-                <li>✓ <strong>Residential Sector:</strong> Priority for subsidy under PM Surya Ghar scheme</li>
-                <li>✓ <strong>Commercial Sector:</strong> Accelerated depreciation benefits</li>
-                <li>✓ <strong>Industrial Sector:</strong> Custom duty exemptions on solar equipment</li>
-                <li>✓ <strong>Institutional Sector:</strong> Special rates and incentives</li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-800/90 rounded-xl p-6 shadow-xl border border-gray-700/50">
-              <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-                <TrendingUp className="w-6 h-6 text-green-400 mr-2" />
-                Easy EMI Facilities Available
-              </h3>
-              <ul className="text-sm text-gray-300 space-y-2">
-                <li>✓ <strong>Green Loans:</strong> Up to ₹10 Lakhs at competitive rates</li>
-                <li>✓ <strong>Solar Financing:</strong> Tenure up to 10 years</li>
-                <li>✓ <strong>Quick Approval:</strong> Loans approved in 48-72 hours</li>
-                <li>✓ <strong>Government Schemes:</strong> PM Solar Panel financing available</li>
-                <li>✓ <strong>Zero Processing Fee:</strong> Available for residential customers</li>
-                <li>✓ <strong>Flexible Repayment:</strong> Monthly/Quarterly options</li>
-                <li>✓ <strong>Interest Rates:</strong> Starting from 7% per annum</li>
-              </ul>
-            </div>
-          </div>
-
           <div className="text-center">
             <p className="text-white text-lg font-semibold mb-4">
-              🎯 ASR Enterprises - Your One-Stop Solution for Residential & Commercial Solar Installations!
+              ASR Enterprises - Your One-Stop Solution for Residential & Commercial Solar Installations!
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
@@ -1001,7 +968,7 @@ const HomePage = () => {
                 }}
                 className="inline-block bg-amber-500 text-white px-8 py-4 rounded-lg font-bold hover:bg-amber-600 transition shadow-lg cursor-pointer"
               >
-                Apply for Subsidy Now →
+                Get Free Consultation →
               </Link>
               <a
                 href="tel:8877896889"

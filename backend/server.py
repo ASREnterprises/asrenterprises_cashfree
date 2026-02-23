@@ -3341,6 +3341,93 @@ async def get_razorpay_config():
     """Get Razorpay key for frontend checkout"""
     return {"key_id": RAZORPAY_KEY_ID}
 
+# Book Service - configurable price stored in settings collection
+@api_router.get("/shop/book-service-config")
+async def get_book_service_config():
+    """Get book service price (admin configurable)"""
+    config = await db.settings.find_one({"key": "book_service_price"}, {"_id": 0})
+    price = config.get("value", 1500) if config else 1500
+    return {"price": price, "key_id": RAZORPAY_KEY_ID}
+
+@api_router.put("/shop/book-service-config")
+async def update_book_service_config(data: Dict[str, Any]):
+    """Update book service price (Admin CRM)"""
+    price = data.get("price", 1500)
+    await db.settings.update_one(
+        {"key": "book_service_price"},
+        {"$set": {"key": "book_service_price", "value": price}},
+        upsert=True
+    )
+    return {"status": "success", "price": price}
+
+# Bihar districts list for product delivery configuration
+BIHAR_DISTRICT_LIST = [
+    "Patna", "Nalanda", "Gaya", "Muzaffarpur", "Saran (Chapra)", "East Champaran",
+    "West Champaran", "Darbhanga", "Madhubani", "Purnia", "Bhagalpur", "Munger",
+    "Banka", "Begusarai", "Samastipur", "Sitamarhi", "Saharsa", "Katihar",
+    "Vaishali", "Arwal", "Aurangabad", "Rohtas", "Kaimur", "Buxar", "Siwan",
+    "Gopalganj", "Sheohar", "Supaul", "Kishanganj", "Araria", "Sasaram",
+    "Nawada", "Jehanabad", "Lakhisarai", "Sheikhpura", "Jamui", "Khagaria"
+]
+
+# Distance-based delivery fee structure
+DISTRICT_DELIVERY_FEES = {
+    "Patna": 50, "Nalanda": 100, "Vaishali": 100, "Arwal": 100, "Jehanabad": 100,
+    "Gaya": 150, "Begusarai": 150, "Samastipur": 150,
+    "Muzaffarpur": 200, "Saran (Chapra)": 200, "Darbhanga": 200, "Bhagalpur": 200,
+    "Munger": 200, "Buxar": 200, "Siwan": 200, "Gopalganj": 200, "Aurangabad": 200,
+    "Rohtas": 200, "Sasaram": 200, "Nawada": 200, "Lakhisarai": 200,
+    "East Champaran": 300, "West Champaran": 300, "Madhubani": 300, "Purnia": 300,
+    "Banka": 300, "Sitamarhi": 300, "Saharsa": 300, "Katihar": 300,
+    "Supaul": 300, "Kaimur": 300, "Sheohar": 300,
+    "Kishanganj": 350, "Araria": 350, "Sheikhpura": 200, "Jamui": 250, "Khagaria": 250
+}
+
+@api_router.get("/shop/bihar-districts")
+async def get_bihar_districts():
+    """Get list of Bihar districts with delivery fees"""
+    return {
+        "districts": BIHAR_DISTRICT_LIST,
+        "delivery_fees": DISTRICT_DELIVERY_FEES
+    }
+
+@api_router.get("/shop/products/{product_id}/check-delivery/{pincode}")
+async def check_product_delivery(product_id: str, pincode: str):
+    """Check if a specific product can be delivered to a pincode"""
+    product = await db.products.find_one({"id": product_id}, {"_id": 0})
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get district from pincode
+    pincode_info = BIHAR_DISTRICTS.get(pincode)
+    district = None
+    if pincode_info:
+        district = pincode_info["district"]
+    elif pincode[:2] in ["80", "81", "82", "83", "84", "85"]:
+        district = "Bihar"
+    
+    if not district:
+        return {"deliverable": False, "district": None, "fee": 0, "note": "Sorry, delivery only within Bihar."}
+    
+    # Check product-specific delivery districts
+    product_districts = product.get("delivery_districts", [])
+    if product_districts and district not in product_districts and district != "Bihar":
+        return {"deliverable": False, "district": district, "fee": 0, "note": f"This product is not available for delivery in {district}."}
+    
+    # Check product-specific fee or use default
+    product_fees = product.get("delivery_fees", {})
+    fee = product_fees.get(district, DISTRICT_DELIVERY_FEES.get(district, 200))
+    
+    est_days = pincode_info["days"] if pincode_info else "5-7"
+    
+    return {
+        "deliverable": True,
+        "district": district,
+        "fee": fee,
+        "estimated_days": est_days,
+        "pickup_available": product.get("pickup_available", True)
+    }
+
 @api_router.get("/shop/categories")
 async def get_product_categories():
     """Get all product categories"""

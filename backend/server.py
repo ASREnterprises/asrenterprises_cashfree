@@ -3613,6 +3613,131 @@ async def update_order_status(order_id: str, data: Dict[str, Any]):
     await db.orders.update_one({"id": order_id}, {"$set": update_data})
     return {"status": "success", "message": "Order status updated"}
 
+@api_router.delete("/shop/orders/{order_id}")
+async def delete_order(order_id: str):
+    """Delete pending/cancelled orders (Admin only)"""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    if order.get("order_status") not in ["pending", "cancelled"] and order.get("payment_status") not in ["pending", "failed"]:
+        raise HTTPException(status_code=400, detail="Only pending or cancelled orders can be deleted")
+    
+    await db.orders.delete_one({"id": order_id})
+    return {"status": "success", "message": "Order deleted"}
+
+@api_router.post("/shop/track-order")
+async def track_order(data: Dict[str, Any]):
+    """Track order by order number and phone number"""
+    order_number = data.get("order_number", "").strip()
+    phone = data.get("phone", "").strip()
+    
+    if not order_number or not phone:
+        raise HTTPException(status_code=400, detail="Order number and phone number are required")
+    
+    order = await db.orders.find_one(
+        {"order_number": order_number, "customer_phone": phone},
+        {"_id": 0}
+    )
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found. Please check your order number and phone number.")
+    
+    return order
+
+# Bihar Districts with Pincodes for delivery
+BIHAR_DISTRICTS = {
+    "800001": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800002": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800003": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800004": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800005": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800006": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800007": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800008": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800009": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800010": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800014": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "800020": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "801503": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "801505": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "801108": {"district": "Patna", "deliverable": True, "days": "1-2"},
+    "803101": {"district": "Nalanda", "deliverable": True, "days": "2-3"},
+    "803301": {"district": "Nalanda", "deliverable": True, "days": "2-3"},
+    "801301": {"district": "Gaya", "deliverable": True, "days": "2-4"},
+    "823001": {"district": "Gaya", "deliverable": True, "days": "2-4"},
+    "842001": {"district": "Muzaffarpur", "deliverable": True, "days": "3-5"},
+    "842002": {"district": "Muzaffarpur", "deliverable": True, "days": "3-5"},
+    "841301": {"district": "Saran (Chapra)", "deliverable": True, "days": "3-5"},
+    "841101": {"district": "Saran (Chapra)", "deliverable": True, "days": "3-5"},
+    "845401": {"district": "East Champaran", "deliverable": True, "days": "4-6"},
+    "845438": {"district": "East Champaran", "deliverable": True, "days": "4-6"},
+    "845101": {"district": "West Champaran", "deliverable": True, "days": "4-6"},
+    "846001": {"district": "Darbhanga", "deliverable": True, "days": "3-5"},
+    "846004": {"district": "Darbhanga", "deliverable": True, "days": "3-5"},
+    "847211": {"district": "Madhubani", "deliverable": True, "days": "4-6"},
+    "854301": {"district": "Purnia", "deliverable": True, "days": "4-6"},
+    "854105": {"district": "Purnia", "deliverable": True, "days": "4-6"},
+    "812001": {"district": "Bhagalpur", "deliverable": True, "days": "3-5"},
+    "812002": {"district": "Bhagalpur", "deliverable": True, "days": "3-5"},
+    "811101": {"district": "Munger", "deliverable": True, "days": "3-5"},
+    "813101": {"district": "Banka", "deliverable": True, "days": "4-6"},
+    "851101": {"district": "Begusarai", "deliverable": True, "days": "2-4"},
+    "848101": {"district": "Samastipur", "deliverable": True, "days": "2-4"},
+    "843301": {"district": "Sitamarhi", "deliverable": True, "days": "4-6"},
+    "852101": {"district": "Saharsa", "deliverable": True, "days": "4-6"},
+    "855101": {"district": "Katihar", "deliverable": True, "days": "4-6"},
+    "843001": {"district": "Vaishali", "deliverable": True, "days": "2-3"},
+    "844101": {"district": "Vaishali", "deliverable": True, "days": "2-3"},
+    "802301": {"district": "Arwal", "deliverable": True, "days": "2-3"},
+    "824101": {"district": "Aurangabad", "deliverable": True, "days": "3-5"},
+    "821305": {"district": "Rohtas", "deliverable": True, "days": "3-5"},
+    "821115": {"district": "Kaimur", "deliverable": True, "days": "4-6"},
+    "802101": {"district": "Buxar", "deliverable": True, "days": "3-5"},
+    "841201": {"district": "Siwan", "deliverable": True, "days": "3-5"},
+    "841226": {"district": "Gopalganj", "deliverable": True, "days": "3-5"},
+    "843302": {"district": "Sheohar", "deliverable": True, "days": "4-6"},
+    "847101": {"district": "Madhubani", "deliverable": True, "days": "4-6"},
+    "847301": {"district": "Supaul", "deliverable": True, "days": "4-6"},
+    "850101": {"district": "Jhajha", "deliverable": True, "days": "3-5"},
+    "854301": {"district": "Kishanganj", "deliverable": True, "days": "5-7"},
+    "854202": {"district": "Araria", "deliverable": True, "days": "5-7"},
+    "821301": {"district": "Sasaram", "deliverable": True, "days": "3-5"},
+    "805101": {"district": "Nawada", "deliverable": True, "days": "3-5"},
+    "804401": {"district": "Jehanabad", "deliverable": True, "days": "2-3"},
+    "824201": {"district": "Aurangabad", "deliverable": True, "days": "3-5"},
+}
+
+@api_router.get("/shop/check-delivery/{pincode}")
+async def check_delivery(pincode: str):
+    """Check delivery availability by pincode for Bihar"""
+    info = BIHAR_DISTRICTS.get(pincode)
+    if info:
+        return {
+            "deliverable": info["deliverable"],
+            "district": info["district"],
+            "estimated_days": info["days"],
+            "pincode": pincode
+        }
+    
+    # Check if pincode starts with Bihar range (80-85)
+    if pincode[:2] in ["80", "81", "82", "83", "84", "85"]:
+        return {
+            "deliverable": True,
+            "district": "Bihar",
+            "estimated_days": "5-7",
+            "pincode": pincode,
+            "note": "Delivery available but exact timeline may vary. Contact us for confirmation."
+        }
+    
+    return {
+        "deliverable": False,
+        "district": None,
+        "estimated_days": None,
+        "pincode": pincode,
+        "note": "Sorry, we currently deliver only within Bihar state."
+    }
+
 @api_router.post("/shop/orders/{order_id}/payment-verify")
 async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
     """Verify Razorpay payment and send WhatsApp notification to admin and customer"""

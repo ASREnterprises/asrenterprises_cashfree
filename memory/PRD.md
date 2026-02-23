@@ -82,6 +82,7 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993
 - Staff: ASR1001 / password: asr@123 / OTP: 131993
+- Razorpay Live Key ID: rzp_live_SJXJM0ejFejAWd
 
 ## Pending Tasks
 - **P1:** Refactor server.py into modular APIRouter files (CRITICAL - file is very large)

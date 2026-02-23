@@ -60,18 +60,18 @@ export const ContactPage = () => {
                   <a href="mailto:asrenterprisespatna@gmail.com" className="text-green-600 hover:text-green-500 font-medium break-all">
                     asrenterprisespatna@gmail.com
                   </a>
-                  <p className="text-sm text-gray-400 mt-1">We'll respond within 24 hours</p>
+                  <p className="text-sm text-gray-500 mt-1">We'll respond within 24 hours</p>
                 </div>
               </div>
 
               {/* Office Address */}
-              <div className="flex items-start space-x-4 p-4 bg-yellow-900/30 rounded-lg hover:bg-yellow-500/20 transition border border-yellow-800/50">
-                <div className="bg-yellow-500 p-3 rounded-lg">
+              <div className="flex items-start space-x-4 p-4 bg-amber-50 rounded-lg hover:bg-amber-100 transition border border-amber-200">
+                <div className="bg-amber-500 p-3 rounded-lg">
                   <MapPin className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white mb-1">Office Address</h3>
-                  <p className="text-gray-300">
+                  <h3 className="font-semibold text-[#0a355e] mb-1">Office Address</h3>
+                  <p className="text-gray-700">
                     Shop no 10, AMAN SKS COMPLEX<br />
                     Khagaul Saguna Road<br />
                     Patna 801503, Bihar
@@ -80,30 +80,30 @@ export const ContactPage = () => {
               </div>
 
               {/* Registered Address */}
-              <div className="flex items-start space-x-4 p-4 bg-purple-900/30 rounded-lg hover:bg-purple-500/20 transition border border-purple-800/50">
+              <div className="flex items-start space-x-4 p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition border border-purple-200">
                 <div className="bg-purple-500 p-3 rounded-lg">
                   <Award className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white mb-1">Registered Office</h3>
-                  <p className="text-gray-300 mb-2">
+                  <h3 className="font-semibold text-[#0a355e] mb-1">Registered Office</h3>
+                  <p className="text-gray-700 mb-2">
                     Dawarikapuri, Khagaul<br />
                     Patna 801105, Bihar
                   </p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-600">
                     <strong>GSTIN:</strong> 10CCFPK3447Q3ZD
                   </p>
                 </div>
               </div>
 
               {/* Business Hours */}
-              <div className="flex items-start space-x-4 p-4 bg-orange-900/30 rounded-lg border border-orange-800/50">
+              <div className="flex items-start space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
                 <div className="bg-orange-500 p-3 rounded-lg">
                   <Clock className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white mb-2">Business Hours</h3>
-                  <div className="text-sm text-gray-300 space-y-1">
+                  <h3 className="font-semibold text-[#0a355e] mb-2">Business Hours</h3>
+                  <div className="text-sm text-gray-700 space-y-1">
                     <p><strong>Monday - Saturday:</strong> 9:00 AM - 7:00 PM</p>
                     <p><strong>Sunday:</strong> 10:00 AM - 5:00 PM</p>
                   </div>
@@ -112,8 +112,8 @@ export const ContactPage = () => {
             </div>
 
             {/* Social Media */}
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <h3 className="font-semibold text-white mb-4">Follow Us</h3>
+            <div className="mt-8 pt-8 border-t border-sky-200">
+              <h3 className="font-semibold text-[#0a355e] mb-4">Follow Us</h3>
               <div className="flex space-x-4">
                 <a
                   href="https://instagram.com/asr_enterprises_patna"

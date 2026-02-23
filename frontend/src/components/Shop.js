@@ -51,6 +51,11 @@ export const ShopPage = () => {
   const [wishlist, setWishlist] = useState([]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [biharDistricts, setBiharDistricts] = useState({ districts: [], delivery_fees: {} });
+  const [reviewsSummary, setReviewsSummary] = useState({});
+  const [productReviews, setProductReviews] = useState([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ customer_name: "", rating: 5, title: "", review_text: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
   
   const searchRef = useRef(null);
   
@@ -69,6 +74,7 @@ export const ShopPage = () => {
     fetchProducts();
     fetchCategories();
     fetchBiharDistricts();
+    fetchReviewsSummary();
     const savedCart = localStorage.getItem("asr_cart");
     if (savedCart) setCart(JSON.parse(savedCart));
     const viewed = localStorage.getItem("asr_recently_viewed");

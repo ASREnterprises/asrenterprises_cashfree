@@ -738,10 +738,10 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Hero Section - Premium Corporate Design */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '40px 40px'}}></div>
+      {/* Hero Section - Premium Light Solar Design */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-50">
+        {/* Solar Pattern Background */}
+        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(245,158,11,0.5) 1px, transparent 0)', backgroundSize: '40px 40px'}}></div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
           <div className="text-center">

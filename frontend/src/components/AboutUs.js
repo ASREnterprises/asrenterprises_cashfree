@@ -184,33 +184,33 @@ export const AboutUsPage = () => {
         {/* Why Choose Us */}
         <div className="mb-16">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-white mb-4">Why Choose Us?</h2>
-            <p className="text-gray-400 text-lg">Experience the ASR Enterprises difference</p>
+            <h2 className="text-4xl font-bold text-[#0a355e] mb-4">Why Choose Us?</h2>
+            <p className="text-gray-600 text-lg">Experience the ASR Enterprises difference</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {whyChooseUs.map((item, index) => (
               <div 
                 key={index}
-                className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50 hover:border-amber-500/50 transition-all duration-300 hover:transform hover:scale-105 group"
+                className="bg-white rounded-2xl p-6 border border-sky-200 hover:border-amber-400 transition-all duration-300 hover:transform hover:scale-105 group shadow-lg"
               >
                 <div className={`inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br ${item.color} rounded-xl mb-4 shadow-lg group-hover:shadow-xl transition-shadow`}>
                   <span className="text-white">{item.icon}</span>
                 </div>
-                <h4 className="text-xl font-bold text-white mb-2">{item.title}</h4>
-                <p className="text-gray-400">{item.description}</p>
+                <h4 className="text-xl font-bold text-[#0a355e] mb-2">{item.title}</h4>
+                <p className="text-gray-600">{item.description}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Values */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-gray-700/50 mb-16">
-          <h2 className="text-3xl font-bold text-white mb-6 text-center">Our Core Values</h2>
-          <p className="text-gray-300 text-center max-w-4xl mx-auto leading-relaxed text-lg">
-            Through <span className="text-amber-400 font-semibold">transparent processes</span>, 
-            <span className="text-amber-400 font-semibold"> ethical business practices</span>, and a 
-            <span className="text-amber-400 font-semibold"> customer-centric approach</span>, we continue to build lasting relationships and position ourselves as a reliable partner in India's renewable energy transformation.
+        <div className="bg-white rounded-3xl p-8 md:p-12 border border-sky-200 shadow-xl mb-16">
+          <h2 className="text-3xl font-bold text-[#0a355e] mb-6 text-center">Our Core Values</h2>
+          <p className="text-gray-700 text-center max-w-4xl mx-auto leading-relaxed text-lg">
+            Through <span className="text-amber-600 font-semibold">transparent processes</span>, 
+            <span className="text-amber-600 font-semibold"> ethical business practices</span>, and a 
+            <span className="text-amber-600 font-semibold"> customer-centric approach</span>, we continue to build lasting relationships and position ourselves as a reliable partner in India's renewable energy transformation.
           </p>
         </div>
 

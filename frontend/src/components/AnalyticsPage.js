@@ -4,7 +4,7 @@ import axios from "axios";
 import {
   BarChart3, TrendingUp, Users, ClipboardList, MapPin, 
   Calendar, ArrowLeft, Loader2, RefreshCw, Star, Image, 
-  MessageSquare, Calculator
+  MessageSquare, ShoppingBag
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -104,9 +104,9 @@ export const AnalyticsPage = () => {
             <div className="text-gray-400 text-sm">Chat Sessions</div>
           </div>
           <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
-            <Calculator className="w-6 h-6 text-blue-400 mb-2" />
-            <div className="text-2xl font-bold text-white">{stats.total_calculations || 0}</div>
-            <div className="text-gray-400 text-sm">Solar Calculations</div>
+            <ShoppingBag className="w-6 h-6 text-amber-400 mb-2" />
+            <div className="text-2xl font-bold text-white">{stats.total_orders || 0}</div>
+            <div className="text-gray-400 text-sm">Shop Orders</div>
           </div>
           <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
             <TrendingUp className="w-6 h-6 text-yellow-400 mb-2" />

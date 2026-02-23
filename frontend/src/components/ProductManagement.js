@@ -439,6 +439,9 @@ export const ProductManagement = () => {
           </div>
         </div>
 
+        {/* Book Service Price Config */}
+        <BookServiceConfig />
+
         {/* Tabs */}
         <div className="flex space-x-2 border-b border-gray-700 pb-2 mb-6">
           <button

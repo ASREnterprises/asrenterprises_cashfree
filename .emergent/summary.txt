@@ -2,91 +2,70 @@
 The user wants to build a feature-rich website for their solar energy business, ASR Enterprises. The project has evolved to include a customer-facing website, a comprehensive admin/CRM panel, AI-powered features, and a full e-commerce system.
 
 **LATEST USER REQUESTS (In this session):**
-1.  **[E-commerce Core]** Build a full Shop feature with Razorpay, COD, and WhatsApp notifications for orders.
-2.  **[E-commerce Refinements]**
-    *   Allow product image uploads directly from a mobile device's storage.
-    *   Order numbers should be generated automatically after successful payment.
-    *   Add a distance-based delivery fee option to orders.
-    *   Include a goods once sold cannot be taken back policy notice on every order.
-    *   Move the Shop Management feature from the CRM Dashboard to the Admin Dashboard.
-    *   Add a Solar Wire category with specific options (AC/DC, 6sqmm/4sqmm) and per-meter pricing.
-    *   Set the Solar Service category base price to ₹1500.
-    *   Ensure Razorpay payments automatically update in the CRM, while COD payments require manual updates.
-3.  **[UX/UI Improvements]**
-    *   Create a product detail view (modal) that opens when a customer clicks on a product, showing all images and details.
-    *   The Add Product form should dynamically change to show specific fields based on the selected category (Wire, Service, etc.).
-4.  **[Feature Enhancements]**
-    *   For Service products: remove stock/delivery/warranty fields, make the price editable, and add an AI-powered button to auto-generate the description.
-    *   For Wire products: make the product name and price editable, and remove the warranty field.
-5.  **[Configuration]** Update the live Razorpay API key.
+1.  **[Notifications]** Ensure that a proper payment auto-confirmation message (WhatsApp and Email) is delivered to the customer for ALL payment options, not just the Book Service flow.
+2.  **[Features from last user message #290]**
+    *   Add customer product reviews with star ratings.
+    *   Add a transparent ASR logo to the Shop page.
+    *   Allow admins to add/update images for the Solar Maintenance Service.
+    *   Mention that an extra delivery fee may apply based on distance in the delivery search results.
+    *   Fix the Back to Shop button on the Track Order page to not open a new tab.
+3.  **[Features from last user message #206]**
+    *   Fix the Become an ASR Solar Advisor page.
+    *   Change Solar Maintenance Service button to Book Service and have it open a direct payment page with a price configurable by the admin.
+    *   Allow admin to set product-specific delivery availability for districts in Bihar.
+    *   Enhance the Shop UI to feel more premium, like Flipkart or Amazon.
+4.  **[Features from last user message #108]**
+    *   Add a customer order tracking page.
+    *   Fix an issue where WhatsApp opened automatically during payment.
+    *   Fix an issue where unsuccessful payments were marked as confirmed orders.
+    *   Add a product sharing option for social media.
+    *   Add a pincode-based delivery check for all districts of Bihar.
+    *   Allow admins to delete pending/cancelled orders.
+    -   Remove the goods once sold cannot be taken back notice.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a React frontend and a monolithic FastAPI backend on MongoDB. The application features a premium dark theme, a CRM for managing leads and staff, and AI-powered testimonials.
+A full-stack application with a React frontend and a monolithic FastAPI backend on MongoDB. The application features a premium dark theme, a CRM for managing leads and staff, AI-powered testimonials, and a sophisticated e-commerce system.
 
-In this session, a complete e-commerce system was built, including:
-*   A Shop page with product listings, a shopping cart, and a multi-step checkout process.
-*   Product and Order management UI.
-*   Automated WhatsApp notifications for both admin and customers upon order creation and payment confirmation.
-*   Dynamic, category-specific forms for adding products.
-*   A product detail modal for an enhanced customer viewing experience.
-*   The agent was in the process of implementing the final set of user-requested refinements when the session ended.
+In this session, the e-commerce platform was significantly enhanced with:
+*   A complete UI/UX overhaul of the shop page to a premium Flipkart/Amazon style.
+*   A full product review and star rating system.
+*   An order tracking page for customers.
+*   A Book Service feature with a dedicated payment flow and automated WhatsApp/Email notifications.
+*   Advanced admin controls for per-product delivery zones (Bihar districts) and configurable service pricing.
+*   Numerous bug fixes and UX improvements, including product sharing, order deletion, and fixing broken navigation/payment flows.
 
 **Last working item**:
-- **Last item agent was working:** The agent was about to update the live Razorpay API key provided by the user in chat message #409.
-- **Status:** NOT STARTED
+- **Last item agent was working:** The user requested that the automated WhatsApp and Email confirmation messages, recently implemented for the Book Service feature, be applied to all other payment options, specifically for regular product orders from the shop. The agent had just started investigating the existing shop checkout flow in  and .
+- **Status:** IN PROGRESS
 - **Agent Testing Done:** N
-- **Which testing method agent to use?** backend testing agent
+- **Which testing method agent to use?** both
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Update Live Razorpay API Key (P0)**
--   **Issue 2: Finalize Service & Wire Product Configuration (P1)**
--   **Issue 3: Deployment & Final Configuration (P2)**
--   **Issue 4: Live Google Reviews vs. Implemented Testimonials (P3)**
--   **Issue 5: Re-enable Google reCAPTCHA (P3)**
+-   **Issue 1: Standardize Payment Notifications (P0)**
+-   **Issue 2: Live Google Reviews vs. Implemented Testimonials (P2)**
+-   **Issue 3: Re-enable Google reCAPTCHA (P3)**
+-   **Issue 4: Deployment & Final Configuration (P3)**
 
 **Issues Detail:**
--   **Issue 1: Update Live Razorpay API Key (P0)**
-    -   **Attempted fixes:** None. The agent was about to start this task.
+-   **Issue 1: Standardize Payment Notifications (P0)**
+    -   **Attempted fixes:** None yet. The agent was investigating the existing code in  and .
     -   **Next debug checklist:**
-        1.  Locate the Razorpay key configuration in the backend ( or  file).
-        2.  Replace the existing key with the new key provided by the user: .
-        3.  Verify the change by testing the checkout process.
-    -   **Why fix this issue and what will be achieved with the fix?** To enable live, real-money transactions on the website.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** No.
-
--   **Issue 2: Finalize Service & Wire Product Configuration (P1)**
-    -   **Attempted fixes:** The agent successfully created the dynamic forms and implemented most logic from user message #368. The UI for editable prices, AI description generation, and field removal is in place.
-    -   **Next debug checklist:**
-        1.  Review the implementation in  and .
-        2.  Ensure the AI description generation API () is fully wired and functional.
-        3.  Verify that prices for Wire and Service products can be edited and saved correctly.
-        4.  Confirm that the warranty field is hidden for both categories.
-        5.  Test the entire Add Product flow for Wire and Service categories to ensure all user requirements are met.
-    -   **Why fix this issue and what will be achieved with the fix?** This will complete the user's specific requirements for managing service and wire products, making the admin experience more flexible.
+        1.  Analyze the  function in  to confirm the customer's email is passed during order creation.
+        2.  Locate the  endpoint in . This endpoint currently handles payment verification and sends a WhatsApp message.
+        3.  Modify the  endpoint to also trigger an email confirmation using the  utility, similar to how it's done in the  endpoint.
+        4.  Ensure the email logic is only triggered for successful Razorpay payments and not for Cash on Delivery orders.
+        5.  Test the entire shop checkout flow to confirm both WhatsApp and Email notifications are sent correctly.
+    -   **Why fix this issue and what will be achieved with the fix?** To create a consistent and professional user experience by ensuring customers receive confirmation for all successful online payments.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** No.
 
--   **Issue 3: Deployment & Final Configuration (P2)**
-    -   **Attempted fixes:** The agent has previously provided detailed guides for deployment and Cloudflare configuration.
-    -   **Next debug checklist:**
-        1.  After completing the e-commerce feature, prompt the user to initiate deployment.
-        2.  Guide the user to update the Meta Webhook URL in their developer console to the new production URL.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a blocker for the application going live and for the Meta webhook to function in production.
-    -   **Status:** BLOCKED
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** N/A
-    -   **Blocked on other issue:** User action is required (clicking Deploy and setting up DNS).
-
--   **Issue 4: Live Google Reviews vs. Implemented Testimonials (P3)**
-    -   **Attempted fixes:** An AI-powered testimonial system controlled by the admin was implemented as a substitute.
+-   **Issue 2: Live Google Reviews vs. Implemented Testimonials (P2)**
+    -   **Attempted fixes:** An admin-controlled AI testimonial system was implemented as a substitute.
     -   **Next debug checklist:**
         1.  Clarify with the user if the current AI system is sufficient or if they still want to integrate live Google Reviews.
         2.  If required, plan an integration with the Google Places API.
@@ -96,21 +75,32 @@ In this session, a complete e-commerce system was built, including:
     -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** User clarification.
 
--   **Issue 5: Re-enable Google reCAPTCHA (P3)**
+-   **Issue 3: Re-enable Google reCAPTCHA (P3)**
     -   **Attempted fixes:** The feature was disabled to fix a domain key error in the preview environment.
     -   **Next debug checklist:**
         1.  Once the site is deployed, guide the user to generate new reCAPTCHA keys for the production domain.
-        2.  Update the environment variables and re-enable the reCAPTCHA code on the frontend and backend.
-    -   **Why fix this issue and what will be achieved with the fix?** To restore spam protection on the lead form.
+        2.  Update the environment variables and re-enable the reCAPTCHA code.
+    -   **Why fix this issue and what will be achieved with the fix?** To restore spam protection on lead forms.
     -   **Status:** BLOCKED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** Issue 3: Deployment & Final Configuration.
+    -   **Blocked on other issue:** Issue 4: Deployment & Final Configuration.
+
+-   **Issue 4: Deployment & Final Configuration (P3)**
+    -   **Attempted fixes:** The agent has previously provided deployment guides.
+    -   **Next debug checklist:**
+        1.  After completing current tasks, prompt the user to initiate deployment.
+        2.  Guide the user to update the Meta Webhook URL to the new production URL.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a blocker for the application going live.
+    -   **Status:** BLOCKED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** N/A
+    -   **Blocked on other issue:** User action is required (clicking Deploy and setting up DNS).
 
 **In progress Task List**:
--   **Task 1: Finalize E-commerce Refinements (P1)**
-    -   **Where to resume:** Complete the final user requests from message #368 regarding Wire and Service product configurations in  and .
-    -   **What will be achieved with this?** A fully functional and highly customized e-commerce management system that matches all user specifications.
+-   **Task 1: Unify Payment Notifications (P0)**
+    -   **Where to resume:** Modify the  endpoint in  to add email notifications for shop orders.
+    -   **What will be achieved with this?** All successful online payments will trigger both WhatsApp and email confirmations, creating a uniform experience.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** No.
@@ -120,105 +110,120 @@ In this session, a complete e-commerce system was built, including:
     -   **(P2) Finalize Deployment & Webhook Configuration:** Assist user post-deployment.
     -   **(P3) Re-enable Google reCAPTCHA:** Restore spam protection post-deployment.
 -   **Future Tasks:**
-    -   **(P3) Implement Live Google Reviews:** Pending user clarification.
-    -   **(P3) Refactor :** Break the monolithic file into FastAPI  modules (e.g., , , ).
-    -   **(P3) Refactor :** The component is now very large and complex; it should be broken down into smaller sub-components (e.g., , ).
+    -   **(P1) Refactor  and :** These monolithic files are now critically large and difficult to maintain. They must be broken down into smaller, focused modules/components.
+    -   **(P2) Implement Live Google Reviews:** Pending user clarification.
     -   **(P3) Persist Staff Notifications:** Store staff notifications in the database.
 
 **Completed work in this session**
--   **Full E-commerce System:** Implemented Shop page, product listings, cart, and checkout ().
--   **Admin & CRM Integration:**
-    -   Built  for full CRUD on products and orders.
-    -   Moved Shop Management from CRM to Admin Dashboard ().
--   **Automated Notifications:**
-    -   Implemented WhatsApp notifications for admin and customers on new orders and successful payments.
-    -   Implemented internal CRM message notifications for new orders.
--   **Dynamic Product Management:**
-    -   Created dynamic forms in  that change based on product category (Wire, Service).
-    -   Added AI-powered description generation for services.
--   **UX Enhancements:**
-    -   Added a Product Detail modal to the shop page for better user experience.
-    -   Implemented distance-based delivery fees and a no-return policy notice in the checkout flow.
--   **Testing:** Successfully ran multiple comprehensive tests using the testing agent, verifying backend and frontend functionality.
+-   **Payment & Notification System:**
+    -   Upgraded Razorpay integration from a simple payment link to the full Checkout SDK with the live API key.
+    -   Created a Book Service feature with a dedicated payment flow and automated WhatsApp/Email notifications.
+-   **E-commerce UI/UX Overhaul:**
+    -   Completely redesigned the shop page to a premium, modern UI resembling Flipkart/Amazon.
+    -   Added a transparent company logo to the shop header.
+-   **New E-commerce Features:**
+    -   Implemented a full customer product review and star rating system.
+    -   Added a customer-facing Track Order page.
+    -   Implemented a product sharing feature for social media.
+-   **Advanced Admin Controls:**
+    -   Admins can now configure delivery availability on a per-product, per-district (Bihar) basis.
+    -   Admins can manage the Book Service price from the CRM.
+    -   Admins can now delete pending or cancelled orders.
+    -   Enabled image uploads for Service type products.
+-   **Bug Fixes & Refinements:**
+    -   Fixed a critical bug where unsuccessful payments were being marked as confirmed orders.
+    -   Fixed the broken Become an ASR Solar Advisor page route.
+    -   Removed Govt Schemes section and updated various links/buttons across the site.
+    -   Fixed navigation issues (e.g., Back to Shop button opening new tabs).
+-   **Testing:** Used the  extensively after each major feature batch, achieving 100% pass rates and ensuring stability.
 
 **Earlier issues found/mentioned but not fixed**
--   The user's request for live Google reviews was substituted with a DB-driven AI testimonial system. This needs clarification.
--   The technical debt from monolithic files (, ) remains and is growing.
+-   The user's original request for live Google reviews was substituted with a DB-driven AI testimonial system. This needs clarification.
+-   The technical debt from monolithic files (, ) remains and is growing, posing a risk to maintainability.
 
 **Known issue recurrence from previous fork**
--   The monolithic nature of  is a recurring issue. The addition of the entire e-commerce system has made this file critically large and difficult to maintain. The  component has also grown into a monolith.
+-   The monolithic nature of  and  is a recurring issue. The significant feature additions in this session have made refactoring a high-priority necessity.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend:** React, React Router, Tailwind CSS, ,  for icons.
--   **Backend:** FastAPI, Motor (async MongoDB), Pydantic.
--   **AI:**  library for  (used for Testimonials and now Service Descriptions).
--   **E-commerce:** Razorpay, custom logic for delivery fees, order notifications.
+-   **Frontend:** React, React Router, Tailwind CSS, ,  (toasts).
+-   **Backend:** FastAPI, Motor (async MongoDB), Pydantic, Resend (for emails).
+-   **AI:**  library for  (used for Testimonials and Service Descriptions).
+-   **E-commerce:** Razorpay Checkout SDK, custom logic for delivery fees and notifications.
+-   **Deployment:** Managed via supervisor in the development environment.
 
 **key DB schema**
 -   : 
 -   : 
--   :  (New, for CRM)
--   :  (Used for CRM notifications)
+-   : 
+-   : 
+-   : 
 
 **changes in tech stack**
--   No new technologies were added, but the use of existing ones (FastAPI, React, ) was significantly expanded.
+-   No new technologies were added, but the usage of Resend for emails was implemented.
 
 **All files of reference**
--   : Heavily modified with all e-commerce APIs, notification logic, and AI description endpoint.
--   : New file containing the entire customer-facing shop UI.
--   : New file for the admin-facing product/order management UI.
--   : Updated to link to Product Management.
--   : Updated to remove the Shop tab.
--   : Updated with new routes for the shop and product management pages.
+-   : Heavily modified with new endpoints for reviews, order tracking, bookings, delivery configuration, and email notifications.
+-   : Completely rewritten to support the new premium UI, reviews, and other features.
+-   : Heavily modified to add delivery district configuration and service price management.
+-   : Updated with new routes, a Book Service modal and logic.
+-   : New file for the customer order tracking feature.
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file is now unmanageably large. It must be broken down into  modules.
--   ** (CRITICAL):** This component handles multiple complex UIs (product list, order list, add/edit form with dynamic categories). It should be decomposed into smaller, specialized components.
--   ** (High):** This component contains the shop grid, cart, checkout, and multiple modals. It could be broken down for better maintainability.
+-   ** (CRITICAL):** This file is now dangerously large and complex. It MUST be broken down into  modules (e.g., , , ).
+-   ** (CRITICAL):** This component is a monolith handling product CRUD, order management, and service configuration. It should be decomposed into smaller, specialized components.
+-   ** (HIGH):** This large component manages the product grid, search, filtering, cart, checkout, and the product detail modal. It could be broken down for better maintainability.
+-   ** (MEDIUM):** The root component now contains modal state and handlers (like the Book Service flow) that could be extracted into their own components or a global state context.
 
 **key api endpoints**
--   : New endpoint to generate AI descriptions for services.
--   : Endpoints for product CRUD.
--   : Endpoints for order management.
--   : Endpoint to verify Razorpay payments and finalize orders.
--   : Endpoint for dashboard statistics.
+-   : Add a review for a product.
+-   : Get all reviews for a product.
+-   : Track an order by order number and phone.
+-   : Delete a pending/cancelled order.
+-   : Check delivery availability for a pincode (for all products).
+-   : Check delivery for a specific product and pincode.
+-   : Get a list of all districts in Bihar.
+-   : Create a booking order before payment.
+-   : Confirm a booking payment and send notifications.
+-   : Manage the price for the Book Service feature.
 
 **Critical Info for New Agent**
--   Your first task is to update the Razorpay key as requested by the user. Find the key's location and replace it.
--   Immediately after, focus on completing the Wire and Service product configuration refinements from the last user request (#368). Much of the frontend is built, but you need to verify the logic and ensure it's fully functional.
--   The user has provided a stream of rapid, iterative requests. The codebase has kept up, but this has created significant technical debt, especially in  and . Be aware of this complexity.
--   The agent has been very effective at using the testing agent. Continue this practice after implementing significant changes to catch regressions.
+-   Your immediate task is to implement email notifications for regular shop orders to match the new Book Service flow, as requested by the user. Modify the  endpoint in .
+-   The user is providing large, rapid-fire feature requests. The established workflow is: plan the batch of changes, implement them, and then run the  for comprehensive verification. Continue this pattern.
+-   Technical debt is a major concern. After completing the current notification task, you should strongly propose a refactoring phase to the user, focusing on breaking down  and .
 
 **documents and test reports created in this job**
--    (Updated)
--   Multiple test reports in , with the latest one being from the final feature test.
+-    (Continuously updated)
+-   Multiple test reports in , created after each major feature implementation.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Update the Razorpay API key. *(Status: PENDING)*
-2.  **User:** Refine Wire/Service product forms: editable prices, AI descriptions, remove certain fields. *(Status: IN PROGRESS)*
-3.  **User:** Update the Add Product form to be dynamic based on the selected category (Wire/Service). *(Status: COMPLETED)*
-4.  **User:** Create a product detail modal for customers to view full product details. *(Status: COMPLETED)*
-5.  **User:** Requested numerous e-commerce refinements: mobile image upload, distance-based delivery fee, moving shop to admin, adding wire/service categories, and payment sync logic. *(Status: COMPLETED)*
-6.  **User:** Confirm that customers will also get an order confirmation message. *(Status: COMPLETED)*
-7.  **User:** Requested WhatsApp notifications for successful orders. *(Status: COMPLETED)*
-8.  **User:** Confirmed the use of Razorpay. *(Status: ADDRESSED)*
-9.  **Agent:** Proposed plan to build the e-commerce system. *(Status: ADDRESSED)*
+1.  **User:** Please update all payment options to include the same WhatsApp/Email confirmation. *(Status: IN PROGRESS)*
+2.  **User:** A customer's Book Service payment was successful but they received no confirmation. Please fix this and ensure WhatsApp/Email confirmations are working. *(Status: COMPLETED)*
+3.  **User:** Add product reviews/ratings, a transparent logo to the shop, allow image updates for services, add a delivery fee notice, and fix the 'Back to Shop' button. *(Status: COMPLETED)*
+4.  **User:** OK. And also update the shop interface to look premium like Flipkart/Amazon. *(Status: COMPLETED)*
+5.  **User:** The Become an ASR Solar Advisor page is not working. Update Solar Maintenance Service to Book Service with direct payment. Add per-product delivery options for Bihar districts. *(Status: COMPLETED)*
+6.  **User:** Add an order tracking page, fix payment flow bugs (WhatsApp auto-open, unsuccessful payments), add product sharing, and allow admins to delete orders. *(Status: COMPLETED)*
+7.  **User:** yes. *(Status: ADDRESSED)*
+8.  **Agent:** Proposed a large plan to implement a huge batch of new features and fixes. *(Status: ADDRESSED)*
+9.  **User:** Update Razorpay key and all previously requested features. *(Status: COMPLETED)*
+10. **Agent:** Proposed a plan to update the Razorpay key and finalize product configurations. *(Status: ADDRESSED)*
 
 **Project Health Check:**
--   **Functional but Brittle:** The application is highly functional and feature-rich, meeting complex user requirements. However, the rapid development has led to large, monolithic files (, ) that are becoming difficult to manage and are at high risk for regressions. Refactoring is now a high-priority need.
+-   **Broken:** 0
+-   **Mocked:** 0
+-   **Health:** The application is highly functional but brittle. The feature velocity has been extremely high, leading to significant technical debt in monolithic files (, ). Refactoring is now a high-priority task to ensure future maintainability and prevent regressions.
 
 **3rd Party Integrations**
 -   **OpenAI GPT-4o-mini:** Uses Emergent LLM Key (for AI Testimonials and AI Service Descriptions).
 -   **Razorpay:** Integrated for payment processing. Requires a User-provided live API key.
--   **Google reCAPTCHA v2 (Invisible):** Temporarily disabled. Requires User-provided keys for the production domain.
--   **Resend:** Requires User API Key (for staff login OTPs).
+-   **Resend:** Requires User API Key (for staff login OTPs and customer email notifications).
 -   **WhatsApp Business API / Facebook Graph API:** Backend is integrated for sending notifications.
+-   **Google reCAPTCHA v2 (Invisible):** Temporarily disabled. Requires User-provided keys for the production domain.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (Multiple times, successfully)
+-   **Testing agent used after significant changes:** YES (Used multiple times after each major feature batch, with 100% success rates).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** None
 -   **Known regressions:** None
@@ -233,5 +238,4 @@ In this session, a complete e-commerce system was built, including:
     -   OTP: Fallback 
 
 **What agent forgot to execute**
--   The agent was about to execute the user's request to update the Razorpay API key before the session ended.
--   The final refinements for the Wire and Service product forms (editable fields, AI description logic) are implemented in the UI but need to be fully tested and verified end-to-end.</analysis>
+-   The agent is currently in the process of fulfilling the user's latest request to standardize payment notifications across all services. No tasks have been forgotten.</analysis>

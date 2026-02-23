@@ -14,62 +14,62 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 ### Latest Session (Feb 2026)
 
+#### Customer Reviews & Ratings
+- **Star rating system** on every product card (1-5 stars with review count)
+- **Review form** in product detail modal (name, star rating, title, review text)
+- **Rating badge** in product detail (green badge with avg rating like Flipkart)
+- **Reviews list** with customer avatars, timestamps, individual ratings
+- Backend: `GET/POST /api/shop/products/{id}/reviews`, `GET /api/shop/reviews/summary`
+- MongoDB collection: `product_reviews`
+
 #### Bug Fixes
-- **Become an ASR Solar Advisor** — Route `/become-agent` restored (was accidentally removed)
-- **Payment Flow** — WhatsApp no longer auto-opens. Failed payments cancel orders. Success only on completion.
+- **"Become an ASR Solar Advisor"** — Route `/become-agent` restored
+- **Track Order "Back to Shop"** — Fixed: no longer opens new tab, navigates in same tab
+- **Payment Flow** — WhatsApp no longer auto-opens. Failed payments cancel orders.
+- **Service product images** — Admin can now upload images for service products (was hidden)
+
+#### ASR Logo on Shop
+- **Transparent ASR logo** (`asr_logo_transparent.png`) in shop header next to "ASR Solar Shop"
+
+#### Delivery Fee Display
+- **Pincode results** in header and product detail now explicitly show: `Delivery Fee: ₹{amount}`
+- Per-product delivery check also shows fee: `₹{fee} ({days} days)`
 
 #### Book Service Feature
-- **"Book Service" button** on homepage opens Razorpay payment directly (online payment only)
-- **Admin-configurable price** via Shop Management → Book Service Price section
-- Backend endpoints: `GET/PUT /api/shop/book-service-config`
+- **"Book Service" button** on homepage opens Razorpay directly (online-only)
+- **Admin-configurable price** via Shop Management
 
 #### Premium Shop UI (Flipkart/Amazon-style)
-- **White/light background** product grid like e-commerce leaders
-- **Sticky header** with search bar, Track Order, Cart
-- **Category navigation strip** below header
-- **Promo banner** with trust badges (Free Pickup, Quality Guaranteed, Secure Payments)
-- **Product cards** with wishlist hearts, share buttons, quantity controls, discount badges
-- **Product detail modal** with image gallery, pincode delivery check, share options, related products
-- **Trust badges section** at bottom (Genuine Products, Bihar Delivery, Secure Payment, Expert Support)
-- **Recently viewed products** with localStorage persistence
+- White/light product grid, sticky header + search, category strip
+- Product cards: wishlist hearts, share, quantity controls, discount badges, star ratings
+- Product detail: image gallery, pincode check, reviews, related products
+- Trust badges, promo banner, recently viewed products
 
 #### Per-Product Delivery by Pincode
-- **37 Bihar districts** with distance-based delivery fees (₹50 Patna → ₹350 remote)
-- **Customer pincode check** in header and product detail modal
-- **Product-specific delivery** — Admin sets which districts each product delivers to
-- Backend: `GET /api/shop/bihar-districts`, `GET /api/shop/products/{id}/check-delivery/{pincode}`
-
-#### Admin Enhancements
-- **Delivery district config** per product (checkbox grid of Bihar districts)
-- **Delete orders** (pending/cancelled only)
-- **Book Service Price** management in Shop Management
+- 37 Bihar districts with distance-based fees (₹50-₹350)
+- Admin sets delivery districts per product (checkbox grid)
+- Customer checks via pincode in header & product detail
 
 #### Content Updates
-- Installation Service → **Solar Cleaning Service**
-- Govt Schemes **removed** from site
-- Book Now → **Book Service** (direct Razorpay payment)
-- Shop links open in **new tab**
-- "Goods once sold" notice **removed**
-- **Order Tracking** page at `/track-order`
-- **Product Sharing** (WhatsApp, Facebook, Email, Copy Link)
-- **Product Sorting** (Relevance, Newest, Price, Name)
+- Installation→Solar Cleaning Service, Govt Schemes removed
+- Shop links open in new tab, "Goods once sold" removed
+- Order Tracking at `/track-order`, Product Sharing (WhatsApp/Facebook/Email/Copy)
 
 ### Previously Implemented
 - Full CRM with leads, staff, tasks, payments, gallery, messages
 - Staff 2FA OTP login, private messaging
-- AI-powered testimonials (GPT-4o-mini)
+- AI-powered testimonials & service descriptions (GPT-4o-mini)
 - WhatsApp notifications for orders
+- Admin order deletion (pending/cancelled)
 - Premium dark navy-blue theme (main site)
-- Code splitting with React.lazy()
 
 ## Key Credentials
 - Admin: asrenterprisespatna@gmail.com / OTP: 131993
 - Staff: ASR1001 / password: asr@123 / OTP: 131993
 
 ## Pending Tasks
-- **P2:** Finalize Deployment & Webhook Configuration (user action)
+- **P2:** Deployment & Webhook Configuration (user action)
 - **P3:** Re-enable Google reCAPTCHA (post-deployment)
 - **P3:** Live Google Reviews (pending user clarification)
 - **P3:** Refactor server.py into modular APIRouter files
-- **P3:** Refactor ProductManagement.js & Shop.js into sub-components
-- **P3:** Persist Staff Notifications in MongoDB
+- **P3:** Refactor large frontend components

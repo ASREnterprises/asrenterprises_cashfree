@@ -1723,7 +1723,17 @@ export default function App() {
               <PhotosManagement />
             </ProtectedRoute>
           } />
+          <Route path="/admin/gallery" element={
+            <ProtectedRoute>
+              <PhotosManagement />
+            </ProtectedRoute>
+          } />
           <Route path="/admin/reviews" element={
+            <ProtectedRoute>
+              <ReviewsManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/testimonials" element={
             <ProtectedRoute>
               <ReviewsManagement />
             </ProtectedRoute>

@@ -455,12 +455,23 @@ export const HRManagement = () => {
                             <p className="text-gray-500">Revenue</p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => setShowDetailsModal(emp)}
-                          className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setShowDetailsModal(emp)}
+                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEmployee(emp)}
+                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                            title="Delete Employee"
+                            data-testid={`delete-emp-${emp.employee_id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

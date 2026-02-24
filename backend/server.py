@@ -1791,26 +1791,29 @@ async def send_otp(request: Dict[str, Any]):
 @api_router.post("/admin/verify-otp")
 async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
     client_ip = get_client_ip(request)
-    
-    # Check login rate limit
-    if not check_login_rate_limit(client_ip):
-        logger.warning(f"Login rate limit exceeded for IP: {client_ip}")
-        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
-    
     email = data.get("email", "").lower().strip()
     otp = data.get("otp", "").strip()
+    
+    # Check lockout status
+    allowed, message = check_login_lockout(client_ip, email)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=message)
     
     # Only allow admin email
     registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
+        record_failed_login(client_ip, email)
         logger.warning(f"Unauthorized login attempt for email: {email} from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Verify OTP
     if verify_otp(email, otp):
+        reset_failed_login(client_ip, email)  # Reset on successful login
         logger.info(f"Successful admin login for {email} from IP: {client_ip}")
         return {"success": True, "role": "admin", "email": email}
     
+    # Record failed attempt
+    record_failed_login(client_ip, email)
     logger.warning(f"Failed OTP verification for {email} from IP: {client_ip}")
     raise HTTPException(status_code=401, detail="Invalid or expired OTP")
 

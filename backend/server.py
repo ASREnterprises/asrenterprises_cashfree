@@ -1468,7 +1468,13 @@ async def calculate_solar(calc_request: SolarCalculationRequest):
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
-    """Optimized dashboard stats with parallel queries"""
+    """Optimized dashboard stats with caching and parallel queries"""
+    # Check cache first
+    cache_key = "dashboard_stats"
+    cached = get_cached(cache_key, ttl=30)  # 30 second cache
+    if cached:
+        return cached
+    
     results = await asyncio.gather(
         db.leads.count_documents({}),
         db.chat_messages.count_documents({}),
@@ -1478,10 +1484,11 @@ async def get_dashboard_stats():
         db.leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5),
         db.leads.count_documents({"status": "new"}),
         db.work_photos.count_documents({}),
-        db.customer_reviews.count_documents({})
+        db.customer_reviews.count_documents({}),
+        db.orders.count_documents({})
     )
     
-    return {
+    response = {
         "total_leads": results[0],
         "total_chats": results[1],
         "total_calculations": results[2],
@@ -1490,8 +1497,12 @@ async def get_dashboard_stats():
         "recent_leads": results[5],
         "new_leads": results[6],
         "total_photos": results[7],
-        "total_reviews": results[8]
+        "total_reviews": results[8],
+        "total_orders": results[9]
     }
+    
+    set_cache(cache_key, response, ttl=30)
+    return response
 
 # Analytics Endpoint for detailed business insights
 @api_router.get("/admin/analytics")

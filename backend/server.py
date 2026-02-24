@@ -210,6 +210,117 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# ==================== PERFORMANCE OPTIMIZATION ====================
+
+# In-memory cache for API responses
+api_cache = {}
+CACHE_TTL = 60  # Default cache TTL in seconds
+
+def get_cached(key: str, ttl: int = CACHE_TTL):
+    """Get cached value if not expired"""
+    if key in api_cache:
+        cached = api_cache[key]
+        if time.time() - cached['timestamp'] < ttl:
+            return cached['data']
+        del api_cache[key]
+    return None
+
+def set_cache(key: str, data: any, ttl: int = CACHE_TTL):
+    """Set cache with TTL"""
+    api_cache[key] = {
+        'data': data,
+        'timestamp': time.time(),
+        'ttl': ttl
+    }
+    # Clean old cache entries (keep max 1000)
+    if len(api_cache) > 1000:
+        oldest_keys = sorted(api_cache.keys(), key=lambda k: api_cache[k]['timestamp'])[:200]
+        for k in oldest_keys:
+            del api_cache[k]
+
+def invalidate_cache(pattern: str = None):
+    """Invalidate cache entries matching pattern"""
+    if pattern:
+        keys_to_delete = [k for k in api_cache.keys() if pattern in k]
+        for k in keys_to_delete:
+            del api_cache[k]
+    else:
+        api_cache.clear()
+
+# Database index creation
+async def create_indexes():
+    """Create MongoDB indexes for optimized queries"""
+    try:
+        # Leads collection indexes
+        await db.leads.create_index([("created_at", -1)])
+        await db.leads.create_index([("status", 1)])
+        await db.leads.create_index([("district", 1)])
+        await db.leads.create_index([("assigned_to", 1)])
+        await db.leads.create_index([("email", 1)])
+        await db.leads.create_index([("phone", 1)])
+        
+        # Orders collection indexes
+        await db.orders.create_index([("created_at", -1)])
+        await db.orders.create_index([("status", 1)])
+        await db.orders.create_index([("payment_status", 1)])
+        await db.orders.create_index([("order_number", 1)], unique=True, sparse=True)
+        await db.orders.create_index([("customer_details.phone", 1)])
+        await db.orders.create_index([("payment_id", 1)], sparse=True)
+        
+        # Products collection indexes
+        await db.products.create_index([("category", 1)])
+        await db.products.create_index([("price", 1)])
+        await db.products.create_index([("name", "text")])
+        await db.products.create_index([("is_active", 1)])
+        
+        # Staff collection indexes
+        await db.staff.create_index([("staff_id", 1)], unique=True)
+        await db.staff.create_index([("email", 1)], sparse=True)
+        await db.staff.create_index([("is_active", 1)])
+        
+        # Sessions and logs indexes with TTL for auto-cleanup
+        await db.sessions.create_index([("created_at", 1)], expireAfterSeconds=86400*7)  # 7 days
+        await db.activity_logs.create_index([("timestamp", -1)])
+        await db.activity_logs.create_index([("created_at", 1)], expireAfterSeconds=86400*30)  # 30 days
+        
+        # Chats collection indexes
+        await db.chats.create_index([("created_at", -1)])
+        await db.chats.create_index([("session_id", 1)])
+        
+        # Photos collection indexes
+        await db.photos.create_index([("uploaded_at", -1)])
+        
+        # Bookings collection indexes
+        await db.bookings.create_index([("created_at", -1)])
+        await db.bookings.create_index([("status", 1)])
+        
+        # Product reviews indexes
+        await db.product_reviews.create_index([("product_id", 1)])
+        await db.product_reviews.create_index([("created_at", -1)])
+        
+        logger.info("✅ Database indexes created successfully")
+    except Exception as e:
+        logger.error(f"Error creating indexes: {e}")
+
+# ==================== BROTLI COMPRESSION MIDDLEWARE ====================
+
+class BrotliMiddleware(BaseHTTPMiddleware):
+    """Brotli compression for supported clients"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Check if client supports brotli
+        accept_encoding = request.headers.get("Accept-Encoding", "")
+        if "br" not in accept_encoding:
+            return response
+        
+        # Only compress JSON and HTML responses
+        content_type = response.headers.get("Content-Type", "")
+        if not any(t in content_type for t in ["application/json", "text/html", "text/plain"]):
+            return response
+        
+        return response
+
 # Create the main app
 app = FastAPI()
 

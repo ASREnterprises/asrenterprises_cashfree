@@ -1885,12 +1885,24 @@ async def get_crm_quick_stats():
 
 # Admin OTP APIs
 @api_router.post("/admin/send-otp")
-async def send_otp(request: Dict[str, Any]):
-    email = request.get("email", "").lower()
+async def send_otp(request: Request, data: Dict[str, Any]):
+    client_ip = get_client_ip(request)
+    email = data.get("email", "").lower().strip()
+    
     # Only admin email is allowed
     registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
         raise HTTPException(status_code=403, detail="Email not registered. Only admin can access.")
+    
+    # Check cooldown to prevent multiple OTP sends
+    can_send, cooldown_msg = can_send_otp(email)
+    if not can_send:
+        raise HTTPException(status_code=429, detail=cooldown_msg)
+    
+    # Check lockout status
+    allowed, lockout_msg = check_login_lockout(client_ip, email)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=lockout_msg)
     
     # Generate and store secure OTP
     otp = generate_secure_otp()
@@ -1901,7 +1913,7 @@ async def send_otp(request: Dict[str, Any]):
     
     if email_sent:
         logger.info(f"OTP email sent to {email}")
-        return {"success": True, "message": "OTP sent to your registered email", "email_sent": True}
+        return {"success": True, "message": "OTP sent to your registered email (valid for 5 minutes)", "email_sent": True}
     else:
         # Fallback message if email not configured
         logger.info(f"OTP generated for {email} (email not configured, use 131993)")

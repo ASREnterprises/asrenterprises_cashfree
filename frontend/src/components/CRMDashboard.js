@@ -180,7 +180,68 @@ export const CRMDashboard = () => {
   const [newRegistrationFee, setNewRegistrationFee] = useState('');
   const [registrations, setRegistrations] = useState([]);
 
-  useEffect(() => { fetchAllData(); fetchDistricts(); fetchRegistrations(); }, []);
+  useEffect(() => { 
+    // Load only essential data first (dashboard stats)
+    fetchDashboardData();
+    fetchDistricts(); 
+  }, []);
+  
+  // Load tab-specific data when tab changes
+  useEffect(() => {
+    if (activeTab === "leads" && leads.length === 0) fetchLeads();
+    if (activeTab === "tasks" && tasks.length === 0) fetchTasks();
+    if (activeTab === "team" && staffAccounts.length === 0) fetchStaff();
+    if (activeTab === "messages" && messages.length === 0) fetchMessages();
+  }, [activeTab]);
+  
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      // Use the optimized widget endpoint
+      const res = await axios.get(`${API}/crm/widget/stats`);
+      setDashboardData(res.data);
+    } catch (err) { 
+      console.error("Dashboard error:", err);
+      // Fallback to regular endpoint
+      try {
+        const res = await axios.get(`${API}/crm/dashboard`);
+        setDashboardData(res.data);
+      } catch (e) { console.error("Fallback error:", e); }
+    }
+    setLoading(false);
+  };
+  
+  const fetchLeads = async () => {
+    try {
+      const res = await axios.get(`${API}/crm/leads`);
+      setLeads(res.data);
+    } catch (err) { console.error("Leads error:", err); }
+  };
+  
+  const fetchTasks = async () => {
+    try {
+      const [tasksRes, followRes] = await Promise.all([
+        axios.get(`${API}/crm/tasks`).catch(() => ({ data: [] })),
+        axios.get(`${API}/crm/followups`)
+      ]);
+      setTasks(tasksRes.data || []);
+      setFollowups(followRes.data);
+    } catch (err) { console.error("Tasks error:", err); }
+  };
+  
+  const fetchStaff = async () => {
+    try {
+      const res = await axios.get(`${API}/admin/staff-accounts`);
+      setStaffAccounts(res.data);
+    } catch (err) { console.error("Staff error:", err); }
+  };
+  
+  const fetchMessages = async () => {
+    try {
+      const res = await axios.get(`${API}/crm/messages`);
+      setMessages(res.data || []);
+    } catch (err) { console.error("Messages error:", err); }
+  };
   
   const fetchRegistrations = async () => {
     try {
@@ -193,53 +254,15 @@ export const CRMDashboard = () => {
     } catch (err) { console.error("Error fetching registrations", err); }
   };
   
-  const updateRegistrationFee = async () => {
-    if (!newRegistrationFee || parseFloat(newRegistrationFee) < 0) {
-      alert("Please enter a valid fee amount");
-      return;
-    }
-    try {
-      await axios.post(`${API}/registration/update-fee`, { fee: parseFloat(newRegistrationFee) });
-      setRegistrationFee(parseFloat(newRegistrationFee));
-      setNewRegistrationFee('');
-      alert("Registration fee updated successfully!");
-    } catch (err) {
-      alert(err.response?.data?.detail || "Error updating fee");
-    }
-  };
-  
-  const fetchDistricts = async () => {
-    try {
-      const res = await axios.get(`${API}/districts`);
-      setDistricts(res.data.districts || []);
-    } catch (err) { console.error("Error fetching districts", err); }
-  };
-
   const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const [dashRes, leadsRes, staffRes, tasksRes, msgRes, followRes, projRes, payRes, photosRes] = await Promise.all([
-        axios.get(`${API}/crm/dashboard`),
-        axios.get(`${API}/crm/leads`),
-        axios.get(`${API}/admin/staff-accounts`),
-        axios.get(`${API}/crm/tasks`).catch(() => ({ data: [] })),
-        axios.get(`${API}/crm/messages`).catch(() => ({ data: [] })),
-        axios.get(`${API}/crm/followups`),
-        axios.get(`${API}/crm/projects`),
-        axios.get(`${API}/crm/payments`),
-        axios.get(`${API}/admin/photos`)
-      ]);
-      setDashboardData(dashRes.data);
-      setLeads(leadsRes.data);
-      setStaffAccounts(staffRes.data);
-      setTasks(tasksRes.data || []);
-      setMessages(msgRes.data || []);
-      setFollowups(followRes.data);
-      setProjects(projRes.data);
-      setPayments(payRes.data);
-      setGalleryPhotos(photosRes.data || []);
-    } catch (err) { console.error("Error:", err); }
-    setLoading(false);
+    // Refresh all data
+    await Promise.all([
+      fetchDashboardData(),
+      fetchLeads(),
+      fetchTasks(),
+      fetchStaff(),
+      fetchMessages()
+    ]);
   };
 
   const createStaffAccount = async () => {

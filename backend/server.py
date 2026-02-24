@@ -1764,6 +1764,114 @@ async def database_status():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# ==================== ASYNC DASHBOARD LOADING ENDPOINTS ====================
+
+@api_router.get("/dashboard/quick-stats")
+async def get_quick_stats():
+    """Minimal stats for initial dashboard load - fast response"""
+    cache_key = "quick_stats"
+    cached = get_cached(cache_key, ttl=15)
+    if cached:
+        return cached
+    
+    # Only essential counts - parallel execution
+    results = await asyncio.gather(
+        db.leads.count_documents({"status": "new"}),
+        db.orders.count_documents({"order_status": "pending"}),
+        return_exceptions=True
+    )
+    
+    response = {
+        "new_leads": results[0] if not isinstance(results[0], Exception) else 0,
+        "pending_orders": results[1] if not isinstance(results[1], Exception) else 0,
+        "loaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    set_cache(cache_key, response, ttl=15)
+    return response
+
+@api_router.get("/dashboard/pipeline")
+async def get_pipeline_stats():
+    """Pipeline overview - deferred load"""
+    cache_key = "pipeline_stats"
+    cached = get_cached(cache_key, ttl=30)
+    if cached:
+        return cached
+    
+    # Get leads by status
+    pipeline = [
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]
+    status_counts = await db.leads.aggregate(pipeline).to_list(10)
+    
+    response = {
+        "pipeline": {item["_id"]: item["count"] for item in status_counts if item["_id"]},
+        "loaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    set_cache(cache_key, response, ttl=30)
+    return response
+
+@api_router.get("/dashboard/recent-leads")
+async def get_recent_leads():
+    """Recent leads - deferred load"""
+    cache_key = "recent_leads"
+    cached = get_cached(cache_key, ttl=30)
+    if cached:
+        return cached
+    
+    leads = await db.leads.find(
+        {}, 
+        {"_id": 0, "name": 1, "district": 1, "lead_score": 1, "status": 1}
+    ).sort("timestamp", -1).limit(5).to_list(5)
+    
+    response = {"leads": leads, "loaded_at": datetime.now(timezone.utc).isoformat()}
+    set_cache(cache_key, response, ttl=30)
+    return response
+
+@api_router.get("/dashboard/revenue")
+async def get_revenue_stats():
+    """Revenue stats - deferred load"""
+    cache_key = "revenue_stats"
+    cached = get_cached(cache_key, ttl=60)
+    if cached:
+        return cached
+    
+    # Get total revenue
+    revenue_result = await db.orders.aggregate([
+        {"$match": {"payment_status": "paid"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total"}}}
+    ]).to_list(1)
+    
+    response = {
+        "total_revenue": revenue_result[0]["total"] if revenue_result else 0,
+        "loaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    set_cache(cache_key, response, ttl=60)
+    return response
+
+@api_router.get("/crm/stats/quick")
+async def get_crm_quick_stats():
+    """Quick CRM stats for initial load"""
+    cache_key = "crm_quick_stats"
+    cached = get_cached(cache_key, ttl=20)
+    if cached:
+        return cached
+    
+    results = await asyncio.gather(
+        db.leads.count_documents({}),
+        db.leads.count_documents({"status": "completed"}),
+        db.staff.count_documents({"is_active": True}),
+        return_exceptions=True
+    )
+    
+    response = {
+        "total_leads": results[0] if not isinstance(results[0], Exception) else 0,
+        "completed": results[1] if not isinstance(results[1], Exception) else 0,
+        "staff_members": results[2] if not isinstance(results[2], Exception) else 0,
+        "loaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    set_cache(cache_key, response, ttl=20)
+    return response
+
 # Admin OTP APIs
 @api_router.post("/admin/send-otp")
 async def send_otp(request: Dict[str, Any]):

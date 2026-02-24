@@ -432,16 +432,22 @@ class CacheHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 # Create the main app
-app = FastAPI()
+app = FastAPI(
+    title="ASR Enterprises API",
+    description="Secure Solar Business API",
+    version="2.0.0"
+)
 
-# Add GZIP compression middleware for performance
-app.add_middleware(GZipMiddleware, minimum_size=500)
+# Initialize rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
-# Add cache headers middleware
-app.add_middleware(CacheHeadersMiddleware)
-
-# Add security middleware
-app.add_middleware(SecurityMiddleware)
+# Add security middlewares (order matters - last added runs first)
+app.add_middleware(RequestSizeLimiterMiddleware)  # Limit request sizes
+app.add_middleware(SecurityHeadersMiddleware)  # Add security headers
+app.add_middleware(GZipMiddleware, minimum_size=500)  # Compression
+app.add_middleware(CacheHeadersMiddleware)  # Cache headers
+app.add_middleware(SecurityMiddleware)  # Existing security
 
 # Startup event to create indexes
 @app.on_event("startup")

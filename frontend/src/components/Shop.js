@@ -223,17 +223,17 @@ export const ShopPage = () => {
       const res = await axios.post(`${API}/shop/orders`, orderData);
       const orderId = res.data.order?.id;
       const orderNumber = res.data.order_number;
+      const razorpayOrderId = res.data.razorpay_order_id;
+      const keyId = res.data.key_id;
       
       if (checkoutData.payment_method === "razorpay") {
+        if (!razorpayOrderId || !keyId) {
+          alert("Payment configuration error. Please contact support.");
+          setPlacingOrder(false);
+          return;
+        }
+        
         try {
-          // Get Razorpay config
-          const configRes = await axios.get(`${API}/shop/razorpay-config`);
-          if (!configRes.data.key_id) {
-            alert("Payment configuration error. Please contact support.");
-            setPlacingOrder(false);
-            return;
-          }
-          
           // Load Razorpay SDK with proper error handling
           try {
             await window.loadRazorpay();
@@ -252,18 +252,19 @@ export const ShopPage = () => {
           }
           
           const options = {
-            key: configRes.data.key_id,
+            key: keyId,
             amount: Math.round(grandTotal * 100),
             currency: "INR",
             name: "ASR Enterprises",
             description: `Order #${orderNumber}`,
             image: "/asr_logo_transparent.png",
+            order_id: razorpayOrderId,
             handler: async function (response) {
               try {
                 await axios.post(`${API}/shop/orders/${orderId}/payment-verify`, {
                   razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_order_id: response.razorpay_order_id || "",
-                  razorpay_signature: response.razorpay_signature || ""
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature
                 });
               } catch (e) {
                 console.error("Payment verification error:", e);

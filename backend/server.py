@@ -466,8 +466,11 @@ app.add_middleware(SecurityMiddleware)  # Existing security
 # Startup event to create indexes and start background tasks
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database indexes and start background tasks on startup"""
+    """Initialize database indexes, Redis cache, and start background tasks on startup"""
     global cleanup_task
+    
+    # Initialize Redis cache
+    await init_redis()
     
     # Create database indexes
     await create_indexes()
@@ -475,11 +478,11 @@ async def startup_event():
     # Start automated cleanup scheduler
     cleanup_task = asyncio.create_task(cleanup_scheduler())
     
-    logger.info("🚀 Application started with database optimizations and automated cleanup")
+    logger.info("🚀 Application started with Redis cache, database optimizations, and automated cleanup")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Clean shutdown of background tasks"""
+    """Clean shutdown of background tasks and connections"""
     global cleanup_task
     
     if cleanup_task:
@@ -488,6 +491,9 @@ async def shutdown_event():
             await cleanup_task
         except asyncio.CancelledError:
             pass
+    
+    # Close Redis connection
+    await close_redis()
     
     logger.info("🛑 Application shutdown complete")
 

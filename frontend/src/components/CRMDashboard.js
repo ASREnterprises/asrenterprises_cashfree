@@ -184,14 +184,15 @@ export const CRMDashboard = () => {
     // Load only essential data first (dashboard stats)
     fetchDashboardData();
     fetchDistricts(); 
+    fetchGalleryPhotos(); // Load gallery photos for admin
   }, []);
   
   // Load tab-specific data when tab changes
   useEffect(() => {
-    if (activeTab === "leads" && leads.length === 0) fetchLeads();
-    if (activeTab === "tasks" && tasks.length === 0) fetchTasks();
-    if (activeTab === "team" && staffAccounts.length === 0) fetchStaff();
-    if (activeTab === "messages" && messages.length === 0) fetchMessages();
+    if (activeTab === "leads") fetchLeads();
+    if (activeTab === "tasks") fetchTasks();
+    if (activeTab === "team") fetchStaff();
+    if (activeTab === "messages") fetchMessages();
   }, [activeTab]);
   
   const fetchDashboardData = async () => {
@@ -241,6 +242,13 @@ export const CRMDashboard = () => {
       const res = await axios.get(`${API}/crm/messages`);
       setMessages(res.data || []);
     } catch (err) { console.error("Messages error:", err); }
+  };
+  
+  const fetchGalleryPhotos = async () => {
+    try {
+      const res = await axios.get(`${API}/admin/photos`);
+      setGalleryPhotos(res.data || []);
+    } catch (err) { console.error("Gallery error:", err); }
   };
   
   const fetchRegistrations = async () => {

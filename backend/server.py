@@ -4781,10 +4781,29 @@ async def create_order(order_data: Dict[str, Any]):
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
+    razorpay_order_id = None
+    
     # If Razorpay payment, create Razorpay order
     if order.payment_method == "razorpay":
-        # Razorpay order will be created on frontend
-        pass
+        if not razorpay_client:
+            raise HTTPException(status_code=500, detail="Payment gateway not configured")
+        try:
+            razorpay_order = razorpay_client.order.create({
+                "amount": int(order.total * 100),  # Amount in paise
+                "currency": "INR",
+                "receipt": order.order_number,
+                "notes": {
+                    "order_id": order.id,
+                    "customer_name": order.customer_name,
+                    "customer_phone": order.customer_phone
+                }
+            })
+            razorpay_order_id = razorpay_order["id"]
+            doc['razorpay_order_id'] = razorpay_order_id
+            logger.info(f"Created Razorpay order: {razorpay_order_id} for shop order {order.order_number}")
+        except Exception as e:
+            logger.error(f"Razorpay order creation failed: {e}")
+            raise HTTPException(status_code=500, detail=f"Payment order creation failed: {str(e)}")
     
     await db.orders.insert_one(doc)
     

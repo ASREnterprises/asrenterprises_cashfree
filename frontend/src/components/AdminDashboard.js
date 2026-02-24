@@ -161,14 +161,14 @@ export const AdminDashboard = ({ onLogout }) => {
               <ClipboardList className="w-8 h-8 text-green-600" />
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Total</span>
             </div>
-            {detailedLoading ? (
+            {countsLoading ? (
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
                 <div className="h-4 bg-gray-100 rounded w-20"></div>
               </div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-[#0a355e]">{stats?.total_leads || 0}</div>
+                <div className="text-3xl font-bold text-[#0a355e]">{counts?.total_leads || 0}</div>
                 <div className="text-gray-500 text-sm">Total Leads</div>
               </>
             )}
@@ -176,20 +176,20 @@ export const AdminDashboard = ({ onLogout }) => {
           <div className="bg-white rounded-xl p-5 shadow-lg border border-blue-200">
             <div className="flex items-center justify-between mb-2">
               <ClipboardList className="w-8 h-8 text-blue-600" />
-              {quickStats?.new_leads > 0 && (
+              {counts?.new_leads > 0 && (
                 <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium animate-pulse">
-                  {quickStats.new_leads} New!
+                  {counts.new_leads} New!
                 </span>
               )}
             </div>
-            {quickLoading ? (
+            {countsLoading ? (
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
                 <div className="h-4 bg-gray-100 rounded w-20"></div>
               </div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-[#0a355e]">{quickStats?.new_leads || stats?.new_leads || 0}</div>
+                <div className="text-3xl font-bold text-[#0a355e]">{counts?.new_leads || 0}</div>
                 <div className="text-gray-500 text-sm">New Leads</div>
               </>
             )}
@@ -197,20 +197,20 @@ export const AdminDashboard = ({ onLogout }) => {
           <div className="bg-white rounded-xl p-5 shadow-lg border border-amber-200">
             <div className="flex items-center justify-between mb-2">
               <ShoppingBag className="w-8 h-8 text-amber-600" />
-              {quickStats?.pending_orders > 0 && (
+              {counts?.pending_orders > 0 && (
                 <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                  {quickStats.pending_orders} Pending
+                  {counts.pending_orders} Pending
                 </span>
               )}
             </div>
-            {detailedLoading ? (
+            {countsLoading ? (
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
                 <div className="h-4 bg-gray-100 rounded w-20"></div>
               </div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-[#0a355e]">{shopStats?.total_orders || 0}</div>
+                <div className="text-3xl font-bold text-[#0a355e]">{counts?.total_orders || 0}</div>
                 <div className="text-gray-500 text-sm">Total Orders</div>
               </>
             )}
@@ -222,18 +222,21 @@ export const AdminDashboard = ({ onLogout }) => {
                 onClick={refreshAll}
                 className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium hover:bg-purple-200 transition flex items-center gap-1"
               >
-                <RefreshCw className={`w-3 h-3 ${(quickLoading || detailedLoading) ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-3 h-3 ${countsLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
             </div>
-            {detailedLoading ? (
+            {revenueLoading ? (
               <div className="animate-pulse">
                 <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
                 <div className="h-4 bg-gray-100 rounded w-20"></div>
               </div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-[#0a355e]">{stats?.total_reviews || 0}</div>
+                <div className="text-3xl font-bold text-[#0a355e]">₹{((revenue?.this_month_revenue || 0) / 1000).toFixed(0)}K</div>
+                <div className="text-gray-500 text-sm">This Month</div>
+              </>
+            )}
                 <div className="text-gray-500 text-sm">Reviews</div>
               </>
             )}

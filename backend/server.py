@@ -449,12 +449,33 @@ app.add_middleware(GZipMiddleware, minimum_size=500)  # Compression
 app.add_middleware(CacheHeadersMiddleware)  # Cache headers
 app.add_middleware(SecurityMiddleware)  # Existing security
 
-# Startup event to create indexes
+# Startup event to create indexes and start background tasks
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database indexes on startup"""
+    """Initialize database indexes and start background tasks on startup"""
+    global cleanup_task
+    
+    # Create database indexes
     await create_indexes()
-    logger.info("🚀 Application started with database optimizations")
+    
+    # Start automated cleanup scheduler
+    cleanup_task = asyncio.create_task(cleanup_scheduler())
+    
+    logger.info("🚀 Application started with database optimizations and automated cleanup")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean shutdown of background tasks"""
+    global cleanup_task
+    
+    if cleanup_task:
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
+    
+    logger.info("🛑 Application shutdown complete")
 
 api_router = APIRouter(prefix="/api")
 

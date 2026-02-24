@@ -121,7 +121,9 @@ export const PhotosManagement = () => {
       setSelectedFile(null);
       setPreview("");
       setShowForm(false);
-      fetchPhotos();
+      // Reset pagination and fetch fresh
+      setPage(1);
+      fetchPhotos(1);
       alert("Photo uploaded successfully!");
     } catch (err) {
       console.error("Upload error:", err);
@@ -134,7 +136,9 @@ export const PhotosManagement = () => {
     if (window.confirm("Delete this photo?")) {
       try {
         await axios.delete(`${API}/admin/photos/${id}`);
-        fetchPhotos();
+        // Reset pagination and fetch fresh
+        setPage(1);
+        fetchPhotos(1);
       } catch (err) {
         alert("Error deleting photo");
       }

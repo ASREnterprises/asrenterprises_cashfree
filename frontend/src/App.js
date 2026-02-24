@@ -714,7 +714,11 @@ const HomePage = () => {
               <a href="/shop" target="_blank" rel="noopener noreferrer" className="block py-2 text-gray-700 hover:text-amber-600">Shop</a>
               <Link to="/gallery" className="block py-2 text-gray-700 hover:text-amber-600">Gallery</Link>
               <Link to="/contact" className="block py-2 text-gray-700 hover:text-amber-600">Contact Us</Link>
-              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-amber-600 font-semibold">Login (Admin/Staff)</a>
+              {localStorage.getItem("asrAdminAuth") === "true" ? (
+                <Link to="/admin/dashboard" className="block py-2 text-green-600 font-semibold">Go to Dashboard</Link>
+              ) : (
+                <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-amber-600 font-semibold">Login (Admin/Staff)</a>
+              )}
             </div>
           </div>
         )}

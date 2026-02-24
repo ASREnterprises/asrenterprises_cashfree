@@ -191,7 +191,7 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 ## Pending Tasks
 - **P1:** Refactor server.py into modular APIRouter files (7000+ lines needs decomposition)
 - **P2:** Festival Post "Transparent Theme Effect" (needs user clarification on visual design)
-- **P2:** Automated Weekly Database Cleanup (manual endpoint exists, automation pending)
 - **P2:** Clarify Live Google Reviews vs AI Testimonials (user preference needed)
 - **P3:** Deployment & Webhook Configuration
 - **P3:** Re-enable Google reCAPTCHA (post-deployment)
+- **P3:** Persist Staff Notifications in database

@@ -1175,6 +1175,19 @@ export const HRManagement = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Delete Employee Button */}
+                <div className="pt-4 border-t">
+                  <button
+                    onClick={() => handleDeleteEmployee(showDetailsModal)}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition"
+                    data-testid="delete-employee-btn"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    <span>Delete Employee Permanently</span>
+                  </button>
+                  <p className="text-xs text-gray-500 text-center mt-2">This will permanently remove all employee data</p>
+                </div>
               </div>
             </div>
           </div>

@@ -436,6 +436,14 @@ EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID', '')
 RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
 
+# Initialize Razorpay client
+razorpay_client = None
+if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
+    razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    logger.info("Razorpay client initialized successfully")
+else:
+    logger.warning("Razorpay credentials not configured")
+
 # OTP Storage with expiry (In production, use Redis)
 otp_storage = {}
 OTP_EXPIRY_SECONDS = 300  # 5 minutes

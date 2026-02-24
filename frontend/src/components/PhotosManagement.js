@@ -314,7 +314,12 @@ export const PhotosManagement = () => {
         )}
 
         {/* Photos Grid */}
-        {photos.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-lg border border-sky-200">
+            <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-500">Loading photos...</p>
+          </div>
+        ) : photos.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-lg border border-sky-200">
             <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-500 mb-2">No Photos Yet</h3>
@@ -327,35 +332,66 @@ export const PhotosManagement = () => {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {photos.map((photo) => (
-              <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow-lg border border-sky-200 hover:shadow-xl transition">
-                <img
-                  src={photo.image_url}
-                  alt={photo.title}
-                  className="w-full h-48 object-cover"
-                  onError={(e) => e.target.src = "https://via.placeholder.com/400x300?text=Solar+Installation"}
-                />
-                <div className="p-4">
-                  <h3 className="font-semibold text-[#0a355e] mb-1">{photo.title}</h3>
-                  {photo.location && (
-                    <p className="text-sm text-gray-500 flex items-center">
-                      <MapPin className="w-3 h-3 mr-1" /> {photo.location}
-                    </p>
-                  )}
-                  {photo.system_size && (
-                    <p className="text-sm text-blue-600 mt-1">{photo.system_size}</p>
-                  )}
-                  <button
-                    onClick={() => handleDelete(photo.id)}
-                    className="mt-3 text-red-500 hover:text-red-700 flex items-center text-sm"
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" /> Delete
-                  </button>
+          <>
+            {/* Photo count info */}
+            <div className="mb-4 text-sm text-gray-500">
+              Showing {photos.length} of {total} photos
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {photos.map((photo) => (
+                <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow-lg border border-sky-200 hover:shadow-xl transition">
+                  <img
+                    src={photo.image_url}
+                    alt={photo.title}
+                    className="w-full h-48 object-cover"
+                    loading="lazy"
+                    onError={(e) => e.target.src = "https://via.placeholder.com/400x300?text=Solar+Installation"}
+                  />
+                  <div className="p-4">
+                    <h3 className="font-semibold text-[#0a355e] mb-1">{photo.title}</h3>
+                    {photo.location && (
+                      <p className="text-sm text-gray-500 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" /> {photo.location}
+                      </p>
+                    )}
+                    {photo.system_size && (
+                      <p className="text-sm text-blue-600 mt-1">{photo.system_size}</p>
+                    )}
+                    <button
+                      onClick={() => handleDelete(photo.id)}
+                      className="mt-3 text-red-500 hover:text-red-700 flex items-center text-sm"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" /> Delete
+                    </button>
+                  </div>
                 </div>
+              ))}
+            </div>
+            
+            {/* Load More Button */}
+            {page < totalPages && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2 mx-auto"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-5 h-5" />
+                      <span>Load More Photos ({total - photos.length} remaining)</span>
+                    </>
+                  )}
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

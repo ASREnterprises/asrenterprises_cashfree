@@ -208,7 +208,7 @@ export const StaffPortal = () => {
 
   if (loading || !staffData) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white shadow-lg flex items-center justify-center">
         <RefreshCw className="w-10 h-10 text-blue-500 animate-spin" />
       </div>
     );
@@ -218,18 +218,18 @@ export const StaffPortal = () => {
   const todayFollowups = followups.filter(f => f.reminder_date === todayStr && f.status === 'pending');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 sticky top-0 z-40">
+      <div className="bg-white shadow-lg border border-sky-200 border-b border-sky-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-[#0a355e] font-bold">
                 {staffData.name?.[0]}
               </div>
               <div>
-                <h1 className="text-lg font-bold text-white">{staffData.name}</h1>
-                <p className="text-gray-400 text-xs">{staffData.staff_id} • {staffData.role}</p>
+                <h1 className="text-lg font-bold text-[#0a355e]">{staffData.name}</h1>
+                <p className="text-gray-500 text-xs">{staffData.staff_id} • {staffData.role}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
@@ -237,21 +237,21 @@ export const StaffPortal = () => {
               <div className="relative">
                 <button 
                   onClick={() => setShowNotifications(!showNotifications)} 
-                  className="text-gray-400 hover:text-white relative"
+                  className="text-gray-500 hover:text-[#0a355e] relative"
                   data-testid="notifications-bell"
                 >
                   <Bell className="w-5 h-5" />
                   {notifUnread > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-[#0a355e] text-xs w-4 h-4 rounded-full flex items-center justify-center">
                       {notifUnread}
                     </span>
                   )}
                 </button>
                 {/* Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-3 border-b border-gray-700 flex justify-between items-center">
-                      <h3 className="font-bold text-white">Notifications</h3>
+                  <div className="absolute right-0 mt-2 w-80 bg-white shadow-lg border border-sky-200 border border-sky-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
+                    <div className="p-3 border-b border-sky-200 flex justify-between items-center">
+                      <h3 className="font-bold text-[#0a355e]">Notifications</h3>
                       {notifUnread > 0 && (
                         <button onClick={markAllNotificationsRead} className="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
                       )}
@@ -264,10 +264,10 @@ export const StaffPortal = () => {
                           <div 
                             key={notif.id} 
                             onClick={() => { markNotificationRead(notif.id); setShowNotifications(false); if(notif.lead_id) setActiveTab('leads'); }}
-                            className={`p-3 cursor-pointer hover:bg-gray-700 ${!notif.is_read ? 'bg-gray-700/50' : ''}`}
+                            className={`p-3 cursor-pointer hover:bg-gray-50 border border-gray-300 ${!notif.is_read ? 'bg-gray-50 border border-gray-300/50' : ''}`}
                           >
                             <div className="flex justify-between items-start">
-                              <div className={`text-sm font-medium ${!notif.is_read ? 'text-white' : 'text-gray-400'}`}>{notif.title}</div>
+                              <div className={`text-sm font-medium ${!notif.is_read ? 'text-[#0a355e]' : 'text-gray-500'}`}>{notif.title}</div>
                               {!notif.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
                             </div>
                             <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
@@ -280,10 +280,10 @@ export const StaffPortal = () => {
                 )}
               </div>
               {unreadCount > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{unreadCount} msg</span>
+                <span className="bg-red-500 text-[#0a355e] text-xs px-2 py-1 rounded-full">{unreadCount} msg</span>
               )}
-              <button onClick={fetchAllData} className="text-gray-400 hover:text-white"><RefreshCw className="w-5 h-5" /></button>
-              <button onClick={handleLogout} className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1">
+              <button onClick={fetchAllData} className="text-gray-500 hover:text-[#0a355e]"><RefreshCw className="w-5 h-5" /></button>
+              <button onClick={handleLogout} className="bg-red-600 text-[#0a355e] px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1">
                 <LogOut className="w-4 h-4" /><span>Logout</span>
               </button>
             </div>
@@ -292,7 +292,7 @@ export const StaffPortal = () => {
       </div>
 
       {/* Navigation */}
-      <div className="bg-gray-800 border-b border-gray-700">
+      <div className="bg-white shadow-lg border border-sky-200 border-b border-sky-200">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex space-x-1 py-2 overflow-x-auto">
             {[
@@ -306,12 +306,12 @@ export const StaffPortal = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-                  activeTab === tab.id ? "bg-blue-600 text-white" : "text-gray-400 hover:bg-gray-700"
+                  activeTab === tab.id ? "bg-blue-600 text-[#0a355e]" : "text-gray-500 hover:bg-gray-50 border border-gray-300"
                 }`}
               >
                 {tab.icon}<span>{tab.label}</span>
                 {tab.id === "messages" && unreadCount > 0 && (
-                  <span className="bg-red-500 text-white text-xs px-1.5 rounded-full">{unreadCount}</span>
+                  <span className="bg-red-500 text-[#0a355e] text-xs px-1.5 rounded-full">{unreadCount}</span>
                 )}
               </button>
             ))}
@@ -325,22 +325,22 @@ export const StaffPortal = () => {
           <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-4 text-white">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-4 text-[#0a355e]">
                 <ClipboardList className="w-6 h-6 mb-2 opacity-80" />
                 <div className="text-2xl font-bold">{dashboard.total_assigned || 0}</div>
                 <div className="text-blue-200 text-xs">Assigned Leads</div>
               </div>
-              <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-4 text-white">
+              <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-4 text-[#0a355e]">
                 <CheckCircle className="w-6 h-6 mb-2 opacity-80" />
                 <div className="text-2xl font-bold">{dashboard.total_converted || 0}</div>
                 <div className="text-green-200 text-xs">Converted</div>
               </div>
-              <div className="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl p-4 text-white">
+              <div className="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl p-4 text-[#0a355e]">
                 <Bell className="w-6 h-6 mb-2 opacity-80" />
                 <div className="text-2xl font-bold">{todayFollowups.length}</div>
                 <div className="text-yellow-200 text-xs">Today's Follow-ups</div>
               </div>
-              <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-4 text-white">
+              <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-4 text-[#0a355e]">
                 <ListTodo className="w-6 h-6 mb-2 opacity-80" />
                 <div className="text-2xl font-bold">{tasks.filter(t => t.status === 'pending').length}</div>
                 <div className="text-purple-200 text-xs">Pending Tasks</div>
@@ -349,24 +349,24 @@ export const StaffPortal = () => {
 
             {/* Today's Tasks */}
             {tasks.length > 0 && (
-              <div className="bg-gray-800 rounded-xl p-5">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center"><ListTodo className="w-5 h-5 mr-2 text-blue-400" />Today's Tasks</h2>
+              <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-5">
+                <h2 className="text-lg font-bold text-[#0a355e] mb-4 flex items-center"><ListTodo className="w-5 h-5 mr-2 text-blue-400" />Today's Tasks</h2>
                 <div className="space-y-3">
                   {tasks.map((task) => (
-                    <div key={task.id} className="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
+                    <div key={task.id} className="bg-gray-50 border border-gray-300 rounded-lg p-4 flex justify-between items-center">
                       <div className="flex items-center space-x-3">
-                        <span className={`px-2 py-1 rounded text-xs ${TASK_TYPES[task.task_type]?.color || 'bg-gray-500'} text-white`}>
+                        <span className={`px-2 py-1 rounded text-xs ${TASK_TYPES[task.task_type]?.color || 'bg-gray-500'} text-[#0a355e]`}>
                           {TASK_TYPES[task.task_type]?.label || task.task_type}
                         </span>
                         <div>
-                          <div className="text-white font-medium">{task.title}</div>
-                          <div className="text-gray-400 text-sm">{task.lead_name || task.description}</div>
+                          <div className="text-[#0a355e] font-medium">{task.title}</div>
+                          <div className="text-gray-500 text-sm">{task.lead_name || task.description}</div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-gray-400 text-sm">{task.due_time}</span>
+                        <span className="text-gray-500 text-sm">{task.due_time}</span>
                         {task.status === 'pending' ? (
-                          <button onClick={() => updateTaskStatus(task.id, 'completed')} className="bg-green-600 text-white px-3 py-1 rounded text-sm">Done</button>
+                          <button onClick={() => updateTaskStatus(task.id, 'completed')} className="bg-green-600 text-[#0a355e] px-3 py-1 rounded text-sm">Done</button>
                         ) : (
                           <span className="text-green-400 text-sm">✓ Done</span>
                         )}
@@ -385,14 +385,14 @@ export const StaffPortal = () => {
                   {todayFollowups.map((fu) => {
                     const lead = leads.find(l => l.id === fu.lead_id);
                     return (
-                      <div key={fu.id} className="bg-gray-800 rounded-lg p-3 flex justify-between items-center">
+                      <div key={fu.id} className="bg-white shadow-lg border border-sky-200 rounded-lg p-3 flex justify-between items-center">
                         <div>
-                          <div className="text-white font-medium">{lead?.name || 'Unknown'}</div>
-                          <div className="text-gray-400 text-sm">{fu.reminder_type} • {fu.reminder_time}</div>
+                          <div className="text-[#0a355e] font-medium">{lead?.name || 'Unknown'}</div>
+                          <div className="text-gray-500 text-sm">{fu.reminder_type} • {fu.reminder_time}</div>
                         </div>
                         <div className="flex space-x-2">
                           {lead && (
-                            <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is from ASR Enterprises...`)} className="bg-green-600 text-white px-3 py-1 rounded text-sm">WhatsApp</button>
+                            <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is from ASR Enterprises...`)} className="bg-green-600 text-[#0a355e] px-3 py-1 rounded text-sm">WhatsApp</button>
                           )}
                         </div>
                       </div>
@@ -403,15 +403,15 @@ export const StaffPortal = () => {
             )}
 
             {/* Pipeline */}
-            <div className="bg-gray-800 rounded-xl p-5">
-              <h2 className="text-lg font-bold text-white mb-4">My Pipeline</h2>
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-5">
+              <h2 className="text-lg font-bold text-[#0a355e] mb-4">My Pipeline</h2>
               <div className="grid grid-cols-7 gap-2">
                 {PIPELINE_STAGES.map((stage) => (
                   <div key={stage.id} className="text-center">
-                    <div className={`${stage.color} rounded-lg p-3 text-white mb-1`}>
+                    <div className={`${stage.color} rounded-lg p-3 text-[#0a355e] mb-1`}>
                       <div className="text-xl font-bold">{dashboard.pipeline_stats?.[stage.id] || 0}</div>
                     </div>
-                    <div className="text-gray-400 text-xs">{stage.label}</div>
+                    <div className="text-gray-500 text-xs">{stage.label}</div>
                   </div>
                 ))}
               </div>
@@ -422,34 +422,34 @@ export const StaffPortal = () => {
         {/* Today's Tasks Tab */}
         {activeTab === "tasks" && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white">Today's Work List</h2>
+            <h2 className="text-xl font-bold text-[#0a355e]">Today's Work List</h2>
             {tasks.length > 0 ? (
               <div className="space-y-3">
                 {tasks.map((task) => (
-                  <div key={task.id} className={`bg-gray-800 rounded-xl p-5 border-l-4 ${task.priority === 'high' ? 'border-red-500' : task.priority === 'medium' ? 'border-yellow-500' : 'border-green-500'}`}>
+                  <div key={task.id} className={`bg-white shadow-lg border border-sky-200 rounded-xl p-5 border-l-4 ${task.priority === 'high' ? 'border-red-500' : task.priority === 'medium' ? 'border-yellow-500' : 'border-green-500'}`}>
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center space-x-2 mb-2">
-                          <span className={`px-2 py-1 rounded text-xs ${TASK_TYPES[task.task_type]?.color || 'bg-gray-500'} text-white`}>
+                          <span className={`px-2 py-1 rounded text-xs ${TASK_TYPES[task.task_type]?.color || 'bg-gray-500'} text-[#0a355e]`}>
                             {TASK_TYPES[task.task_type]?.label || task.task_type}
                           </span>
-                          <span className={`px-2 py-1 rounded text-xs ${task.priority === 'high' ? 'bg-red-600' : task.priority === 'medium' ? 'bg-yellow-600' : 'bg-green-600'} text-white`}>
+                          <span className={`px-2 py-1 rounded text-xs ${task.priority === 'high' ? 'bg-red-600' : task.priority === 'medium' ? 'bg-yellow-600' : 'bg-green-600'} text-[#0a355e]`}>
                             {task.priority} priority
                           </span>
                         </div>
-                        <h3 className="text-white font-bold text-lg">{task.title}</h3>
-                        <p className="text-gray-400">{task.description}</p>
+                        <h3 className="text-[#0a355e] font-bold text-lg">{task.title}</h3>
+                        <p className="text-gray-500">{task.description}</p>
                         {task.lead_name && <p className="text-blue-400 text-sm mt-1">Lead: {task.lead_name}</p>}
                         <p className="text-gray-500 text-sm mt-2">Due: {task.due_time}</p>
                       </div>
                       <div>
                         {task.status === 'pending' ? (
                           <div className="flex flex-col space-y-2">
-                            <button onClick={() => updateTaskStatus(task.id, 'in_progress')} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Start</button>
-                            <button onClick={() => updateTaskStatus(task.id, 'completed')} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">Complete</button>
+                            <button onClick={() => updateTaskStatus(task.id, 'in_progress')} className="bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg text-sm">Start</button>
+                            <button onClick={() => updateTaskStatus(task.id, 'completed')} className="bg-green-600 text-[#0a355e] px-4 py-2 rounded-lg text-sm">Complete</button>
                           </div>
                         ) : task.status === 'in_progress' ? (
-                          <button onClick={() => updateTaskStatus(task.id, 'completed')} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">Complete</button>
+                          <button onClick={() => updateTaskStatus(task.id, 'completed')} className="bg-green-600 text-[#0a355e] px-4 py-2 rounded-lg text-sm">Complete</button>
                         ) : (
                           <span className="text-green-400 font-medium">✓ Completed</span>
                         )}
@@ -459,9 +459,9 @@ export const StaffPortal = () => {
                 ))}
               </div>
             ) : (
-              <div className="bg-gray-800 rounded-xl p-12 text-center">
+              <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-12 text-center">
                 <ListTodo className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-400">No Tasks for Today</h3>
+                <h3 className="text-xl font-bold text-gray-500">No Tasks for Today</h3>
                 <p className="text-gray-500">Check back later or contact admin for assignments</p>
               </div>
             )}
@@ -472,33 +472,33 @@ export const StaffPortal = () => {
         {activeTab === "leads" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">My Leads</h2>
-              <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition" data-testid="staff-add-lead-btn">
+              <h2 className="text-xl font-bold text-[#0a355e]">My Leads</h2>
+              <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition" data-testid="staff-add-lead-btn">
                 <Plus className="w-4 h-4" /><span>Add Lead</span>
               </button>
             </div>
-            <div className="bg-gray-800 rounded-xl overflow-hidden">
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-700">
+                <thead className="bg-gray-50 border border-gray-300">
                   <tr>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Lead</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Contact</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Stage</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Actions</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Lead</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Contact</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Stage</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {leads.map((lead) => (
-                    <tr key={lead.id} className="border-t border-gray-700 hover:bg-gray-750">
+                    <tr key={lead.id} className="border-t border-sky-200 hover:bg-gray-750">
                       <td className="px-4 py-3">
-                        <div className="text-white font-medium">{lead.name}</div>
-                        <div className="text-gray-400 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
+                        <div className="text-[#0a355e] font-medium">{lead.name}</div>
+                        <div className="text-gray-500 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-300 text-sm">{lead.phone}</div>
+                        <div className="text-gray-600 text-sm">{lead.phone}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-600'} text-white capitalize`}>
+                        <span className={`px-2 py-1 rounded text-xs ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-600'} text-[#0a355e] capitalize`}>
                           {lead.stage?.replace('_', ' ')}
                         </span>
                       </td>
@@ -523,7 +523,7 @@ export const StaffPortal = () => {
                 </tbody>
               </table>
               {leads.length === 0 && (
-                <div className="text-center py-12 text-gray-400">No leads assigned yet</div>
+                <div className="text-center py-12 text-gray-500">No leads assigned yet</div>
               )}
             </div>
           </div>
@@ -532,27 +532,27 @@ export const StaffPortal = () => {
         {/* Follow-ups Tab */}
         {activeTab === "followups" && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-white">My Follow-ups</h2>
-            <div className="bg-gray-800 rounded-xl overflow-hidden">
+            <h2 className="text-xl font-bold text-[#0a355e]">My Follow-ups</h2>
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
               <table className="w-full">
-                <thead className="bg-gray-700">
+                <thead className="bg-gray-50 border border-gray-300">
                   <tr>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Date</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Lead</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Type</th>
-                    <th className="text-left text-gray-300 px-4 py-3 text-sm">Status</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Date</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Lead</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Type</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {followups.map((fu) => {
                     const lead = leads.find(l => l.id === fu.lead_id);
                     return (
-                      <tr key={fu.id} className="border-t border-gray-700">
-                        <td className="px-4 py-3 text-white">{fu.reminder_date} {fu.reminder_time}</td>
-                        <td className="px-4 py-3 text-gray-300">{lead?.name || '-'}</td>
-                        <td className="px-4 py-3 text-gray-300 capitalize">{fu.reminder_type}</td>
+                      <tr key={fu.id} className="border-t border-sky-200">
+                        <td className="px-4 py-3 text-[#0a355e]">{fu.reminder_date} {fu.reminder_time}</td>
+                        <td className="px-4 py-3 text-gray-600">{lead?.name || '-'}</td>
+                        <td className="px-4 py-3 text-gray-600 capitalize">{fu.reminder_type}</td>
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded text-xs ${fu.status === 'completed' ? 'bg-green-600' : fu.status === 'missed' ? 'bg-red-600' : 'bg-yellow-600'} text-white`}>
+                          <span className={`px-2 py-1 rounded text-xs ${fu.status === 'completed' ? 'bg-green-600' : fu.status === 'missed' ? 'bg-red-600' : 'bg-yellow-600'} text-[#0a355e]`}>
                             {fu.status}
                           </span>
                         </td>
@@ -569,7 +569,7 @@ export const StaffPortal = () => {
         {activeTab === "messages" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">Private Chat with Admin</h2>
+              <h2 className="text-xl font-bold text-[#0a355e]">Private Chat with Admin</h2>
               <span className="text-green-400 text-xs flex items-center space-x-1">
                 <CheckCircle className="w-4 h-4" />
                 <span>End-to-End Private</span>
@@ -577,23 +577,23 @@ export const StaffPortal = () => {
             </div>
             
             {/* Messages List - Chronological order */}
-            <div className="bg-gray-800 rounded-xl p-4 h-80 overflow-y-auto" data-testid="staff-messages-list">
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4 h-80 overflow-y-auto" data-testid="staff-messages-list">
               {messages.length > 0 ? (
                 <div className="space-y-3">
                   {messages.map((msg) => (
-                    <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'staff' ? 'bg-blue-600 bg-opacity-20 ml-8' : 'bg-gray-700 mr-8'}`}>
+                    <div key={msg.id} className={`p-3 rounded-lg ${msg.sender_type === 'staff' ? 'bg-blue-600 bg-opacity-20 ml-8' : 'bg-gray-50 border border-gray-300 mr-8'}`}>
                       <div className="flex justify-between items-start mb-1">
                         <span className={`font-medium text-sm ${msg.sender_type === 'admin' ? 'text-green-400' : 'text-blue-400'}`}>
                           {msg.sender_name} {msg.sender_type === 'admin' && '(Admin)'}
                         </span>
                         <span className="text-gray-500 text-xs">{new Date(msg.timestamp).toLocaleString()}</span>
                       </div>
-                      <p className="text-gray-300">{msg.message}</p>
+                      <p className="text-gray-600">{msg.message}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-500">
                   <MessageCircle className="w-10 h-10 mx-auto mb-2 opacity-50" />
                   <p>No messages yet. Start a private conversation with Admin.</p>
                 </div>
@@ -601,7 +601,7 @@ export const StaffPortal = () => {
             </div>
 
             {/* Send Message */}
-            <div className="bg-gray-800 rounded-xl p-4">
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
               <p className="text-green-400 text-xs mb-2">Only you and Admin can see this conversation. No other staff member has access.</p>
               <div className="flex space-x-3">
                 <input
@@ -609,11 +609,11 @@ export const StaffPortal = () => {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Private message to Admin..."
-                  className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg"
+                  className="flex-1 bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg"
                   onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                   data-testid="staff-message-input"
                 />
-                <button onClick={sendMessage} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2" data-testid="staff-send-message-btn">
+                <button onClick={sendMessage} className="bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2" data-testid="staff-send-message-btn">
                   <Send className="w-4 h-4" /><span>Send</span>
                 </button>
               </div>
@@ -627,23 +627,23 @@ export const StaffPortal = () => {
       {/* Add Lead Modal */}
       {showAddLeadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto" data-testid="add-lead-modal">
-            <h2 className="text-xl font-bold text-white mb-4">Add New Lead</h2>
+          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto" data-testid="add-lead-modal">
+            <h2 className="text-xl font-bold text-[#0a355e] mb-4">Add New Lead</h2>
             <div className="space-y-3">
-              <input type="text" placeholder="Customer Name *" value={newLeadForm.name} onChange={(e) => setNewLeadForm({...newLeadForm, name: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" data-testid="lead-name-input" />
-              <input type="text" placeholder="Phone Number *" value={newLeadForm.phone} onChange={(e) => setNewLeadForm({...newLeadForm, phone: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" data-testid="lead-phone-input" />
-              <input type="text" placeholder="District" value={newLeadForm.district} onChange={(e) => setNewLeadForm({...newLeadForm, district: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
-              <input type="number" placeholder="Monthly Electricity Bill (₹)" value={newLeadForm.monthly_bill} onChange={(e) => setNewLeadForm({...newLeadForm, monthly_bill: parseInt(e.target.value) || ''})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
-              <select value={newLeadForm.property_type} onChange={(e) => setNewLeadForm({...newLeadForm, property_type: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+              <input type="text" placeholder="Customer Name *" value={newLeadForm.name} onChange={(e) => setNewLeadForm({...newLeadForm, name: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" data-testid="lead-name-input" />
+              <input type="text" placeholder="Phone Number *" value={newLeadForm.phone} onChange={(e) => setNewLeadForm({...newLeadForm, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" data-testid="lead-phone-input" />
+              <input type="text" placeholder="District" value={newLeadForm.district} onChange={(e) => setNewLeadForm({...newLeadForm, district: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" />
+              <input type="number" placeholder="Monthly Electricity Bill (₹)" value={newLeadForm.monthly_bill} onChange={(e) => setNewLeadForm({...newLeadForm, monthly_bill: parseInt(e.target.value) || ''})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" />
+              <select value={newLeadForm.property_type} onChange={(e) => setNewLeadForm({...newLeadForm, property_type: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
                 <option value="residential">Residential</option>
                 <option value="commercial">Commercial</option>
                 <option value="industrial">Industrial</option>
               </select>
-              <textarea placeholder="Notes" value={newLeadForm.notes} onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" rows={2} />
+              <textarea placeholder="Notes" value={newLeadForm.notes} onChange={(e) => setNewLeadForm({...newLeadForm, notes: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" rows={2} />
             </div>
             <div className="flex space-x-3 mt-4">
-              <button onClick={createLead} className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition" data-testid="submit-lead-btn">Add Lead</button>
-              <button onClick={() => setShowAddLeadModal(false)} className="flex-1 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-500 transition">Cancel</button>
+              <button onClick={createLead} className="flex-1 bg-blue-600 text-[#0a355e] py-2 rounded-lg hover:bg-blue-700 transition" data-testid="submit-lead-btn">Add Lead</button>
+              <button onClick={() => setShowAddLeadModal(false)} className="flex-1 bg-gray-600 text-[#0a355e] py-2 rounded-lg hover:bg-gray-500 transition">Cancel</button>
             </div>
           </div>
         </div>
@@ -651,34 +651,34 @@ export const StaffPortal = () => {
 
       {showUpdateModal && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-4">Update: {selectedLead.name}</h2>
+          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-[#0a355e] mb-4">Update: {selectedLead.name}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Stage</label>
-                <select value={updateData.stage || selectedLead.stage} onChange={(e) => setUpdateData({...updateData, stage: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <label className="block text-gray-500 text-sm mb-2">Stage</label>
+                <select value={updateData.stage || selectedLead.stage} onChange={(e) => setUpdateData({...updateData, stage: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
                   {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Survey Done?</label>
-                <select value={updateData.survey_done ?? selectedLead.survey_done ?? false} onChange={(e) => setUpdateData({...updateData, survey_done: e.target.value === 'true'})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <label className="block text-gray-500 text-sm mb-2">Survey Done?</label>
+                <select value={updateData.survey_done ?? selectedLead.survey_done ?? false} onChange={(e) => setUpdateData({...updateData, survey_done: e.target.value === 'true'})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
                   <option value="false">No</option>
                   <option value="true">Yes</option>
                 </select>
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Quoted Amount (₹)</label>
-                <input type="number" value={updateData.quoted_amount || selectedLead.quoted_amount || ''} onChange={(e) => setUpdateData({...updateData, quoted_amount: parseFloat(e.target.value)})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+                <label className="block text-gray-500 text-sm mb-2">Quoted Amount (₹)</label>
+                <input type="number" value={updateData.quoted_amount || selectedLead.quoted_amount || ''} onChange={(e) => setUpdateData({...updateData, quoted_amount: parseFloat(e.target.value)})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" />
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Notes</label>
-                <textarea value={updateData.follow_up_notes || ''} onChange={(e) => setUpdateData({...updateData, follow_up_notes: e.target.value})} placeholder="Add notes..." className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-24 resize-none" />
+                <label className="block text-gray-500 text-sm mb-2">Notes</label>
+                <textarea value={updateData.follow_up_notes || ''} onChange={(e) => setUpdateData({...updateData, follow_up_notes: e.target.value})} placeholder="Add notes..." className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg h-24 resize-none" />
               </div>
             </div>
             <div className="flex space-x-3 mt-6">
-              <button onClick={updateLead} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold">Save</button>
-              <button onClick={() => { setShowUpdateModal(false); setSelectedLead(null); setUpdateData({}); }} className="px-6 py-2 bg-gray-700 text-white rounded-lg">Cancel</button>
+              <button onClick={updateLead} className="flex-1 bg-blue-600 text-[#0a355e] py-2 rounded-lg font-semibold">Save</button>
+              <button onClick={() => { setShowUpdateModal(false); setSelectedLead(null); setUpdateData({}); }} className="px-6 py-2 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg">Cancel</button>
             </div>
           </div>
         </div>
@@ -687,12 +687,12 @@ export const StaffPortal = () => {
       {/* Add Activity Modal */}
       {showActivityModal && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-white mb-4">Add Note: {selectedLead.name}</h2>
+          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-[#0a355e] mb-4">Add Note: {selectedLead.name}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Activity Type</label>
-                <select value={activityForm.activity_type} onChange={(e) => setActivityForm({...activityForm, activity_type: e.target.value})} className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg">
+                <label className="block text-gray-500 text-sm mb-2">Activity Type</label>
+                <select value={activityForm.activity_type} onChange={(e) => setActivityForm({...activityForm, activity_type: e.target.value})} className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
                   <option value="note">📝 Note</option>
                   <option value="call">📞 Call</option>
                   <option value="visit">🏠 Visit</option>
@@ -700,17 +700,17 @@ export const StaffPortal = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Title</label>
-                <input type="text" value={activityForm.title} onChange={(e) => setActivityForm({...activityForm, title: e.target.value})} placeholder="e.g., Called customer, discussed pricing" className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg" />
+                <label className="block text-gray-500 text-sm mb-2">Title</label>
+                <input type="text" value={activityForm.title} onChange={(e) => setActivityForm({...activityForm, title: e.target.value})} placeholder="e.g., Called customer, discussed pricing" className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg" />
               </div>
               <div>
-                <label className="block text-gray-400 text-sm mb-2">Details</label>
-                <textarea value={activityForm.description} onChange={(e) => setActivityForm({...activityForm, description: e.target.value})} placeholder="Additional details..." className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg h-24 resize-none" />
+                <label className="block text-gray-500 text-sm mb-2">Details</label>
+                <textarea value={activityForm.description} onChange={(e) => setActivityForm({...activityForm, description: e.target.value})} placeholder="Additional details..." className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg h-24 resize-none" />
               </div>
             </div>
             <div className="flex space-x-3 mt-6">
-              <button onClick={addActivity} className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold">Add Activity</button>
-              <button onClick={() => { setShowActivityModal(false); setSelectedLead(null); }} className="px-6 py-2 bg-gray-700 text-white rounded-lg">Cancel</button>
+              <button onClick={addActivity} className="flex-1 bg-purple-600 text-[#0a355e] py-2 rounded-lg font-semibold">Add Activity</button>
+              <button onClick={() => { setShowActivityModal(false); setSelectedLead(null); }} className="px-6 py-2 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg">Cancel</button>
             </div>
           </div>
         </div>

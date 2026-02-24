@@ -117,12 +117,12 @@ export const StaffLogin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <Link to="/" className="flex items-center text-gray-400 hover:text-white mb-6 transition">
+        <Link to="/" className="flex items-center text-gray-500 hover:text-[#0a355e] mb-6 transition">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Link>
 
-        <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+        <div className="bg-white shadow-lg border border-sky-200 rounded-2xl shadow-2xl p-8 border border-sky-200">
           <div className="text-center mb-8">
             <div className="rounded-xl p-3 inline-block mb-4">
               <img 
@@ -131,8 +131,8 @@ export const StaffLogin = () => {
                 className="h-14 w-auto"
               />
             </div>
-            <h1 className="text-2xl font-bold text-white">Staff Portal</h1>
-            <p className="text-gray-400 mt-2">ASR Enterprises CRM</p>
+            <h1 className="text-2xl font-bold text-[#0a355e]">Staff Portal</h1>
+            <p className="text-gray-500 mt-2">ASR Enterprises CRM</p>
           </div>
 
           {/* Login Method Toggle */}
@@ -140,14 +140,14 @@ export const StaffLogin = () => {
             <button
               type="button"
               onClick={() => { setLoginMethod("password"); setOtpSent(false); setError(""); setSuccess(""); }}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "password" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}
+              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "password" ? "bg-blue-600 text-[#0a355e]" : "bg-gray-50 border border-gray-300 text-gray-500"}`}
             >
               <Lock className="w-4 h-4 inline mr-2" />Password
             </button>
             <button
               type="button"
               onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); }}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "otp" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-400"}`}
+              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "otp" ? "bg-blue-600 text-[#0a355e]" : "bg-gray-50 border border-gray-300 text-gray-500"}`}
             >
               <Mail className="w-4 h-4 inline mr-2" />Email OTP
             </button>
@@ -169,7 +169,7 @@ export const StaffLogin = () => {
             step === "credentials" ? (
             <form onSubmit={handlePasswordLogin} className="space-y-6">
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Staff ID</label>
+                <label className="block text-gray-500 text-sm font-medium mb-2">Staff ID</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <input
@@ -177,7 +177,7 @@ export const StaffLogin = () => {
                     value={staffId}
                     onChange={(e) => setStaffId(e.target.value.toUpperCase())}
                     placeholder="ASR1001"
-                    className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
                     required
                     data-testid="staff-id-input"
                   />
@@ -185,7 +185,7 @@ export const StaffLogin = () => {
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Password</label>
+                <label className="block text-gray-500 text-sm font-medium mb-2">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <input
@@ -193,7 +193,7 @@ export const StaffLogin = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     required
                     data-testid="staff-password-input"
                   />
@@ -203,7 +203,7 @@ export const StaffLogin = () => {
               <button
                 type="submit"
                 disabled={loading || !staffId || !password}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
                 data-testid="staff-login-btn"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><LogIn className="w-5 h-5" /><span>Login</span></>}
@@ -214,11 +214,11 @@ export const StaffLogin = () => {
               <div className="bg-blue-500 bg-opacity-10 border border-blue-500/30 rounded-lg p-4 text-center">
                 <KeyRound className="w-8 h-8 text-blue-400 mx-auto mb-2" />
                 <p className="text-blue-300 text-sm">OTP sent to your registered email</p>
-                <p className="text-gray-400 text-xs mt-1">Enter the 6-digit code to complete login</p>
+                <p className="text-gray-500 text-xs mt-1">Enter the 6-digit code to complete login</p>
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Enter OTP</label>
+                <label className="block text-gray-500 text-sm font-medium mb-2">Enter OTP</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <input
@@ -226,7 +226,7 @@ export const StaffLogin = () => {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="6-digit OTP"
-                    className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-center text-xl tracking-widest"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-center text-xl tracking-widest"
                     maxLength={6}
                     required
                     autoFocus
@@ -238,7 +238,7 @@ export const StaffLogin = () => {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
                 data-testid="staff-verify-2fa-btn"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><LogIn className="w-5 h-5" /><span>Verify & Login</span></>}
@@ -247,7 +247,7 @@ export const StaffLogin = () => {
               <button
                 type="button"
                 onClick={() => { setStep("credentials"); setOtp(""); setError(""); setSuccess(""); }}
-                className="w-full text-gray-400 hover:text-white py-2 transition text-sm"
+                className="w-full text-gray-500 hover:text-[#0a355e] py-2 transition text-sm"
               >
                 Back to Login
               </button>
@@ -256,7 +256,7 @@ export const StaffLogin = () => {
           ) : (
             <form onSubmit={handleOtpLogin} className="space-y-6">
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-2">Staff ID</label>
+                <label className="block text-gray-500 text-sm font-medium mb-2">Staff ID</label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <input
@@ -264,7 +264,7 @@ export const StaffLogin = () => {
                     value={staffId}
                     onChange={(e) => { setStaffId(e.target.value.toUpperCase()); setOtpSent(false); }}
                     placeholder="ASR1001"
-                    className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none uppercase"
                     required
                     disabled={otpSent}
                     data-testid="staff-id-otp-input"
@@ -277,7 +277,7 @@ export const StaffLogin = () => {
                   type="button"
                   onClick={handleSendOtp}
                   disabled={loading || !staffId}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
                   data-testid="send-otp-btn"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Mail className="w-5 h-5" /><span>Send OTP to Email</span></>}
@@ -285,7 +285,7 @@ export const StaffLogin = () => {
               ) : (
                 <>
                   <div>
-                    <label className="block text-gray-400 text-sm font-medium mb-2">Enter OTP</label>
+                    <label className="block text-gray-500 text-sm font-medium mb-2">Enter OTP</label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                       <input
@@ -293,7 +293,7 @@ export const StaffLogin = () => {
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="6-digit OTP"
-                        className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-center text-xl tracking-widest"
+                        className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] pl-10 pr-4 py-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-center text-xl tracking-widest"
                         maxLength={6}
                         required
                         data-testid="otp-input"
@@ -304,7 +304,7 @@ export const StaffLogin = () => {
                   <button
                     type="submit"
                     disabled={loading || otp.length !== 6}
-                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2 disabled:opacity-50"
                     data-testid="verify-otp-btn"
                   >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><LogIn className="w-5 h-5" /><span>Verify & Login</span></>}
@@ -314,7 +314,7 @@ export const StaffLogin = () => {
                     type="button"
                     onClick={handleSendOtp}
                     disabled={loading}
-                    className="w-full text-gray-400 hover:text-white py-2 transition"
+                    className="w-full text-gray-500 hover:text-[#0a355e] py-2 transition"
                   >
                     Resend OTP
                   </button>
@@ -327,7 +327,7 @@ export const StaffLogin = () => {
             <p className="text-gray-500 text-sm">Contact admin if you need help</p>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-700 text-center">
+          <div className="mt-6 pt-6 border-t border-sky-200 text-center">
             <Link to="/admin/login" className="text-blue-400 hover:text-blue-300 text-sm">
               Admin Login →
             </Link>

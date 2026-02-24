@@ -72,18 +72,64 @@ def check_honeypot(data: dict) -> bool:
     honeypot_value = data.get("website_url", "") or data.get("company_fax", "")
     return len(honeypot_value) == 0
 
-# Rate limiting configuration
-RATE_LIMIT_REQUESTS = 100  # requests per window
-RATE_LIMIT_WINDOW = 60  # seconds
-LOGIN_RATE_LIMIT = 5  # login attempts per window
-LOGIN_RATE_WINDOW = 300  # 5 minutes
+# ==================== RATE LIMITING CONFIGURATION ====================
 
-# Rate limiter storage
+RATE_LIMIT_REQUESTS = 100  # General API requests per window
+RATE_LIMIT_WINDOW = 60     # Window in seconds
+LOGIN_RATE_LIMIT = 5       # Login attempts per window
+LOGIN_RATE_WINDOW = 300    # 5 minutes window for login attempts
+LOGIN_LOCKOUT_TIME = 900   # 15 minutes lockout after max failed attempts
+MAX_FAILED_LOGINS = 5      # Max failed logins before lockout
+
+# Rate limiting storage
 rate_limit_storage = defaultdict(list)
 login_attempts_storage = defaultdict(list)
-
-# Blocked IPs (temporary)
+failed_login_storage = defaultdict(lambda: {"count": 0, "lockout_until": 0})
 blocked_ips = set()
+
+def check_login_lockout(ip: str, email: str = None) -> tuple:
+    """Check if IP or email is locked out from login attempts"""
+    current_time = time.time()
+    
+    # Check IP lockout
+    ip_data = failed_login_storage[f"ip:{ip}"]
+    if ip_data["lockout_until"] > current_time:
+        remaining = int(ip_data["lockout_until"] - current_time)
+        return False, f"Too many failed attempts. Try again in {remaining // 60} minutes."
+    
+    # Check email lockout if provided
+    if email:
+        email_data = failed_login_storage[f"email:{email}"]
+        if email_data["lockout_until"] > current_time:
+            remaining = int(email_data["lockout_until"] - current_time)
+            return False, f"Account temporarily locked. Try again in {remaining // 60} minutes."
+    
+    return True, None
+
+def record_failed_login(ip: str, email: str = None):
+    """Record a failed login attempt"""
+    current_time = time.time()
+    
+    # Record for IP
+    ip_key = f"ip:{ip}"
+    failed_login_storage[ip_key]["count"] += 1
+    if failed_login_storage[ip_key]["count"] >= MAX_FAILED_LOGINS:
+        failed_login_storage[ip_key]["lockout_until"] = current_time + LOGIN_LOCKOUT_TIME
+        logger.warning(f"IP {ip} locked out due to {failed_login_storage[ip_key]['count']} failed login attempts")
+    
+    # Record for email if provided
+    if email:
+        email_key = f"email:{email}"
+        failed_login_storage[email_key]["count"] += 1
+        if failed_login_storage[email_key]["count"] >= MAX_FAILED_LOGINS:
+            failed_login_storage[email_key]["lockout_until"] = current_time + LOGIN_LOCKOUT_TIME
+            logger.warning(f"Email {email} locked out due to {failed_login_storage[email_key]['count']} failed attempts")
+
+def reset_failed_login(ip: str, email: str = None):
+    """Reset failed login counter after successful login"""
+    failed_login_storage[f"ip:{ip}"] = {"count": 0, "lockout_until": 0}
+    if email:
+        failed_login_storage[f"email:{email}"] = {"count": 0, "lockout_until": 0}
 
 # Security headers
 SECURITY_HEADERS = {

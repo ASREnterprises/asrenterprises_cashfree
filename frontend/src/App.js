@@ -570,17 +570,17 @@ const HomePage = () => {
         return;
       }
 
-      // Step 1: Create booking record
+      // Step 1: Create booking record and Razorpay order
       const res = await axios.post(`${API}/shop/book-service`, bookingData);
-      const { booking, key_id } = res.data;
+      const { booking, key_id, razorpay_order_id } = res.data;
 
-      if (!key_id) {
+      if (!key_id || !razorpay_order_id) {
         alert("Payment configuration error. Please call 8877896889.");
         setBookingLoading(false);
         return;
       }
 
-      // Step 2: Open Razorpay payment
+      // Step 2: Open Razorpay payment with order_id
       const options = {
         key: key_id,
         amount: Math.round(booking.amount * 100),
@@ -588,11 +588,14 @@ const HomePage = () => {
         name: "ASR Enterprises",
         description: `Service Booking #${booking.booking_number}`,
         image: "/asr_logo_transparent.png",
+        order_id: razorpay_order_id,
         handler: async function(response) {
           // Step 3: Confirm booking + send notifications
           try {
             const confirmRes = await axios.post(`${API}/shop/book-service/${booking.id}/confirm`, {
-              razorpay_payment_id: response.razorpay_payment_id
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
             });
             setBookingSuccess({
               booking_number: confirmRes.data.booking_number,

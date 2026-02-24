@@ -29,6 +29,29 @@ import io
 import httpx
 from PIL import Image
 import razorpay
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+# Import security module
+from security import (
+    limiter, 
+    SecurityHeadersMiddleware, 
+    RequestSizeLimiterMiddleware,
+    rate_limit_exceeded_handler,
+    security_tracker,
+    get_real_ip,
+    validate_request_data,
+    sanitize_input as secure_sanitize,
+    validate_email,
+    validate_phone,
+    log_security_event,
+    mask_sensitive_data,
+    RATE_LIMIT_DEFAULT,
+    RATE_LIMIT_AUTH,
+    RATE_LIMIT_PAYMENT,
+    RATE_LIMIT_ADMIN,
+    RATE_LIMIT_SENSITIVE
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')

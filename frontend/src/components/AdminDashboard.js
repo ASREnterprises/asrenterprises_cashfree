@@ -102,28 +102,12 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "Post Wishes"
     },
     {
-      title: "Govt News & Schemes",
-      description: "AI auto-updates Bihar solar schemes",
-      icon: <Newspaper className="w-10 h-10" />,
-      link: "/admin/govt-news",
-      color: "from-indigo-500 to-purple-600",
-      count: "AI Updates"
-    },
-    {
       title: "Security Center",
       description: "Monitor website security status",
       icon: <Shield className="w-10 h-10" />,
       link: "/admin/security",
       color: "from-red-500 to-pink-600",
       count: "Protected"
-    },
-    {
-      title: "Analytics",
-      description: "View business performance reports",
-      icon: <TrendingUp className="w-10 h-10" />,
-      link: "/admin/analytics",
-      color: "from-purple-500 to-pink-500",
-      count: "View Stats"
     }
   ];
 

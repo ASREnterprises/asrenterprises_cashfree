@@ -111,8 +111,8 @@ class TestHREmployeesCRUD:
         
         employee_id = response.json()["employee"]["employee_id"]
         
-        # Verify CRM staff account was created
-        crm_response = requests.get(f"{BASE_URL}/api/crm/staff")
+        # Verify CRM staff account was created via admin endpoint
+        crm_response = requests.get(f"{BASE_URL}/api/admin/staff-accounts")
         assert crm_response.status_code == 200
         
         staff_list = crm_response.json()
@@ -360,13 +360,14 @@ class TestHRReports:
         assert response.status_code == 200
         
         data = response.json()
-        # Check report fields
+        # Check report fields (actual field names from API)
         assert "status_breakdown" in data
         assert "department_breakdown" in data
-        assert "total_salary" in data
-        assert "avg_salary" in data
+        assert "total_monthly_salary" in data
+        assert "average_salary" in data
+        assert "tenure_analysis" in data
         
-        print(f"HR Summary: Total salary={data.get('total_salary')}, Avg={data.get('avg_salary')}")
+        print(f"HR Summary: Total salary={data.get('total_monthly_salary')}, Avg={data.get('average_salary')}")
 
 
 class TestHREmployeeUpdate:

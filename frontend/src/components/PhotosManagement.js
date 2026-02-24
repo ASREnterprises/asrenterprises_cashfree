@@ -24,7 +24,7 @@ export const PhotosManagement = () => {
 
   const fetchPhotos = async () => {
     try {
-      const res = await axios.get(`${API}/photos`);
+      const res = await axios.get(`${API}/admin/photos`);
       setPhotos(res.data);
     } catch (err) {
       console.error("Error fetching photos:", err);

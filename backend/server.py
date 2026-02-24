@@ -1461,9 +1461,23 @@ async def get_photos():
     return photos
 
 @api_router.get("/admin/photos")
-async def get_admin_photos():
-    photos = await db.work_photos.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
-    return photos
+async def get_admin_photos(page: int = 1, limit: int = 12):
+    """Get admin photos with pagination for better performance"""
+    skip = (page - 1) * limit
+    
+    # Get total count
+    total = await db.work_photos.count_documents({})
+    
+    # Get paginated photos
+    photos = await db.work_photos.find({}, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "photos": photos,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
 
 @api_router.post("/admin/photos")
 async def upload_photo(photo_data: Dict[str, Any]):

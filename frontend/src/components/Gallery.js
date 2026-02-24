@@ -230,8 +230,12 @@ export const GalleryPage = () => {
           <p className="text-xl text-gray-600 mb-8">Join hundreds of satisfied customers in Bihar who have switched to clean energy</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link
-              to="/leads"
+              to="/#inquiry-form"
               className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition shadow-lg"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = '/#inquiry-form';
+              }}
             >
               Get Free Consultation
             </Link>

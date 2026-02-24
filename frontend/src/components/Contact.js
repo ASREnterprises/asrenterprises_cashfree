@@ -207,8 +207,12 @@ export const ContactPage = () => {
                   Explore Products
                 </Link>
                 <Link
-                  to="/leads"
+                  to="/#inquiry-form"
                   className="block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold text-center hover:bg-blue-700 transition shadow-md"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = '/#inquiry-form';
+                  }}
                 >
                   Request Free Consultation
                 </Link>

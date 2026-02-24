@@ -4294,14 +4294,34 @@ async def update_book_service_config(data: Dict[str, Any]):
     return {"status": "success", "price": price}
 
 @api_router.post("/shop/book-service")
-async def book_service(data: Dict[str, Any]):
+@limiter.limit(RATE_LIMIT_PAYMENT)
+async def book_service(request: Request, data: Dict[str, Any]):
     """Create a service booking and Razorpay order"""
+    client_ip = get_real_ip(request)
+    
+    # Validate and sanitize input
+    data = validate_request_data(data, client_ip, "/shop/book-service")
+    
     customer_name = sanitize_input(data.get("customer_name", ""))
     customer_phone = sanitize_input(data.get("customer_phone", ""))
     customer_email = sanitize_input(data.get("customer_email", ""))
     
     if not customer_name or not customer_phone:
         raise HTTPException(status_code=400, detail="Name and phone are required")
+    
+    # Validate phone format
+    if not validate_phone(customer_phone):
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+    
+    # Validate email if provided
+    if customer_email and not validate_email(customer_email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    # Log payment attempt
+    log_security_event("PAYMENT_INITIATED", client_ip, {
+        "type": "book_service",
+        "phone": mask_sensitive_data(customer_phone)
+    })
     
     # Check Razorpay client
     if not razorpay_client:

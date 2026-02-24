@@ -161,7 +161,7 @@ export const AdminLogin = ({ onLogin }) => {
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300/50 border border-gray-600 text-[#0a355e] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest font-bold placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest font-bold placeholder-gray-400"
                   placeholder="000000"
                   maxLength="6"
                   required
@@ -172,7 +172,7 @@ export const AdminLogin = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50"
                 data-testid="verify-otp-btn"
               >
                 {loading ? "Verifying..." : "Verify & Login"}
@@ -181,7 +181,7 @@ export const AdminLogin = ({ onLogin }) => {
               <button
                 type="button"
                 onClick={() => { setStep(1); setOtp(""); setError(""); }}
-                className="w-full text-blue-400 py-2 text-sm font-semibold hover:text-blue-300"
+                className="w-full text-blue-600 py-2 text-sm font-semibold hover:text-blue-700"
               >
                 ← Back to Email
               </button>
@@ -190,17 +190,17 @@ export const AdminLogin = ({ onLogin }) => {
         </div>
 
         {/* Staff Login Link */}
-        <div className="bg-white shadow-xl border border-sky-200/50 border border-sky-200 rounded-xl p-4 mt-6 text-center">
+        <div className="bg-white rounded-xl p-4 mt-6 text-center shadow-lg border border-sky-200">
           <p className="text-gray-600 text-sm mb-2">Are you a staff member?</p>
           <button
             onClick={() => navigate("/staff/login")}
-            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-6 py-2 rounded-lg font-semibold hover:bg-gray-600 transition border border-gray-600"
+            className="bg-gray-100 text-[#0a355e] px-6 py-2 rounded-lg font-semibold hover:bg-gray-200 transition border border-gray-300"
           >
             Staff Login →
           </button>
         </div>
 
-        <div className="text-center mt-6 text-[#0a355e] text-sm">
+        <div className="text-center mt-6 text-gray-500 text-sm">
           <p>© 2025 ASR Enterprises. Secure Admin Access.</p>
         </div>
       </div>

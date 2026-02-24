@@ -330,6 +330,13 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # Add security middleware
 app.add_middleware(SecurityMiddleware)
 
+# Startup event to create indexes
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database indexes on startup"""
+    await create_indexes()
+    logger.info("🚀 Application started with database optimizations")
+
 api_router = APIRouter(prefix="/api")
 
 # LLM Configuration

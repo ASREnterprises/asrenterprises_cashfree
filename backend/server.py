@@ -1923,13 +1923,18 @@ async def get_crm_quick_stats():
 
 # Admin OTP APIs
 @api_router.post("/admin/send-otp")
+@limiter.limit(RATE_LIMIT_AUTH)
 async def send_otp(request: Request, data: Dict[str, Any]):
-    client_ip = get_client_ip(request)
+    client_ip = get_real_ip(request)
     email = data.get("email", "").lower().strip()
+    
+    # Log security event
+    log_security_event("ADMIN_LOGIN_ATTEMPT", client_ip, {"email": mask_sensitive_data(email)})
     
     # Only admin email is allowed
     registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
+        security_tracker.record_failed_attempt(client_ip, "Invalid admin email")
         raise HTTPException(status_code=403, detail="Email not registered. Only admin can access.")
     
     # Check cooldown to prevent multiple OTP sends
@@ -1950,22 +1955,24 @@ async def send_otp(request: Request, data: Dict[str, Any]):
     email_sent = await send_otp_email(email, otp, "Admin")
     
     if email_sent:
-        logger.info(f"OTP email sent to {email}")
+        logger.info(f"OTP email sent to {mask_sensitive_data(email)}")
         return {"success": True, "message": "OTP sent to your registered email (valid for 5 minutes)", "email_sent": True}
     else:
         # Fallback message if email not configured
-        logger.info(f"OTP generated for {email} (email not configured, use 131993)")
+        logger.info(f"OTP generated for {mask_sensitive_data(email)} (email not configured, use 131993)")
         return {"success": True, "message": "OTP has been sent to your email", "email_sent": False}
 
 @api_router.post("/admin/verify-otp")
+@limiter.limit(RATE_LIMIT_AUTH)
 async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
-    client_ip = get_client_ip(request)
+    client_ip = get_real_ip(request)
     email = data.get("email", "").lower().strip()
     otp = data.get("otp", "").strip()
     
     # Check lockout status
     allowed, message = check_login_lockout(client_ip, email)
     if not allowed:
+        security_tracker.record_failed_attempt(client_ip, "Login lockout active")
         raise HTTPException(status_code=429, detail=message)
     
     # Only allow admin email

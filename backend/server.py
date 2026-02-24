@@ -235,7 +235,28 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 content={"detail": "Access denied"}
             )
         
-        # Rate limiting
+        # Enhanced rate limiting for login endpoints
+        login_endpoints = ["/api/admin/send-otp", "/api/admin/verify-otp", "/api/staff/login", "/api/staff/verify-otp", "/api/staff/verify-2fa"]
+        if path in login_endpoints and request.method == "POST":
+            # Check login rate limit
+            if not check_login_rate_limit(client_ip):
+                logger.warning(f"Login rate limit exceeded for IP: {client_ip}")
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many login attempts. Please wait 5 minutes."},
+                    headers={"Retry-After": "300"}
+                )
+            
+            # Check lockout status
+            allowed, message = check_login_lockout(client_ip)
+            if not allowed:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": message},
+                    headers={"Retry-After": "900"}
+                )
+        
+        # General rate limiting
         if not check_rate_limit(client_ip):
             logger.warning(f"Rate limit exceeded for IP: {client_ip}")
             return JSONResponse(

@@ -438,6 +438,7 @@ RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET', '')
 # OTP Storage with expiry (In production, use Redis)
 otp_storage = {}
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
+OTP_COOLDOWN_SECONDS = 60  # Minimum 60 seconds between OTP sends
 
 # ==================== NOTIFICATION STORAGE ====================
 # In-app notifications storage
@@ -446,6 +447,16 @@ notifications_storage = defaultdict(list)
 def generate_secure_otp() -> str:
     """Generate a secure 6-digit OTP"""
     return str(random.SystemRandom().randint(100000, 999999))
+
+def can_send_otp(email: str) -> tuple:
+    """Check if OTP can be sent (cooldown check)"""
+    if email in otp_storage:
+        last_sent = otp_storage[email].get("timestamp", 0)
+        time_since_last = time.time() - last_sent
+        if time_since_last < OTP_COOLDOWN_SECONDS:
+            remaining = int(OTP_COOLDOWN_SECONDS - time_since_last)
+            return False, f"Please wait {remaining} seconds before requesting another OTP"
+    return True, None
 
 def store_otp(email: str, otp: str):
     """Store OTP with timestamp"""

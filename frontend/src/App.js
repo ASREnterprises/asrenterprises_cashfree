@@ -553,12 +553,29 @@ const HomePage = () => {
     }
     setBookingLoading(true);
     try {
+      // Load Razorpay SDK first
+      try {
+        await window.loadRazorpay();
+      } catch (loadErr) {
+        console.error("Failed to load Razorpay:", loadErr);
+        alert("Payment gateway could not be loaded. Please check your internet connection and try again.");
+        setBookingLoading(false);
+        return;
+      }
+      
+      // Check if Razorpay is available
+      if (!window.Razorpay) {
+        alert("Payment gateway unavailable. Please refresh the page and try again, or call 8877896889.");
+        setBookingLoading(false);
+        return;
+      }
+
       // Step 1: Create booking record
       const res = await axios.post(`${API}/shop/book-service`, bookingData);
       const { booking, key_id } = res.data;
 
-      if (!key_id || !window.Razorpay) {
-        alert("Payment gateway unavailable. Please call 8877896889.");
+      if (!key_id) {
+        alert("Payment configuration error. Please call 8877896889.");
         setBookingLoading(false);
         return;
       }
@@ -570,6 +587,7 @@ const HomePage = () => {
         currency: "INR",
         name: "ASR Enterprises",
         description: `Service Booking #${booking.booking_number}`,
+        image: "/asr_logo_transparent.png",
         handler: async function(response) {
           // Step 3: Confirm booking + send notifications
           try {
@@ -591,20 +609,24 @@ const HomePage = () => {
         modal: {
           ondismiss: function() {
             setBookingLoading(false);
-          }
+          },
+          escape: false,
+          backdropclose: false
         },
         prefill: {
           name: bookingData.customer_name,
           contact: bookingData.customer_phone,
           email: bookingData.customer_email || ""
         },
-        theme: { color: "#f59e0b" }
+        theme: { color: "#f59e0b" },
+        retry: { enabled: true, max_count: 3 }
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function() {
+      rzp.on("payment.failed", function(response) {
+        console.error("Payment failed:", response.error);
         setBookingLoading(false);
-        alert("Payment failed. Please try again or call 8877896889.");
+        alert(`Payment failed: ${response.error?.description || "Unknown error"}. Please try again or call 8877896889.`);
       });
       rzp.open();
     } catch (err) {

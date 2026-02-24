@@ -80,7 +80,7 @@ export const AdminDashboard = ({ onLogout }) => {
       icon: <ShoppingBag className="w-10 h-10" />,
       link: "/admin/shop",
       color: "from-amber-500 to-orange-600",
-      count: `${shopStats?.total_orders || 0} Orders`
+      count: `${counts?.total_orders || shopStats?.total_orders || 0} Orders`
     },
     {
       title: "Leads Management",
@@ -88,7 +88,7 @@ export const AdminDashboard = ({ onLogout }) => {
       icon: <ClipboardList className="w-10 h-10" />,
       link: "/admin/leads",
       color: "from-green-500 to-emerald-600",
-      count: `${stats?.total_leads || 0} Leads`
+      count: `${counts?.total_leads || 0} Leads`
     },
     {
       title: "Festival Posts",

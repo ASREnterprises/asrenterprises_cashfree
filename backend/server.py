@@ -4136,7 +4136,8 @@ async def upload_gallery_photo_file(
     title: str = Form(...),
     description: str = Form(""),
     location: str = Form(""),
-    system_size: str = Form("")
+    system_size: str = Form(""),
+    category: str = Form("installation")
 ):
     """Upload photo file directly from mobile/desktop with auto-optimization"""
     try:

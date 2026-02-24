@@ -112,37 +112,37 @@ export const LeadsManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-white shadow-lg py-8 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
-            <Link to="/admin/dashboard" className="text-gray-400 hover:text-white">
+            <Link to="/admin/dashboard" className="text-gray-500 hover:text-[#0a355e]">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-3xl font-bold text-white">Leads Management</h1>
+            <h1 className="text-3xl font-bold text-[#0a355e]">Leads Management</h1>
           </div>
-          <div className="text-gray-400">
-            Total: <span className="text-white font-bold">{leads.length}</span> leads
+          <div className="text-gray-500">
+            Total: <span className="text-[#0a355e] font-bold">{leads.length}</span> leads
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-gray-800 rounded-xl p-4 mb-8 flex flex-col md:flex-row gap-4">
+        <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4 mb-8 flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
             <input
               type="text"
               placeholder="Search by name, phone, or district..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg"
+              className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] pl-10 pr-4 py-3 rounded-lg"
               data-testid="leads-search-input"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-gray-700 text-white px-4 py-3 rounded-lg"
+            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
             data-testid="leads-filter-status"
           >
             <option value="all">All Status</option>
@@ -156,23 +156,23 @@ export const LeadsManagement = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className="bg-blue-600 rounded-xl p-4 text-white text-center">
+          <div className="bg-blue-600 rounded-xl p-4 text-[#0a355e] text-center">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "new").length}</div>
             <div className="text-blue-200 text-sm">New</div>
           </div>
-          <div className="bg-yellow-600 rounded-xl p-4 text-white text-center">
+          <div className="bg-yellow-600 rounded-xl p-4 text-[#0a355e] text-center">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "contacted").length}</div>
             <div className="text-yellow-200 text-sm">Contacted</div>
           </div>
-          <div className="bg-green-600 rounded-xl p-4 text-white text-center">
+          <div className="bg-green-600 rounded-xl p-4 text-[#0a355e] text-center">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "qualified").length}</div>
             <div className="text-green-200 text-sm">Qualified</div>
           </div>
-          <div className="bg-purple-600 rounded-xl p-4 text-white text-center">
+          <div className="bg-purple-600 rounded-xl p-4 text-[#0a355e] text-center">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "converted").length}</div>
             <div className="text-purple-200 text-sm">Converted</div>
           </div>
-          <div className="bg-red-600 rounded-xl p-4 text-white text-center">
+          <div className="bg-red-600 rounded-xl p-4 text-[#0a355e] text-center">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "lost").length}</div>
             <div className="text-red-200 text-sm">Lost</div>
           </div>
@@ -182,66 +182,66 @@ export const LeadsManagement = () => {
         {loading ? (
           <div className="text-center py-16">
             <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading leads...</p>
+            <p className="text-gray-500">Loading leads...</p>
           </div>
         ) : (
           <div className="space-y-4">
             {filteredLeads.map((lead) => (
-              <div key={lead.id} className="bg-gray-800 rounded-xl p-6" data-testid={`lead-card-${lead.id}`}>
+              <div key={lead.id} className="bg-white shadow-lg border border-sky-200 rounded-xl p-6" data-testid={`lead-card-${lead.id}`}>
                 {editingLead === lead.id ? (
                   /* Edit Mode */
                   <div className="space-y-4">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-bold text-white">Edit Lead</h3>
-                      <button onClick={() => setEditingLead(null)} className="text-gray-400 hover:text-white">
+                      <h3 className="text-lg font-bold text-[#0a355e]">Edit Lead</h3>
+                      <button onClick={() => setEditingLead(null)} className="text-gray-500 hover:text-[#0a355e]">
                         <X className="w-5 h-5" />
                       </button>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-gray-400 text-sm">Name *</label>
+                        <label className="text-gray-500 text-sm">Name *</label>
                         <input
                           type="text"
                           value={editForm.name}
                           onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         />
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">Phone *</label>
+                        <label className="text-gray-500 text-sm">Phone *</label>
                         <input
                           type="text"
                           value={editForm.phone}
                           onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         />
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">Email</label>
+                        <label className="text-gray-500 text-sm">Email</label>
                         <input
                           type="email"
                           value={editForm.email}
                           onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         />
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">District</label>
+                        <label className="text-gray-500 text-sm">District</label>
                         <select
                           value={editForm.district}
                           onChange={(e) => setEditForm({...editForm, district: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         >
                           <option value="">Select District</option>
                           {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">Property Type</label>
+                        <label className="text-gray-500 text-sm">Property Type</label>
                         <select
                           value={editForm.property_type}
                           onChange={(e) => setEditForm({...editForm, property_type: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         >
                           <option value="residential">Residential</option>
                           <option value="commercial">Commercial</option>
@@ -249,11 +249,11 @@ export const LeadsManagement = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">Roof Type</label>
+                        <label className="text-gray-500 text-sm">Roof Type</label>
                         <select
                           value={editForm.roof_type}
                           onChange={(e) => setEditForm({...editForm, roof_type: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         >
                           <option value="rcc">RCC</option>
                           <option value="tin_shed">Tin Shed</option>
@@ -261,20 +261,20 @@ export const LeadsManagement = () => {
                         </select>
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">Monthly Bill (₹)</label>
+                        <label className="text-gray-500 text-sm">Monthly Bill (₹)</label>
                         <input
                           type="number"
                           value={editForm.monthly_bill}
                           onChange={(e) => setEditForm({...editForm, monthly_bill: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         />
                       </div>
                       <div>
-                        <label className="text-gray-400 text-sm">Status</label>
+                        <label className="text-gray-500 text-sm">Status</label>
                         <select
                           value={editForm.status}
                           onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         >
                           <option value="new">New</option>
                           <option value="contacted">Contacted</option>
@@ -284,33 +284,33 @@ export const LeadsManagement = () => {
                         </select>
                       </div>
                       <div className="md:col-span-2">
-                        <label className="text-gray-400 text-sm">Address</label>
+                        <label className="text-gray-500 text-sm">Address</label>
                         <input
                           type="text"
                           value={editForm.address}
                           onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className="text-gray-400 text-sm">Notes</label>
+                        <label className="text-gray-500 text-sm">Notes</label>
                         <textarea
                           value={editForm.notes}
                           onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
-                          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mt-1 h-20"
+                          className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg mt-1 h-20"
                         />
                       </div>
                     </div>
                     <div className="flex space-x-3 mt-4">
                       <button
                         onClick={() => handleSaveEdit(lead.id)}
-                        className="flex-1 bg-green-600 text-white py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-green-700"
+                        className="flex-1 bg-green-600 text-[#0a355e] py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-green-700"
                       >
                         <Save className="w-4 h-4" /><span>Save Changes</span>
                       </button>
                       <button
                         onClick={() => setEditingLead(null)}
-                        className="px-6 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-500"
+                        className="px-6 bg-gray-600 text-[#0a355e] py-2 rounded-lg hover:bg-gray-500"
                       >
                         Cancel
                       </button>
@@ -321,8 +321,8 @@ export const LeadsManagement = () => {
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-white">{lead.name}</h3>
-                        <span className={`${getStatusColor(lead.status)} text-white text-xs px-2 py-1 rounded capitalize`}>
+                        <h3 className="text-xl font-bold text-[#0a355e]">{lead.name}</h3>
+                        <span className={`${getStatusColor(lead.status)} text-[#0a355e] text-xs px-2 py-1 rounded capitalize`}>
                           {lead.status || "new"}
                         </span>
                         {lead.lead_score && (
@@ -333,14 +333,14 @@ export const LeadsManagement = () => {
                         )}
                       </div>
                       
-                      <div className="grid md:grid-cols-3 gap-2 text-sm text-gray-400">
+                      <div className="grid md:grid-cols-3 gap-2 text-sm text-gray-500">
                         <div className="flex items-center">
                           <Phone className="w-4 h-4 mr-2" />
-                          <a href={`tel:${lead.phone}`} className="hover:text-white">{lead.phone}</a>
+                          <a href={`tel:${lead.phone}`} className="hover:text-[#0a355e]">{lead.phone}</a>
                         </div>
                         <div className="flex items-center">
                           <Mail className="w-4 h-4 mr-2" />
-                          <a href={`mailto:${lead.email}`} className="hover:text-white truncate">{lead.email || "N/A"}</a>
+                          <a href={`mailto:${lead.email}`} className="hover:text-[#0a355e] truncate">{lead.email || "N/A"}</a>
                         </div>
                         <div className="flex items-center">
                           <MapPin className="w-4 h-4 mr-2" />
@@ -349,8 +349,8 @@ export const LeadsManagement = () => {
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="bg-gray-700 px-2 py-1 rounded text-gray-300">{lead.property_type}</span>
-                        <span className="bg-gray-700 px-2 py-1 rounded text-gray-300">{lead.roof_type} roof</span>
+                        <span className="bg-gray-50 border border-gray-300 px-2 py-1 rounded text-gray-600">{lead.property_type}</span>
+                        <span className="bg-gray-50 border border-gray-300 px-2 py-1 rounded text-gray-600">{lead.roof_type} roof</span>
                         {lead.monthly_bill && <span className="bg-green-700 px-2 py-1 rounded text-green-300">₹{lead.monthly_bill}/month</span>}
                         {lead.recommended_system && <span className="bg-blue-700 px-2 py-1 rounded text-blue-300">{lead.recommended_system}</span>}
                       </div>
@@ -358,7 +358,7 @@ export const LeadsManagement = () => {
                       {lead.ai_analysis && (
                         <div className="mt-3 bg-purple-600 bg-opacity-20 border border-purple-600 rounded-lg p-3">
                           <span className="text-purple-400 text-xs font-semibold">AI Analysis: </span>
-                          <span className="text-gray-300 text-xs">{lead.ai_analysis}</span>
+                          <span className="text-gray-600 text-xs">{lead.ai_analysis}</span>
                         </div>
                       )}
                     </div>
@@ -367,7 +367,7 @@ export const LeadsManagement = () => {
                       <select
                         value={lead.status || "new"}
                         onChange={(e) => handleStatusChange(lead.id, e.target.value)}
-                        className="bg-gray-700 text-white px-3 py-2 rounded-lg text-sm"
+                        className="bg-gray-50 border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg text-sm"
                       >
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
@@ -380,20 +380,20 @@ export const LeadsManagement = () => {
                           href={`https://wa.me/91${lead.phone}?text=Hi ${lead.name}, Thank you for your interest in solar installation. I'm from ASR Enterprises, Patna.`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 text-center"
+                          className="flex-1 bg-green-600 text-[#0a355e] py-2 rounded-lg text-sm font-medium hover:bg-green-700 text-center"
                         >
                           WhatsApp
                         </a>
                         <button
                           onClick={() => handleEdit(lead)}
-                          className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
+                          className="bg-blue-600 text-[#0a355e] p-2 rounded-lg hover:bg-blue-700"
                           data-testid={`edit-lead-${lead.id}`}
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(lead.id)}
-                          className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700"
+                          className="bg-red-600 text-[#0a355e] p-2 rounded-lg hover:bg-red-700"
                           data-testid={`delete-lead-${lead.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -409,7 +409,7 @@ export const LeadsManagement = () => {
 
         {!loading && filteredLeads.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray-400">No leads found matching your criteria.</p>
+            <p className="text-gray-500">No leads found matching your criteria.</p>
           </div>
         )}
       </div>

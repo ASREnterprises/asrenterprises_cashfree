@@ -91,6 +91,22 @@ export const AdminDashboard = ({ onLogout }) => {
       count: `${counts?.total_leads || 0} Leads`
     },
     {
+      title: "Gallery",
+      description: "Manage work photos & installations",
+      icon: <Image className="w-10 h-10" />,
+      link: "/admin/gallery",
+      color: "from-cyan-500 to-blue-600",
+      count: "Photos"
+    },
+    {
+      title: "Testimonials",
+      description: "Generate & manage customer reviews",
+      icon: <Star className="w-10 h-10" />,
+      link: "/admin/testimonials",
+      color: "from-yellow-500 to-amber-600",
+      count: "Reviews"
+    },
+    {
       title: "Festival Posts",
       description: "Create festival wishes & announcements",
       icon: <Calendar className="w-10 h-10" />,

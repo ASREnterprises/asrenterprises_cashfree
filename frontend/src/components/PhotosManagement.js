@@ -218,7 +218,6 @@ export const PhotosManagement = () => {
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
-                        capture="environment"
                         onChange={handleFileSelect}
                         className="hidden"
                       />
@@ -228,7 +227,7 @@ export const PhotosManagement = () => {
                         className="flex flex-col items-center justify-center w-full py-8"
                       >
                         <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                        <span className="text-gray-500">Tap to upload or take photo</span>
+                        <span className="text-gray-500">Tap to select image from gallery or camera</span>
                         <span className="text-sm text-gray-400 mt-1">Supports JPG, PNG, WebP</span>
                       </button>
                     </>

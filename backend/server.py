@@ -1851,11 +1851,59 @@ async def get_analytics():
         "recent_leads": recent_leads
     }
 
-# ==================== DATABASE CLEANUP ENDPOINT ====================
+# ==================== DATABASE CLEANUP ENDPOINTS ====================
+
+@api_router.get("/admin/cleanup/status")
+@limiter.limit(RATE_LIMIT_ADMIN)
+async def get_cleanup_status(request: Request):
+    """Get automated cleanup status and schedule"""
+    now = datetime.now(timezone.utc)
+    
+    # Calculate next scheduled cleanup
+    next_cleanup = None
+    if last_cleanup_time:
+        next_cleanup = (last_cleanup_time + timedelta(hours=CLEANUP_INTERVAL_HOURS)).isoformat()
+    
+    # Calculate next deep cleanup (next Monday)
+    days_until_monday = (WEEKLY_DEEP_CLEANUP_DAY - now.weekday()) % 7
+    if days_until_monday == 0 and now.hour >= 12:  # If it's Monday after noon, next week
+        days_until_monday = 7
+    next_deep_cleanup = (now + timedelta(days=days_until_monday)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    ).isoformat()
+    
+    return {
+        "status": "active",
+        "scheduler_running": cleanup_task is not None and not cleanup_task.done(),
+        "cleanup_interval_hours": CLEANUP_INTERVAL_HOURS,
+        "deep_cleanup_day": "Monday",
+        "last_cleanup": last_cleanup_time.isoformat() if last_cleanup_time else None,
+        "last_deep_cleanup": last_deep_cleanup_time.isoformat() if last_deep_cleanup_time else None,
+        "next_scheduled_cleanup": next_cleanup,
+        "next_deep_cleanup": next_deep_cleanup,
+        "current_time": now.isoformat()
+    }
+
+@api_router.post("/admin/cleanup/run")
+@limiter.limit(RATE_LIMIT_ADMIN)
+async def run_manual_cleanup(request: Request, deep: bool = False):
+    """Manually trigger database cleanup"""
+    log_security_event("MANUAL_CLEANUP", get_real_ip(request), {"deep": deep})
+    
+    results = await perform_cleanup(deep_clean=deep)
+    
+    return {
+        "success": True,
+        "message": f"{'Deep' if deep else 'Regular'} cleanup completed",
+        "results": results,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
 
 @api_router.post("/admin/database/cleanup")
-async def database_cleanup():
-    """Admin endpoint to clean old logs, expired sessions, and optimize database"""
+@limiter.limit(RATE_LIMIT_ADMIN)
+async def database_cleanup(request: Request):
+    """Admin endpoint to clean old logs, expired sessions, and optimize database (legacy endpoint)"""
+    return await run_manual_cleanup(request, deep=True)
     try:
         now = datetime.now(timezone.utc)
         cleanup_results = {

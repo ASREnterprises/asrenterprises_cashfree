@@ -254,6 +254,28 @@ export const CRMDashboard = () => {
     } catch (err) { console.error("Error fetching registrations", err); }
   };
   
+  const updateRegistrationFee = async () => {
+    if (!newRegistrationFee || parseFloat(newRegistrationFee) < 0) {
+      alert("Please enter a valid fee amount");
+      return;
+    }
+    try {
+      await axios.post(`${API}/registration/update-fee`, { fee: parseFloat(newRegistrationFee) });
+      setRegistrationFee(parseFloat(newRegistrationFee));
+      setNewRegistrationFee('');
+      alert("Registration fee updated successfully!");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error updating fee");
+    }
+  };
+  
+  const fetchDistricts = async () => {
+    try {
+      const res = await axios.get(`${API}/districts`);
+      setDistricts(res.data.districts || []);
+    } catch (err) { console.error("Error fetching districts", err); }
+  };
+  
   const fetchAllData = async () => {
     // Refresh all data
     await Promise.all([

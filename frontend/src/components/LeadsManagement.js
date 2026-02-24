@@ -167,19 +167,170 @@ export const LeadsManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white shadow-lg py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-white py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div className="flex items-center space-x-4">
             <Link to="/admin/dashboard" className="text-gray-500 hover:text-[#0a355e]">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-3xl font-bold text-[#0a355e]">Leads Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#0a355e]">Leads Management</h1>
+            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+              {leads.length} Total
+            </span>
           </div>
-          <div className="text-gray-500">
-            Total: <span className="text-[#0a355e] font-bold">{leads.length}</span> leads
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-green-600 hover:to-green-700 shadow-lg"
+              data-testid="add-lead-btn"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Lead</span>
+            </button>
+            <button
+              onClick={() => setShowCSVModal(true)}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-blue-600 hover:to-blue-700 shadow-lg"
+              data-testid="csv-import-btn"
+            >
+              <Upload className="w-5 h-5" />
+              <span className="hidden sm:inline">CSV Import</span>
+            </button>
+            <button
+              onClick={fetchLeads}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-gray-200"
+              data-testid="refresh-leads-btn"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
+
+        {/* Add Lead Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-[#0a355e]">Add New Lead</h2>
+                <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <form onSubmit={handleAddLead} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Full Name *"
+                    value={newLead.name}
+                    onChange={(e) => setNewLead({...newLead, name: e.target.value})}
+                    className="col-span-2 bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                    required
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Phone Number *"
+                    value={newLead.phone}
+                    onChange={(e) => setNewLead({...newLead, phone: e.target.value})}
+                    className="bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                    required
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email (optional)"
+                    value={newLead.email}
+                    onChange={(e) => setNewLead({...newLead, email: e.target.value})}
+                    className="bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  />
+                  <select
+                    value={newLead.district}
+                    onChange={(e) => setNewLead({...newLead, district: e.target.value})}
+                    className="bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  >
+                    {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select
+                    value={newLead.property_type}
+                    onChange={(e) => setNewLead({...newLead, property_type: e.target.value})}
+                    className="bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  >
+                    <option value="residential">Residential</option>
+                    <option value="commercial">Commercial</option>
+                    <option value="industrial">Industrial</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Monthly Bill (₹)"
+                    value={newLead.monthly_bill}
+                    onChange={(e) => setNewLead({...newLead, monthly_bill: e.target.value})}
+                    className="bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  />
+                  <select
+                    value={newLead.roof_type}
+                    onChange={(e) => setNewLead({...newLead, roof_type: e.target.value})}
+                    className="bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  >
+                    <option value="rcc">RCC</option>
+                    <option value="metal_sheet">Metal Sheet</option>
+                    <option value="asbestos">Asbestos</option>
+                    <option value="tiles">Tiles</option>
+                  </select>
+                </div>
+                <textarea
+                  placeholder="Address"
+                  value={newLead.address}
+                  onChange={(e) => setNewLead({...newLead, address: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  rows={2}
+                />
+                <textarea
+                  placeholder="Notes"
+                  value={newLead.notes}
+                  onChange={(e) => setNewLead({...newLead, notes: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-300 px-4 py-3 rounded-lg"
+                  rows={2}
+                />
+                <button
+                  type="submit"
+                  disabled={addingLead}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
+                >
+                  {addingLead ? "Adding..." : "Add Lead"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* CSV Import Modal */}
+        {showCSVModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-[#0a355e]">Import Leads from CSV</h2>
+                <button onClick={() => setShowCSVModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 text-sm mb-4">
+                Upload a CSV file with columns: name, phone, email, district, property_type, monthly_bill
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 transition"
+              >
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                <span className="text-gray-600">Click to select CSV file</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4 mb-8 flex flex-col md:flex-row gap-4">

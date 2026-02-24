@@ -217,9 +217,13 @@ export const HRManagement = () => {
         {/* Header */}
         <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <Link to="/admin" className="p-2 bg-white rounded-lg shadow hover:bg-sky-50 transition">
+            <button 
+              onClick={() => navigate("/admin")} 
+              className="p-2 bg-white rounded-lg shadow hover:bg-sky-50 transition"
+              data-testid="hr-back-btn"
+            >
               <ArrowLeft className="w-5 h-5 text-[#0a355e]" />
-            </Link>
+            </button>
             <div>
               <h1 className="text-2xl font-bold text-[#0a355e]">HR Management</h1>
               <p className="text-gray-500 text-sm">Employee management, onboarding, performance & more</p>

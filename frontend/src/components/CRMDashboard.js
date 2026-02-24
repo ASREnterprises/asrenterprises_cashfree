@@ -583,9 +583,7 @@ export const CRMDashboard = () => {
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
-              { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> },
-              { id: "gallery", label: "Gallery", icon: <Camera className="w-4 h-4" /> },
-              { id: "testimonials", label: "Testimonials", icon: <Star className="w-4 h-4" /> }
+              { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
             ].map((tab) => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${activeTab === tab.id ? "bg-blue-600 text-[#0a355e]" : "text-gray-600 hover:bg-gray-50 border border-gray-300"}`}>

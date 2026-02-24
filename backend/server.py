@@ -1578,6 +1578,103 @@ async def get_analytics():
         "recent_leads": recent_leads
     }
 
+# ==================== DATABASE CLEANUP ENDPOINT ====================
+
+@api_router.post("/admin/database/cleanup")
+async def database_cleanup():
+    """Admin endpoint to clean old logs, expired sessions, and optimize database"""
+    try:
+        now = datetime.now(timezone.utc)
+        cleanup_results = {
+            "old_sessions_deleted": 0,
+            "old_logs_deleted": 0,
+            "old_otp_cleared": 0,
+            "cache_cleared": True,
+            "indexes_verified": True
+        }
+        
+        # 1. Delete old sessions (older than 7 days)
+        seven_days_ago = (now - timedelta(days=7)).isoformat()
+        sessions_result = await db.sessions.delete_many({"created_at": {"$lt": seven_days_ago}})
+        cleanup_results["old_sessions_deleted"] = sessions_result.deleted_count
+        
+        # 2. Delete old activity logs (older than 30 days)
+        thirty_days_ago = (now - timedelta(days=30)).isoformat()
+        logs_result = await db.activity_logs.delete_many({"timestamp": {"$lt": thirty_days_ago}})
+        cleanup_results["old_logs_deleted"] = logs_result.deleted_count
+        
+        # 3. Clear expired OTPs from memory
+        current_time = time.time()
+        expired_otps = [email for email, data in otp_storage.items() 
+                       if current_time - data.get("timestamp", 0) > OTP_EXPIRY_SECONDS]
+        for email in expired_otps:
+            del otp_storage[email]
+        cleanup_results["old_otp_cleared"] = len(expired_otps)
+        
+        # 4. Clear API cache
+        invalidate_cache()
+        
+        # 5. Re-create indexes to ensure optimization
+        await create_indexes()
+        
+        # 6. Run compact command on major collections (if supported)
+        try:
+            for collection_name in ["leads", "orders", "products", "chats"]:
+                await db.command({"compact": collection_name})
+        except Exception as compact_error:
+            logger.warning(f"Compact command not supported or failed: {compact_error}")
+        
+        logger.info(f"Database cleanup completed: {cleanup_results}")
+        return {
+            "success": True,
+            "message": "Database cleanup completed successfully",
+            "results": cleanup_results,
+            "timestamp": now.isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Database cleanup error: {e}")
+        raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+
+@api_router.get("/admin/database/status")
+async def database_status():
+    """Get database health status and statistics"""
+    try:
+        stats = {}
+        
+        # Get collection stats
+        collections = ["leads", "orders", "products", "chats", "staff", "sessions", "activity_logs"]
+        for coll in collections:
+            try:
+                count = await db[coll].count_documents({})
+                stats[coll] = {"count": count}
+            except:
+                stats[coll] = {"count": 0}
+        
+        # Get cache stats
+        cache_stats = {
+            "entries": len(api_cache),
+            "size_estimate_kb": len(str(api_cache)) // 1024
+        }
+        
+        # Check index status
+        index_status = {}
+        for coll in ["leads", "orders", "products"]:
+            try:
+                indexes = await db[coll].index_information()
+                index_status[coll] = len(indexes)
+            except:
+                index_status[coll] = 0
+        
+        return {
+            "status": "healthy",
+            "collections": stats,
+            "cache": cache_stats,
+            "indexes": index_status,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # Admin OTP APIs
 @api_router.post("/admin/send-otp")
 async def send_otp(request: Dict[str, Any]):

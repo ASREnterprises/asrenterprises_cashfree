@@ -218,7 +218,7 @@ export const HRManagement = () => {
         <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => navigate("/admin")} 
+              onClick={() => navigate("/admin/dashboard")} 
               className="p-2 bg-white rounded-lg shadow hover:bg-sky-50 transition"
               data-testid="hr-back-btn"
             >

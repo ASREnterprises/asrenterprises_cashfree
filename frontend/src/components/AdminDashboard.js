@@ -157,39 +157,89 @@ export const AdminDashboard = ({ onLogout }) => {
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - Loads immediately with skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-xl p-5 shadow-lg border border-green-200">
             <div className="flex items-center justify-between mb-2">
               <ClipboardList className="w-8 h-8 text-green-600" />
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Total</span>
             </div>
-            <div className="text-3xl font-bold text-[#0a355e]">{stats.total_leads || 0}</div>
-            <div className="text-gray-500 text-sm">Total Leads</div>
+            {detailedLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
+                <div className="h-4 bg-gray-100 rounded w-20"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-[#0a355e]">{stats?.total_leads || 0}</div>
+                <div className="text-gray-500 text-sm">Total Leads</div>
+              </>
+            )}
           </div>
           <div className="bg-white rounded-xl p-5 shadow-lg border border-blue-200">
             <div className="flex items-center justify-between mb-2">
               <ClipboardList className="w-8 h-8 text-blue-600" />
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">New</span>
+              {quickStats?.new_leads > 0 && (
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium animate-pulse">
+                  {quickStats.new_leads} New!
+                </span>
+              )}
             </div>
-            <div className="text-3xl font-bold text-[#0a355e]">{stats.new_leads || 0}</div>
-            <div className="text-gray-500 text-sm">New Leads</div>
+            {quickLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
+                <div className="h-4 bg-gray-100 rounded w-20"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-[#0a355e]">{quickStats?.new_leads || stats?.new_leads || 0}</div>
+                <div className="text-gray-500 text-sm">New Leads</div>
+              </>
+            )}
           </div>
           <div className="bg-white rounded-xl p-5 shadow-lg border border-amber-200">
             <div className="flex items-center justify-between mb-2">
-              <Image className="w-8 h-8 text-amber-600" />
-              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">Gallery</span>
+              <ShoppingBag className="w-8 h-8 text-amber-600" />
+              {quickStats?.pending_orders > 0 && (
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
+                  {quickStats.pending_orders} Pending
+                </span>
+              )}
             </div>
-            <div className="text-3xl font-bold text-[#0a355e]">{stats.total_photos || 0}</div>
-            <div className="text-gray-500 text-sm">Work Photos</div>
+            {detailedLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
+                <div className="h-4 bg-gray-100 rounded w-20"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-[#0a355e]">{shopStats?.total_orders || 0}</div>
+                <div className="text-gray-500 text-sm">Total Orders</div>
+              </>
+            )}
           </div>
           <div className="bg-white rounded-xl p-5 shadow-lg border border-purple-200">
             <div className="flex items-center justify-between mb-2">
               <Star className="w-8 h-8 text-purple-600" />
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Reviews</span>
+              <button 
+                onClick={refreshAll}
+                className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium hover:bg-purple-200 transition flex items-center gap-1"
+              >
+                <RefreshCw className={`w-3 h-3 ${(quickLoading || detailedLoading) ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
             </div>
-            <div className="text-3xl font-bold text-[#0a355e]">{stats.total_reviews || 0}</div>
-            <div className="text-gray-500 text-sm">Reviews</div>
+            {detailedLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
+                <div className="h-4 bg-gray-100 rounded w-20"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-3xl font-bold text-[#0a355e]">{stats?.total_reviews || 0}</div>
+                <div className="text-gray-500 text-sm">Reviews</div>
+              </>
+            )}
           </div>
         </div>
 

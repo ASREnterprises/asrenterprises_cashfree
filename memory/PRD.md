@@ -5,8 +5,8 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 ## Core Architecture
 - **Frontend:** React + Tailwind CSS + Lucide React icons
-- **Backend:** FastAPI (Python) - monolithic server.py with GZIP compression
-- **Database:** MongoDB (Motor async driver) with optimized indexes
+- **Backend:** FastAPI (Python) with GZIP compression, caching, rate limiting
+- **Database:** MongoDB (Motor async driver) with 19 optimized indexes
 - **Payments:** Razorpay Checkout SDK (Live key: rzp_live_SJXJM0ejFejAWd)
 - **AI:** OpenAI GPT-4o-mini via Emergent LLM Key
 - **Image Processing:** Pillow for WebP conversion
@@ -15,33 +15,37 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 ### Latest Session (Feb 24, 2026)
 
+#### Security - Rate Limiting (COMPLETED)
+- **Login Rate Limiting:** 5 attempts per 5 minutes window
+- **Lockout Protection:** 15-minute lockout after 5 failed attempts
+- **IP-based Tracking:** Failed logins tracked by IP and email
+- **Auto-reset:** Counters reset on successful login
+- **General API Rate Limit:** 100 requests/minute
+
+#### Async Dashboard Loading (COMPLETED)
+- **Quick Stats Endpoint:** `/api/dashboard/quick-stats` - Fast initial load
+- **Deferred Stats:** Full dashboard stats load in background after login
+- **Skeleton Loading:** Animated placeholders while data loads
+- **Real-time Badges:** "22 New!", "19 Pending" indicators on dashboard
+- **Refresh Button:** Manual refresh with loading animation
+
 #### Performance Optimizations (COMPLETED)
-- **MongoDB Indexes Created:**
-  - Leads: 7 indexes (created_at, status, district, assigned_to, email, phone)
-  - Orders: 7 indexes (created_at, status, payment_status, order_number, customer phone, payment_id)
-  - Products: 5 indexes (category, price, name text search, is_active)
-  - Sessions/Activity_logs: TTL indexes for auto-cleanup (7/30 days)
-- **In-Memory API Caching:** Dashboard stats cached for 30 seconds
-- **Cache Headers Middleware:** Static files (1 year), API responses (30s with stale-while-revalidate)
-- **Database Cleanup Endpoint:** `/api/admin/database/cleanup` - removes old sessions, logs, expired OTPs
-- **Database Status Endpoint:** `/api/admin/database/status` - shows health, collection counts, cache stats
+- **MongoDB Indexes:** 19 total indexes across collections
+- **In-Memory API Caching:** 30 second TTL for dashboard stats
+- **Cache Headers Middleware:** Static files (1 year), API responses (30s)
+- **Database Cleanup Endpoint:** Auto-cleanup for old sessions/logs/OTPs
 
 #### Admin Panel Light Theme (COMPLETED)
-- **AdminLogin.js:** Sky-blue gradient background, white card, transparent logo
-- **CRMDashboard.js:** Light theme with colored stat cards, white sections
-- **All Admin Components:** Updated to light theme
-  - LeadsManagement.js
-  - SecurityCenter.js
-  - AnalyticsPage.js
-  - FestivalsManagement.js
-  - GovtNewsManagement.js
-  - PhotosManagement.js
-  - ReviewsManagement.js
-  - StaffManagement.js
-  - ProductManagement.js
-  - QuotationSystem.js
-  - StaffLogin.js
-  - StaffPortal.js
+- All admin pages updated to premium light theme
+- AdminLogin, CRMDashboard, and all management pages
+
+### Performance Test Results
+| Endpoint | Response Time |
+|----------|---------------|
+| Quick Stats | 235ms |
+| Dashboard Stats | 144ms |
+| Shop Stats | 163ms |
+| CRM Quick Stats | 142ms |
 
 ### Previous Session (Feb 23, 2026)
 

@@ -686,7 +686,13 @@ const HomePage = () => {
               <a href="/shop" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-amber-600 transition font-medium">Shop</a>
               <Link to="/gallery" className="text-gray-700 hover:text-amber-600 transition font-medium">Gallery</Link>
               <Link to="/contact" className="text-gray-700 hover:text-amber-600 transition font-medium">Contact Us</Link>
-              <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
+              {localStorage.getItem("asrAdminAuth") === "true" ? (
+                <Link to="/admin/dashboard" className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-5 py-2.5 rounded-lg hover:from-green-600 hover:to-emerald-600 transition text-sm font-bold shadow-lg flex items-center gap-2">
+                  <span>Dashboard</span>
+                </Link>
+              ) : (
+                <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
+              )}
             </div>
 
             {/* Mobile Menu Button */}

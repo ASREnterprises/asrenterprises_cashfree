@@ -47,6 +47,27 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
   - `POST /api/admin/cleanup/run` - Manual cleanup trigger
   - `POST /api/admin/cleanup/run?deep=true` - Deep cleanup trigger
 
+#### Admin Dashboard & CRM Performance Optimization (COMPLETED)
+- **Redis Caching Module:** `/app/backend/cache.py` (falls back to in-memory)
+- **Lazy Loading Widgets:** Dashboard stats load in parallel, independent widgets
+- **New Fast Endpoints:**
+  - `GET /api/dashboard/widget/counts` - Basic counts (< 200ms)
+  - `GET /api/dashboard/widget/recent-leads` - Recent leads widget
+  - `GET /api/dashboard/widget/recent-orders` - Recent orders widget
+  - `GET /api/dashboard/widget/revenue` - Revenue widget
+  - `GET /api/dashboard/widget/chart-data` - Chart data
+  - `GET /api/crm/widget/stats` - CRM quick stats (< 200ms)
+  - `GET /api/crm/widget/pipeline` - Pipeline data
+  - `GET /api/crm/widget/recent-activity` - Recent activity
+- **Cache Management:**
+  - `GET /api/admin/cache/status` - Cache stats
+  - `POST /api/admin/cache/clear` - Clear cache
+- **UI Updates:**
+  - Gallery & Testimonials moved from CRM to Admin Dashboard
+  - CRM simplified to: Dashboard, Leads, Tasks, Team, Messages
+  - Skeleton loaders for better UX
+  - Tab-based lazy loading in CRM (data loads only when tab is clicked)
+
 #### Razorpay Payment Fix (COMPLETED - PRODUCTION VERIFIED)
 - **New Credentials:** rzp_live_SK301HQRh9RYf7
 - **Proper Orders API:** Backend creates Razorpay orders before checkout

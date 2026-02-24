@@ -38,9 +38,9 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
    - **Features:** 12 photos per page, Load More button, total count display
    - **File:** `/app/frontend/src/components/PhotosManagement.js`
 
-5. **Gallery Management Camera Access** - VERIFIED WORKING
-   - Already had `capture="environment"` attribute on file input
-   - Mobile devices should open camera directly
+5. **Gallery Management Camera Access** - FIXED
+   - Removed `capture="environment"` attribute from file input
+   - Mobile devices can now choose between camera OR file picker
 
 #### HR Management Module (COMPLETED - Feb 24, 2026)
 Complete HR Management system added to Admin Dashboard with:
@@ -48,6 +48,7 @@ Complete HR Management system added to Admin Dashboard with:
 **Features Implemented:**
 - **Dashboard:** Total employees, active count, probation count, department breakdown, salary overview
 - **Employee Management:** Full CRUD with auto ID generation (ASR1001, ASR1002, etc.)
+- **Permanent Delete:** Employees can be fully deleted with all associated data (HR, CRM, attendance, leaves)
 - **Onboarding Checklist:** 6-item checklist (documents, ID card, bank details, system access, training, manager)
 - **Leave Management:** Create, approve, reject leaves with balance tracking
 - **Performance Tracking:** Leads assigned, converted, conversion rate, revenue, rating

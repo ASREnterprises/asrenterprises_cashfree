@@ -6,54 +6,50 @@ import axios from "axios";
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const AdminDashboard = ({ onLogout }) => {
-  // Quick stats load first (essential data)
-  const [quickStats, setQuickStats] = useState(null);
-  const [quickLoading, setQuickLoading] = useState(true);
-  
-  // Detailed stats load in background (deferred)
-  const [stats, setStats] = useState(null);
+  // Widget states - each loads independently
+  const [counts, setCounts] = useState(null);
+  const [recentLeads, setRecentLeads] = useState(null);
+  const [recentOrders, setRecentOrders] = useState(null);
+  const [revenue, setRevenue] = useState(null);
   const [shopStats, setShopStats] = useState(null);
-  const [detailedLoading, setDetailedLoading] = useState(true);
+  
+  // Loading states for each widget
+  const [countsLoading, setCountsLoading] = useState(true);
+  const [leadsLoading, setLeadsLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [revenueLoading, setRevenueLoading] = useState(true);
 
-  // Load quick stats first (fast response)
-  const fetchQuickStats = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API}/dashboard/quick-stats`);
-      setQuickStats(res.data);
-    } catch (err) {
-      console.error("Error fetching quick stats:", err);
-    } finally {
-      setQuickLoading(false);
-    }
-  }, []);
-
-  // Load detailed stats in background (deferred)
-  const fetchDetailedStats = useCallback(async () => {
-    try {
-      const [dashRes, shopRes] = await Promise.all([
-        axios.get(`${API}/dashboard/stats`),
-        axios.get(`${API}/shop/stats`)
-      ]);
-      setStats(dashRes.data);
-      setShopStats(shopRes.data);
-    } catch (err) {
-      console.error("Error fetching detailed stats:", err);
-    } finally {
-      setDetailedLoading(false);
-    }
+  // Load widgets in priority order (fast to slow)
+  const fetchWidgets = useCallback(async () => {
+    // Priority 1: Basic counts (fastest)
+    axios.get(`${API}/dashboard/widget/counts`)
+      .then(res => { setCounts(res.data); setCountsLoading(false); })
+      .catch(err => { console.error("Counts error:", err); setCountsLoading(false); });
+    
+    // Priority 2: Recent leads
+    axios.get(`${API}/dashboard/widget/recent-leads`)
+      .then(res => { setRecentLeads(res.data.recent_leads); setLeadsLoading(false); })
+      .catch(err => { console.error("Leads error:", err); setLeadsLoading(false); });
+    
+    // Priority 3: Recent orders
+    axios.get(`${API}/dashboard/widget/recent-orders`)
+      .then(res => { setRecentOrders(res.data.recent_orders); setOrdersLoading(false); })
+      .catch(err => { console.error("Orders error:", err); setOrdersLoading(false); });
+    
+    // Priority 4: Revenue (heavier query)
+    axios.get(`${API}/dashboard/widget/revenue`)
+      .then(res => { setRevenue(res.data); setRevenueLoading(false); })
+      .catch(err => { console.error("Revenue error:", err); setRevenueLoading(false); });
+    
+    // Shop stats (separate)
+    axios.get(`${API}/shop/stats`)
+      .then(res => setShopStats(res.data))
+      .catch(err => console.error("Shop stats error:", err));
   }, []);
 
   useEffect(() => {
-    // Phase 1: Load quick stats immediately
-    fetchQuickStats();
-    
-    // Phase 2: Load detailed stats after a short delay (non-blocking)
-    const timer = setTimeout(() => {
-      fetchDetailedStats();
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [fetchQuickStats, fetchDetailedStats]);
+    fetchWidgets();
+  }, [fetchWidgets]);
 
   const handleLogout = () => {
     localStorage.removeItem("asrAdminAuth");
@@ -61,11 +57,12 @@ export const AdminDashboard = ({ onLogout }) => {
     onLogout();
   };
 
-  const refreshAll = async () => {
-    setQuickLoading(true);
-    setDetailedLoading(true);
-    await fetchQuickStats();
-    await fetchDetailedStats();
+  const refreshAll = () => {
+    setCountsLoading(true);
+    setLeadsLoading(true);
+    setOrdersLoading(true);
+    setRevenueLoading(true);
+    fetchWidgets();
   };
 
   const modules = [

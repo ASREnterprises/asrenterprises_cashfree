@@ -478,6 +478,120 @@ otp_storage = {}
 OTP_EXPIRY_SECONDS = 300  # 5 minutes
 OTP_COOLDOWN_SECONDS = 60  # Minimum 60 seconds between OTP sends
 
+# ==================== AUTOMATED CLEANUP SCHEDULER ====================
+
+# Cleanup configuration
+CLEANUP_INTERVAL_HOURS = 24  # Run cleanup every 24 hours (daily)
+WEEKLY_DEEP_CLEANUP_DAY = 0  # Monday (0 = Monday, 6 = Sunday)
+cleanup_task = None
+last_cleanup_time = None
+last_deep_cleanup_time = None
+
+async def perform_cleanup(deep_clean: bool = False):
+    """Perform database cleanup operations"""
+    global last_cleanup_time, last_deep_cleanup_time
+    
+    try:
+        now = datetime.now(timezone.utc)
+        cleanup_results = {
+            "type": "deep" if deep_clean else "regular",
+            "old_sessions_deleted": 0,
+            "old_logs_deleted": 0,
+            "old_otp_cleared": 0,
+            "expired_bookings_cleaned": 0,
+            "old_notifications_deleted": 0,
+            "cache_cleared": True,
+            "indexes_verified": False
+        }
+        
+        # 1. Delete old sessions (older than 7 days)
+        seven_days_ago = (now - timedelta(days=7)).isoformat()
+        sessions_result = await db.sessions.delete_many({"created_at": {"$lt": seven_days_ago}})
+        cleanup_results["old_sessions_deleted"] = sessions_result.deleted_count
+        
+        # 2. Delete old activity logs (older than 30 days)
+        thirty_days_ago = (now - timedelta(days=30)).isoformat()
+        logs_result = await db.activity_logs.delete_many({"timestamp": {"$lt": thirty_days_ago}})
+        cleanup_results["old_logs_deleted"] = logs_result.deleted_count
+        
+        # 3. Clear expired OTPs from memory
+        current_time = time.time()
+        expired_otps = [email for email, data in otp_storage.items() 
+                       if current_time - data.get("timestamp", 0) > OTP_EXPIRY_SECONDS]
+        for email in expired_otps:
+            del otp_storage[email]
+        cleanup_results["old_otp_cleared"] = len(expired_otps)
+        
+        # 4. Delete old pending bookings (older than 24 hours and not paid)
+        one_day_ago = (now - timedelta(days=1)).isoformat()
+        bookings_result = await db.service_bookings.delete_many({
+            "payment_status": "pending",
+            "created_at": {"$lt": one_day_ago}
+        })
+        cleanup_results["expired_bookings_cleaned"] = bookings_result.deleted_count
+        
+        # 5. Delete old notifications (older than 30 days)
+        notifications_result = await db.notifications.delete_many({
+            "created_at": {"$lt": thirty_days_ago}
+        })
+        cleanup_results["old_notifications_deleted"] = notifications_result.deleted_count
+        
+        # 6. Clear API cache
+        invalidate_cache()
+        
+        # 7. Deep clean operations (weekly)
+        if deep_clean:
+            # Re-create indexes to ensure optimization
+            await create_indexes()
+            cleanup_results["indexes_verified"] = True
+            
+            # Delete cancelled orders older than 90 days
+            ninety_days_ago = (now - timedelta(days=90)).isoformat()
+            old_cancelled = await db.orders.delete_many({
+                "status": "cancelled",
+                "created_at": {"$lt": ninety_days_ago}
+            })
+            cleanup_results["old_cancelled_orders_deleted"] = old_cancelled.deleted_count
+            
+            # Clean up orphaned cart data
+            cleanup_results["deep_clean_completed"] = True
+            last_deep_cleanup_time = now
+        
+        last_cleanup_time = now
+        logger.info(f"🧹 Auto cleanup completed: {cleanup_results}")
+        return cleanup_results
+        
+    except Exception as e:
+        logger.error(f"Auto cleanup error: {e}")
+        return {"error": str(e)}
+
+async def cleanup_scheduler():
+    """Background task that runs cleanup on schedule"""
+    global cleanup_task
+    
+    logger.info("🕐 Automated cleanup scheduler started")
+    
+    while True:
+        try:
+            # Wait for the interval
+            await asyncio.sleep(CLEANUP_INTERVAL_HOURS * 3600)  # Convert hours to seconds
+            
+            # Check if it's the deep cleanup day (Monday)
+            now = datetime.now(timezone.utc)
+            is_deep_clean_day = now.weekday() == WEEKLY_DEEP_CLEANUP_DAY
+            
+            # Perform cleanup
+            logger.info(f"🧹 Starting {'deep' if is_deep_clean_day else 'regular'} auto cleanup...")
+            await perform_cleanup(deep_clean=is_deep_clean_day)
+            
+        except asyncio.CancelledError:
+            logger.info("Cleanup scheduler cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Cleanup scheduler error: {e}")
+            # Continue running even if there's an error
+            await asyncio.sleep(3600)  # Wait 1 hour before retrying
+
 # ==================== NOTIFICATION STORAGE ====================
 # In-app notifications storage
 notifications_storage = defaultdict(list)

@@ -4246,7 +4246,7 @@ async def update_book_service_config(data: Dict[str, Any]):
 
 @api_router.post("/shop/book-service")
 async def book_service(data: Dict[str, Any]):
-    """Create a service booking and return booking details"""
+    """Create a service booking and Razorpay order"""
     customer_name = sanitize_input(data.get("customer_name", ""))
     customer_phone = sanitize_input(data.get("customer_phone", ""))
     customer_email = sanitize_input(data.get("customer_email", ""))
@@ -4254,18 +4254,44 @@ async def book_service(data: Dict[str, Any]):
     if not customer_name or not customer_phone:
         raise HTTPException(status_code=400, detail="Name and phone are required")
     
+    # Check Razorpay client
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment gateway not configured")
+    
     # Get service price
     config = await db.settings.find_one({"key": "book_service_price"}, {"_id": 0})
     price = config.get("value", 1500) if config else 1500
     
+    booking_id = str(uuid.uuid4())
+    booking_number = f"BSK-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+    
+    # Create Razorpay order
+    try:
+        razorpay_order = razorpay_client.order.create({
+            "amount": int(price * 100),  # Amount in paise
+            "currency": "INR",
+            "receipt": booking_number,
+            "notes": {
+                "booking_id": booking_id,
+                "customer_name": customer_name,
+                "customer_phone": customer_phone
+            }
+        })
+        razorpay_order_id = razorpay_order["id"]
+        logger.info(f"Created Razorpay order: {razorpay_order_id} for booking {booking_number}")
+    except Exception as e:
+        logger.error(f"Razorpay order creation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Payment order creation failed: {str(e)}")
+    
     booking = {
-        "id": str(uuid.uuid4()),
-        "booking_number": f"BSK-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}",
+        "id": booking_id,
+        "booking_number": booking_number,
         "customer_name": customer_name,
         "customer_phone": customer_phone,
         "customer_email": customer_email,
         "service": "Solar Maintenance Service",
         "amount": price,
+        "razorpay_order_id": razorpay_order_id,
         "payment_status": "pending",
         "payment_id": "",
         "status": "pending",
@@ -4275,7 +4301,12 @@ async def book_service(data: Dict[str, Any]):
     await db.service_bookings.insert_one(booking)
     booking.pop("_id", None)
     
-    return {"status": "success", "booking": booking, "key_id": RAZORPAY_KEY_ID}
+    return {
+        "status": "success", 
+        "booking": booking, 
+        "key_id": RAZORPAY_KEY_ID,
+        "razorpay_order_id": razorpay_order_id
+    }
 
 @api_router.post("/shop/book-service/{booking_id}/confirm")
 async def confirm_service_booking(booking_id: str, data: Dict[str, Any]):

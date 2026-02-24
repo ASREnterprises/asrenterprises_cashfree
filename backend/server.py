@@ -7935,6 +7935,448 @@ async def get_public_govt_news():
     news = await db.govt_news.find({}, {"_id": 0}).sort("date", -1).to_list(20)
     return news
 
+# ==================== HR MANAGEMENT ====================
+
+@api_router.get("/hr/employees")
+async def get_hr_employees(department: Optional[str] = None, status: Optional[str] = None):
+    """Get all HR employees with optional filters"""
+    query = {}
+    if department:
+        query["department"] = department
+    if status:
+        query["status"] = status
+    employees = await db.hr_employees.find(query, {"_id": 0}).sort("joining_date", -1).to_list(200)
+    return {"employees": employees, "total": len(employees)}
+
+@api_router.get("/hr/employees/{employee_id}")
+async def get_hr_employee(employee_id: str):
+    """Get single employee details"""
+    employee = await db.hr_employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return employee
+
+@api_router.post("/hr/employees")
+async def create_hr_employee(data: Dict[str, Any]):
+    """Create new HR employee and auto-sync with CRM staff"""
+    # Generate employee ID if not provided
+    if not data.get("employee_id"):
+        # Get the latest employee ID and increment
+        latest = await db.hr_employees.find_one({}, {"_id": 0}, sort=[("employee_id", -1)])
+        if latest and latest.get("employee_id", "").startswith("ASR"):
+            try:
+                last_num = int(latest["employee_id"][3:])
+                data["employee_id"] = f"ASR{last_num + 1:04d}"
+            except:
+                data["employee_id"] = f"ASR{1001}"
+        else:
+            data["employee_id"] = "ASR1001"
+    
+    # Set default values
+    data.setdefault("status", "probation")
+    data.setdefault("is_active", True)
+    data.setdefault("joining_date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    
+    # Calculate probation end date (3 months from joining)
+    if not data.get("probation_end_date"):
+        joining = datetime.strptime(data["joining_date"], "%Y-%m-%d")
+        probation_end = joining + timedelta(days=90)
+        data["probation_end_date"] = probation_end.strftime("%Y-%m-%d")
+    
+    # Initialize onboarding checklist
+    data.setdefault("onboarding_checklist", {
+        "documents_submitted": False,
+        "id_card_created": False,
+        "bank_details_added": False,
+        "system_access_given": False,
+        "training_completed": False,
+        "reporting_manager_assigned": False
+    })
+    
+    # Initialize status history
+    data["status_history"] = [{
+        "status": data.get("status", "probation"),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "notes": "Employee created"
+    }]
+    
+    employee = HREmployee(**data)
+    doc = employee.model_dump()
+    doc["timestamp"] = doc["timestamp"].isoformat()
+    
+    await db.hr_employees.insert_one(doc)
+    
+    # Auto-sync with CRM staff accounts
+    staff_data = {
+        "id": employee.id,
+        "staff_id": employee.employee_id,
+        "name": employee.name,
+        "email": employee.email,
+        "phone": employee.phone,
+        "role": employee.role,
+        "is_active": employee.is_active,
+        "password": "asr@123",  # Default password
+        "leads_assigned": 0,
+        "leads_converted": 0,
+        "total_revenue": 0,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Check if staff account already exists
+    existing_staff = await db.crm_staff_accounts.find_one({"staff_id": employee.employee_id})
+    if not existing_staff:
+        await db.crm_staff_accounts.insert_one(staff_data)
+    
+    return {
+        "success": True,
+        "employee": {k: v for k, v in doc.items() if k != "_id"},
+        "message": f"Employee {employee.employee_id} created successfully"
+    }
+
+@api_router.put("/hr/employees/{employee_id}")
+async def update_hr_employee(employee_id: str, data: Dict[str, Any]):
+    """Update HR employee details and sync with CRM"""
+    # Remove fields that shouldn't be updated directly
+    data.pop("id", None)
+    data.pop("employee_id", None)
+    data.pop("timestamp", None)
+    
+    # Track status change
+    if "status" in data:
+        existing = await db.hr_employees.find_one({"employee_id": employee_id}, {"_id": 0})
+        if existing and existing.get("status") != data["status"]:
+            status_history = existing.get("status_history", [])
+            status_history.append({
+                "status": data["status"],
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "notes": data.get("status_notes", "Status updated")
+            })
+            data["status_history"] = status_history
+    
+    await db.hr_employees.update_one({"employee_id": employee_id}, {"$set": data})
+    
+    # Sync with CRM staff accounts
+    sync_fields = {}
+    if "name" in data:
+        sync_fields["name"] = data["name"]
+    if "email" in data:
+        sync_fields["email"] = data["email"]
+    if "phone" in data:
+        sync_fields["phone"] = data["phone"]
+    if "role" in data:
+        sync_fields["role"] = data["role"]
+    if "is_active" in data:
+        sync_fields["is_active"] = data["is_active"]
+    
+    if sync_fields:
+        await db.crm_staff_accounts.update_one({"staff_id": employee_id}, {"$set": sync_fields})
+    
+    return {"success": True, "message": "Employee updated successfully"}
+
+@api_router.put("/hr/employees/{employee_id}/onboarding")
+async def update_employee_onboarding(employee_id: str, data: Dict[str, Any]):
+    """Update employee onboarding checklist"""
+    employee = await db.hr_employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    checklist = employee.get("onboarding_checklist", {})
+    checklist.update(data)
+    
+    # Check if all items are completed
+    all_completed = all(checklist.values())
+    
+    await db.hr_employees.update_one(
+        {"employee_id": employee_id},
+        {"$set": {"onboarding_checklist": checklist, "onboarding_completed": all_completed}}
+    )
+    
+    return {"success": True, "onboarding_completed": all_completed}
+
+@api_router.delete("/hr/employees/{employee_id}")
+async def delete_hr_employee(employee_id: str):
+    """Delete HR employee (soft delete - mark as terminated)"""
+    result = await db.hr_employees.update_one(
+        {"employee_id": employee_id},
+        {"$set": {
+            "status": "terminated",
+            "is_active": False,
+            "status_history": {"$push": {
+                "status": "terminated",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "notes": "Employee terminated"
+            }}
+        }}
+    )
+    
+    # Also deactivate in CRM
+    await db.crm_staff_accounts.update_one(
+        {"staff_id": employee_id},
+        {"$set": {"is_active": False}}
+    )
+    
+    return {"success": True, "message": "Employee deactivated"}
+
+@api_router.get("/hr/dashboard")
+async def get_hr_dashboard():
+    """Get HR dashboard statistics"""
+    # Get all employees
+    employees = await db.hr_employees.find({}, {"_id": 0}).to_list(500)
+    
+    total = len(employees)
+    active = sum(1 for e in employees if e.get("is_active"))
+    on_probation = sum(1 for e in employees if e.get("status") == "probation")
+    on_notice = sum(1 for e in employees if e.get("status") == "notice_period")
+    
+    # Department breakdown
+    departments = {}
+    for e in employees:
+        dept = e.get("department", "other")
+        departments[dept] = departments.get(dept, 0) + 1
+    
+    # Recent joinings (last 30 days)
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    recent_joinings = sum(1 for e in employees if e.get("joining_date", "") >= thirty_days_ago)
+    
+    # Pending onboarding
+    pending_onboarding = sum(1 for e in employees if not e.get("onboarding_completed"))
+    
+    # Total salary expense
+    total_salary = sum(e.get("base_salary", 0) + e.get("allowances", 0) for e in employees if e.get("is_active"))
+    
+    # Leave statistics
+    pending_leaves = await db.hr_leave_requests.count_documents({"status": "pending"})
+    
+    return {
+        "total_employees": total,
+        "active_employees": active,
+        "on_probation": on_probation,
+        "on_notice": on_notice,
+        "departments": departments,
+        "recent_joinings": recent_joinings,
+        "pending_onboarding": pending_onboarding,
+        "total_monthly_salary": total_salary,
+        "pending_leave_requests": pending_leaves
+    }
+
+# Leave Management
+@api_router.get("/hr/leaves")
+async def get_leave_requests(employee_id: Optional[str] = None, status: Optional[str] = None):
+    """Get leave requests"""
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if status:
+        query["status"] = status
+    leaves = await db.hr_leave_requests.find(query, {"_id": 0}).sort("timestamp", -1).to_list(200)
+    return {"leaves": leaves}
+
+@api_router.post("/hr/leaves")
+async def create_leave_request(data: Dict[str, Any]):
+    """Create leave request"""
+    # Get employee name
+    employee = await db.hr_employees.find_one({"employee_id": data.get("employee_id")}, {"_id": 0})
+    if employee:
+        data["employee_name"] = employee.get("name", "")
+    
+    # Calculate total days
+    from_date = datetime.strptime(data.get("from_date", ""), "%Y-%m-%d")
+    to_date = datetime.strptime(data.get("to_date", ""), "%Y-%m-%d")
+    data["total_days"] = (to_date - from_date).days + 1
+    
+    leave = HRLeaveRequest(**data)
+    doc = leave.model_dump()
+    doc["timestamp"] = doc["timestamp"].isoformat()
+    
+    await db.hr_leave_requests.insert_one(doc)
+    return {"success": True, "leave": {k: v for k, v in doc.items() if k != "_id"}}
+
+@api_router.put("/hr/leaves/{leave_id}")
+async def update_leave_request(leave_id: str, data: Dict[str, Any]):
+    """Approve/Reject leave request"""
+    if data.get("status") in ["approved", "rejected"]:
+        data["approved_date"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        
+        # Update employee leave balance if approved
+        if data.get("status") == "approved":
+            leave = await db.hr_leave_requests.find_one({"id": leave_id}, {"_id": 0})
+            if leave:
+                await db.hr_employees.update_one(
+                    {"employee_id": leave.get("employee_id")},
+                    {"$inc": {"leaves_taken": leave.get("total_days", 0), "leaves_remaining": -leave.get("total_days", 0)}}
+                )
+    
+    await db.hr_leave_requests.update_one({"id": leave_id}, {"$set": data})
+    return {"success": True}
+
+# Attendance
+@api_router.get("/hr/attendance")
+async def get_attendance(employee_id: Optional[str] = None, date: Optional[str] = None):
+    """Get attendance records"""
+    query = {}
+    if employee_id:
+        query["employee_id"] = employee_id
+    if date:
+        query["date"] = date
+    attendance = await db.hr_attendance.find(query, {"_id": 0}).sort("date", -1).to_list(500)
+    return {"attendance": attendance}
+
+@api_router.post("/hr/attendance")
+async def mark_attendance(data: Dict[str, Any]):
+    """Mark attendance"""
+    # Check if already marked
+    existing = await db.hr_attendance.find_one({
+        "employee_id": data.get("employee_id"),
+        "date": data.get("date")
+    })
+    
+    if existing:
+        # Update existing
+        await db.hr_attendance.update_one(
+            {"id": existing.get("id")},
+            {"$set": data}
+        )
+        return {"success": True, "message": "Attendance updated"}
+    
+    attendance = HRAttendance(**data)
+    doc = attendance.model_dump()
+    doc["timestamp"] = doc["timestamp"].isoformat()
+    
+    await db.hr_attendance.insert_one(doc)
+    return {"success": True, "message": "Attendance marked"}
+
+@api_router.post("/hr/attendance/bulk")
+async def mark_bulk_attendance(data: Dict[str, Any]):
+    """Mark attendance for multiple employees"""
+    date = data.get("date")
+    attendances = data.get("attendances", [])  # [{employee_id, status}]
+    
+    for att in attendances:
+        existing = await db.hr_attendance.find_one({
+            "employee_id": att.get("employee_id"),
+            "date": date
+        })
+        
+        if existing:
+            await db.hr_attendance.update_one(
+                {"id": existing.get("id")},
+                {"$set": {"status": att.get("status", "present")}}
+            )
+        else:
+            attendance = HRAttendance(
+                employee_id=att.get("employee_id"),
+                date=date,
+                status=att.get("status", "present")
+            )
+            doc = attendance.model_dump()
+            doc["timestamp"] = doc["timestamp"].isoformat()
+            await db.hr_attendance.insert_one(doc)
+    
+    return {"success": True, "message": f"Attendance marked for {len(attendances)} employees"}
+
+# Performance Management
+@api_router.get("/hr/performance")
+async def get_performance_data():
+    """Get performance data for all employees"""
+    employees = await db.hr_employees.find({"is_active": True}, {"_id": 0}).to_list(200)
+    
+    performance_data = []
+    for emp in employees:
+        performance_data.append({
+            "employee_id": emp.get("employee_id"),
+            "name": emp.get("name"),
+            "department": emp.get("department"),
+            "designation": emp.get("designation"),
+            "leads_assigned": emp.get("leads_assigned", 0),
+            "leads_converted": emp.get("leads_converted", 0),
+            "conversion_rate": round((emp.get("leads_converted", 0) / max(emp.get("leads_assigned", 1), 1)) * 100, 1),
+            "total_sales": emp.get("total_sales", 0),
+            "total_revenue": emp.get("total_revenue", 0),
+            "performance_rating": emp.get("performance_rating", 0),
+            "last_review_date": emp.get("last_review_date")
+        })
+    
+    return {"performance": performance_data}
+
+@api_router.put("/hr/employees/{employee_id}/performance")
+async def update_employee_performance(employee_id: str, data: Dict[str, Any]):
+    """Update employee performance metrics"""
+    update_data = {
+        "performance_rating": data.get("performance_rating"),
+        "last_review_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    }
+    
+    if data.get("notes"):
+        # Add to performance history
+        employee = await db.hr_employees.find_one({"employee_id": employee_id}, {"_id": 0})
+        performance_history = employee.get("performance_history", []) if employee else []
+        performance_history.append({
+            "rating": data.get("performance_rating"),
+            "notes": data.get("notes"),
+            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        })
+        update_data["performance_history"] = performance_history
+    
+    await db.hr_employees.update_one({"employee_id": employee_id}, {"$set": update_data})
+    return {"success": True}
+
+# Reports
+@api_router.get("/hr/reports/summary")
+async def get_hr_summary_report():
+    """Get HR summary report"""
+    employees = await db.hr_employees.find({}, {"_id": 0}).to_list(500)
+    
+    # Status breakdown
+    status_breakdown = {}
+    for e in employees:
+        status = e.get("status", "unknown")
+        status_breakdown[status] = status_breakdown.get(status, 0) + 1
+    
+    # Department breakdown
+    department_breakdown = {}
+    for e in employees:
+        dept = e.get("department", "other")
+        department_breakdown[dept] = department_breakdown.get(dept, 0) + 1
+    
+    # Salary analysis
+    total_salary = sum(e.get("base_salary", 0) + e.get("allowances", 0) for e in employees if e.get("is_active"))
+    avg_salary = total_salary / max(len([e for e in employees if e.get("is_active")]), 1)
+    
+    # Performance summary
+    avg_rating = sum(e.get("performance_rating", 0) for e in employees) / max(len(employees), 1)
+    total_revenue = sum(e.get("total_revenue", 0) for e in employees)
+    
+    # Tenure analysis
+    tenure_data = {"0-6 months": 0, "6-12 months": 0, "1-2 years": 0, "2+ years": 0}
+    today = datetime.now(timezone.utc)
+    for e in employees:
+        joining = e.get("joining_date")
+        if joining:
+            try:
+                join_date = datetime.strptime(joining, "%Y-%m-%d")
+                months = (today.year - join_date.year) * 12 + today.month - join_date.month
+                if months < 6:
+                    tenure_data["0-6 months"] += 1
+                elif months < 12:
+                    tenure_data["6-12 months"] += 1
+                elif months < 24:
+                    tenure_data["1-2 years"] += 1
+                else:
+                    tenure_data["2+ years"] += 1
+            except:
+                pass
+    
+    return {
+        "total_employees": len(employees),
+        "status_breakdown": status_breakdown,
+        "department_breakdown": department_breakdown,
+        "total_monthly_salary": total_salary,
+        "average_salary": round(avg_salary, 2),
+        "average_performance_rating": round(avg_rating, 2),
+        "total_revenue_generated": total_revenue,
+        "tenure_analysis": tenure_data
+    }
+
 app.include_router(api_router)
 
 # CORS configuration with security

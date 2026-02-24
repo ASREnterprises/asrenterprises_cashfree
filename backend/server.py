@@ -170,10 +170,11 @@ def check_login_rate_limit(ip: str) -> bool:
 class SecurityMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         client_ip = get_client_ip(request)
+        path = request.url.path
         
         # HTTPS Force - redirect HTTP to HTTPS
         forwarded_proto = request.headers.get("X-Forwarded-Proto", "https")
-        if forwarded_proto == "http" and not request.url.path.startswith("/api/health"):
+        if forwarded_proto == "http" and not path.startswith("/api/health"):
             https_url = str(request.url).replace("http://", "https://", 1)
             return JSONResponse(
                 status_code=301,

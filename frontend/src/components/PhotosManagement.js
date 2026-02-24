@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Image, MapPin, Upload, Camera, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Image, MapPin, Upload, Camera, X, ChevronDown, Loader2 } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -8,6 +8,10 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 export const PhotosManagement = () => {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [uploadMode, setUploadMode] = useState("file"); // "file" or "url"
   const [selectedFile, setSelectedFile] = useState(null);
@@ -24,15 +28,42 @@ export const PhotosManagement = () => {
   });
 
   useEffect(() => {
-    fetchPhotos();
+    fetchPhotos(1);
   }, []);
 
-  const fetchPhotos = async () => {
+  const fetchPhotos = async (pageNum, append = false) => {
+    if (pageNum === 1) setLoading(true);
+    else setLoadingMore(true);
+    
     try {
-      const res = await axios.get(`${API}/admin/photos`);
-      setPhotos(res.data || []);
+      const res = await axios.get(`${API}/admin/photos?page=${pageNum}&limit=12`);
+      const data = res.data;
+      
+      // Handle both old (array) and new (paginated object) response formats
+      if (Array.isArray(data)) {
+        setPhotos(data);
+        setTotal(data.length);
+        setTotalPages(1);
+      } else {
+        if (append) {
+          setPhotos(prev => [...prev, ...(data.photos || [])]);
+        } else {
+          setPhotos(data.photos || []);
+        }
+        setTotal(data.total || 0);
+        setTotalPages(data.total_pages || 1);
+        setPage(data.page || pageNum);
+      }
     } catch (err) {
       console.error("Error fetching photos:", err);
+    }
+    setLoading(false);
+    setLoadingMore(false);
+  };
+
+  const loadMore = () => {
+    if (page < totalPages) {
+      fetchPhotos(page + 1, true);
     }
   };
 

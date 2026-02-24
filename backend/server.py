@@ -345,6 +345,9 @@ app = FastAPI()
 # Add GZIP compression middleware for performance
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
+# Add cache headers middleware
+app.add_middleware(CacheHeadersMiddleware)
+
 # Add security middleware
 app.add_middleware(SecurityMiddleware)
 

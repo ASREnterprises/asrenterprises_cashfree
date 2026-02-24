@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Image, MapPin, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Image, MapPin, Upload, Camera, X } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -9,6 +9,11 @@ export const PhotosManagement = () => {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [uploadMode, setUploadMode] = useState("file"); // "file" or "url"
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -25,24 +30,73 @@ export const PhotosManagement = () => {
   const fetchPhotos = async () => {
     try {
       const res = await axios.get(`${API}/admin/photos`);
-      setPhotos(res.data);
+      setPhotos(res.data || []);
     } catch (err) {
       console.error("Error fetching photos:", err);
     }
   };
 
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    
+    if (!formData.title || !formData.location) {
+      alert("Please fill in title and location");
+      return;
+    }
+
+    if (uploadMode === "file" && !selectedFile) {
+      alert("Please select a file to upload");
+      return;
+    }
+
+    if (uploadMode === "url" && !formData.image_url) {
+      alert("Please enter an image URL");
+      return;
+    }
+
+    setUploading(true);
+    
     try {
-      await axios.post(`${API}/admin/photos`, formData);
+      if (uploadMode === "file" && selectedFile) {
+        // File upload
+        const uploadData = new FormData();
+        uploadData.append("file", selectedFile);
+        uploadData.append("title", formData.title);
+        uploadData.append("description", formData.description);
+        uploadData.append("location", formData.location);
+        uploadData.append("system_size", formData.system_size);
+        uploadData.append("category", formData.category);
+        
+        await axios.post(`${API}/gallery/upload-file`, uploadData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+      } else {
+        // URL upload
+        await axios.post(`${API}/admin/photos`, formData);
+      }
+      
+      // Reset form
       setFormData({ title: "", description: "", image_url: "", location: "", system_size: "", category: "installation" });
+      setSelectedFile(null);
+      setPreview("");
       setShowForm(false);
       fetchPhotos();
+      alert("Photo uploaded successfully!");
     } catch (err) {
-      alert("Error uploading photo");
+      console.error("Upload error:", err);
+      alert(err.response?.data?.detail || "Error uploading photo");
     }
-    setLoading(false);
+    setUploading(false);
   };
 
   const handleDelete = async (id) => {
@@ -57,97 +111,221 @@ export const PhotosManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white shadow-lg py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-white py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <Link to="/admin/dashboard" className="text-gray-500 hover:text-[#0a355e]">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-3xl font-bold text-[#0a355e]">Work Photos Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#0a355e]">Gallery Management</h1>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700"
+            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-blue-600 hover:to-blue-700 shadow-lg"
           >
             <Plus className="w-5 h-5" />
-            <span>Add Photo</span>
+            <span className="hidden sm:inline">Add Photo</span>
           </button>
         </div>
 
         {showForm && (
-          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 mb-8">
-            <h2 className="text-xl font-bold text-[#0a355e] mb-4">Upload New Photo</h2>
-            <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                placeholder="Photo Title"
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Location (e.g., Patna, Bihar)"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
-                required
-              />
-              <input
-                type="url"
-                placeholder="Image URL"
-                value={formData.image_url}
-                onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
-                required
-              />
-              <input
-                type="text"
-                placeholder="System Size (e.g., 5 kW)"
-                value={formData.system_size}
-                onChange={(e) => setFormData({...formData, system_size: e.target.value})}
-                className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
-              />
+          <div className="bg-white rounded-xl p-6 mb-8 shadow-lg border border-sky-200">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-[#0a355e]">Upload New Photo</h2>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Upload Mode Toggle */}
+            <div className="flex space-x-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setUploadMode("file")}
+                className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition ${
+                  uploadMode === "file" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Camera className="w-4 h-4" />
+                <span>Upload File</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode("url")}
+                className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition ${
+                  uploadMode === "url" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                <Image className="w-4 h-4" />
+                <span>Paste URL</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* File Upload Section */}
+              {uploadMode === "file" && (
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+                  {preview ? (
+                    <div className="relative inline-block">
+                      <img src={preview} alt="Preview" className="max-h-48 rounded-lg mx-auto" />
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedFile(null); setPreview(""); }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex flex-col items-center justify-center w-full py-8"
+                      >
+                        <Upload className="w-12 h-12 text-gray-400 mb-2" />
+                        <span className="text-gray-500">Tap to upload or take photo</span>
+                        <span className="text-sm text-gray-400 mt-1">Supports JPG, PNG, WebP</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* URL Input */}
+              {uploadMode === "url" && (
+                <input
+                  type="url"
+                  placeholder="Paste image URL here"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+                />
+              )}
+
+              {/* Form Fields */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Photo Title *"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Location (e.g., Patna, Bihar) *"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="System Size (e.g., 5 kW)"
+                  value={formData.system_size}
+                  onChange={(e) => setFormData({...formData, system_size: e.target.value})}
+                  className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+                />
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+                >
+                  <option value="installation">Installation</option>
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="maintenance">Maintenance</option>
+                </select>
+              </div>
+              
               <textarea
-                placeholder="Description"
+                placeholder="Description (optional)"
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg md:col-span-2"
-                rows={3}
+                className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+                rows={2}
               />
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
-                className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
-              >
-                <option value="installation">Installation</option>
-                <option value="residential">Residential</option>
-                <option value="commercial">Commercial</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
+
               <button
                 type="submit"
-                disabled={loading}
-                className="bg-green-600 text-[#0a355e] px-6 py-3 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
+                disabled={uploading}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 disabled:opacity-50 flex items-center justify-center space-x-2"
               >
-                {loading ? "Uploading..." : "Upload Photo"}
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5" />
+                    <span>Upload Photo</span>
+                  </>
+                )}
               </button>
             </form>
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {photos.map((photo) => (
-            <div key={photo.id} className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
-              <img
-                src={photo.image_url}
-                alt={photo.title}
-                className="w-full h-48 object-cover"
-                onError={(e) => e.target.src = "https://via.placeholder.com/400x300?text=Solar+Installation"}
-              />
-              <div className="p-4">
+        {/* Photos Grid */}
+        {photos.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-lg border border-sky-200">
+            <Image className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-500 mb-2">No Photos Yet</h3>
+            <p className="text-gray-400 mb-4">Upload your first work photo to showcase your installations</p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+            >
+              Upload Photo
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {photos.map((photo) => (
+              <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow-lg border border-sky-200 hover:shadow-xl transition">
+                <img
+                  src={photo.image_url}
+                  alt={photo.title}
+                  className="w-full h-48 object-cover"
+                  onError={(e) => e.target.src = "https://via.placeholder.com/400x300?text=Solar+Installation"}
+                />
+                <div className="p-4">
+                  <h3 className="font-semibold text-[#0a355e] mb-1">{photo.title}</h3>
+                  {photo.location && (
+                    <p className="text-sm text-gray-500 flex items-center">
+                      <MapPin className="w-3 h-3 mr-1" /> {photo.location}
+                    </p>
+                  )}
+                  {photo.system_size && (
+                    <p className="text-sm text-blue-600 mt-1">{photo.system_size}</p>
+                  )}
+                  <button
+                    onClick={() => handleDelete(photo.id)}
+                    className="mt-3 text-red-500 hover:text-red-700 flex items-center text-sm"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
                 <h3 className="text-lg font-bold text-[#0a355e] mb-1">{photo.title}</h3>
                 <div className="flex items-center text-gray-500 text-sm mb-2">
                   <MapPin className="w-4 h-4 mr-1" />

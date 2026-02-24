@@ -8117,6 +8117,37 @@ async def delete_hr_employee(employee_id: str):
     
     return {"success": True, "message": "Employee deactivated"}
 
+@api_router.delete("/hr/employees/{employee_id}/permanent")
+async def permanently_delete_hr_employee(employee_id: str):
+    """Permanently delete HR employee and all associated data"""
+    # Check if employee exists
+    employee = await db.hr_employees.find_one({"employee_id": employee_id}, {"_id": 0})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Delete from HR employees
+    await db.hr_employees.delete_one({"employee_id": employee_id})
+    
+    # Delete from CRM staff accounts
+    await db.crm_staff_accounts.delete_one({"staff_id": employee_id})
+    
+    # Delete all leave requests for this employee
+    await db.hr_leave_requests.delete_many({"employee_id": employee_id})
+    
+    # Delete all attendance records for this employee
+    await db.hr_attendance.delete_many({"employee_id": employee_id})
+    
+    # Delete all follow-ups assigned to this employee
+    await db.crm_followups.delete_many({"employee_id": employee_id})
+    
+    # Delete CRM employee record if exists
+    await db.crm_employees.delete_one({"id": employee.get("id")})
+    
+    return {
+        "success": True, 
+        "message": f"Employee {employee_id} and all associated data have been permanently deleted"
+    }
+
 @api_router.get("/hr/dashboard")
 async def get_hr_dashboard():
     """Get HR dashboard statistics"""

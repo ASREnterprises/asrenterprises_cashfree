@@ -3877,7 +3877,20 @@ async def get_delivery_fees():
 @api_router.get("/shop/razorpay-config")
 async def get_razorpay_config():
     """Get Razorpay key for frontend checkout"""
-    return {"key_id": RAZORPAY_KEY_ID}
+    return {
+        "key_id": RAZORPAY_KEY_ID,
+        "configured": bool(RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET and razorpay_client)
+    }
+
+@api_router.get("/shop/razorpay-status")
+async def get_razorpay_status():
+    """Diagnostic endpoint to check Razorpay configuration status"""
+    return {
+        "key_id_set": bool(RAZORPAY_KEY_ID),
+        "secret_set": bool(RAZORPAY_KEY_SECRET),
+        "client_initialized": razorpay_client is not None,
+        "key_id_prefix": RAZORPAY_KEY_ID[:15] + "..." if RAZORPAY_KEY_ID else None
+    }
 
 # ==================== RAZORPAY PAYMENT SYNC ====================
 

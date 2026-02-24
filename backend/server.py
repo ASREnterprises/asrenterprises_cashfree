@@ -4210,7 +4210,7 @@ async def upload_gallery_photo_file(
             "image_url": data_url,
             "location": sanitize_input(location),
             "system_size": system_size,
-            "category": "installation",
+            "category": category,
             "file_name": file.filename,
             "file_size": len(optimized_content),
             "original_size": original_size,

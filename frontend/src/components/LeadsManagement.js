@@ -362,25 +362,25 @@ export const LeadsManagement = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className="bg-blue-600 rounded-xl p-4 text-[#0a355e] text-center">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white text-center shadow-lg">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "new").length}</div>
-            <div className="text-blue-200 text-sm">New</div>
+            <div className="text-blue-100 text-sm">New</div>
           </div>
-          <div className="bg-yellow-600 rounded-xl p-4 text-[#0a355e] text-center">
+          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl p-4 text-white text-center shadow-lg">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "contacted").length}</div>
-            <div className="text-yellow-200 text-sm">Contacted</div>
+            <div className="text-yellow-100 text-sm">Contacted</div>
           </div>
-          <div className="bg-green-600 rounded-xl p-4 text-[#0a355e] text-center">
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-4 text-white text-center shadow-lg">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "qualified").length}</div>
-            <div className="text-green-200 text-sm">Qualified</div>
+            <div className="text-green-100 text-sm">Qualified</div>
           </div>
-          <div className="bg-purple-600 rounded-xl p-4 text-[#0a355e] text-center">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 text-white text-center shadow-lg">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "converted").length}</div>
-            <div className="text-purple-200 text-sm">Converted</div>
+            <div className="text-purple-100 text-sm">Converted</div>
           </div>
-          <div className="bg-red-600 rounded-xl p-4 text-[#0a355e] text-center">
+          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-4 text-white text-center shadow-lg">
             <div className="text-2xl font-bold">{leads.filter(l => l.status === "lost").length}</div>
-            <div className="text-red-200 text-sm">Lost</div>
+            <div className="text-red-100 text-sm">Lost</div>
           </div>
         </div>
 

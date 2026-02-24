@@ -58,19 +58,19 @@ export const GovtNewsManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-white shadow-lg py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
-            <Link to="/admin/dashboard" className="text-gray-400 hover:text-white">
+            <Link to="/admin/dashboard" className="text-gray-500 hover:text-[#0a355e]">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="text-3xl font-bold text-white">Government News & Schemes</h1>
+            <h1 className="text-3xl font-bold text-[#0a355e]">Government News & Schemes</h1>
           </div>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50"
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50"
           >
             <Sparkles className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`} />
             <span>{refreshing ? "AI Fetching..." : "AI Auto-Update"}</span>
@@ -78,7 +78,7 @@ export const GovtNewsManagement = () => {
         </div>
 
         {/* AI Info Banner */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 mb-8 text-white">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 mb-8 text-[#0a355e]">
           <div className="flex items-center space-x-4">
             <Sparkles className="w-10 h-10" />
             <div>
@@ -92,23 +92,23 @@ export const GovtNewsManagement = () => {
 
         {loading ? (
           <div className="text-center py-16">
-            <RefreshCw className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
-            <p className="text-gray-400">Loading news...</p>
+            <RefreshCw className="w-12 h-12 text-gray-500 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-500">Loading news...</p>
           </div>
         ) : (
           <div className="space-y-4">
             {news.map((item) => (
-              <div key={item.id} className="bg-gray-800 rounded-xl p-6">
+              <div key={item.id} className="bg-white shadow-lg border border-sky-200 rounded-xl p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
-                      <span className={`${getCategoryColor(item.category)} text-white text-xs px-2 py-1 rounded`}>
+                      <span className={`${getCategoryColor(item.category)} text-[#0a355e] text-xs px-2 py-1 rounded`}>
                         {item.category?.toUpperCase()}
                       </span>
                       <span className="text-gray-500 text-sm">{item.source}</span>
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
-                    <p className="text-gray-400">{item.summary}</p>
+                    <h3 className="text-xl font-bold text-[#0a355e] mb-2">{item.title}</h3>
+                    <p className="text-gray-500">{item.summary}</p>
                     {item.url && (
                       <a
                         href={item.url}
@@ -135,10 +135,10 @@ export const GovtNewsManagement = () => {
         {!loading && news.length === 0 && (
           <div className="text-center py-16">
             <Newspaper className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400 mb-4">No government news available.</p>
+            <p className="text-gray-500 mb-4">No government news available.</p>
             <button
               onClick={handleRefresh}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700"
+              className="bg-indigo-600 text-[#0a355e] px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700"
             >
               Fetch Latest News with AI
             </button>

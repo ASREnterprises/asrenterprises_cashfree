@@ -29,15 +29,15 @@ const BookServiceConfig = () => {
 
   if (!loaded) return null;
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
+    <div className="bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
       <DollarSign className="w-5 h-5 text-amber-400" />
-      <span className="text-white font-semibold text-sm">Book Service Price:</span>
+      <span className="text-[#0a355e] font-semibold text-sm">Book Service Price:</span>
       <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-        className="w-32 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm" />
+        className="w-32 px-3 py-2 bg-gray-50 border border-gray-300 border border-gray-600 rounded-lg text-[#0a355e] text-sm" />
       <button onClick={save} disabled={saving}
-        className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600"
+        className="bg-amber-500 hover:bg-amber-600 text-[#0a355e] px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600"
       >{saving ? "Saving..." : "Update Price"}</button>
-      <span className="text-gray-400 text-xs">This is the price shown on homepage "Book Service" button</span>
+      <span className="text-gray-500 text-xs">This is the price shown on homepage "Book Service" button</span>
     </div>
   );
 };
@@ -72,23 +72,23 @@ const DistrictFeesConfig = () => {
 
   if (!loaded) return null;
   return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mb-6">
+    <div className="bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-xl p-4 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <MapPin className="w-5 h-5 text-green-400" />
-          <span className="text-white font-semibold">District Delivery Fees</span>
+          <span className="text-[#0a355e] font-semibold">District Delivery Fees</span>
         </div>
         <button onClick={saveFees} disabled={saving}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600">
+          className="bg-green-600 hover:bg-green-700 text-[#0a355e] px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600">
           {saving ? "Saving..." : "Save All Fees"}
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-64 overflow-y-auto">
         {districts.map(district => (
           <div key={district} className="flex flex-col">
-            <label className="text-gray-400 text-xs truncate">{district}</label>
+            <label className="text-gray-500 text-xs truncate">{district}</label>
             <input type="number" value={fees[district] || 0} onChange={(e) => updateFee(district, e.target.value)}
-              className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm" />
+              className="w-full px-2 py-1 bg-gray-50 border border-gray-300 border border-gray-600 rounded text-[#0a355e] text-sm" />
           </div>
         ))}
       </div>
@@ -523,38 +523,38 @@ export const ProductManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header with Back Button */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <Link to="/admin/dashboard" className="inline-flex items-center text-gray-400 hover:text-white mb-2">
+            <Link to="/admin/dashboard" className="inline-flex items-center text-gray-500 hover:text-[#0a355e] mb-2">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Admin Dashboard
             </Link>
-            <h1 className="text-3xl font-bold text-white">Shop Management</h1>
-            <p className="text-gray-400">Manage products, orders & payments</p>
+            <h1 className="text-3xl font-bold text-[#0a355e]">Shop Management</h1>
+            <p className="text-gray-500">Manage products, orders & payments</p>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-4 text-white">
+          <div className="bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl p-4 text-[#0a355e]">
             <Package className="w-8 h-8 mb-2 opacity-80" />
             <p className="text-3xl font-bold">{shopStats.total_products || 0}</p>
             <p className="text-sm opacity-80">Products</p>
           </div>
-          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 text-white">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 text-[#0a355e]">
             <ShoppingBag className="w-8 h-8 mb-2 opacity-80" />
             <p className="text-3xl font-bold">{shopStats.total_orders || 0}</p>
             <p className="text-sm opacity-80">Total Orders</p>
           </div>
-          <div className="bg-gradient-to-br from-yellow-500 to-amber-500 rounded-2xl p-4 text-white">
+          <div className="bg-gradient-to-br from-yellow-500 to-amber-500 rounded-2xl p-4 text-[#0a355e]">
             <AlertCircle className="w-8 h-8 mb-2 opacity-80" />
             <p className="text-3xl font-bold">{shopStats.pending_orders || 0}</p>
             <p className="text-sm opacity-80">Pending</p>
           </div>
-          <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-4 text-white">
+          <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-4 text-[#0a355e]">
             <DollarSign className="w-8 h-8 mb-2 opacity-80" />
             <p className="text-3xl font-bold">₹{(shopStats.total_revenue || 0).toLocaleString()}</p>
             <p className="text-sm opacity-80">Revenue</p>
@@ -568,11 +568,11 @@ export const ProductManagement = () => {
         <DistrictFeesConfig />
 
         {/* Tabs */}
-        <div className="flex space-x-2 border-b border-gray-700 pb-2 mb-6">
+        <div className="flex space-x-2 border-b border-sky-200 pb-2 mb-6">
           <button
             onClick={() => setActiveTab("products")}
             className={`px-4 py-2 rounded-t-lg font-medium transition ${
-              activeTab === "products" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
+              activeTab === "products" ? "bg-amber-500 text-[#0a355e]" : "text-gray-500 hover:text-[#0a355e]"
             }`}
           >
             <Package className="w-4 h-4 inline mr-2" />
@@ -581,7 +581,7 @@ export const ProductManagement = () => {
           <button
             onClick={() => setActiveTab("orders")}
             className={`px-4 py-2 rounded-t-lg font-medium transition ${
-              activeTab === "orders" ? "bg-amber-500 text-white" : "text-gray-400 hover:text-white"
+              activeTab === "orders" ? "bg-amber-500 text-[#0a355e]" : "text-gray-500 hover:text-[#0a355e]"
             }`}
           >
             <ShoppingBag className="w-4 h-4 inline mr-2" />
@@ -594,18 +594,18 @@ export const ProductManagement = () => {
           <div>
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
                   type="text"
                   placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-400"
+                className="w-full pl-10 pr-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e] placeholder-gray-400"
               />
             </div>
             <button
               onClick={() => { setShowForm(true); setEditingProduct(null); resetForm(); }}
-              className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+              className="bg-amber-500 hover:bg-amber-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2"
             >
               <Plus className="w-5 h-5" />
               <span>Add Product</span>
@@ -613,38 +613,38 @@ export const ProductManagement = () => {
           </div>
 
           {/* Products Table */}
-          <div className="bg-gray-800/30 rounded-xl overflow-hidden">
+          <div className="bg-white shadow-lg border border-sky-200/30 rounded-xl overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-800/50">
+              <thead className="bg-white shadow-lg border border-sky-200/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Product</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Category</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Price</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Stock</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Status</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Actions</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Product</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Category</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Price</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Stock</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Status</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
                 {filteredProducts.map(product => (
-                  <tr key={product.id} className="hover:bg-gray-800/20">
+                  <tr key={product.id} className="hover:bg-white shadow-lg border border-sky-200/20">
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-3">
                         {product.images?.[0] ? (
                           <img src={product.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
                         ) : (
-                          <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
+                          <div className="w-12 h-12 bg-gray-50 border border-gray-300 rounded-lg flex items-center justify-center">
                             <Sun className="w-6 h-6 text-gray-500" />
                           </div>
                         )}
                         <div>
-                          <p className="text-white font-medium">{product.name}</p>
-                          <p className="text-gray-400 text-sm">{product.sku || "No SKU"}</p>
+                          <p className="text-[#0a355e] font-medium">{product.name}</p>
+                          <p className="text-gray-500 text-sm">{product.sku || "No SKU"}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-gray-300 capitalize">{product.category?.replace("_", " ")}</span>
+                      <span className="text-gray-600 capitalize">{product.category?.replace("_", " ")}</span>
                     </td>
                     <td className="px-4 py-3">
                       {product.sale_price ? (
@@ -653,7 +653,7 @@ export const ProductManagement = () => {
                           <span className="text-gray-500 line-through text-sm ml-2">₹{product.price.toLocaleString()}</span>
                         </div>
                       ) : (
-                        <span className="text-white font-semibold">₹{product.price?.toLocaleString()}</span>
+                        <span className="text-[#0a355e] font-semibold">₹{product.price?.toLocaleString()}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -665,7 +665,7 @@ export const ProductManagement = () => {
                       <button
                         onClick={() => handleToggleActive(product)}
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          product.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                          product.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-500'
                         }`}
                       >
                         {product.is_active ? 'Active' : 'Inactive'}
@@ -692,7 +692,7 @@ export const ProductManagement = () => {
               </tbody>
             </table>
             {filteredProducts.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-gray-500">
                 No products found. Add your first product!
               </div>
             )}
@@ -710,12 +710,12 @@ export const ProductManagement = () => {
               <div className="flex items-center gap-3">
                 <CreditCard className="w-6 h-6 text-blue-400" />
                 <div>
-                  <h3 className="text-white font-semibold">Razorpay Payments</h3>
-                  <p className="text-gray-400 text-xs">Sync all successful payments</p>
+                  <h3 className="text-[#0a355e] font-semibold">Razorpay Payments</h3>
+                  <p className="text-gray-500 text-xs">Sync all successful payments</p>
                 </div>
               </div>
               <button onClick={syncRazorpayPayments} disabled={syncingPayments}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-[#0a355e] px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600"
                 data-testid="sync-razorpay-btn">
                 {syncingPayments ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                 Sync
@@ -727,12 +727,12 @@ export const ProductManagement = () => {
               <div className="flex items-center gap-3">
                 <Wrench className="w-6 h-6 text-green-400" />
                 <div>
-                  <h3 className="text-white font-semibold">Service Bookings</h3>
-                  <p className="text-gray-400 text-xs">Sync paid service bookings</p>
+                  <h3 className="text-[#0a355e] font-semibold">Service Bookings</h3>
+                  <p className="text-gray-500 text-xs">Sync paid service bookings</p>
                 </div>
               </div>
               <button onClick={syncServiceBookings} disabled={syncingPayments}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600">
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-[#0a355e] px-4 py-2 rounded-lg text-sm font-semibold transition disabled:bg-gray-600">
                 {syncingPayments ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                 Sync
               </button>
@@ -753,22 +753,22 @@ export const ProductManagement = () => {
           )}
 
           {/* Orders Table */}
-          <div className="bg-gray-800/30 rounded-xl overflow-hidden">
+          <div className="bg-white shadow-lg border border-sky-200/30 rounded-xl overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-800/50">
+              <thead className="bg-white shadow-lg border border-sky-200/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Order #</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Customer</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Items</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Total</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Payment</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Status</th>
-                  <th className="px-4 py-3 text-left text-gray-400 text-sm">Actions</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Order #</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Customer</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Items</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Total</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Payment</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Status</th>
+                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
                 {orders.map(order => (
-                  <tr key={order.id} className="hover:bg-gray-800/20">
+                  <tr key={order.id} className="hover:bg-white shadow-lg border border-sky-200/20">
                     <td className="px-4 py-3">
                       <div>
                         <span className="text-amber-400 font-mono">{order.order_number}</span>
@@ -779,16 +779,16 @@ export const ProductManagement = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-white">{order.customer_name}</p>
-                        <p className="text-gray-400 text-sm">{order.customer_phone}</p>
+                        <p className="text-[#0a355e]">{order.customer_name}</p>
+                        <p className="text-gray-500 text-sm">{order.customer_phone}</p>
                         {order.customer_email && <p className="text-gray-500 text-xs">{order.customer_email}</p>}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-gray-300">{order.items?.length || 0} items</span>
+                      <span className="text-gray-600">{order.items?.length || 0} items</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-white font-semibold">₹{order.total?.toLocaleString()}</span>
+                      <span className="text-[#0a355e] font-semibold">₹{order.total?.toLocaleString()}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-xs ${
@@ -810,7 +810,7 @@ export const ProductManagement = () => {
                       <select
                         value={order.order_status}
                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                        className="bg-gray-700 text-white text-sm rounded px-2 py-1 border border-gray-600"
+                        className="bg-gray-50 border border-gray-300 text-[#0a355e] text-sm rounded px-2 py-1 border border-gray-600"
                       >
                         <option value="pending">Pending</option>
                         <option value="confirmed">Confirmed</option>
@@ -836,7 +836,7 @@ export const ProductManagement = () => {
               </tbody>
             </table>
             {orders.length === 0 && (
-              <div className="text-center py-12 text-gray-400">
+              <div className="text-center py-12 text-gray-500">
                 No orders yet. Click "Sync Payments" to import from Razorpay.
               </div>
             )}
@@ -851,10 +851,10 @@ export const ProductManagement = () => {
           <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-xl font-bold text-[#0a355e]">
                   {editingProduct ? "Edit Product" : "Add New Product"}
                 </h2>
-                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-white">
+                <button onClick={() => setShowForm(false)} className="text-gray-500 hover:text-[#0a355e]">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -863,7 +863,7 @@ export const ProductManagement = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Category Selection - First so it can auto-populate fields */}
                   <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-1 block">Category *</label>
+                    <label className="text-gray-500 text-sm mb-1 block">Category *</label>
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                       {categoryOptions.map(cat => {
                         const IconComponent = cat.icon;
@@ -875,7 +875,7 @@ export const ProductManagement = () => {
                             className={`p-3 rounded-xl border-2 transition flex flex-col items-center space-y-1 ${
                               formData.category === cat.id 
                                 ? 'border-amber-500 bg-amber-500/20 text-amber-400' 
-                                : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                                : 'border-sky-200 text-gray-500 hover:border-gray-600'
                             }`}
                           >
                             <IconComponent className="w-5 h-5" />
@@ -895,7 +895,7 @@ export const ProductManagement = () => {
                       </h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-gray-400 text-sm mb-2 block">Wire Type</label>
+                          <label className="text-gray-500 text-sm mb-2 block">Wire Type</label>
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -903,7 +903,7 @@ export const ProductManagement = () => {
                               className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
                                 formData.wire_type === "AC"
                                   ? 'border-amber-500 bg-amber-500/20 text-amber-400'
-                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                                  : 'border-sky-200 text-gray-500 hover:border-gray-600'
                               }`}
                             >
                               AC Wire
@@ -914,7 +914,7 @@ export const ProductManagement = () => {
                               className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
                                 formData.wire_type === "DC"
                                   ? 'border-amber-500 bg-amber-500/20 text-amber-400'
-                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                                  : 'border-sky-200 text-gray-500 hover:border-gray-600'
                               }`}
                             >
                               DC Wire
@@ -922,7 +922,7 @@ export const ProductManagement = () => {
                           </div>
                         </div>
                         <div>
-                          <label className="text-gray-400 text-sm mb-2 block">Wire Size</label>
+                          <label className="text-gray-500 text-sm mb-2 block">Wire Size</label>
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -930,7 +930,7 @@ export const ProductManagement = () => {
                               className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
                                 formData.wire_size === "4sqmm"
                                   ? 'border-amber-500 bg-amber-500/20 text-amber-400'
-                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                                  : 'border-sky-200 text-gray-500 hover:border-gray-600'
                               }`}
                             >
                               4 sqmm
@@ -941,7 +941,7 @@ export const ProductManagement = () => {
                               className={`flex-1 py-3 px-4 rounded-xl border-2 font-semibold transition ${
                                 formData.wire_size === "6sqmm"
                                   ? 'border-amber-500 bg-amber-500/20 text-amber-400'
-                                  : 'border-gray-700 text-gray-400 hover:border-gray-600'
+                                  : 'border-sky-200 text-gray-500 hover:border-gray-600'
                               }`}
                             >
                               6 sqmm
@@ -951,24 +951,24 @@ export const ProductManagement = () => {
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-gray-400 text-sm mb-1 block">Price per Meter (₹) *</label>
+                          <label className="text-gray-500 text-sm mb-1 block">Price per Meter (₹) *</label>
                           <input
                             type="number"
                             required
                             value={formData.price}
                             onChange={(e) => setFormData({...formData, price: e.target.value})}
-                            className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                             placeholder="e.g., 35"
                           />
                           <p className="text-gray-500 text-xs mt-1">Suggested: AC 4sqmm=₹35, AC 6sqmm=₹55, DC 4sqmm=₹45, DC 6sqmm=₹65</p>
                         </div>
                         <div>
-                          <label className="text-gray-400 text-sm mb-1 block">Sale Price per Meter (₹)</label>
+                          <label className="text-gray-500 text-sm mb-1 block">Sale Price per Meter (₹)</label>
                           <input
                             type="number"
                             value={formData.sale_price}
                             onChange={(e) => setFormData({...formData, sale_price: e.target.value})}
-                            className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                             placeholder="Leave empty if no sale"
                           />
                         </div>
@@ -985,7 +985,7 @@ export const ProductManagement = () => {
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-gray-400 text-sm mb-2 block">Service Type</label>
+                          <label className="text-gray-500 text-sm mb-2 block">Service Type</label>
                           <select
                             value={formData.service_type}
                             onChange={(e) => {
@@ -1007,7 +1007,7 @@ export const ProductManagement = () => {
                                 description: "" // Clear description so user can generate new one
                               });
                             }}
-                            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            className="w-full px-4 py-3 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                           >
                             <option value="cleaning">Cleaning Service</option>
                             <option value="maintenance">Maintenance Service</option>
@@ -1016,13 +1016,13 @@ export const ProductManagement = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="text-gray-400 text-sm mb-2 block">Service Price (₹) *</label>
+                          <label className="text-gray-500 text-sm mb-2 block">Service Price (₹) *</label>
                           <input
                             type="number"
                             required
                             value={formData.price}
                             onChange={(e) => setFormData({...formData, price: e.target.value})}
-                            className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                            className="w-full px-4 py-3 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                             placeholder="1500"
                           />
                           <p className="text-gray-500 text-xs mt-1">Suggested base price: ₹1,500</p>
@@ -1032,12 +1032,12 @@ export const ProductManagement = () => {
                       {/* AI Description Generator for Service */}
                       <div className="mt-4">
                         <div className="flex items-center justify-between mb-2">
-                          <label className="text-gray-400 text-sm">Service Description</label>
+                          <label className="text-gray-500 text-sm">Service Description</label>
                           <button
                             type="button"
                             onClick={generateServiceDescription}
                             disabled={generatingDescription}
-                            className="flex items-center gap-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+                            className="flex items-center gap-2 text-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-[#0a355e] px-3 py-1.5 rounded-lg transition disabled:opacity-50"
                           >
                             {generatingDescription ? (
                               <>
@@ -1056,7 +1056,7 @@ export const ProductManagement = () => {
                           value={formData.description}
                           onChange={(e) => setFormData({...formData, description: e.target.value})}
                           rows={4}
-                          className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                          className="w-full px-4 py-3 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                           placeholder="Click 'Generate with AI' or write your own service description..."
                         />
                       </div>
@@ -1065,7 +1065,7 @@ export const ProductManagement = () => {
 
                   {/* Product Name - Editable for all categories */}
                   <div className="md:col-span-2">
-                    <label className="text-gray-400 text-sm mb-1 block">
+                    <label className="text-gray-500 text-sm mb-1 block">
                       Product Name * 
                       {(formData.category === "wire" || formData.category === "service") && (
                         <span className="text-amber-400 ml-2">(Auto-filled, editable)</span>
@@ -1076,7 +1076,7 @@ export const ProductManagement = () => {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                      className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                       placeholder="e.g., 5kW Solar Panel System"
                     />
                   </div>
@@ -1084,12 +1084,12 @@ export const ProductManagement = () => {
                   {/* Brand - Hidden for Wire and Service */}
                   {formData.category !== "wire" && formData.category !== "service" && (
                     <div>
-                      <label className="text-gray-400 text-sm mb-1 block">Brand</label>
+                      <label className="text-gray-500 text-sm mb-1 block">Brand</label>
                       <input
                         type="text"
                         value={formData.brand}
                         onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="e.g., Luminous, Tata Power"
                       />
                     </div>
@@ -1098,7 +1098,7 @@ export const ProductManagement = () => {
                   {/* Price - Hidden for Wire (auto-calculated), Editable for Service */}
                   {formData.category !== "wire" && (
                     <div>
-                      <label className="text-gray-400 text-sm mb-1 block">
+                      <label className="text-gray-500 text-sm mb-1 block">
                         Price (₹) * 
                         {formData.category === "service" && <span className="text-green-400 ml-1">(Base: ₹1,500)</span>}
                       </label>
@@ -1107,7 +1107,7 @@ export const ProductManagement = () => {
                         required
                         value={formData.price}
                         onChange={(e) => setFormData({...formData, price: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="25000"
                       />
                     </div>
@@ -1116,12 +1116,12 @@ export const ProductManagement = () => {
                   {/* Sale Price - Hidden for Service, shown for Wire with per meter label */}
                   {formData.category !== "service" && formData.category !== "wire" && (
                     <div>
-                      <label className="text-gray-400 text-sm mb-1 block">Sale Price (₹)</label>
+                      <label className="text-gray-500 text-sm mb-1 block">Sale Price (₹)</label>
                       <input
                         type="number"
                         value={formData.sale_price}
                         onChange={(e) => setFormData({...formData, sale_price: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="22000 (leave empty if no sale)"
                       />
                     </div>
@@ -1130,7 +1130,7 @@ export const ProductManagement = () => {
                   {/* Stock - Hidden for Service */}
                   {formData.category !== "service" && (
                     <div>
-                      <label className="text-gray-400 text-sm mb-1 block">
+                      <label className="text-gray-500 text-sm mb-1 block">
                         Stock Quantity * {formData.category === "wire" && "(meters)"}
                       </label>
                       <input
@@ -1138,7 +1138,7 @@ export const ProductManagement = () => {
                         required
                         value={formData.stock}
                         onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder={formData.category === "wire" ? "1000" : "10"}
                       />
                     </div>
@@ -1147,12 +1147,12 @@ export const ProductManagement = () => {
                   {/* SKU - Hidden for Wire and Service */}
                   {formData.category !== "wire" && formData.category !== "service" && (
                     <div>
-                      <label className="text-gray-400 text-sm mb-1 block">SKU</label>
+                      <label className="text-gray-500 text-sm mb-1 block">SKU</label>
                       <input
                         type="text"
                         value={formData.sku}
                         onChange={(e) => setFormData({...formData, sku: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="ASR-SP-5KW-001"
                       />
                     </div>
@@ -1161,12 +1161,12 @@ export const ProductManagement = () => {
                   {/* Warranty - Hidden for Wire and Service */}
                   {formData.category !== "wire" && formData.category !== "service" && (
                     <div>
-                      <label className="text-gray-400 text-sm mb-1 block">Warranty</label>
+                      <label className="text-gray-500 text-sm mb-1 block">Warranty</label>
                       <input
                         type="text"
                         value={formData.warranty}
                         onChange={(e) => setFormData({...formData, warranty: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="5 Years"
                       />
                     </div>
@@ -1175,12 +1175,12 @@ export const ProductManagement = () => {
                   {/* Short Description - Hidden for Service (uses AI generated full description) */}
                   {formData.category !== "service" && (
                     <div className="md:col-span-2">
-                      <label className="text-gray-400 text-sm mb-1 block">Short Description</label>
+                      <label className="text-gray-500 text-sm mb-1 block">Short Description</label>
                       <input
                         type="text"
                         value={formData.short_description}
                         onChange={(e) => setFormData({...formData, short_description: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                       placeholder="Brief product description for listing"
                     />
                     </div>
@@ -1189,12 +1189,12 @@ export const ProductManagement = () => {
                   {/* Full Description - Hidden for Service (has its own AI-powered description field) */}
                   {formData.category !== "service" && (
                     <div className="md:col-span-2">
-                      <label className="text-gray-400 text-sm mb-1 block">Full Description</label>
+                      <label className="text-gray-500 text-sm mb-1 block">Full Description</label>
                       <textarea
                         rows={3}
                         value={formData.description}
                         onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="Detailed product description"
                       />
                     </div>
@@ -1202,7 +1202,7 @@ export const ProductManagement = () => {
 
                   {/* Images - Available for all categories including service */}
                   <div className="md:col-span-2">
-                      <label className="text-gray-400 text-sm mb-1 block">Product Images {formData.category === "service" && "(Service Photos)"}</label>
+                      <label className="text-gray-500 text-sm mb-1 block">Product Images {formData.category === "service" && "(Service Photos)"}</label>
                       
                       {/* Upload from Mobile/Desktop */}
                       <div className="mb-3">
@@ -1219,7 +1219,7 @@ export const ProductManagement = () => {
                           className={`flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer hover:border-amber-500 transition ${uploadingImage ? 'opacity-50' : ''}`}
                         >
                           <Upload className="w-5 h-5 text-amber-400" />
-                          <span className="text-gray-300">
+                          <span className="text-gray-600">
                             {uploadingImage ? 'Uploading...' : 'Upload from Mobile/Gallery'}
                           </span>
                         </label>
@@ -1232,13 +1232,13 @@ export const ProductManagement = () => {
                         type="url"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        className="flex-1 px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white"
+                        className="flex-1 px-4 py-2 bg-white shadow-lg border border-sky-200/50 border border-sky-200 rounded-lg text-[#0a355e]"
                         placeholder="Or paste image URL"
                       />
                       <button
                         type="button"
                         onClick={addImageUrl}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                        className="bg-blue-500 hover:bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg"
                       >
                         <Plus className="w-5 h-5" />
                       </button>
@@ -1251,7 +1251,7 @@ export const ProductManagement = () => {
                             <button
                               type="button"
                               onClick={() => removeImage(url)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                              className="absolute -top-2 -right-2 bg-red-500 text-[#0a355e] rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1263,7 +1263,7 @@ export const ProductManagement = () => {
 
                   {/* Options - Simplified for Service (only Active) */}
                   <div className="md:col-span-2 flex flex-wrap gap-4">
-                    <label className="flex items-center space-x-2 text-white">
+                    <label className="flex items-center space-x-2 text-[#0a355e]">
                       <input
                         type="checkbox"
                         checked={formData.is_active}
@@ -1274,7 +1274,7 @@ export const ProductManagement = () => {
                     </label>
                     {formData.category !== "service" && (
                       <>
-                        <label className="flex items-center space-x-2 text-white">
+                        <label className="flex items-center space-x-2 text-[#0a355e]">
                           <input
                             type="checkbox"
                             checked={formData.is_featured}
@@ -1283,7 +1283,7 @@ export const ProductManagement = () => {
                           />
                           <span>Featured</span>
                         </label>
-                        <label className="flex items-center space-x-2 text-white">
+                        <label className="flex items-center space-x-2 text-[#0a355e]">
                           <input
                             type="checkbox"
                             checked={formData.delivery_available}
@@ -1292,7 +1292,7 @@ export const ProductManagement = () => {
                           />
                           <span>Delivery Available</span>
                         </label>
-                        <label className="flex items-center space-x-2 text-white">
+                        <label className="flex items-center space-x-2 text-[#0a355e]">
                           <input
                             type="checkbox"
                             checked={formData.pickup_available}
@@ -1312,10 +1312,10 @@ export const ProductManagement = () => {
                         <MapPin className="w-5 h-5 mr-2" />
                         Delivery Districts (Bihar)
                       </h3>
-                      <p className="text-gray-400 text-sm mb-3">Select districts where this product can be delivered. Leave empty to deliver to all districts.</p>
+                      <p className="text-gray-500 text-sm mb-3">Select districts where this product can be delivered. Leave empty to deliver to all districts.</p>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
                         {biharDistricts.districts.map(district => (
-                          <label key={district} className="flex items-center gap-2 text-sm text-white bg-gray-800/50 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-700/50">
+                          <label key={district} className="flex items-center gap-2 text-sm text-[#0a355e] bg-white shadow-lg border border-sky-200/50 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 border border-gray-300/50">
                             <input
                               type="checkbox"
                               checked={formData.delivery_districts?.includes(district) || false}
@@ -1342,17 +1342,17 @@ export const ProductManagement = () => {
                   )}
                 </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+                <div className="flex justify-end space-x-3 pt-4 border-t border-sky-200">
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+                    className="px-6 py-2 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg hover:bg-gray-600"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center space-x-2"
+                    className="px-6 py-2 bg-amber-500 text-[#0a355e] rounded-lg hover:bg-amber-600 flex items-center space-x-2"
                   >
                     <Save className="w-5 h-5" />
                     <span>{editingProduct ? "Update" : "Create"} Product</span>

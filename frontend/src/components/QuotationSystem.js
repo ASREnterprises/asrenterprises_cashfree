@@ -168,7 +168,7 @@ export const QuotationSystem = () => {
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-yellow-700 transition flex items-center space-x-2"
+            className="bg-yellow-600 text-[#0a355e] px-6 py-3 rounded-lg font-semibold hover:bg-yellow-700 transition flex items-center space-x-2"
             data-testid="create-quote-btn"
           >
             <Plus className="w-5 h-5" />
@@ -340,7 +340,7 @@ export const QuotationSystem = () => {
                 <button
                   type="button"
                   onClick={calculateQuote}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center space-x-2"
+                  className="flex-1 bg-blue-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center space-x-2"
                   data-testid="calculate-quote-btn"
                 >
                   <Calculator className="w-5 h-5" />
@@ -378,14 +378,14 @@ export const QuotationSystem = () => {
                       <p className="text-2xl font-bold text-green-600">-₹{calculation.subsidy.toLocaleString()}</p>
                     </div>
                     <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-4 rounded-lg md:col-span-2">
-                      <p className="text-white">Final Cost to Customer</p>
-                      <p className="text-3xl font-bold text-white">₹{calculation.finalCost.toLocaleString()}</p>
+                      <p className="text-[#0a355e]">Final Cost to Customer</p>
+                      <p className="text-3xl font-bold text-[#0a355e]">₹{calculation.finalCost.toLocaleString()}</p>
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-yellow-600 text-white py-3 rounded-lg font-semibold hover:bg-yellow-700 transition mt-6"
+                    className="w-full bg-yellow-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:bg-yellow-700 transition mt-6"
                     data-testid="save-quote-btn"
                   >
                     Save Quotation
@@ -439,12 +439,12 @@ export const QuotationSystem = () => {
 
         {quotations.length === 0 && !showForm && (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <FileText className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+            <FileText className="w-20 h-20 text-gray-600 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-gray-900 mb-2">No Quotations Yet</h3>
             <p className="text-gray-600 mb-6">Create your first solar quotation</p>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-yellow-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-yellow-700 transition"
+              className="bg-yellow-600 text-[#0a355e] px-8 py-3 rounded-lg font-semibold hover:bg-yellow-700 transition"
             >
               Create First Quotation
             </button>

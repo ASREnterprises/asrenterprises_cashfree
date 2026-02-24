@@ -1230,6 +1230,125 @@ class CRMPayment(BaseModel):
     notes: str = ""
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+# HR Employee Management Model
+class HREmployee(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str  # Custom ID like ASR1001
+    
+    # Personal Information
+    name: str
+    email: str = ""
+    phone: str
+    date_of_birth: Optional[str] = None
+    gender: Optional[str] = None  # male, female, other
+    blood_group: Optional[str] = None
+    photo_url: Optional[str] = None
+    
+    # Address
+    address: str = ""
+    city: str = ""
+    state: str = "Bihar"
+    pincode: str = ""
+    
+    # Emergency Contact
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    emergency_contact_relation: Optional[str] = None
+    
+    # Employment Details
+    department: str = "sales"  # sales, technical, admin, marketing, support
+    designation: str = ""  # Sales Executive, Technician, Manager, etc.
+    role: str = "sales"  # sales, manager, telecaller, technician, admin
+    employment_type: str = "full_time"  # full_time, part_time, contract, intern
+    joining_date: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    probation_end_date: Optional[str] = None
+    confirmation_date: Optional[str] = None
+    
+    # Salary & Compensation
+    salary_type: str = "monthly"  # monthly, daily, hourly
+    base_salary: float = 0.0
+    allowances: float = 0.0
+    incentive_percentage: float = 0.0  # % of sales
+    pf_number: Optional[str] = None
+    esi_number: Optional[str] = None
+    bank_name: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_ifsc: Optional[str] = None
+    pan_number: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    
+    # Documents (URLs)
+    documents: Dict[str, str] = {}  # {document_type: url}
+    
+    # Status & History
+    status: str = "active"  # active, probation, notice_period, resigned, terminated
+    is_active: bool = True
+    
+    # Performance Metrics
+    leads_assigned: int = 0
+    leads_converted: int = 0
+    total_sales: float = 0.0
+    total_revenue: float = 0.0
+    performance_rating: float = 0.0  # 1-5
+    last_review_date: Optional[str] = None
+    
+    # Attendance & Leave
+    total_leaves: int = 18  # Annual leaves
+    leaves_taken: int = 0
+    leaves_remaining: int = 18
+    
+    # Onboarding Checklist
+    onboarding_completed: bool = False
+    onboarding_checklist: Dict[str, bool] = {
+        "documents_submitted": False,
+        "id_card_created": False,
+        "bank_details_added": False,
+        "system_access_given": False,
+        "training_completed": False,
+        "reporting_manager_assigned": False
+    }
+    
+    # Reporting
+    reporting_manager_id: Optional[str] = None
+    reporting_manager_name: Optional[str] = None
+    
+    # Notes & History
+    notes: str = ""
+    status_history: List[Dict[str, Any]] = []
+    
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# HR Leave Request Model
+class HRLeaveRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    leave_type: str = "casual"  # casual, sick, earned, unpaid
+    from_date: str
+    to_date: str
+    total_days: int = 1
+    reason: str = ""
+    status: str = "pending"  # pending, approved, rejected
+    approved_by: Optional[str] = None
+    approved_date: Optional[str] = None
+    notes: str = ""
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+# HR Attendance Model
+class HRAttendance(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    date: str
+    check_in: Optional[str] = None
+    check_out: Optional[str] = None
+    status: str = "present"  # present, absent, half_day, leave, holiday
+    work_hours: float = 0.0
+    notes: str = ""
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
 class Quotation(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

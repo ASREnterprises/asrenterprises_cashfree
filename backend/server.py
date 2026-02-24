@@ -4312,10 +4312,28 @@ async def book_service(data: Dict[str, Any]):
 async def confirm_service_booking(booking_id: str, data: Dict[str, Any]):
     """Confirm service booking after successful payment - sends WhatsApp + Email"""
     payment_id = data.get("razorpay_payment_id", "")
+    razorpay_order_id = data.get("razorpay_order_id", "")
+    razorpay_signature = data.get("razorpay_signature", "")
     
     booking = await db.service_bookings.find_one({"id": booking_id}, {"_id": 0})
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Verify Razorpay signature for security
+    signature_verified = False
+    if razorpay_signature and razorpay_order_id and RAZORPAY_KEY_SECRET:
+        try:
+            razorpay_client.utility.verify_payment_signature({
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature': razorpay_signature
+            })
+            signature_verified = True
+            logger.info(f"Payment signature verified for booking {booking_id}")
+        except razorpay.errors.SignatureVerificationError:
+            logger.warning(f"Payment signature verification failed for booking {booking_id}")
+        except Exception as e:
+            logger.error(f"Signature verification error: {e}")
     
     # Update booking status
     await db.service_bookings.update_one(
@@ -4323,6 +4341,8 @@ async def confirm_service_booking(booking_id: str, data: Dict[str, Any]):
         {"$set": {
             "payment_status": "paid",
             "payment_id": payment_id,
+            "razorpay_order_id": razorpay_order_id,
+            "signature_verified": signature_verified,
             "status": "confirmed",
             "confirmed_at": datetime.now(timezone.utc).isoformat()
         }}

@@ -9,43 +9,59 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Database:** MongoDB (Motor async driver) with 19 optimized indexes
 - **Payments:** Razorpay Checkout SDK (Live key: rzp_live_SJXJM0ejFejAWd)
 - **AI:** OpenAI GPT-4o-mini via Emergent LLM Key
-- **Image Processing:** Pillow for WebP conversion
+- **Image Processing:** Pillow for WebP auto-optimization
 
 ## What's Been Implemented
 
-### Latest Session (Feb 24, 2026)
+### Latest Session (Feb 24, 2026) - Part 2
+
+#### OTP System Improvements
+- **OTP Cooldown:** 60 seconds between OTP sends (prevents spam)
+- **OTP Validity:** 5 minutes (300 seconds)
+- **Faster Delivery:** Streamlined email sending process
+
+#### Gallery Auto-Optimization
+- **Auto-Convert to WebP:** All uploaded images converted to WebP
+- **Size Limit:** Images automatically compressed to < 200KB
+- **Resize:** Max 1920px width for faster page loads
+- **Quality Optimization:** Dynamic quality adjustment (85% to 40%)
+
+#### Admin Dashboard UI Changes
+- **Removed:** "Govt News & Schemes" module
+- **Removed:** "Analytics" module
+- **Kept:** CRM System, Shop Management, Leads, Festival Posts, Security
+
+#### CRM System UI Changes
+- **Removed:** "Projects" tab
+- **Removed:** "Payments" tab
+- **Kept:** Dashboard, Leads, Tasks, Team, Messages, Gallery, Testimonials
+- **Caching:** 20 second TTL for CRM dashboard data
+
+#### Navigation Enhancement
+- **Dashboard Button:** Shows "Dashboard" in nav when admin is logged in
+- **Replaces Login:** Login button becomes Dashboard button for active sessions
+
+### Latest Session (Feb 24, 2026) - Part 1
 
 #### Security - Rate Limiting (COMPLETED)
 - **Login Rate Limiting:** 5 attempts per 5 minutes window
 - **Lockout Protection:** 15-minute lockout after 5 failed attempts
 - **IP-based Tracking:** Failed logins tracked by IP and email
 - **Auto-reset:** Counters reset on successful login
-- **General API Rate Limit:** 100 requests/minute
 
 #### Async Dashboard Loading (COMPLETED)
 - **Quick Stats Endpoint:** `/api/dashboard/quick-stats` - Fast initial load
 - **Deferred Stats:** Full dashboard stats load in background after login
 - **Skeleton Loading:** Animated placeholders while data loads
-- **Real-time Badges:** "22 New!", "19 Pending" indicators on dashboard
-- **Refresh Button:** Manual refresh with loading animation
-
-#### Performance Optimizations (COMPLETED)
-- **MongoDB Indexes:** 19 total indexes across collections
-- **In-Memory API Caching:** 30 second TTL for dashboard stats
-- **Cache Headers Middleware:** Static files (1 year), API responses (30s)
-- **Database Cleanup Endpoint:** Auto-cleanup for old sessions/logs/OTPs
-
-#### Admin Panel Light Theme (COMPLETED)
-- All admin pages updated to premium light theme
-- AdminLogin, CRMDashboard, and all management pages
 
 ### Performance Test Results
 | Endpoint | Response Time |
 |----------|---------------|
-| Quick Stats | 235ms |
-| Dashboard Stats | 144ms |
-| Shop Stats | 163ms |
-| CRM Quick Stats | 142ms |
+| CRM Dashboard | 354ms (cached) |
+| Quick Stats | 172ms |
+| Shop Products | 669ms |
+| Razorpay Config | 136ms |
+| Leads List | 131ms |
 
 ### Previous Session (Feb 23, 2026)
 

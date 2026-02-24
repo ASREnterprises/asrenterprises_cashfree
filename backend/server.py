@@ -4780,7 +4780,12 @@ async def track_order(order_number: str):
 
 @api_router.get("/shop/stats")
 async def get_shop_stats():
-    """Get shop statistics for CRM dashboard"""
+    """Get shop statistics for CRM dashboard with caching"""
+    cache_key = "shop_stats"
+    cached = get_cached(cache_key, ttl=30)
+    if cached:
+        return cached
+    
     results = await asyncio.gather(
         db.products.count_documents({"is_active": True}),
         db.orders.count_documents({}),
@@ -4792,13 +4797,16 @@ async def get_shop_stats():
         ]).to_list(1)
     )
     
-    return {
+    response = {
         "total_products": results[0],
         "total_orders": results[1],
         "pending_orders": results[2],
         "paid_orders": results[3],
         "total_revenue": results[4][0]["total"] if results[4] else 0
     }
+    
+    set_cache(cache_key, response, ttl=30)
+    return response
 
 
 # ==================== PRODUCT REVIEWS ====================

@@ -321,6 +321,24 @@ class BrotliMiddleware(BaseHTTPMiddleware):
         
         return response
 
+# Cache Headers Middleware for static and API responses
+class CacheHeadersMiddleware(BaseHTTPMiddleware):
+    """Add cache headers for performance optimization"""
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        
+        # Cache static files for 1 year
+        if any(ext in path for ext in ['.js', '.css', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.woff', '.woff2']):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        # Cache API responses for short duration
+        elif path.startswith("/api/") and request.method == "GET":
+            # Don't cache auth or admin endpoints
+            if not any(x in path for x in ["/auth", "/login", "/otp", "/verify"]):
+                response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+        
+        return response
+
 # Create the main app
 app = FastAPI()
 

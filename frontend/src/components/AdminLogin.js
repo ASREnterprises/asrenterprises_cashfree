@@ -67,23 +67,23 @@ export const AdminLogin = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0f2240] to-[#0a1628] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="rounded-2xl p-4 mx-auto mb-4 inline-block">
             <img 
-              src="/asr_logo_dark.png" 
+              src="/asr_logo_transparent.png" 
               alt="ASR Enterprises" 
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-4xl font-extrabold text-[#0a355e] mb-2">ASR ENTERPRISES</h1>
-          <p className="text-blue-100">Secure Admin Panel Login</p>
+          <h1 className="text-4xl font-extrabold text-amber-500 mb-2">ASR ENTERPRISES</h1>
+          <p className="text-gray-600">Secure Admin Panel Login</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white shadow-xl border border-sky-200 rounded-2xl shadow-2xl p-8 border border-sky-200">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-sky-200">
           {step === 1 ? (
             <form onSubmit={sendOTP} className="space-y-6">
               <div className="text-center mb-6">
@@ -92,28 +92,28 @@ export const AdminLogin = ({ onLogin }) => {
               </div>
 
               {error && (
-                <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 border border-red-300 text-red-600 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-green-50 border border-green-300 text-green-600 px-4 py-3 rounded-lg text-sm">
                   {success}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Registered Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300/50 border border-gray-600 text-[#0a355e] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                     placeholder="your@email.com"
                     required
                     data-testid="admin-email"
@@ -124,7 +124,7 @@ export const AdminLogin = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 flex items-center justify-center space-x-2"
                 data-testid="send-otp-btn"
               >
                 {loading ? (
@@ -148,13 +148,13 @@ export const AdminLogin = ({ onLogin }) => {
               </div>
 
               {error && (
-                <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-50 border border-red-300 text-red-600 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-600 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   6-Digit OTP
                 </label>
                 <input

@@ -1761,12 +1761,12 @@ async def calculate_solar(calc_request: SolarCalculationRequest):
 
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats():
-    """Optimized dashboard stats with caching and parallel queries"""
-    # Check cache first
+    """Optimized dashboard stats with Redis caching and parallel queries"""
+    # Check Redis cache first
     cache_key = "dashboard_stats"
-    cached = get_cached(cache_key, ttl=30)  # 30 second cache
-    if cached:
-        return cached
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
     
     results = await asyncio.gather(
         db.leads.count_documents({}),
@@ -1794,8 +1794,235 @@ async def get_dashboard_stats():
         "total_orders": results[9]
     }
     
-    set_cache(cache_key, response, ttl=30)
+    await cache_set(cache_key, response, ttl=30)
     return response
+
+# ==================== LAZY LOADING DASHBOARD WIDGETS ====================
+
+@api_router.get("/dashboard/widget/counts")
+async def get_dashboard_counts():
+    """Fast endpoint for basic counts - loads first"""
+    cache_key = "dashboard_counts"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    results = await asyncio.gather(
+        db.leads.count_documents({}),
+        db.orders.count_documents({}),
+        db.leads.count_documents({"status": "new"}),
+        db.orders.count_documents({"status": "pending"})
+    )
+    
+    response = {
+        "total_leads": results[0],
+        "total_orders": results[1],
+        "new_leads": results[2],
+        "pending_orders": results[3]
+    }
+    
+    await cache_set(cache_key, response, ttl=20)
+    return response
+
+@api_router.get("/dashboard/widget/recent-leads")
+async def get_recent_leads_widget():
+    """Recent leads widget - loads separately"""
+    cache_key = "dashboard_recent_leads"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    recent_leads = await db.leads.find(
+        {}, 
+        {"_id": 0, "name": 1, "phone": 1, "district": 1, "status": 1, "timestamp": 1, "lead_score": 1}
+    ).sort("timestamp", -1).limit(10).to_list(10)
+    
+    response = {"recent_leads": recent_leads}
+    await cache_set(cache_key, response, ttl=20)
+    return response
+
+@api_router.get("/dashboard/widget/recent-orders")
+async def get_recent_orders_widget():
+    """Recent orders widget - loads separately"""
+    cache_key = "dashboard_recent_orders"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    recent_orders = await db.orders.find(
+        {},
+        {"_id": 0, "order_number": 1, "customer_name": 1, "total": 1, "status": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    response = {"recent_orders": recent_orders}
+    await cache_set(cache_key, response, ttl=20)
+    return response
+
+@api_router.get("/dashboard/widget/revenue")
+async def get_revenue_widget():
+    """Revenue widget - heavier query, loads last"""
+    cache_key = "dashboard_revenue"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    now = datetime.now(timezone.utc)
+    this_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    
+    pipeline = [
+        {"$match": {"status": {"$in": ["confirmed", "delivered", "completed"]}, "created_at": {"$gte": this_month}}},
+        {"$group": {"_id": None, "total_revenue": {"$sum": "$total"}, "order_count": {"$sum": 1}}}
+    ]
+    
+    result = await db.orders.aggregate(pipeline).to_list(1)
+    
+    response = {
+        "this_month_revenue": result[0]["total_revenue"] if result else 0,
+        "this_month_orders": result[0]["order_count"] if result else 0
+    }
+    
+    await cache_set(cache_key, response, ttl=60)
+    return response
+
+@api_router.get("/dashboard/widget/chart-data")
+async def get_chart_data_widget():
+    """Chart data widget - heaviest query"""
+    cache_key = "dashboard_chart_data"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    # Last 7 days leads trend
+    now = datetime.now(timezone.utc)
+    seven_days_ago = (now - timedelta(days=7)).isoformat()
+    
+    pipeline = [
+        {"$match": {"timestamp": {"$gte": seven_days_ago}}},
+        {"$group": {
+            "_id": {"$dateToString": {"format": "%Y-%m-%d", "date": {"$dateFromString": {"dateString": "$timestamp"}}}},
+            "count": {"$sum": 1}
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+    
+    leads_trend = await db.leads.aggregate(pipeline).to_list(7)
+    
+    # Leads by status
+    status_pipeline = [
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    leads_by_status = await db.leads.aggregate(status_pipeline).to_list(10)
+    
+    response = {
+        "leads_trend": leads_trend,
+        "leads_by_status": leads_by_status
+    }
+    
+    await cache_set(cache_key, response, ttl=60)
+    return response
+
+# ==================== CRM LAZY LOADING WIDGETS ====================
+
+@api_router.get("/crm/widget/stats")
+async def get_crm_stats_widget():
+    """CRM quick stats - loads first"""
+    cache_key = "crm_stats"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    results = await asyncio.gather(
+        db.leads.count_documents({}),
+        db.leads.count_documents({"status": "new"}),
+        db.leads.count_documents({"status": "qualified"}),
+        db.leads.count_documents({"status": "converted"}),
+        db.staff.count_documents({"is_active": True}),
+        db.crm_tasks.count_documents({"status": "pending"})
+    )
+    
+    response = {
+        "total_leads": results[0],
+        "new_leads": results[1],
+        "qualified_leads": results[2],
+        "converted_leads": results[3],
+        "active_staff": results[4],
+        "pending_tasks": results[5]
+    }
+    
+    await cache_set(cache_key, response, ttl=30)
+    return response
+
+@api_router.get("/crm/widget/pipeline")
+async def get_crm_pipeline_widget():
+    """CRM pipeline data"""
+    cache_key = "crm_pipeline"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    pipeline = [
+        {"$group": {"_id": "$status", "count": {"$sum": 1}, "value": {"$sum": {"$ifNull": ["$expected_value", 0]}}}},
+        {"$sort": {"count": -1}}
+    ]
+    
+    stages = await db.leads.aggregate(pipeline).to_list(10)
+    
+    response = {"pipeline_stages": stages}
+    await cache_set(cache_key, response, ttl=30)
+    return response
+
+@api_router.get("/crm/widget/recent-activity")
+async def get_crm_recent_activity():
+    """CRM recent activity"""
+    cache_key = "crm_recent_activity"
+    cached_data = await cache_get(cache_key)
+    if cached_data:
+        return cached_data
+    
+    recent_leads = await db.leads.find(
+        {},
+        {"_id": 0, "name": 1, "phone": 1, "status": 1, "timestamp": 1}
+    ).sort("timestamp", -1).limit(5).to_list(5)
+    
+    recent_tasks = await db.crm_tasks.find(
+        {},
+        {"_id": 0, "title": 1, "status": 1, "due_date": 1, "priority": 1}
+    ).sort("created_at", -1).limit(5).to_list(5)
+    
+    response = {
+        "recent_leads": recent_leads,
+        "recent_tasks": recent_tasks
+    }
+    
+    await cache_set(cache_key, response, ttl=30)
+    return response
+
+# ==================== CACHE MANAGEMENT ENDPOINTS ====================
+
+@api_router.get("/admin/cache/status")
+@limiter.limit(RATE_LIMIT_ADMIN)
+async def get_cache_status(request: Request):
+    """Get Redis cache status and statistics"""
+    stats = await get_cache_stats()
+    return {
+        "status": "active" if stats["enabled"] else "fallback",
+        "backend": stats["backend"],
+        "keys_count": stats["keys_count"],
+        "memory_usage": stats.get("memory_usage", "N/A"),
+        "ttl_config": CACHE_TTL
+    }
+
+@api_router.post("/admin/cache/clear")
+@limiter.limit(RATE_LIMIT_ADMIN)
+async def clear_cache(request: Request, pattern: Optional[str] = None):
+    """Clear cache (all or by pattern)"""
+    if pattern:
+        count = await cache_clear_pattern(pattern)
+        return {"success": True, "message": f"Cleared {count} keys matching '{pattern}'"}
+    else:
+        await cache_clear_all()
+        return {"success": True, "message": "All cache cleared"}
 
 # Analytics Endpoint for detailed business insights
 @api_router.get("/admin/analytics")

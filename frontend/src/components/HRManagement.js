@@ -179,6 +179,22 @@ export const HRManagement = () => {
     }
   };
 
+  const handleDeleteEmployee = async (employee) => {
+    const confirmMsg = `Are you sure you want to PERMANENTLY DELETE employee "${employee.name}" (${employee.employee_id})?\n\nThis will:\n- Delete all employee data\n- Remove from CRM Teams\n- Delete attendance records\n- Delete leave requests\n\nThis action CANNOT be undone!`;
+    
+    if (window.confirm(confirmMsg)) {
+      try {
+        await axios.delete(`${API}/hr/employees/${employee.employee_id}/permanent`);
+        alert(`Employee ${employee.employee_id} has been permanently deleted.`);
+        setShowDetailsModal(null);
+        fetchEmployees();
+        fetchDashboard();
+      } catch (err) {
+        alert(err.response?.data?.detail || "Error deleting employee");
+      }
+    }
+  };
+
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          emp.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||

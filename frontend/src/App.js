@@ -1754,6 +1754,11 @@ export default function App() {
               <SecurityCenter />
             </ProtectedRoute>
           } />
+          <Route path="/admin/hr" element={
+            <ProtectedRoute>
+              <HRManagement />
+            </ProtectedRoute>
+          } />
         </Routes>
       </Suspense>
     </BrowserRouter>

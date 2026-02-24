@@ -3531,7 +3531,12 @@ async def create_payment(data: Dict[str, Any]):
 # CRM Dashboard Stats
 @api_router.get("/crm/dashboard")
 async def get_crm_dashboard():
-    """Optimized CRM Dashboard with parallel DB queries"""
+    """Optimized CRM Dashboard with caching and parallel DB queries"""
+    cache_key = "crm_dashboard"
+    cached = get_cached(cache_key, ttl=20)  # 20 second cache for CRM
+    if cached:
+        return cached
+    
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
     # Run all database queries in parallel for faster response
@@ -3561,7 +3566,7 @@ async def get_crm_dashboard():
     pipeline_stats, todays_followups, employees, recent_leads, total_payments, \
         projects_pending, projects_progress, projects_completed, total_leads = results
     
-    return {
+    response = {
         "pipeline_stats": {item["_id"]: item["count"] for item in pipeline_stats if item["_id"]},
         "total_leads": total_leads,
         "todays_followups": todays_followups,
@@ -3574,6 +3579,9 @@ async def get_crm_dashboard():
             "completed": projects_completed
         }
     }
+    
+    set_cache(cache_key, response, ttl=20)
+    return response
 
 # CRM AI Features
 @api_router.post("/crm/ai/lead-priority")

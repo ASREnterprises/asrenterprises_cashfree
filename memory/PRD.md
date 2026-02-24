@@ -29,6 +29,24 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **New Files:** `/app/backend/security.py`
 - **New Endpoint:** `GET /api/admin/security-status`
 
+#### Automated Database Cleanup (COMPLETED)
+- **Schedule:** Daily regular cleanup, Weekly deep cleanup (Mondays)
+- **Regular Cleanup (Daily):**
+  - Old sessions (>7 days)
+  - Old activity logs (>30 days)
+  - Expired OTPs
+  - Expired pending bookings (>24 hours unpaid)
+  - Old notifications (>30 days)
+  - Cache cleared
+- **Deep Cleanup (Weekly - Mondays):**
+  - All regular cleanup tasks
+  - Database indexes verification
+  - Old cancelled orders (>90 days)
+- **New Endpoints:**
+  - `GET /api/admin/cleanup/status` - View cleanup schedule
+  - `POST /api/admin/cleanup/run` - Manual cleanup trigger
+  - `POST /api/admin/cleanup/run?deep=true` - Deep cleanup trigger
+
 #### Razorpay Payment Fix (COMPLETED - PRODUCTION VERIFIED)
 - **New Credentials:** rzp_live_SK301HQRh9RYf7
 - **Proper Orders API:** Backend creates Razorpay orders before checkout

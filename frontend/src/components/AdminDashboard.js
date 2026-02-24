@@ -237,9 +237,6 @@ export const AdminDashboard = ({ onLogout }) => {
                 <div className="text-gray-500 text-sm">This Month</div>
               </>
             )}
-                <div className="text-gray-500 text-sm">Reviews</div>
-              </>
-            )}
           </div>
         </div>
 

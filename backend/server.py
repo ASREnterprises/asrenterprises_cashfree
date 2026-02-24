@@ -5040,7 +5040,7 @@ async def check_product_delivery(product_id: str, pincode: str):
         raise HTTPException(status_code=404, detail="Product not found")
     
     # Get district from pincode
-    pincode_info = BIHAR_DISTRICTS.get(pincode)
+    pincode_info = BIHAR_PINCODES.get(pincode)
     district = None
     if pincode_info:
         district = pincode_info["district"]
@@ -5478,7 +5478,7 @@ BIHAR_PINCODES = {
 @api_router.get("/shop/check-delivery/{pincode}")
 async def check_delivery(pincode: str):
     """Check delivery availability by pincode for Bihar"""
-    info = BIHAR_DISTRICTS.get(pincode)
+    info = BIHAR_PINCODES.get(pincode)
     if info:
         return {
             "deliverable": info["deliverable"],

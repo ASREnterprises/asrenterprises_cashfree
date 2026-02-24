@@ -3928,6 +3928,27 @@ async def get_razorpay_status():
         "key_id_prefix": RAZORPAY_KEY_ID[:15] + "..." if RAZORPAY_KEY_ID else None
     }
 
+@api_router.get("/admin/security-status")
+@limiter.limit(RATE_LIMIT_ADMIN)
+async def get_security_status(request: Request):
+    """Get security monitoring status (admin only)"""
+    stats = security_tracker.get_stats()
+    return {
+        "status": "active",
+        "security_features": {
+            "rate_limiting": True,
+            "ip_blocking": True,
+            "security_headers": True,
+            "input_validation": True,
+            "request_size_limits": True,
+            "suspicious_activity_logging": True,
+            "payment_signature_verification": True
+        },
+        "statistics": stats,
+        "blocked_ips_count": stats["blocked_ips"],
+        "tracked_suspicious_activities": stats["suspicious_activities"]
+    }
+
 # ==================== RAZORPAY PAYMENT SYNC ====================
 
 @api_router.get("/admin/razorpay/payments")

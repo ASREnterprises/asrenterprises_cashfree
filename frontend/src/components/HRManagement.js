@@ -37,6 +37,7 @@ const STATUSES = [
 ];
 
 export const HRManagement = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboard, setDashboard] = useState(null);
   const [employees, setEmployees] = useState([]);

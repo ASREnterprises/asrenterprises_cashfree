@@ -226,28 +226,104 @@ export const ShopPage = () => {
       
       if (checkoutData.payment_method === "razorpay") {
         try {
+          // Get Razorpay config
           const configRes = await axios.get(`${API}/shop/razorpay-config`);
-          // Lazy load Razorpay script
-          if (window.loadRazorpay) await window.loadRazorpay();
-          if (!configRes.data.key_id || !window.Razorpay) { alert("Payment gateway unavailable."); setPlacingOrder(false); return; }
+          if (!configRes.data.key_id) {
+            alert("Payment configuration error. Please contact support.");
+            setPlacingOrder(false);
+            return;
+          }
+          
+          // Load Razorpay SDK with proper error handling
+          try {
+            await window.loadRazorpay();
+          } catch (loadErr) {
+            console.error("Failed to load Razorpay:", loadErr);
+            alert("Payment gateway could not be loaded. Please check your internet connection and try again.");
+            setPlacingOrder(false);
+            return;
+          }
+          
+          // Check if Razorpay is now available
+          if (!window.Razorpay) {
+            alert("Payment gateway unavailable. Please refresh the page and try again.");
+            setPlacingOrder(false);
+            return;
+          }
+          
           const options = {
-            key: configRes.data.key_id, amount: Math.round(grandTotal * 100), currency: "INR",
-            name: "ASR Enterprises", description: `Order #${orderNumber}`,
+            key: configRes.data.key_id,
+            amount: Math.round(grandTotal * 100),
+            currency: "INR",
+            name: "ASR Enterprises",
+            description: `Order #${orderNumber}`,
+            image: "/asr_logo_transparent.png",
             handler: async function (response) {
-              try { await axios.post(`${API}/shop/orders/${orderId}/payment-verify`, { razorpay_payment_id: response.razorpay_payment_id, razorpay_order_id: response.razorpay_order_id || "", razorpay_signature: response.razorpay_signature || "" }); } catch (e) { console.error(e); }
-              setOrderSuccess({ ...res.data, payment_completed: true }); setCart([]); localStorage.removeItem("asr_cart"); setShowCheckout(false); setPlacingOrder(false);
+              try {
+                await axios.post(`${API}/shop/orders/${orderId}/payment-verify`, {
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id || "",
+                  razorpay_signature: response.razorpay_signature || ""
+                });
+              } catch (e) {
+                console.error("Payment verification error:", e);
+              }
+              setOrderSuccess({ ...res.data, payment_completed: true });
+              setCart([]);
+              localStorage.removeItem("asr_cart");
+              setShowCheckout(false);
+              setPlacingOrder(false);
             },
-            modal: { ondismiss: () => { axios.put(`${API}/shop/orders/${orderId}/status`, { order_status: "cancelled", payment_status: "failed" }).catch(() => {}); setPlacingOrder(false); alert("Payment cancelled."); } },
-            prefill: { name: checkoutData.customer_name, contact: checkoutData.customer_phone, email: checkoutData.customer_email || "" },
-            theme: { color: "#f59e0b" }
+            modal: {
+              ondismiss: () => {
+                axios.put(`${API}/shop/orders/${orderId}/status`, {
+                  order_status: "cancelled",
+                  payment_status: "failed"
+                }).catch(() => {});
+                setPlacingOrder(false);
+                alert("Payment was cancelled.");
+              },
+              escape: false,
+              backdropclose: false
+            },
+            prefill: {
+              name: checkoutData.customer_name,
+              contact: checkoutData.customer_phone,
+              email: checkoutData.customer_email || ""
+            },
+            theme: { color: "#f59e0b" },
+            retry: { enabled: true, max_count: 3 }
           };
+          
           const rzp = new window.Razorpay(options);
-          rzp.on("payment.failed", () => { axios.put(`${API}/shop/orders/${orderId}/status`, { order_status: "cancelled", payment_status: "failed" }).catch(() => {}); setPlacingOrder(false); alert("Payment failed."); });
-          rzp.open(); return;
-        } catch { setPlacingOrder(false); return; }
+          rzp.on("payment.failed", function(response) {
+            console.error("Payment failed:", response.error);
+            axios.put(`${API}/shop/orders/${orderId}/status`, {
+              order_status: "cancelled",
+              payment_status: "failed"
+            }).catch(() => {});
+            setPlacingOrder(false);
+            alert(`Payment failed: ${response.error?.description || "Unknown error"}. Please try again.`);
+          });
+          rzp.open();
+          return;
+        } catch (paymentErr) {
+          console.error("Payment error:", paymentErr);
+          alert("Payment could not be processed. Please try again.");
+          setPlacingOrder(false);
+          return;
+        }
       }
-      setOrderSuccess(res.data); setCart([]); localStorage.removeItem("asr_cart"); setShowCheckout(false); setPlacingOrder(false);
-    } catch (err) { console.error(err); alert("Failed to place order."); setPlacingOrder(false); }
+      setOrderSuccess(res.data);
+      setCart([]);
+      localStorage.removeItem("asr_cart");
+      setShowCheckout(false);
+      setPlacingOrder(false);
+    } catch (err) {
+      console.error("Order error:", err);
+      alert("Failed to place order. Please try again.");
+      setPlacingOrder(false);
+    }
   };
 
   const sortedProducts = [...products]

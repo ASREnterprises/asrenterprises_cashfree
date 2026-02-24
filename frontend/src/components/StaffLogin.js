@@ -115,18 +115,18 @@ export const StaffLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <Link to="/" className="flex items-center text-gray-500 hover:text-[#0a355e] mb-6 transition">
+        <Link to="/" className="flex items-center text-gray-600 hover:text-[#0a355e] mb-6 transition">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
         </Link>
 
-        <div className="bg-white shadow-lg border border-sky-200 rounded-2xl shadow-2xl p-8 border border-sky-200">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-sky-200">
           <div className="text-center mb-8">
             <div className="rounded-xl p-3 inline-block mb-4">
               <img 
-                src="/asr_logo_dark.png" 
+                src="/asr_logo_transparent.png" 
                 alt="ASR Enterprises" 
                 className="h-14 w-auto"
               />
@@ -140,27 +140,27 @@ export const StaffLogin = () => {
             <button
               type="button"
               onClick={() => { setLoginMethod("password"); setOtpSent(false); setError(""); setSuccess(""); }}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "password" ? "bg-blue-600 text-[#0a355e]" : "bg-gray-50 border border-gray-300 text-gray-500"}`}
+              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "password" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"}`}
             >
               <Lock className="w-4 h-4 inline mr-2" />Password
             </button>
             <button
               type="button"
               onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); }}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "otp" ? "bg-blue-600 text-[#0a355e]" : "bg-gray-50 border border-gray-300 text-gray-500"}`}
+              className={`flex-1 py-2 rounded-lg font-medium transition ${loginMethod === "otp" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"}`}
             >
               <Mail className="w-4 h-4 inline mr-2" />Email OTP
             </button>
           </div>
 
           {error && (
-            <div className="bg-red-500 bg-opacity-20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6 text-center">
+            <div className="bg-red-50 border border-red-300 text-red-600 px-4 py-3 rounded-lg mb-6 text-center">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-green-500 bg-opacity-20 border border-green-500 text-green-400 px-4 py-3 rounded-lg mb-6 text-center">
+            <div className="bg-green-50 border border-green-300 text-green-600 px-4 py-3 rounded-lg mb-6 text-center">
               {success}
             </div>
           )}

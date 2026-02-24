@@ -4858,6 +4858,8 @@ async def create_order(order_data: Dict[str, Any]):
         "status": "success", 
         "order": order,
         "order_number": order.order_number,
+        "razorpay_order_id": razorpay_order_id,
+        "key_id": RAZORPAY_KEY_ID if razorpay_order_id else None,
         "whatsapp_notification_url": whatsapp_notification_url,
         "customer_whatsapp_url": customer_whatsapp_url,
         "whatsapp_auto_sent": whatsapp_sent

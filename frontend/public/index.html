@@ -22,22 +22,77 @@
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
         <title>ASR ENTERPRISES - Solar Rooftop Solutions | Patna, Bihar | MNRE Registered</title>
-        <!-- Razorpay will be loaded dynamically when needed -->
+        <!-- Razorpay Script Loading with Retry -->
         <script>
-            // Lazy load Razorpay only when needed (on checkout pages)
+            // Robust Razorpay loader with retry mechanism
+            window.razorpayLoading = false;
+            window.razorpayLoaded = false;
+            
             window.loadRazorpay = function() {
-                return new Promise((resolve) => {
+                return new Promise((resolve, reject) => {
+                    // Already loaded
                     if (window.Razorpay) {
+                        window.razorpayLoaded = true;
                         resolve(window.Razorpay);
                         return;
                     }
+                    
+                    // Already loading
+                    if (window.razorpayLoading) {
+                        // Wait for it to complete
+                        const checkInterval = setInterval(() => {
+                            if (window.Razorpay) {
+                                clearInterval(checkInterval);
+                                window.razorpayLoaded = true;
+                                resolve(window.Razorpay);
+                            }
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            clearInterval(checkInterval);
+                            if (!window.Razorpay) reject(new Error('Razorpay load timeout'));
+                        }, 10000);
+                        return;
+                    }
+                    
+                    window.razorpayLoading = true;
+                    
                     const script = document.createElement('script');
                     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
                     script.async = true;
-                    script.onload = () => resolve(window.Razorpay);
+                    
+                    script.onload = () => {
+                        window.razorpayLoading = false;
+                        window.razorpayLoaded = true;
+                        console.log('Razorpay SDK loaded successfully');
+                        resolve(window.Razorpay);
+                    };
+                    
+                    script.onerror = () => {
+                        window.razorpayLoading = false;
+                        console.error('Failed to load Razorpay SDK');
+                        reject(new Error('Failed to load Razorpay SDK'));
+                    };
+                    
                     document.head.appendChild(script);
+                    
+                    // Timeout after 15 seconds
+                    setTimeout(() => {
+                        if (!window.Razorpay) {
+                            window.razorpayLoading = false;
+                            reject(new Error('Razorpay load timeout'));
+                        }
+                    }, 15000);
                 });
             };
+            
+            // Pre-load Razorpay when user hovers over checkout/payment elements
+            document.addEventListener('DOMContentLoaded', function() {
+                // Load on shop page visit
+                if (window.location.pathname.includes('/shop') || window.location.pathname === '/') {
+                    setTimeout(() => window.loadRazorpay().catch(() => {}), 2000);
+                }
+            });
         </script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--

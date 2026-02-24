@@ -1,50 +1,71 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, ShoppingBag } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, ShoppingBag, Loader2, RefreshCw } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const AdminDashboard = ({ onLogout }) => {
-  const [stats, setStats] = useState({
-    total_leads: 0,
-    new_leads: 0,
-    total_photos: 0,
-    total_reviews: 0
-  });
-  const [shopStats, setShopStats] = useState({
-    total_products: 0,
-    total_orders: 0,
-    pending_orders: 0
-  });
+  // Quick stats load first (essential data)
+  const [quickStats, setQuickStats] = useState(null);
+  const [quickLoading, setQuickLoading] = useState(true);
+  
+  // Detailed stats load in background (deferred)
+  const [stats, setStats] = useState(null);
+  const [shopStats, setShopStats] = useState(null);
+  const [detailedLoading, setDetailedLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStats();
-    fetchShopStats();
+  // Load quick stats first (fast response)
+  const fetchQuickStats = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/dashboard/quick-stats`);
+      setQuickStats(res.data);
+    } catch (err) {
+      console.error("Error fetching quick stats:", err);
+    } finally {
+      setQuickLoading(false);
+    }
   }, []);
 
-  const fetchStats = async () => {
+  // Load detailed stats in background (deferred)
+  const fetchDetailedStats = useCallback(async () => {
     try {
-      const res = await axios.get(`${API}/dashboard/stats`);
-      setStats(res.data);
+      const [dashRes, shopRes] = await Promise.all([
+        axios.get(`${API}/dashboard/stats`),
+        axios.get(`${API}/shop/stats`)
+      ]);
+      setStats(dashRes.data);
+      setShopStats(shopRes.data);
     } catch (err) {
-      console.error("Error fetching stats:", err);
+      console.error("Error fetching detailed stats:", err);
+    } finally {
+      setDetailedLoading(false);
     }
-  };
+  }, []);
 
-  const fetchShopStats = async () => {
-    try {
-      const res = await axios.get(`${API}/shop/stats`);
-      setShopStats(res.data);
-    } catch (err) {
-      console.error("Error fetching shop stats:", err);
-    }
-  };
+  useEffect(() => {
+    // Phase 1: Load quick stats immediately
+    fetchQuickStats();
+    
+    // Phase 2: Load detailed stats after a short delay (non-blocking)
+    const timer = setTimeout(() => {
+      fetchDetailedStats();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [fetchQuickStats, fetchDetailedStats]);
 
   const handleLogout = () => {
     localStorage.removeItem("asrAdminAuth");
     localStorage.removeItem("asrAdminUser");
     onLogout();
+  };
+
+  const refreshAll = async () => {
+    setQuickLoading(true);
+    setDetailedLoading(true);
+    await fetchQuickStats();
+    await fetchDetailedStats();
   };
 
   const modules = [

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Search, Phone, Mail, MapPin, Star, Trash2, Edit, X, Save } from "lucide-react";
+import { ArrowLeft, Search, Phone, Mail, MapPin, Star, Trash2, Edit, X, Save, Plus, Upload, RefreshCw, UserPlus } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -21,19 +21,74 @@ export const LeadsManagement = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [editingLead, setEditingLead] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showCSVModal, setShowCSVModal] = useState(false);
+  const [addingLead, setAddingLead] = useState(false);
+  const fileInputRef = useRef(null);
+  const [newLead, setNewLead] = useState({
+    name: "", phone: "", email: "", district: "Patna", address: "",
+    property_type: "residential", roof_type: "rcc", monthly_bill: "", notes: "", source: "manual"
+  });
 
   useEffect(() => {
     fetchLeads();
   }, []);
 
   const fetchLeads = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get(`${API}/leads`);
+      const res = await axios.get(`${API}/crm/leads`);
       setLeads(res.data);
     } catch (err) {
       console.error("Error fetching leads:", err);
+      // Fallback to admin leads endpoint
+      try {
+        const res = await axios.get(`${API}/leads`);
+        setLeads(res.data);
+      } catch (e) {
+        console.error("Fallback error:", e);
+      }
     }
     setLoading(false);
+  };
+
+  const handleAddLead = async (e) => {
+    e.preventDefault();
+    if (!newLead.name || !newLead.phone) {
+      alert("Name and Phone are required");
+      return;
+    }
+    setAddingLead(true);
+    try {
+      await axios.post(`${API}/crm/leads`, newLead);
+      setNewLead({ name: "", phone: "", email: "", district: "Patna", address: "",
+        property_type: "residential", roof_type: "rcc", monthly_bill: "", notes: "", source: "manual" });
+      setShowAddModal(false);
+      fetchLeads();
+      alert("Lead added successfully!");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error adding lead");
+    }
+    setAddingLead(false);
+  };
+
+  const handleCSVUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      const res = await axios.post(`${API}/crm/leads/bulk-import`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      alert(`Successfully imported ${res.data.imported} leads`);
+      setShowCSVModal(false);
+      fetchLeads();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error importing CSV");
+    }
   };
 
   const handleStatusChange = async (leadId, status) => {

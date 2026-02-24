@@ -78,17 +78,17 @@ export const AdminLogin = ({ onLogin }) => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-4xl font-extrabold text-white mb-2">ASR ENTERPRISES</h1>
+          <h1 className="text-4xl font-extrabold text-[#0a355e] mb-2">ASR ENTERPRISES</h1>
           <p className="text-blue-100">Secure Admin Panel Login</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 border border-gray-700">
+        <div className="bg-white shadow-xl border border-sky-200 rounded-2xl shadow-2xl p-8 border border-sky-200">
           {step === 1 ? (
             <form onSubmit={sendOTP} className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">Email Verification</h2>
-                <p className="text-gray-400 text-sm">Enter your registered email to receive OTP</p>
+                <h2 className="text-2xl font-bold text-[#0a355e] mb-2">Email Verification</h2>
+                <p className="text-gray-500 text-sm">Enter your registered email to receive OTP</p>
               </div>
 
               {error && (
@@ -104,16 +104,16 @@ export const AdminLogin = ({ onLogin }) => {
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   Registered Email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300/50 border border-gray-600 text-[#0a355e] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
                     placeholder="your@email.com"
                     required
                     data-testid="admin-email"
@@ -124,7 +124,7 @@ export const AdminLogin = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 flex items-center justify-center space-x-2"
                 data-testid="send-otp-btn"
               >
                 {loading ? (
@@ -143,8 +143,8 @@ export const AdminLogin = ({ onLogin }) => {
           ) : (
             <form onSubmit={verifyOTP} className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-white mb-2">Enter OTP</h2>
-                <p className="text-gray-400 text-sm">We've sent a 6-digit code to {email}</p>
+                <h2 className="text-2xl font-bold text-[#0a355e] mb-2">Enter OTP</h2>
+                <p className="text-gray-500 text-sm">We've sent a 6-digit code to {email}</p>
               </div>
 
               {error && (
@@ -154,14 +154,14 @@ export const AdminLogin = ({ onLogin }) => {
               )}
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">
+                <label className="block text-sm font-semibold text-gray-600 mb-2">
                   6-Digit OTP
                 </label>
                 <input
                   type="text"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest font-bold placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300/50 border border-gray-600 text-[#0a355e] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-2xl tracking-widest font-bold placeholder-gray-400"
                   placeholder="000000"
                   maxLength="6"
                   required
@@ -172,7 +172,7 @@ export const AdminLogin = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading || otp.length !== 6}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-[#0a355e] py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50"
                 data-testid="verify-otp-btn"
               >
                 {loading ? "Verifying..." : "Verify & Login"}
@@ -190,17 +190,17 @@ export const AdminLogin = ({ onLogin }) => {
         </div>
 
         {/* Staff Login Link */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 mt-6 text-center">
-          <p className="text-gray-300 text-sm mb-2">Are you a staff member?</p>
+        <div className="bg-white shadow-xl border border-sky-200/50 border border-sky-200 rounded-xl p-4 mt-6 text-center">
+          <p className="text-gray-600 text-sm mb-2">Are you a staff member?</p>
           <button
             onClick={() => navigate("/staff/login")}
-            className="bg-gray-700 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-600 transition border border-gray-600"
+            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-6 py-2 rounded-lg font-semibold hover:bg-gray-600 transition border border-gray-600"
           >
             Staff Login →
           </button>
         </div>
 
-        <div className="text-center mt-6 text-white text-sm">
+        <div className="text-center mt-6 text-[#0a355e] text-sm">
           <p>© 2025 ASR Enterprises. Secure Admin Access.</p>
         </div>
       </div>

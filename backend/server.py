@@ -5413,7 +5413,7 @@ async def track_order(data: Dict[str, Any]):
     return order
 
 # Bihar Districts with Pincodes for delivery
-BIHAR_DISTRICTS = {
+BIHAR_PINCODES = {
     "800001": {"district": "Patna", "deliverable": True, "days": "1-2"},
     "800002": {"district": "Patna", "deliverable": True, "days": "1-2"},
     "800003": {"district": "Patna", "deliverable": True, "days": "1-2"},

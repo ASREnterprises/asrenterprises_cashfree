@@ -326,33 +326,3 @@ export const PhotosManagement = () => {
     </div>
   );
 };
-                <h3 className="text-lg font-bold text-[#0a355e] mb-1">{photo.title}</h3>
-                <div className="flex items-center text-gray-500 text-sm mb-2">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {photo.location}
-                </div>
-                <p className="text-gray-500 text-sm mb-3">{photo.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="bg-blue-600 text-[#0a355e] text-xs px-2 py-1 rounded">{photo.system_size || "Solar System"}</span>
-                  <button
-                    onClick={() => handleDelete(photo.id)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {photos.length === 0 && (
-          <div className="text-center py-16">
-            <Image className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-500">No photos uploaded yet. Click "Add Photo" to get started.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

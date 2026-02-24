@@ -3706,13 +3706,14 @@ async def upload_gallery_photo_file(
     location: str = Form(""),
     system_size: str = Form("")
 ):
-    """Upload photo file directly from mobile/desktop"""
+    """Upload photo file directly from mobile/desktop with auto-optimization"""
     try:
         # Read file content
         content = await file.read()
+        original_size = len(content)
         
         # Validate file size (max 10MB)
-        if len(content) > 10 * 1024 * 1024:
+        if original_size > 10 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File too large. Max 10MB allowed.")
         
         # Validate file type
@@ -3720,9 +3721,54 @@ async def upload_gallery_photo_file(
         if file.content_type not in allowed_types:
             raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {allowed_types}")
         
+        # AUTO-OPTIMIZE: Convert to WebP and resize for faster loading
+        try:
+            from PIL import Image
+            import io
+            
+            # Open image
+            img = Image.open(io.BytesIO(content))
+            
+            # Convert RGBA to RGB if needed (for WebP compatibility)
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Resize if too large (max 1920px width for web)
+            max_width = 1920
+            if img.width > max_width:
+                ratio = max_width / img.width
+                new_height = int(img.height * ratio)
+                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+            
+            # Convert to WebP with quality optimization
+            output = io.BytesIO()
+            quality = 85
+            img.save(output, format='WEBP', quality=quality, optimize=True)
+            
+            # If still > 200KB, reduce quality
+            while output.tell() > 200 * 1024 and quality > 40:
+                output = io.BytesIO()
+                quality -= 10
+                img.save(output, format='WEBP', quality=quality, optimize=True)
+            
+            optimized_content = output.getvalue()
+            content_type = "image/webp"
+            logger.info(f"Image optimized: {original_size} -> {len(optimized_content)} bytes ({quality}% quality)")
+            
+        except Exception as opt_error:
+            logger.warning(f"Image optimization failed, using original: {opt_error}")
+            optimized_content = content
+            content_type = file.content_type
+        
         # Convert to base64 data URL for storage
-        base64_content = base64.b64encode(content).decode('utf-8')
-        data_url = f"data:{file.content_type};base64,{base64_content}"
+        base64_content = base64.b64encode(optimized_content).decode('utf-8')
+        data_url = f"data:{content_type};base64,{base64_content}"
         
         photo = {
             "id": str(uuid.uuid4()),
@@ -3733,12 +3779,14 @@ async def upload_gallery_photo_file(
             "system_size": system_size,
             "category": "installation",
             "file_name": file.filename,
-            "file_size": len(content),
+            "file_size": len(optimized_content),
+            "original_size": original_size,
+            "optimized": original_size != len(optimized_content),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         await db.work_photos.insert_one(photo)
-        logger.info(f"Photo uploaded: {title} - {len(content)} bytes")
-        return {"success": True, "photo": {**photo, "_id": None}}
+        logger.info(f"Photo uploaded: {title} - {len(optimized_content)} bytes (original: {original_size})")
+        return {"success": True, "photo": {**photo, "_id": None}, "optimization": {"original": original_size, "optimized": len(optimized_content)}}
         
     except HTTPException:
         raise

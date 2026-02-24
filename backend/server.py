@@ -53,6 +53,20 @@ from security import (
     RATE_LIMIT_SENSITIVE
 )
 
+# Import Redis cache module
+from cache import (
+    init_redis,
+    close_redis,
+    cache_get,
+    cache_set,
+    cache_delete,
+    cache_clear_pattern,
+    cache_clear_all,
+    get_cache_stats,
+    cached,
+    CACHE_TTL
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 

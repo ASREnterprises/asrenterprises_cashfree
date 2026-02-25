@@ -5661,14 +5661,16 @@ async def update_order_status(order_id: str, data: Dict[str, Any]):
     return {"status": "success", "message": "Order status updated"}
 
 @api_router.delete("/shop/orders/{order_id}")
-async def delete_order(order_id: str):
-    """Delete pending/cancelled orders (Admin only)"""
+async def delete_order(order_id: str, force: bool = False):
+    """Delete orders (Admin only). Use force=true to delete paid orders."""
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     
-    if order.get("order_status") not in ["pending", "cancelled"] and order.get("payment_status") not in ["pending", "failed"]:
-        raise HTTPException(status_code=400, detail="Only pending or cancelled orders can be deleted")
+    # Allow force delete for admin
+    if not force:
+        if order.get("order_status") not in ["pending", "cancelled"] and order.get("payment_status") not in ["pending", "failed"]:
+            raise HTTPException(status_code=400, detail="This order has been paid/processed. Use force delete option to remove it.")
     
     await db.orders.delete_one({"id": order_id})
     return {"status": "success", "message": "Order deleted"}

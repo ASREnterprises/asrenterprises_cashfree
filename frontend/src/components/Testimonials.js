@@ -1,18 +1,33 @@
-import { useState, useEffect } from "react";
-import { Star, MapPin, Zap, Quote } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Star, MapPin, Zap, Quote, Loader2 } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Cache reviews in memory
+let reviewsCache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export const TestimonialsSection = () => {
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState(reviewsCache || []);
+  const [loading, setLoading] = useState(!reviewsCache);
 
   useEffect(() => {
     const fetchReviews = async () => {
+      // Use cache if valid
+      if (reviewsCache && cacheTimestamp && (Date.now() - cacheTimestamp < CACHE_DURATION)) {
+        setReviews(reviewsCache);
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await axios.get(`${API}/reviews`);
-        setReviews(res.data || []);
+        const data = res.data || [];
+        reviewsCache = data;
+        cacheTimestamp = Date.now();
+        setReviews(data);
       } catch (err) {
         console.error("Failed to fetch reviews");
       }
@@ -21,7 +36,19 @@ export const TestimonialsSection = () => {
     fetchReviews();
   }, []);
 
-  if (loading) return null;
+  // Memoize displayed reviews to prevent unnecessary re-renders
+  const displayedReviews = useMemo(() => reviews.slice(0, 6), [reviews]);
+
+  if (loading) {
+    return (
+      <div className="bg-[#0d1b33] py-16">
+        <div className="flex justify-center">
+          <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+  
   if (reviews.length === 0) return null;
 
   return (

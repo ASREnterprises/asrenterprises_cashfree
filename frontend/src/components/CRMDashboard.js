@@ -858,12 +858,27 @@ export const CRMDashboard = () => {
         {/* Team Tab */}
         {activeTab === "team" && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-[#0a355e]">Staff Accounts</h2>
-              <button onClick={() => setShowStaffModal(true)} className="bg-green-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2">
-                <UserPlus className="w-4 h-4" /><span>Add Staff</span>
-              </button>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-[#0a355e]">Team Management</h2>
+                <p className="text-gray-500 text-sm">Staff auto-synced from HR Management</p>
+              </div>
+              <a href="/admin/hr" className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 text-sm font-semibold hover:from-blue-600 hover:to-cyan-600 transition">
+                <UserPlus className="w-4 h-4" /><span>Add via HR</span>
+              </a>
             </div>
+            
+            {/* Info Banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3">
+              <div className="bg-blue-100 p-2 rounded-full">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-blue-800 font-semibold text-sm">Staff accounts are managed via HR Management</p>
+                <p className="text-blue-600 text-xs mt-1">New employees added in HR are automatically synced here. Go to <a href="/admin/hr" className="underline">HR Management</a> to add new team members.</p>
+              </div>
+            </div>
+
             {newStaffCredentials && (
               <div className="bg-green-600 bg-opacity-20 border border-green-500 rounded-xl p-4">
                 <h3 className="text-green-400 font-bold">New Staff Created!</h3>
@@ -878,43 +893,43 @@ export const CRMDashboard = () => {
                 <div key={staff.id} className="bg-white shadow-lg border border-sky-200 rounded-xl p-5">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-[#0a355e] font-bold text-xl">{staff.name?.[0]}</div>
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xl">{staff.name?.[0]}</div>
                       <div>
                         <div className="text-[#0a355e] font-bold">{staff.name}</div>
-                        <div className="text-cyan-400 text-sm font-mono">{staff.staff_id}</div>
-                        <div className="text-gray-600 text-xs capitalize">{staff.role}</div>
+                        <div className="text-cyan-600 text-sm font-mono">{staff.staff_id}</div>
+                        <div className="text-gray-500 text-xs capitalize">{staff.role}</div>
                       </div>
                     </div>
                     <button onClick={async () => {
                       const newStatus = !staff.is_active;
                       await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: newStatus });
                       fetchAllData();
-                    }} className={`px-2 py-1 rounded text-xs ${staff.is_active ? 'bg-green-600' : 'bg-red-600'} text-[#0a355e]`}>
+                    }} className={`px-2 py-1 rounded text-xs text-white ${staff.is_active ? 'bg-green-500' : 'bg-red-500'}`}>
                       {staff.is_active ? 'Active' : 'Inactive'}
                     </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-4">
-                    <div className="bg-gray-50 border border-gray-300 rounded-lg p-2 text-center">
-                      <div className="text-blue-400 font-bold">{staff.leads_assigned || 0}</div>
-                      <div className="text-gray-600 text-xs">Assigned</div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
+                      <div className="text-blue-600 font-bold">{staff.leads_assigned || 0}</div>
+                      <div className="text-gray-500 text-xs">Assigned</div>
                     </div>
-                    <div className="bg-gray-50 border border-gray-300 rounded-lg p-2 text-center">
-                      <div className="text-green-400 font-bold">{staff.leads_converted || 0}</div>
-                      <div className="text-gray-600 text-xs">Converted</div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
+                      <div className="text-green-600 font-bold">{staff.leads_converted || 0}</div>
+                      <div className="text-gray-500 text-xs">Converted</div>
                     </div>
-                    <div className="bg-gray-50 border border-gray-300 rounded-lg p-2 text-center">
-                      <div className="text-yellow-400 font-bold">₹{((staff.total_revenue || 0) / 1000).toFixed(0)}K</div>
-                      <div className="text-gray-600 text-xs">Revenue</div>
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 text-center">
+                      <div className="text-amber-600 font-bold">₹{((staff.total_revenue || 0) / 1000).toFixed(0)}K</div>
+                      <div className="text-gray-500 text-xs">Revenue</div>
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <button onClick={async () => {
                       const newPass = prompt('New password:', 'asr@123');
                       if(newPass) { await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass }); alert('Password updated!'); }
-                    }} className="flex-1 bg-yellow-600 text-[#0a355e] py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
+                    }} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm flex items-center justify-center space-x-1 transition">
                       <Key className="w-3 h-3" /><span>Password</span>
                     </button>
-                    <button onClick={() => sendWhatsApp(staff.phone, 'Hi, this is Admin from ASR Enterprises...')} className="flex-1 bg-green-600 text-[#0a355e] py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
+                    <button onClick={() => sendWhatsApp(staff.phone, 'Hi, this is Admin from ASR Enterprises...')} className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm flex items-center justify-center space-x-1 transition">
                       <MessageSquare className="w-3 h-3" /><span>WhatsApp</span>
                     </button>
                   </div>

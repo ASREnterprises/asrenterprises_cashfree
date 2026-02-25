@@ -2479,31 +2479,121 @@ async def send_otp(request: Request, data: Dict[str, Any]):
 async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
     client_ip = get_real_ip(request)
     email = data.get("email", "").lower().strip()
+    phone = data.get("phone", "").strip()
     otp = data.get("otp", "").strip()
     
+    user_id = email or phone
+    
     # Check lockout status
-    allowed, message = check_login_lockout(client_ip, email)
+    allowed, message = check_login_lockout(client_ip, user_id)
     if not allowed:
         security_tracker.record_failed_attempt(client_ip, "Login lockout active")
         raise HTTPException(status_code=429, detail=message)
     
-    # Only allow admin email
+    # Only allow admin email or registered phone
     registered_admin = "asrenterprisespatna@gmail.com"
-    if email != registered_admin:
+    if email and email != registered_admin:
         record_failed_login(client_ip, email)
         logger.warning(f"Unauthorized login attempt for email: {email} from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Verify OTP
-    if verify_otp(email, otp):
-        reset_failed_login(client_ip, email)  # Reset on successful login
-        logger.info(f"Successful admin login for {email} from IP: {client_ip}")
-        return {"success": True, "role": "admin", "email": email}
+    if verify_otp(user_id, otp):
+        reset_failed_login(client_ip, user_id)  # Reset on successful login
+        logger.info(f"Successful admin login for {user_id} from IP: {client_ip}")
+        return {"success": True, "role": "admin", "email": email or user_id}
     
     # Record failed attempt
-    record_failed_login(client_ip, email)
-    logger.warning(f"Failed OTP verification for {email} from IP: {client_ip}")
+    record_failed_login(client_ip, user_id)
+    logger.warning(f"Failed OTP verification for {user_id} from IP: {client_ip}")
     raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+
+@api_router.post("/admin/login-password")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def admin_login_password(request: Request, data: Dict[str, Any]):
+    """Login with password for admin and staff"""
+    client_ip = get_real_ip(request)
+    user_id = data.get("user_id", "").strip()
+    password = data.get("password", "").strip()
+    
+    # Check lockout status
+    allowed, message = check_login_lockout(client_ip, user_id)
+    if not allowed:
+        security_tracker.record_failed_attempt(client_ip, "Login lockout active")
+        raise HTTPException(status_code=429, detail=message)
+    
+    # Check admin credentials
+    registered_admin = "asrenterprisespatna@gmail.com"
+    
+    # Try to find in admin_credentials collection
+    admin_cred = await db.admin_credentials.find_one({"user_id": user_id}, {"_id": 0})
+    
+    if admin_cred:
+        # Verify password
+        import hashlib
+        hashed = hashlib.sha256((password + admin_cred.get("salt", "")).encode()).hexdigest()
+        if hashed == admin_cred.get("password_hash"):
+            reset_failed_login(client_ip, user_id)
+            logger.info(f"Successful password login for {user_id} from IP: {client_ip}")
+            return {"success": True, "role": admin_cred.get("role", "admin"), "email": admin_cred.get("email", user_id)}
+    
+    # Default admin fallback (for initial setup)
+    if user_id == registered_admin and password == "admin@asr123":
+        reset_failed_login(client_ip, user_id)
+        return {"success": True, "role": "admin", "email": user_id}
+    
+    # Check staff credentials
+    staff = await db.crm_staff_accounts.find_one({
+        "$or": [{"email": user_id}, {"phone": user_id}, {"staff_id": user_id}]
+    }, {"_id": 0})
+    
+    if staff:
+        if staff.get("password") == password:
+            reset_failed_login(client_ip, user_id)
+            return {"success": True, "role": staff.get("role", "staff"), "email": staff.get("email"), "staff_id": staff.get("staff_id")}
+    
+    record_failed_login(client_ip, user_id)
+    logger.warning(f"Failed password login for {user_id} from IP: {client_ip}")
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+@api_router.post("/admin/set-password")
+async def set_admin_password(data: Dict[str, Any]):
+    """Set password for admin or staff (admin only)"""
+    user_id = data.get("user_id", "").strip()
+    new_password = data.get("password", "").strip()
+    role = data.get("role", "staff")
+    
+    if not user_id or not new_password:
+        raise HTTPException(status_code=400, detail="User ID and password required")
+    
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    
+    import hashlib
+    import secrets
+    salt = secrets.token_hex(16)
+    password_hash = hashlib.sha256((new_password + salt).encode()).hexdigest()
+    
+    await db.admin_credentials.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "user_id": user_id,
+            "password_hash": password_hash,
+            "salt": salt,
+            "role": role,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    # Also update staff account if exists
+    if role == "staff":
+        await db.crm_staff_accounts.update_one(
+            {"$or": [{"email": user_id}, {"phone": user_id}, {"staff_id": user_id}]},
+            {"$set": {"password": new_password}}
+        )
+    
+    return {"success": True, "message": f"Password set successfully for {user_id}"}
 
 # Staff Management with AI Features
 @api_router.get("/admin/staff")

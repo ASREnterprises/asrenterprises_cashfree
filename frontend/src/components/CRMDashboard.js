@@ -962,6 +962,178 @@ export const CRMDashboard = () => {
           </div>
         )}
 
+        {/* Credentials Management Tab */}
+        {activeTab === "credentials" && (
+          <div className="space-y-6">
+            {/* Admin Credentials */}
+            <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+              <div className="p-4 border-b bg-gradient-to-r from-amber-50 to-orange-50">
+                <h3 className="font-bold text-[#0a355e] flex items-center">
+                  <Shield className="w-5 h-5 mr-2 text-amber-500" />
+                  Admin Credentials
+                </h3>
+                <p className="text-gray-500 text-sm mt-1">Manage admin login access</p>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">A</div>
+                    <div>
+                      <div className="font-bold text-[#0a355e]">Admin Account</div>
+                      <div className="text-gray-500 text-sm">asrenterprisespatna@gmail.com</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const newPass = prompt('Enter new admin password (min 6 chars):');
+                      if (newPass && newPass.length >= 6) {
+                        try {
+                          await axios.post(`${API}/admin/set-password`, { 
+                            user_id: 'asrenterprisespatna@gmail.com', 
+                            password: newPass,
+                            role: 'admin'
+                          });
+                          alert('Admin password updated successfully!');
+                        } catch (err) {
+                          alert('Error updating password');
+                        }
+                      } else if (newPass) {
+                        alert('Password must be at least 6 characters');
+                      }
+                    }}
+                    className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 transition"
+                  >
+                    <Key className="w-4 h-4" />
+                    <span>Change Password</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Staff Credentials */}
+            <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+              <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-cyan-50 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-[#0a355e] flex items-center">
+                    <Users className="w-5 h-5 mr-2 text-blue-500" />
+                    Staff Credentials
+                  </h3>
+                  <p className="text-gray-500 text-sm mt-1">Auto-synced from HR Management</p>
+                </div>
+                <button
+                  onClick={() => fetchAllData()}
+                  className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-sm hover:bg-blue-200 transition flex items-center space-x-1"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Refresh</span>
+                </button>
+              </div>
+              <div className="p-5">
+                {staffAccounts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No staff accounts found</p>
+                    <a href="/admin/hr" className="text-blue-600 hover:underline text-sm mt-2 inline-block">Add employees via HR Management →</a>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {staffAccounts.map((staff) => (
+                      <div key={staff.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {staff.name?.[0]?.toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-[#0a355e]">{staff.name}</div>
+                            <div className="text-gray-500 text-sm flex items-center space-x-2">
+                              <span className="font-mono">{staff.staff_id}</span>
+                              <span>•</span>
+                              <span className="capitalize">{staff.role}</span>
+                              <span>•</span>
+                              <span>{staff.phone}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${staff.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {staff.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                          <button
+                            onClick={async () => {
+                              const action = window.confirm(`Generate new password for ${staff.name}?`);
+                              if (action) {
+                                const newPass = `asr${Math.random().toString(36).slice(-6)}`;
+                                try {
+                                  await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass });
+                                  alert(`New Password for ${staff.name}:\n\nStaff ID: ${staff.staff_id}\nPassword: ${newPass}\n\nCopy this and share with the staff member.`);
+                                } catch (err) {
+                                  alert('Error generating password');
+                                }
+                              }
+                            }}
+                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition"
+                          >
+                            <Key className="w-3 h-3" />
+                            <span>Generate</span>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const newPass = prompt(`Set password for ${staff.name}:`, 'asr@123');
+                              if (newPass) {
+                                try {
+                                  await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/reset-password`, { password: newPass });
+                                  alert('Password updated successfully!');
+                                } catch (err) {
+                                  alert('Error updating password');
+                                }
+                              }
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Set</span>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (window.confirm(`Remove login access for ${staff.name}? They will no longer be able to login.`)) {
+                                try {
+                                  await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: false });
+                                  fetchAllData();
+                                  alert('Login access removed');
+                                } catch (err) {
+                                  alert('Error removing access');
+                                }
+                              }
+                            }}
+                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Remove</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                Login Information
+              </h4>
+              <ul className="text-blue-700 text-sm space-y-1">
+                <li>• Staff can login using their <strong>Staff ID</strong>, <strong>Email</strong>, or <strong>Phone Number</strong> as username</li>
+                <li>• New staff accounts are automatically created when employees are added in HR Management</li>
+                <li>• Default password for new staff: <code className="bg-blue-100 px-1 rounded">asr@123</code></li>
+                <li>• Sessions auto-expire after 20 minutes of inactivity</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
         {/* Messages Tab - Staff-wise Private Conversations */}
         {activeTab === "messages" && (
           <div className="space-y-4">

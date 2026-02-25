@@ -7,7 +7,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://forms-debug-preview.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://solar-admin-build.preview.emergentagent.com')
 
 class TestBookServiceConfig:
     """Test book service configuration endpoints"""

@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Shield, CheckCircle, AlertTriangle, Lock, Eye, Server } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Shield, CheckCircle, AlertTriangle, Lock, Eye, Server, RefreshCw, Trash2, Zap, Database, Globe, Loader2 } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const SecurityCenter = () => {
+  const navigate = useNavigate();
   const [securityStatus, setSecurityStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [optimizing, setOptimizing] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState(null);
 
   useEffect(() => {
     fetchSecurityStatus();

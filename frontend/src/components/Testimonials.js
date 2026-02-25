@@ -60,7 +60,7 @@ export const TestimonialsSection = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reviews.slice(0, 6).map((review) => (
+          {displayedReviews.map((review) => (
             <div key={review.id} className="bg-gray-800/70 rounded-xl p-6 border border-gray-700/50 hover:border-amber-500/30 transition-all" data-testid={`review-${review.id}`}>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">

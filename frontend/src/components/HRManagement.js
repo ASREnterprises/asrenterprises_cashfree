@@ -535,6 +535,128 @@ export const HRManagement = () => {
           </div>
         )}
 
+        {/* Recruitment Tab */}
+        {activeTab === "recruitment" && (
+          <div className="space-y-6">
+            {/* Recruitment Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-5 shadow-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm">Open Positions</p>
+                    <p className="text-2xl font-bold text-blue-600">3</p>
+                  </div>
+                  <Briefcase className="w-8 h-8 text-blue-400 opacity-50" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-lg border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm">Applications</p>
+                    <p className="text-2xl font-bold text-green-600">12</p>
+                  </div>
+                  <ClipboardList className="w-8 h-8 text-green-400 opacity-50" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-lg border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm">Interviews</p>
+                    <p className="text-2xl font-bold text-amber-600">5</p>
+                  </div>
+                  <Users className="w-8 h-8 text-amber-400 opacity-50" />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-lg border border-purple-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-500 text-sm">Hired (Month)</p>
+                    <p className="text-2xl font-bold text-purple-600">{dashboard?.recent_joinings || 0}</p>
+                  </div>
+                  <UserCheck className="w-8 h-8 text-purple-400 opacity-50" />
+                </div>
+              </div>
+            </div>
+
+            {/* Open Positions */}
+            <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+              <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                <h3 className="font-semibold text-[#0a355e]">Open Positions</h3>
+                <button className="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-600 transition flex items-center space-x-1">
+                  <UserPlus className="w-4 h-4" />
+                  <span>Add Position</span>
+                </button>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3">
+                  {[
+                    { title: "Sales Executive", department: "Sales", location: "Patna", openings: 2, status: "active" },
+                    { title: "Installation Technician", department: "Technical", location: "Patna", openings: 3, status: "active" },
+                    { title: "Customer Support", department: "Support", location: "Patna", openings: 1, status: "urgent" }
+                  ].map((pos, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Briefcase className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-[#0a355e]">{pos.title}</h4>
+                          <p className="text-sm text-gray-500">{pos.department} • {pos.location}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm text-gray-500">{pos.openings} openings</span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          pos.status === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {pos.status === 'urgent' ? 'Urgent' : 'Open'}
+                        </span>
+                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">View</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Applications */}
+            <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+              <div className="p-4 border-b bg-gray-50">
+                <h3 className="font-semibold text-[#0a355e]">Recent Applications</h3>
+              </div>
+              <div className="p-4">
+                <div className="text-center py-8 text-gray-500">
+                  <ClipboardList className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p>No applications received yet</p>
+                  <p className="text-sm mt-1">Share job openings to receive applications</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="grid md:grid-cols-3 gap-4">
+              <button className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 rounded-xl text-left hover:from-blue-600 hover:to-cyan-600 transition">
+                <UserPlus className="w-6 h-6 mb-2" />
+                <h4 className="font-semibold">Post New Job</h4>
+                <p className="text-sm opacity-80">Create job listing</p>
+              </button>
+              <button 
+                onClick={() => setShowAddForm(true)}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-4 rounded-xl text-left hover:from-green-600 hover:to-emerald-600 transition"
+              >
+                <UserCheck className="w-6 h-6 mb-2" />
+                <h4 className="font-semibold">Quick Hire</h4>
+                <p className="text-sm opacity-80">Add new employee</p>
+              </button>
+              <button className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 rounded-xl text-left hover:from-purple-600 hover:to-pink-600 transition">
+                <FileText className="w-6 h-6 mb-2" />
+                <h4 className="font-semibold">Hiring Report</h4>
+                <p className="text-sm opacity-80">View analytics</p>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Leave Management Tab */}
         {activeTab === "leaves" && (
           <div className="space-y-4">

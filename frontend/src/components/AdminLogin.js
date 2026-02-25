@@ -56,9 +56,7 @@ export const AdminLogin = ({ onLogin }) => {
       setSuccess("OTP sent successfully! Check your email/SMS.");
       setStep(2);
     } catch (err) {
-      // For demo, allow proceeding
-      setSuccess("OTP sent! (Demo mode: use 131993)");
-      setStep(2);
+      setError("Failed to send OTP. Please try again or contact admin.");
     } finally {
       setLoading(false);
     }

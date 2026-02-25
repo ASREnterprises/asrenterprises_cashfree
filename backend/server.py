@@ -8644,6 +8644,45 @@ async def optimize_website():
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
+@api_router.delete("/admin/cleanup-non-asr-orders")
+async def cleanup_non_asr_orders():
+    """Permanently delete all non-ASR Solar Shop orders from database"""
+    
+    # Find orders that are NOT from ASR Solar Shop
+    # These include:
+    # 1. Orders with source = "razorpay_sync" (old sync without ASR filter)
+    # 2. Orders with order_number starting with "RZP-" (old Razorpay sync prefix)
+    # 3. Orders that don't have ASR identifiers in notes
+    
+    non_asr_query = {
+        "$or": [
+            {"source": "razorpay_sync"},  # Old non-filtered sync
+            {"order_number": {"$regex": "^RZP-"}},  # Old Razorpay sync prefix
+            {"notes": {"$regex": "Auto-synced from Razorpay\\. Original", "$options": "i"}}  # Old sync without ASR tag
+        ]
+    }
+    
+    # First, get count and list of orders to be deleted
+    orders_to_delete = await db.orders.find(non_asr_query, {"_id": 0, "order_number": 1, "source": 1, "total": 1}).to_list(1000)
+    
+    if not orders_to_delete:
+        return {
+            "success": True,
+            "message": "No non-ASR orders found to delete",
+            "deleted_count": 0,
+            "deleted_orders": []
+        }
+    
+    # Delete the orders
+    result = await db.orders.delete_many(non_asr_query)
+    
+    return {
+        "success": True,
+        "message": f"Permanently deleted {result.deleted_count} non-ASR orders",
+        "deleted_count": result.deleted_count,
+        "deleted_orders": [o.get("order_number") for o in orders_to_delete]
+    }
+
 app.include_router(api_router)
 
 # CORS configuration with security

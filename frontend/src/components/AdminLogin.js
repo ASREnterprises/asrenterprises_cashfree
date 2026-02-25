@@ -78,7 +78,7 @@ export const AdminLogin = ({ onLogin }) => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-4xl font-extrabold text-amber-500 mb-2">ASR ENTERPRISES</h1>
+          <h1 className="text-4xl font-extrabold text-amber-500 mb-2">ASR Enterprises</h1>
           <p className="text-gray-600">Secure Admin Panel Login</p>
         </div>
 

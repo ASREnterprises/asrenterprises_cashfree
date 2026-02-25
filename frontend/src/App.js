@@ -60,7 +60,7 @@ const API = `${BACKEND_URL}/api`;
 // Honeypot protection remains active for spam prevention
 const RECAPTCHA_SITE_KEY = null; // process.env.REACT_APP_RECAPTCHA_SITE_KEY;
 
-// Month-wise Color Schemes for ASR ENTERPRISES Title
+// Month-wise Color Schemes for ASR Enterprises Title
 const MONTH_COLOR_SCHEMES = {
   0: { // January - Blue
     gradient: 'linear-gradient(180deg, #E3F2FD 0%, #2196F3 30%, #1976D2 70%, #0D47A1 100%)',
@@ -1394,7 +1394,7 @@ const HomePage = () => {
                   className="h-12 w-auto"
                 />
               </div>
-              <h3 className="text-xl font-bold mb-2">ASR ENTERPRISES</h3>
+              <h3 className="text-xl font-bold mb-2">ASR Enterprises</h3>
               <p className="text-gray-400 text-sm mb-4">Leading solar energy solutions provider in Patna, Bihar</p>
               <p className="text-gray-400 text-xs mb-2">GSTIN: 10CCFPK3447Q3ZD</p>
               
@@ -1478,7 +1478,7 @@ const HomePage = () => {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p className="text-sm">© 2025 ASR ENTERPRISES. All rights reserved.</p>
+            <p className="text-sm">© 2025 ASR Enterprises. All rights reserved.</p>
             <p className="text-xs mt-2">GSTIN: 10CCFPK3447Q3ZD | Patna, Bihar</p>
             <p className="text-xs mt-1">Powered by AI | Follow us: @asr_enterprises_patna</p>
           </div>

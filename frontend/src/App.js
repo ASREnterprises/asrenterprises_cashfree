@@ -37,6 +37,7 @@ const LeadsManagement = lazy(() => import("@/components/LeadsManagement").then(m
 const AnalyticsPage = lazy(() => import("@/components/AnalyticsPage").then(m => ({ default: m.AnalyticsPage })));
 const SocialMediaIntegration = lazy(() => import("@/components/SocialMediaIntegration").then(m => ({ default: m.SocialMediaIntegration })));
 const HRManagement = lazy(() => import("@/components/HRManagement").then(m => ({ default: m.HRManagement })));
+const FestiveThemeOverlay = lazy(() => import("@/components/FestiveThemeOverlay").then(m => ({ default: m.FestiveThemeOverlay })));
 
 // CRM & Staff Portals - Heavy components (Lazy load critical for performance)
 const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({ default: m.CRMDashboard })));

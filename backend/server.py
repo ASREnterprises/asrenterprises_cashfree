@@ -4591,13 +4591,33 @@ async def fetch_razorpay_payments(count: int = 100, skip: int = 0):
 
 @api_router.post("/admin/razorpay/sync")
 async def sync_razorpay_payments(data: Dict[str, Any] = {}):
-    """Sync all successful Razorpay payments to orders database"""
+    """Sync only ASR Solar Shop website Razorpay payments to orders database"""
     if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
         raise HTTPException(status_code=500, detail="Razorpay API keys not configured")
     
-    sync_all = data.get("sync_all", True)
+    sync_all = data.get("sync_all", False)  # Default to False - only sync ASR orders
     
     try:
+        # First, get all our order_ids from database (orders created through our website)
+        existing_order_ids = set()
+        existing_payment_ids = set()
+        
+        # Get all razorpay_order_ids and payment_ids from our orders
+        orders_cursor = db.orders.find({}, {"razorpay_order_id": 1, "razorpay_payment_id": 1, "_id": 0})
+        async for order in orders_cursor:
+            if order.get("razorpay_order_id"):
+                existing_order_ids.add(order["razorpay_order_id"])
+            if order.get("razorpay_payment_id"):
+                existing_payment_ids.add(order["razorpay_payment_id"])
+        
+        # Also check service bookings
+        bookings_cursor = db.service_bookings.find({}, {"razorpay_order_id": 1, "payment_id": 1, "_id": 0})
+        async for booking in bookings_cursor:
+            if booking.get("razorpay_order_id"):
+                existing_order_ids.add(booking["razorpay_order_id"])
+            if booking.get("payment_id"):
+                existing_payment_ids.add(booking["payment_id"])
+        
         async with httpx.AsyncClient() as client:
             auth = (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET)
             
@@ -4630,30 +4650,73 @@ async def sync_razorpay_payments(data: Dict[str, Any] = {}):
             # Filter successful payments
             successful_payments = [p for p in all_payments if p.get("status") == "captured"]
             
+            # ASR-specific identifiers to look for in payment notes/description
+            ASR_IDENTIFIERS = [
+                "asr", "ASR", "solar", "Solar", "asrenterprise", 
+                "asr enterprises", "ASR Enterprises", "asr solar",
+                "rooftop", "installation"
+            ]
+            
             synced_count = 0
             new_orders_count = 0
             updated_orders_count = 0
+            skipped_count = 0
             
             for payment in successful_payments:
                 payment_id = payment.get("id")
+                order_id = payment.get("order_id", "")
                 amount = payment.get("amount", 0) / 100  # Convert paise to rupees
                 
-                # Extract customer details from Razorpay payment
-                # Notes can be a dict or list, handle both cases
+                # Skip if payment already processed
+                if payment_id in existing_payment_ids:
+                    continue
+                
+                # Check if this payment belongs to ASR Solar Shop
+                is_asr_payment = False
+                
+                # Method 1: Check if order_id matches our database
+                if order_id and order_id in existing_order_ids:
+                    is_asr_payment = True
+                
+                # Method 2: Check notes for ASR identifiers
                 notes = payment.get("notes", {})
                 if isinstance(notes, list):
                     notes = {}
                 
-                # Get customer name from notes or email
+                if isinstance(notes, dict):
+                    notes_str = str(notes).lower()
+                    for identifier in ASR_IDENTIFIERS:
+                        if identifier.lower() in notes_str:
+                            is_asr_payment = True
+                            break
+                    
+                    # Check for specific ASR notes fields
+                    if notes.get("source") in ["asr_shop", "asr_website", "asr_solar_shop"]:
+                        is_asr_payment = True
+                    if notes.get("merchant") and "asr" in notes.get("merchant", "").lower():
+                        is_asr_payment = True
+                
+                # Method 3: Check description for ASR identifiers
+                description = payment.get("description", "") or ""
+                for identifier in ASR_IDENTIFIERS:
+                    if identifier.lower() in description.lower():
+                        is_asr_payment = True
+                        break
+                
+                # Skip non-ASR payments unless sync_all is True
+                if not is_asr_payment and not sync_all:
+                    skipped_count += 1
+                    continue
+                
+                # Extract customer details from Razorpay payment
                 customer_name = notes.get("customer_name", "") if isinstance(notes, dict) else ""
                 if not customer_name and payment.get("email"):
                     customer_name = payment.get("email", "").split("@")[0]
                 if not customer_name:
-                    customer_name = "Razorpay Customer"
+                    customer_name = "ASR Customer"
                 
                 customer_phone = payment.get("contact", "") or ""
                 customer_email = payment.get("email", "") or ""
-                description = payment.get("description", "") or ""
                 created_at_ts = payment.get("created_at", 0)
                 created_at = datetime.fromtimestamp(created_at_ts, tz=timezone.utc).isoformat() if created_at_ts else datetime.now(timezone.utc).isoformat()
                 
@@ -4688,17 +4751,17 @@ async def sync_razorpay_payments(data: Dict[str, Any] = {}):
                     
                     if not existing_booking:
                         # Create new order from Razorpay payment
-                        order_number = f"RZP-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
+                        order_number = f"ASR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}"
                         
                         new_order = {
                             "id": str(uuid.uuid4()),
                             "order_number": order_number,
-                            "customer_name": customer_name or "Razorpay Customer",
+                            "customer_name": customer_name or "ASR Customer",
                             "customer_phone": customer_phone or "",
                             "customer_email": customer_email or "",
                             "items": [{
-                                "product_id": "razorpay_direct",
-                                "product_name": description or "Razorpay Payment",
+                                "product_id": "asr_shop_product",
+                                "product_name": description or "ASR Solar Shop Payment",
                                 "quantity": 1,
                                 "price": amount
                             }],
@@ -4711,10 +4774,10 @@ async def sync_razorpay_payments(data: Dict[str, Any] = {}):
                             "payment_method": "razorpay",
                             "payment_status": "paid",
                             "razorpay_payment_id": payment_id,
-                            "razorpay_order_id": payment.get("order_id", ""),
+                            "razorpay_order_id": order_id,
                             "order_status": "confirmed",
-                            "notes": f"Auto-synced from Razorpay. Original description: {description}",
-                            "source": "razorpay_sync",
+                            "notes": f"Auto-synced from Razorpay (ASR Solar Shop). Original description: {description}",
+                            "source": "asr_shop_sync",
                             "created_at": created_at,
                             "updated_at": datetime.now(timezone.utc).isoformat()
                         }
@@ -4728,11 +4791,11 @@ async def sync_razorpay_payments(data: Dict[str, Any] = {}):
             try:
                 crm_message = CRMMessage(
                     sender_id="system",
-                    sender_name="Razorpay Sync",
+                    sender_name="ASR Shop Sync",
                     sender_type="system",
                     receiver_id="admin",
                     receiver_name="Admin",
-                    message=f"🔄 Razorpay Sync Complete: {synced_count} payments processed, {new_orders_count} new orders created, {updated_orders_count} orders updated"
+                    message=f"🔄 ASR Shop Sync Complete: {synced_count} ASR payments processed, {new_orders_count} new orders created, {updated_orders_count} orders updated, {skipped_count} non-ASR payments skipped"
                 )
                 msg_doc = crm_message.model_dump()
                 msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
@@ -4742,10 +4805,12 @@ async def sync_razorpay_payments(data: Dict[str, Any] = {}):
             
             return {
                 "status": "success",
-                "message": f"Synced {synced_count} Razorpay payments",
+                "message": f"Synced {synced_count} ASR Solar Shop payments",
                 "total_processed": synced_count,
                 "new_orders_created": new_orders_count,
-                "orders_updated": updated_orders_count
+                "orders_updated": updated_orders_count,
+                "non_asr_skipped": skipped_count,
+                "filter_mode": "asr_only" if not sync_all else "all_payments"
             }
             
     except httpx.RequestError as e:

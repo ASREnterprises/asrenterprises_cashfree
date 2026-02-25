@@ -682,6 +682,11 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+      {/* Festive Theme Overlay - Shows on all pages when festival is active */}
+      <Suspense fallback={null}>
+        <FestiveThemeOverlay festival={festiveBanner} />
+      </Suspense>
+      
       {/* Premium Navigation - Light Theme */}
       <nav className="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-amber-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

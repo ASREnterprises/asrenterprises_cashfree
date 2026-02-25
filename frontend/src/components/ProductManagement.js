@@ -462,15 +462,30 @@ export const ProductManagement = () => {
     }
   };
 
-  const handleDeleteOrder = async (orderId) => {
-    if (!window.confirm("Are you sure you want to delete this order?")) return;
-    try {
-      await axios.delete(`${API}/shop/orders/${orderId}`);
-      fetchOrders();
-      fetchShopStats();
-    } catch (err) {
-      console.error("Error deleting order:", err);
-      alert(err.response?.data?.detail || "Failed to delete order. Only pending/cancelled orders can be deleted.");
+  const handleDeleteOrder = async (orderId, orderStatus) => {
+    const isPaidOrder = orderStatus && !["pending", "cancelled"].includes(orderStatus);
+    
+    if (isPaidOrder) {
+      if (!window.confirm("⚠️ WARNING: This order has been paid/processed.\n\nAre you sure you want to permanently delete it?\n\nThis action cannot be undone!")) return;
+      try {
+        await axios.delete(`${API}/shop/orders/${orderId}?force=true`);
+        fetchOrders();
+        fetchShopStats();
+        alert("Order deleted successfully.");
+      } catch (err) {
+        console.error("Error deleting order:", err);
+        alert(err.response?.data?.detail || "Failed to delete order.");
+      }
+    } else {
+      if (!window.confirm("Are you sure you want to delete this order?")) return;
+      try {
+        await axios.delete(`${API}/shop/orders/${orderId}`);
+        fetchOrders();
+        fetchShopStats();
+      } catch (err) {
+        console.error("Error deleting order:", err);
+        alert(err.response?.data?.detail || "Failed to delete order.");
+      }
     }
   };
 

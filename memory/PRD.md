@@ -149,6 +149,34 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
 - Non-ASR payments are skipped by default (can override with `sync_all: true`)
 - Response shows: total processed, new orders created, orders updated, non-ASR skipped
 
+### Session Updates (Feb 25, 2026) - Part 2
+
+#### CRM Credentials Management Tab (COMPLETED)
+- New "Credentials" tab added to CRM System
+- **Admin Credentials:** Change password for admin account
+- **Staff Credentials:** Auto-synced from HR Management
+  - Generate random passwords
+  - Set custom passwords
+  - Remove login access
+- Login information guide included
+
+#### Order Delete Feature (COMPLETED)
+- Updated delete order API to allow force delete of paid orders
+- Frontend shows different styling for pending vs paid orders
+- Confirmation dialog warns about deleting paid orders
+
+#### Festive Theme Effect (COMPLETED)
+- Created FestiveThemeOverlay component
+- Shows floating particles (emojis) based on festival type
+- Corner decorations and shimmer effects
+- Auto-detects festival type: Diwali, Holi, Christmas, New Year, Independence Day, etc.
+
+#### UI Updates (COMPLETED)
+- ASR Enterprises title size increased (text-2xl → text-4xl on desktop)
+- Tagline size increased for better visibility
+- Removed demo login password option from login page
+- Removed Recruitment tab from HR Management
+
 ### Latest Session (Feb 24, 2026) - Part 4
 
 #### Full Backend Security Package (COMPLETED)

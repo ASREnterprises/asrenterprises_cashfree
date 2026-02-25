@@ -834,10 +834,16 @@ export const ProductManagement = () => {
                         <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
-                      {(order.order_status === "pending" || order.order_status === "cancelled" || order.payment_status === "pending" || order.payment_status === "failed") && (
-                        <button
-                          onClick={() => handleDeleteOrder(order.id)}
-                          className="text-red-400 hover:text-red-300 p-1"
+                      <button
+                        onClick={() => handleDeleteOrder(order.id, order.order_status)}
+                        className={`p-1 rounded ${
+                          order.order_status === "pending" || order.order_status === "cancelled" 
+                            ? "text-red-400 hover:text-red-300 hover:bg-red-500/10" 
+                            : "text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                        }`}
+                        title={order.order_status === "pending" || order.order_status === "cancelled" 
+                          ? "Delete Order" 
+                          : "Force Delete (Paid Order)"}
                           title="Delete Order"
                           data-testid={`delete-order-${order.id}`}
                         >

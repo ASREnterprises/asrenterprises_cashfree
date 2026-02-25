@@ -5556,7 +5556,10 @@ async def create_order(order_data: Dict[str, Any]):
                 "notes": {
                     "order_id": order.id,
                     "customer_name": order.customer_name,
-                    "customer_phone": order.customer_phone
+                    "customer_phone": order.customer_phone,
+                    "source": "asr_solar_shop",
+                    "merchant": "ASR Enterprises",
+                    "type": "product_order"
                 }
             })
             razorpay_order_id = razorpay_order["id"]

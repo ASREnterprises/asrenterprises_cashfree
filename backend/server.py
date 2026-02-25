@@ -5032,7 +5032,10 @@ async def book_service(request: Request, data: Dict[str, Any]):
             "notes": {
                 "booking_id": booking_id,
                 "customer_name": customer_name,
-                "customer_phone": customer_phone
+                "customer_phone": customer_phone,
+                "source": "asr_solar_shop",
+                "merchant": "ASR Enterprises",
+                "type": "service_booking"
             }
         })
         razorpay_order_id = razorpay_order["id"]

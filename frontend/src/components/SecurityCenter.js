@@ -116,17 +116,29 @@ export const SecurityCenter = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center space-x-4 mb-8">
-          <Link to="/admin/dashboard" className="text-gray-500 hover:text-[#0a355e]">
+          <button onClick={() => navigate("/admin/dashboard")} className="text-gray-400 hover:text-white transition">
             <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-3xl font-bold text-[#0a355e]">Security Center</h1>
+          </button>
+          <h1 className="text-3xl font-bold text-white">Security Center</h1>
         </div>
 
+        {/* Optimization Result Alert */}
+        {optimizationResult && (
+          <div className={`mb-6 p-4 rounded-xl flex items-center space-x-3 ${
+            optimizationResult.type === 'error' ? 'bg-red-500/20 border border-red-500/50 text-red-300' :
+            optimizationResult.type === 'cache' ? 'bg-blue-500/20 border border-blue-500/50 text-blue-300' :
+            'bg-green-500/20 border border-green-500/50 text-green-300'
+          }`}>
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <span>{optimizationResult.message}</span>
+          </div>
+        )}
+
         {/* Main Security Status */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-8 mb-8 text-[#0a355e]">
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-8 mb-8 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-6">
               <div className="bg-white bg-opacity-20 p-4 rounded-full">
@@ -142,6 +154,96 @@ export const SecurityCenter = () => {
             <div className="text-right">
               <div className="text-5xl font-bold">100%</div>
               <div className="text-green-200">Protected</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Website Optimization Panel */}
+        <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+            <Zap className="w-6 h-6 mr-2 text-yellow-400" />
+            Website Optimization
+          </h2>
+          <p className="text-gray-300 mb-6">Improve website speed and performance with these tools</p>
+          
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Clear Cache */}
+            <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+              <div className="flex items-start space-x-4">
+                <div className="bg-blue-500/20 p-3 rounded-lg">
+                  <Trash2 className="w-6 h-6 text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Clear Cache</h3>
+                  <p className="text-gray-400 text-sm mb-4">Remove cached data to load fresh content and fix display issues</p>
+                  <button
+                    onClick={handleClearCache}
+                    disabled={clearingCache}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition flex items-center justify-center space-x-2"
+                  >
+                    {clearingCache ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Clearing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        <span>Clear All Cache</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Optimize Website */}
+            <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+              <div className="flex items-start space-x-4">
+                <div className="bg-green-500/20 p-3 rounded-lg">
+                  <Zap className="w-6 h-6 text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-white mb-1">Optimize Performance</h3>
+                  <p className="text-gray-400 text-sm mb-4">Run database cleanup, rebuild indexes, and optimize queries</p>
+                  <button
+                    onClick={handleOptimizeWebsite}
+                    disabled={optimizing}
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white py-2.5 rounded-lg font-semibold transition flex items-center justify-center space-x-2"
+                  >
+                    {optimizing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Optimizing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4" />
+                        <span>Optimize Website</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="bg-gray-800/30 rounded-lg p-4 text-center">
+              <Database className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+              <p className="text-gray-400 text-xs">Database</p>
+              <p className="text-white font-semibold">Optimized</p>
+            </div>
+            <div className="bg-gray-800/30 rounded-lg p-4 text-center">
+              <Globe className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+              <p className="text-gray-400 text-xs">CDN Cache</p>
+              <p className="text-white font-semibold">Active</p>
+            </div>
+            <div className="bg-gray-800/30 rounded-lg p-4 text-center">
+              <RefreshCw className="w-6 h-6 text-amber-400 mx-auto mb-2" />
+              <p className="text-gray-400 text-xs">Auto Cleanup</p>
+              <p className="text-white font-semibold">Weekly</p>
             </div>
           </div>
         </div>

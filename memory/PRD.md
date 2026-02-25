@@ -136,6 +136,19 @@ Complete HR Management system added to Admin Dashboard with:
 #### Domain Transfer Note:
 User has transferred domain from Namecheap to Cloudflare. DNS settings should be configured in Cloudflare dashboard.
 
+#### Razorpay Shop Sync Filter (COMPLETED - Feb 25, 2026)
+- Updated `/api/admin/razorpay/sync` to only import ASR Solar Shop transactions
+- **Filter Methods:**
+  1. Match order_id with our database (orders created through website checkout)
+  2. Check payment notes for ASR identifiers (source, merchant fields)
+  3. Check description for ASR-related keywords
+- **New Razorpay Order Notes:** All new orders now include:
+  - `source: "asr_solar_shop"`
+  - `merchant: "ASR Enterprises"`
+  - `type: "product_order"` or `"service_booking"`
+- Non-ASR payments are skipped by default (can override with `sync_all: true`)
+- Response shows: total processed, new orders created, orders updated, non-ASR skipped
+
 ### Latest Session (Feb 24, 2026) - Part 4
 
 #### Full Backend Security Package (COMPLETED)

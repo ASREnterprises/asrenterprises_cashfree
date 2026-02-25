@@ -844,12 +844,10 @@ export const ProductManagement = () => {
                         title={order.order_status === "pending" || order.order_status === "cancelled" 
                           ? "Delete Order" 
                           : "Force Delete (Paid Order)"}
-                          title="Delete Order"
-                          data-testid={`delete-order-${order.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
+                        data-testid={`delete-order-${order.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                       </div>
                     </td>
                   </tr>

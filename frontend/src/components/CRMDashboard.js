@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   ArrowLeft, Users, ClipboardList, TrendingUp, Calendar, 
@@ -9,6 +9,7 @@ import {
   Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy,
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield
 } from "lucide-react";
+import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

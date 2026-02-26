@@ -289,12 +289,20 @@ export const LeadsManagement = () => {
               <span>Add Lead</span>
             </button>
             <button
+              onClick={() => setShowSmartImportModal(true)}
+              className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-purple-600 hover:to-purple-700 shadow-lg"
+              data-testid="smart-import-btn"
+            >
+              <FileSpreadsheet className="w-5 h-5" />
+              <span className="hidden sm:inline">Smart Import</span>
+            </button>
+            <button
               onClick={() => setShowCSVModal(true)}
               className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:from-blue-600 hover:to-blue-700 shadow-lg"
               data-testid="csv-import-btn"
             >
               <Upload className="w-5 h-5" />
-              <span className="hidden sm:inline">CSV Import</span>
+              <span className="hidden sm:inline">CSV</span>
             </button>
             <button
               onClick={fetchLeads}

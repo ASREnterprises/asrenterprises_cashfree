@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const INACTIVITY_TIMEOUT = 20 * 60 * 1000; // 20 minutes in milliseconds
+const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 export const useAutoLogout = (isAuthenticated, logoutCallback, userType = 'admin') => {
   const navigate = useNavigate();

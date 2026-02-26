@@ -440,6 +440,271 @@ export const LeadsManagement = () => {
           </div>
         )}
 
+        {/* Smart Import Modal */}
+        {showSmartImportModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-xl font-bold text-[#0a355e]">Smart Import Leads</h2>
+                  <p className="text-gray-500 text-sm">AI-powered import from multiple file formats</p>
+                </div>
+                <button onClick={closeSmartImport} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Step: Upload */}
+              {smartImportStep === 'upload' && (
+                <div className="flex-1">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                      <FileSpreadsheet className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                      <span className="text-green-700 text-sm font-medium">CSV / Excel</span>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+                      <FileText className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                      <span className="text-red-700 text-sm font-medium">PDF</span>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                      <Image className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                      <span className="text-blue-700 text-sm font-medium">Images</span>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
+                      <CheckCircle className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                      <span className="text-purple-700 text-sm font-medium">AI Extract</span>
+                    </div>
+                  </div>
+
+                  <input
+                    ref={smartFileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls,.pdf,.jpg,.jpeg,.png,.webp"
+                    onChange={handleSmartFileSelect}
+                    className="hidden"
+                  />
+                  
+                  <button
+                    onClick={() => smartFileInputRef.current?.click()}
+                    disabled={extracting}
+                    className="w-full border-2 border-dashed border-purple-300 rounded-xl p-12 text-center hover:border-purple-500 hover:bg-purple-50 transition disabled:opacity-50"
+                  >
+                    {extracting ? (
+                      <>
+                        <Loader2 className="w-16 h-16 text-purple-500 mx-auto mb-4 animate-spin" />
+                        <span className="text-purple-700 font-medium text-lg">Extracting data with AI...</span>
+                        <p className="text-gray-500 text-sm mt-2">This may take a few seconds</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+                        <span className="text-gray-700 font-medium text-lg">Click to select file</span>
+                        <p className="text-gray-500 text-sm mt-2">
+                          Supports: CSV, Excel (.xlsx), PDF, Images (JPG, PNG)
+                        </p>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="mt-6 bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-700 mb-2">Supported Data Fields:</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {['Name', 'Phone', 'Email', 'District', 'Address', 'Property Type', 'Business Type', 'Monthly Bill', 'Notes'].map(field => (
+                        <span key={field} className="bg-white px-3 py-1 rounded-full text-sm text-gray-600 border">{field}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step: Preview */}
+              {smartImportStep === 'preview' && (
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-gray-600">
+                        {selectedFile?.name} - <strong>{extractedLeads.length}</strong> leads found
+                      </span>
+                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                        {extractedLeads.filter(l => l._selected).length} selected
+                      </span>
+                    </div>
+                    <button
+                      onClick={resetSmartImport}
+                      className="text-gray-500 hover:text-gray-700 text-sm flex items-center space-x-1"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Upload different file</span>
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto border rounded-xl">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="p-3 text-left text-xs font-semibold text-gray-600">
+                            <input
+                              type="checkbox"
+                              checked={extractedLeads.every(l => l._selected)}
+                              onChange={(e) => setExtractedLeads(prev => prev.map(l => ({ ...l, _selected: e.target.checked })))}
+                              className="rounded"
+                            />
+                          </th>
+                          <th className="p-3 text-left text-xs font-semibold text-gray-600">Name</th>
+                          <th className="p-3 text-left text-xs font-semibold text-gray-600">Phone</th>
+                          <th className="p-3 text-left text-xs font-semibold text-gray-600">District</th>
+                          <th className="p-3 text-left text-xs font-semibold text-gray-600">Property</th>
+                          <th className="p-3 text-left text-xs font-semibold text-gray-600">Bill</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {extractedLeads.map((lead, idx) => (
+                          <tr key={idx} className={`border-t ${!lead._selected ? 'opacity-50 bg-gray-50' : ''}`}>
+                            <td className="p-3">
+                              <input
+                                type="checkbox"
+                                checked={lead._selected}
+                                onChange={() => handleToggleLeadSelection(idx)}
+                                className="rounded"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={lead.name || ''}
+                                onChange={(e) => handleEditExtractedLead(idx, 'name', e.target.value)}
+                                className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-purple-500 focus:outline-none px-1 py-0.5"
+                                placeholder="Name"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={lead.phone || ''}
+                                onChange={(e) => handleEditExtractedLead(idx, 'phone', e.target.value)}
+                                className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-purple-500 focus:outline-none px-1 py-0.5"
+                                placeholder="Phone"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={lead.district || ''}
+                                onChange={(e) => handleEditExtractedLead(idx, 'district', e.target.value)}
+                                className="w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-purple-500 focus:outline-none px-1 py-0.5"
+                                placeholder="District"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <select
+                                value={lead.property_type || 'residential'}
+                                onChange={(e) => handleEditExtractedLead(idx, 'property_type', e.target.value)}
+                                className="bg-transparent text-sm"
+                              >
+                                <option value="residential">Residential</option>
+                                <option value="commercial">Commercial</option>
+                                <option value="industrial">Industrial</option>
+                                <option value="agricultural">Agricultural</option>
+                              </select>
+                            </td>
+                            <td className="p-3">
+                              <input
+                                type="text"
+                                value={lead.monthly_bill || ''}
+                                onChange={(e) => handleEditExtractedLead(idx, 'monthly_bill', e.target.value)}
+                                className="w-20 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-purple-500 focus:outline-none px-1 py-0.5"
+                                placeholder="₹"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="mt-4 flex justify-end space-x-3">
+                    <button
+                      onClick={resetSmartImport}
+                      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmImport}
+                      disabled={importing || extractedLeads.filter(l => l._selected).length === 0}
+                      className="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-semibold disabled:opacity-50 flex items-center space-x-2"
+                    >
+                      {importing ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Importing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          <span>Import {extractedLeads.filter(l => l._selected).length} Leads</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step: Result */}
+              {smartImportStep === 'result' && importResult && (
+                <div className="flex-1 flex flex-col items-center justify-center py-8">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${importResult.imported_count > 0 ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                    {importResult.imported_count > 0 ? (
+                      <CheckCircle className="w-10 h-10 text-green-600" />
+                    ) : (
+                      <AlertCircle className="w-10 h-10 text-yellow-600" />
+                    )}
+                  </div>
+                  
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                    {importResult.imported_count > 0 ? 'Import Successful!' : 'No Leads Imported'}
+                  </h3>
+                  
+                  <p className="text-gray-600 mb-6">{importResult.message}</p>
+
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">{importResult.imported_count}</div>
+                      <div className="text-green-700 text-sm">Imported</div>
+                    </div>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-center">
+                      <div className="text-2xl font-bold text-yellow-600">{importResult.duplicate_count}</div>
+                      <div className="text-yellow-700 text-sm">Duplicates</div>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+                      <div className="text-2xl font-bold text-red-600">{importResult.error_count}</div>
+                      <div className="text-red-700 text-sm">Errors</div>
+                    </div>
+                  </div>
+
+                  {importResult.duplicates?.length > 0 && (
+                    <div className="w-full bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+                      <h4 className="font-semibold text-yellow-800 mb-2">Skipped Duplicates:</h4>
+                      <div className="text-sm text-yellow-700 max-h-24 overflow-y-auto">
+                        {importResult.duplicates.map((d, i) => (
+                          <div key={i}>{d.name || d.phone} - already exists</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={closeSmartImport}
+                    className="px-8 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg font-semibold"
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4 mb-8 flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">

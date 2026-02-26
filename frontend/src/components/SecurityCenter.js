@@ -2,11 +2,21 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, CheckCircle, AlertTriangle, Lock, Eye, Server, RefreshCw, Trash2, Zap, Database, Globe, Loader2 } from "lucide-react";
 import axios from "axios";
+import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const SecurityCenter = () => {
   const navigate = useNavigate();
+  
+  // Auto-logout after 15 minutes of inactivity
+  const isAuthenticated = localStorage.getItem("asrAdminAuth") === "true";
+  useAutoLogout(isAuthenticated, () => {
+    localStorage.removeItem("asrAdminAuth");
+    localStorage.removeItem("asrAdminEmail");
+    localStorage.removeItem("asrAdminRole");
+  }, 'admin');
+
   const [securityStatus, setSecurityStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [optimizing, setOptimizing] = useState(false);

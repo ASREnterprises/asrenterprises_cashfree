@@ -6269,6 +6269,473 @@ async def get_import_template():
         "sources": ["website", "referral", "walk_in", "phone_call", "whatsapp", "facebook", "exhibition", "csv_import"]
     }
 
+# ==================== MULTI-FORMAT LEAD IMPORT ====================
+@api_router.post("/crm/leads/smart-import")
+async def smart_import_leads(file: UploadFile = File(...)):
+    """
+    AI-powered lead import from multiple file formats:
+    - CSV files (all variants)
+    - Excel files (.xlsx, .xls)
+    - PDF files (text extraction + AI parsing)
+    - Image files (OCR + AI parsing)
+    """
+    import pandas as pd
+    from PyPDF2 import PdfReader
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+    
+    try:
+        content = await file.read()
+        filename = file.filename.lower()
+        file_ext = filename.split('.')[-1] if '.' in filename else ''
+        
+        extracted_data = []
+        raw_text = ""
+        use_ai_extraction = False
+        
+        # ========== CSV Processing ==========
+        if file_ext == 'csv':
+            try:
+                # Try different encodings
+                for encoding in ['utf-8-sig', 'utf-8', 'latin1', 'cp1252']:
+                    try:
+                        decoded = content.decode(encoding)
+                        # Detect delimiter
+                        sample = decoded[:2000]
+                        delimiter = ','
+                        if sample.count(';') > sample.count(','):
+                            delimiter = ';'
+                        elif sample.count('\t') > sample.count(','):
+                            delimiter = '\t'
+                        
+                        df = pd.read_csv(io.StringIO(decoded), delimiter=delimiter, on_bad_lines='skip')
+                        break
+                    except:
+                        continue
+                else:
+                    raise HTTPException(status_code=400, detail="Could not decode CSV file")
+                
+                # Normalize column names
+                df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+                
+                for _, row in df.iterrows():
+                    lead = extract_lead_from_row(row.to_dict())
+                    if lead.get('name') or lead.get('phone'):
+                        extracted_data.append(lead)
+                        
+            except Exception as e:
+                logger.error(f"CSV parsing error: {e}")
+                raise HTTPException(status_code=400, detail=f"CSV parsing failed: {str(e)}")
+        
+        # ========== Excel Processing ==========
+        elif file_ext in ['xlsx', 'xls']:
+            try:
+                import openpyxl
+                df = pd.read_excel(io.BytesIO(content), engine='openpyxl')
+                df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+                
+                for _, row in df.iterrows():
+                    lead = extract_lead_from_row(row.to_dict())
+                    if lead.get('name') or lead.get('phone'):
+                        extracted_data.append(lead)
+                        
+            except Exception as e:
+                logger.error(f"Excel parsing error: {e}")
+                raise HTTPException(status_code=400, detail=f"Excel parsing failed: {str(e)}")
+        
+        # ========== PDF Processing ==========
+        elif file_ext == 'pdf':
+            try:
+                pdf_reader = PdfReader(io.BytesIO(content))
+                raw_text = ""
+                for page in pdf_reader.pages:
+                    raw_text += page.extract_text() + "\n"
+                
+                if raw_text.strip():
+                    use_ai_extraction = True
+                else:
+                    raise HTTPException(status_code=400, detail="Could not extract text from PDF")
+                    
+            except Exception as e:
+                logger.error(f"PDF parsing error: {e}")
+                raise HTTPException(status_code=400, detail=f"PDF parsing failed: {str(e)}")
+        
+        # ========== Image Processing (OCR via AI) ==========
+        elif file_ext in ['jpg', 'jpeg', 'png', 'webp', 'heic']:
+            try:
+                # Save temp file for AI processing
+                temp_path = UPLOADS_DIR / f"temp_import_{uuid.uuid4()}.{file_ext}"
+                with open(temp_path, 'wb') as f:
+                    f.write(content)
+                
+                # Use Gemini for image OCR
+                if EMERGENT_LLM_KEY:
+                    chat = LlmChat(
+                        api_key=EMERGENT_LLM_KEY,
+                        session_id=f"ocr-{uuid.uuid4()}",
+                        system_message="You are an OCR assistant. Extract all text from the image."
+                    ).with_model("gemini", "gemini-2.5-flash")
+                    
+                    mime_type = f"image/{file_ext}" if file_ext != 'jpg' else "image/jpeg"
+                    file_content = FileContentWithMimeType(
+                        file_path=str(temp_path),
+                        mime_type=mime_type
+                    )
+                    
+                    response = await chat.send_message(UserMessage(
+                        text="Extract all text visible in this image. Return only the extracted text, nothing else.",
+                        file_contents=[file_content]
+                    ))
+                    
+                    raw_text = response
+                    use_ai_extraction = True
+                    
+                    # Clean up temp file
+                    temp_path.unlink(missing_ok=True)
+                else:
+                    raise HTTPException(status_code=400, detail="AI key not configured for image processing")
+                    
+            except Exception as e:
+                logger.error(f"Image processing error: {e}")
+                raise HTTPException(status_code=400, detail=f"Image processing failed: {str(e)}")
+        
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported file format: {file_ext}. Supported: csv, xlsx, xls, pdf, jpg, png, webp")
+        
+        # ========== AI-Powered Data Extraction ==========
+        if use_ai_extraction and raw_text and EMERGENT_LLM_KEY:
+            try:
+                chat = LlmChat(
+                    api_key=EMERGENT_LLM_KEY,
+                    session_id=f"lead-extract-{uuid.uuid4()}",
+                    system_message="""You are a lead data extraction assistant for a solar energy company in Bihar, India.
+Extract customer/lead information from the provided text and return a valid JSON array.
+
+For each lead found, extract:
+- name: Customer/business name
+- phone: Mobile number (10 digits, clean any formatting)
+- email: Email if available
+- district: Location/city/district in Bihar
+- address: Full address if available
+- property_type: residential/commercial/industrial/agricultural
+- business_type: Type of business if mentioned
+- monthly_bill: Electricity bill amount if mentioned (number only)
+- notes: Any additional relevant information
+
+Return ONLY a valid JSON array of objects. Example:
+[{"name": "Ramesh Kumar", "phone": "9876543210", "district": "Patna", "property_type": "residential"}]
+
+If no valid leads found, return: []"""
+                ).with_model("openai", "gpt-4o-mini")
+                
+                response = await chat.send_message(UserMessage(
+                    text=f"Extract lead/customer data from this text:\n\n{raw_text[:8000]}"
+                ))
+                
+                # Parse AI response
+                try:
+                    # Clean response - find JSON array
+                    response_clean = response.strip()
+                    if '```json' in response_clean:
+                        response_clean = response_clean.split('```json')[1].split('```')[0]
+                    elif '```' in response_clean:
+                        response_clean = response_clean.split('```')[1].split('```')[0]
+                    
+                    # Find array brackets
+                    start_idx = response_clean.find('[')
+                    end_idx = response_clean.rfind(']') + 1
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_str = response_clean[start_idx:end_idx]
+                        ai_extracted = json.loads(json_str)
+                        
+                        for item in ai_extracted:
+                            lead = {
+                                "name": str(item.get('name', '')).strip(),
+                                "phone": clean_phone_number(str(item.get('phone', ''))),
+                                "email": str(item.get('email', '')).strip(),
+                                "district": str(item.get('district', '')).strip(),
+                                "address": str(item.get('address', '')).strip(),
+                                "property_type": str(item.get('property_type', 'residential')).lower(),
+                                "business_type": str(item.get('business_type', '')).strip(),
+                                "monthly_bill": item.get('monthly_bill'),
+                                "notes": str(item.get('notes', '')).strip(),
+                                "source": f"{file_ext}_import"
+                            }
+                            if lead.get('name') or lead.get('phone'):
+                                extracted_data.append(lead)
+                except json.JSONDecodeError as je:
+                    logger.warning(f"AI response JSON parse error: {je}")
+                    # Try line-by-line extraction as fallback
+                    lines = raw_text.split('\n')
+                    for line in lines:
+                        # Look for phone numbers
+                        phones = re.findall(r'(?:\+91)?[6-9]\d{9}', line)
+                        if phones:
+                            extracted_data.append({
+                                "name": "",
+                                "phone": clean_phone_number(phones[0]),
+                                "notes": line.strip(),
+                                "source": f"{file_ext}_import"
+                            })
+                            
+            except Exception as e:
+                logger.error(f"AI extraction error: {e}")
+                # Fallback: basic regex extraction
+                phones = re.findall(r'(?:\+91)?[6-9]\d{9}', raw_text)
+                for phone in phones[:50]:
+                    extracted_data.append({
+                        "name": "",
+                        "phone": clean_phone_number(phone),
+                        "source": f"{file_ext}_import"
+                    })
+        
+        # Return preview data
+        return {
+            "success": True,
+            "file_type": file_ext,
+            "total_extracted": len(extracted_data),
+            "preview_data": extracted_data[:50],  # Return first 50 for preview
+            "raw_text_preview": raw_text[:500] if raw_text else None,
+            "message": f"Extracted {len(extracted_data)} potential leads from {file_ext.upper()} file"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Smart import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+
+@api_router.post("/crm/leads/confirm-import")
+async def confirm_import_leads(data: Dict[str, Any]):
+    """Confirm and import the extracted leads after preview"""
+    try:
+        leads_to_import = data.get('leads', [])
+        if not leads_to_import:
+            raise HTTPException(status_code=400, detail="No leads to import")
+        
+        imported = []
+        errors = []
+        duplicates = []
+        
+        for idx, lead_data in enumerate(leads_to_import):
+            try:
+                name = sanitize_input(str(lead_data.get('name', '')).strip())
+                phone = clean_phone_number(str(lead_data.get('phone', '')))
+                
+                if not name and not phone:
+                    errors.append({"index": idx, "error": "Name or Phone required"})
+                    continue
+                
+                # Check for duplicate
+                if phone:
+                    existing = await db.crm_leads.find_one({"phone": phone}, {"_id": 0, "name": 1})
+                    if existing:
+                        duplicates.append({"phone": phone, "name": name, "existing_name": existing.get('name')})
+                        continue
+                
+                # Parse optional fields
+                email = str(lead_data.get('email', '')).strip()
+                district = str(lead_data.get('district', '')).strip()
+                address = sanitize_input(str(lead_data.get('address', '')).strip())
+                property_type = str(lead_data.get('property_type', 'residential')).lower()
+                if property_type not in ['residential', 'commercial', 'industrial', 'agricultural']:
+                    property_type = 'residential'
+                
+                monthly_bill = None
+                bill_val = lead_data.get('monthly_bill')
+                if bill_val:
+                    try:
+                        monthly_bill = float(re.sub(r'[^\d.]', '', str(bill_val)))
+                    except:
+                        pass
+                
+                source = str(lead_data.get('source', 'smart_import')).strip()
+                notes = sanitize_input(str(lead_data.get('notes', '')).strip())
+                business_type = str(lead_data.get('business_type', '')).strip()
+                
+                if business_type:
+                    notes = f"Business: {business_type}. {notes}" if notes else f"Business: {business_type}"
+                
+                # Calculate lead score
+                lead_score = min(100, 40 + int((monthly_bill or 0) / 100))
+                ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
+                
+                # Create lead
+                lead_id = str(uuid.uuid4())
+                lead = {
+                    "id": lead_id,
+                    "name": name if name else "Unknown",
+                    "email": email,
+                    "phone": phone,
+                    "district": district,
+                    "address": address,
+                    "property_type": property_type,
+                    "monthly_bill": monthly_bill,
+                    "roof_area": None,
+                    "source": source,
+                    "stage": "new",
+                    "assigned_to": None,
+                    "assigned_by": None,
+                    "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Smart imported. {notes}" if notes else "",
+                    "quoted_amount": None,
+                    "system_size": None,
+                    "advance_paid": 0.0,
+                    "total_amount": 0.0,
+                    "pending_amount": 0.0,
+                    "lead_score": lead_score,
+                    "ai_priority": ai_priority,
+                    "ai_suggestions": None,
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Smart imported"}],
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                
+                await db.crm_leads.insert_one(lead)
+                imported.append({"name": name, "phone": phone, "id": lead_id})
+                
+            except Exception as e:
+                errors.append({"index": idx, "error": str(e)})
+        
+        logger.info(f"Smart import confirmed: {len(imported)} leads imported, {len(duplicates)} duplicates, {len(errors)} errors")
+        
+        return {
+            "success": True,
+            "imported_count": len(imported),
+            "duplicate_count": len(duplicates),
+            "error_count": len(errors),
+            "imported_leads": imported[:20],
+            "duplicates": duplicates[:10],
+            "errors": errors[:10],
+            "message": f"Successfully imported {len(imported)} leads" + 
+                      (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
+                      (f", {len(errors)} errors" if errors else "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Confirm import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+
+def extract_lead_from_row(row: dict) -> dict:
+    """Extract lead data from a row dictionary with flexible column mapping"""
+    # Name variations
+    name = ""
+    for key in ['name', 'customer_name', 'full_name', 'customer', 'client', 'client_name', 'contact_name', 'person']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            name = str(row[key]).strip()
+            break
+    
+    # Phone variations
+    phone = ""
+    for key in ['phone', 'mobile', 'mobile_no', 'mobile_number', 'phone_number', 'contact', 'contact_no', 'cell', 'telephone']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            phone = clean_phone_number(str(row[key]))
+            break
+    
+    # Email variations
+    email = ""
+    for key in ['email', 'email_id', 'email_address', 'mail', 'e-mail']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            email = str(row[key]).strip()
+            break
+    
+    # District/Location variations
+    district = ""
+    for key in ['district', 'city', 'location', 'area', 'place', 'town', 'locality']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            district = str(row[key]).strip()
+            break
+    
+    # Address variations
+    address = ""
+    for key in ['address', 'full_address', 'street', 'street_address', 'location_address']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            address = str(row[key]).strip()
+            break
+    
+    # Property type variations
+    property_type = "residential"
+    for key in ['property_type', 'type', 'property', 'category']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            pt = str(row[key]).strip().lower()
+            if pt in ['residential', 'commercial', 'industrial', 'agricultural']:
+                property_type = pt
+            elif 'commer' in pt:
+                property_type = 'commercial'
+            elif 'indust' in pt:
+                property_type = 'industrial'
+            elif 'agri' in pt or 'farm' in pt:
+                property_type = 'agricultural'
+            break
+    
+    # Monthly bill variations
+    monthly_bill = None
+    for key in ['monthly_bill', 'bill', 'electricity_bill', 'bill_amount', 'monthly_electricity']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            try:
+                monthly_bill = float(re.sub(r'[^\d.]', '', str(row[key])))
+            except:
+                pass
+            break
+    
+    # Business type variations
+    business_type = ""
+    for key in ['business', 'business_type', 'company', 'company_name', 'firm', 'organization']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            business_type = str(row[key]).strip()
+            break
+    
+    # Notes variations
+    notes = ""
+    for key in ['notes', 'remarks', 'comments', 'description', 'details', 'info']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            notes = str(row[key]).strip()
+            break
+    
+    # Source variations
+    source = "file_import"
+    for key in ['source', 'lead_source', 'origin', 'channel']:
+        if key in row and row[key] and str(row[key]).strip() and str(row[key]).lower() != 'nan':
+            source = str(row[key]).strip().lower()
+            break
+    
+    return {
+        "name": name,
+        "phone": phone,
+        "email": email,
+        "district": district,
+        "address": address,
+        "property_type": property_type,
+        "monthly_bill": monthly_bill,
+        "business_type": business_type,
+        "notes": notes,
+        "source": source
+    }
+
+
+def clean_phone_number(phone: str) -> str:
+    """Clean and normalize phone number"""
+    if not phone:
+        return ""
+    # Remove all non-digit characters
+    digits = re.sub(r'[^\d]', '', str(phone))
+    # Handle various formats
+    if len(digits) == 10 and digits[0] in '6789':
+        return f"91{digits}"
+    elif len(digits) == 12 and digits.startswith('91'):
+        return digits
+    elif len(digits) == 11 and digits.startswith('0'):
+        return f"91{digits[1:]}"
+    elif len(digits) >= 10:
+        # Try to extract valid 10-digit number
+        for i in range(len(digits) - 9):
+            potential = digits[i:i+10]
+            if potential[0] in '6789':
+                return f"91{potential}"
+    return digits if len(digits) >= 10 else ""
+
 @api_router.get("/")
 async def root():
     return {"message": "ASR Enterprises Solar AI Platform API", "status": "active"}

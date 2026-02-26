@@ -779,11 +779,11 @@ export const LeadsManagement = () => {
                   </div>
 
                   {/* Category breakdown */}
-                  {(importResult.pm_surya_ghar_count > 0 || importResult.commercial_count > 0) && (
+                  {(importResult.residential_count > 0 || importResult.commercial_count > 0) && (
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
-                        <div className="text-2xl font-bold text-orange-600">{importResult.pm_surya_ghar_count || 0}</div>
-                        <div className="text-orange-700 text-sm">PM Surya Ghar Yojana</div>
+                        <div className="text-2xl font-bold text-orange-600">{importResult.residential_count || 0}</div>
+                        <div className="text-orange-700 text-sm">Residential Solar</div>
                       </div>
                       <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
                         <div className="text-2xl font-bold text-green-600">{importResult.commercial_count || 0}</div>

@@ -867,6 +867,40 @@ export const LeadsManagement = () => {
           </div>
         </div>
 
+        {/* Bulk Actions Bar */}
+        <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4 mb-6 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedLeadIds.length > 0 && selectedLeadIds.length === filteredLeads.length}
+                onChange={handleSelectAllLeads}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-gray-600 text-sm">
+                {selectedLeadIds.length > 0 
+                  ? `${selectedLeadIds.length} selected` 
+                  : 'Select All'}
+              </span>
+            </label>
+          </div>
+          {selectedLeadIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50"
+              data-testid="bulk-delete-btn"
+            >
+              {bulkDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              <span>Delete {selectedLeadIds.length} Leads</span>
+            </button>
+          )}
+        </div>
+
         {/* Leads List */}
         {loading ? (
           <div className="text-center py-16">

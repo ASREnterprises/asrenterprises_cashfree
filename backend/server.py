@@ -6808,25 +6808,51 @@ def extract_lead_from_row(row: dict) -> dict:
 
 
 def clean_phone_number(phone: str) -> str:
-    """Clean and normalize phone number"""
+    """Clean and normalize Indian phone number"""
     if not phone:
         return ""
+    
+    # Convert to string and strip whitespace
+    phone_str = str(phone).strip()
+    
+    # Handle scientific notation (e.g., 9.87654321E9)
+    if 'e' in phone_str.lower() or 'E' in phone_str:
+        try:
+            phone_str = str(int(float(phone_str)))
+        except:
+            pass
+    
     # Remove all non-digit characters
-    digits = re.sub(r'[^\d]', '', str(phone))
+    digits = re.sub(r'[^\d]', '', phone_str)
+    
+    # Remove leading zeros
+    digits = digits.lstrip('0')
+    
     # Handle various formats
     if len(digits) == 10 and digits[0] in '6789':
-        return f"91{digits}"
-    elif len(digits) == 12 and digits.startswith('91'):
+        # Standard 10-digit Indian mobile
         return digits
-    elif len(digits) == 11 and digits.startswith('0'):
-        return f"91{digits[1:]}"
-    elif len(digits) >= 10:
-        # Try to extract valid 10-digit number
+    elif len(digits) == 12 and digits.startswith('91') and digits[2] in '6789':
+        # With country code 91
+        return digits[2:]  # Return just 10 digits
+    elif len(digits) == 11 and digits.startswith('0') and digits[1] in '6789':
+        # With leading 0
+        return digits[1:]
+    elif len(digits) == 13 and digits.startswith('091'):
+        # With 091 prefix
+        return digits[3:]
+    elif len(digits) > 10:
+        # Try to extract valid 10-digit number from longer string
         for i in range(len(digits) - 9):
             potential = digits[i:i+10]
             if potential[0] in '6789':
-                return f"91{potential}"
-    return digits if len(digits) >= 10 else ""
+                return potential
+    elif len(digits) == 10 and digits[0] not in '6789':
+        # Invalid mobile number starting digit
+        return ""
+    
+    # Return cleaned digits if 10 digits
+    return digits if len(digits) == 10 else ""
 
 @api_router.get("/")
 async def root():

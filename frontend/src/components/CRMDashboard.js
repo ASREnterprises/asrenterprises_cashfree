@@ -405,6 +405,89 @@ export const CRMDashboard = () => {
     setBulkImporting(false);
   };
 
+  // Smart Import Handlers
+  const handleSmartFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setSelectedSmartFile(file);
+    setExtracting(true);
+    setExtractedLeads([]);
+    setSmartImportResult(null);
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      const res = await axios.post(`${API}/crm/leads/smart-import`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      if (res.data.success && res.data.preview_data?.length > 0) {
+        setExtractedLeads(res.data.preview_data.map((lead, idx) => ({
+          ...lead,
+          _selected: true,
+          _index: idx
+        })));
+        setSmartImportStep('preview');
+      } else {
+        alert("No leads found in the file. Please check the file format.");
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error extracting data from file");
+    }
+    setExtracting(false);
+  };
+
+  const handleToggleSmartLeadSelection = (index) => {
+    setExtractedLeads(prev => prev.map((lead, idx) => 
+      idx === index ? { ...lead, _selected: !lead._selected } : lead
+    ));
+  };
+
+  const handleEditSmartLead = (index, field, value) => {
+    setExtractedLeads(prev => prev.map((lead, idx) => 
+      idx === index ? { ...lead, [field]: value } : lead
+    ));
+  };
+
+  const handleConfirmSmartImport = async () => {
+    const selectedLeads = extractedLeads.filter(l => l._selected);
+    if (selectedLeads.length === 0) {
+      alert("Please select at least one lead to import");
+      return;
+    }
+    
+    setSmartImporting(true);
+    try {
+      const res = await axios.post(`${API}/crm/leads/confirm-import`, {
+        leads: selectedLeads.map(({ _selected, _index, ...lead }) => lead),
+        lead_type: leadType
+      });
+      
+      setSmartImportResult(res.data);
+      setSmartImportStep('result');
+      fetchAllData();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error importing leads");
+    }
+    setSmartImporting(false);
+  };
+
+  const resetSmartImport = () => {
+    setSmartImportStep('upload');
+    setExtractedLeads([]);
+    setSmartImportResult(null);
+    setSelectedSmartFile(null);
+    setLeadType('auto');
+    if (smartFileInputRef.current) smartFileInputRef.current.value = '';
+  };
+
+  const closeSmartImportModal = () => {
+    resetSmartImport();
+    setShowSmartImportModal(false);
+  };
+
   // Fetch Social Leads (WhatsApp, Facebook, etc.)
   const fetchSocialLeads = async () => {
     try {

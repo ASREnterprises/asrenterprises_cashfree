@@ -833,8 +833,11 @@ export const CRMDashboard = () => {
                 <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-blue-700 transition" data-testid="add-lead-btn">
                   <UserPlus className="w-4 h-4" /><span>Full Form</span>
                 </button>
+                <button onClick={() => setShowSmartImportModal(true)} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-600 hover:to-purple-700 transition" data-testid="smart-import-btn">
+                  <FileSpreadsheet className="w-4 h-4" /><span>Smart Import</span>
+                </button>
                 <button onClick={() => setShowBulkImportModal(true)} className="bg-orange-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-orange-700 transition" data-testid="bulk-import-btn">
-                  <Upload className="w-4 h-4" /><span>CSV Import</span>
+                  <Upload className="w-4 h-4" /><span>CSV</span>
                 </button>
                 <button onClick={fetchSocialLeads} className="bg-gradient-to-r from-green-500 to-teal-500 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-green-600 hover:to-teal-600 transition" data-testid="fetch-social-btn">
                   <Download className="w-4 h-4" /><span>Fetch Social Leads</span>

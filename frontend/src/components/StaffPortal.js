@@ -7,6 +7,7 @@ import {
   ChevronRight, FileText, TrendingUp, Bell, Plus, Edit,
   Send, Briefcase, ListTodo, MessageCircle, Activity
 } from "lucide-react";
+import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -50,6 +51,18 @@ export const StaffPortal = () => {
   const [showAddLeadModal, setShowAddLeadModal] = useState(false);
   const [newLeadForm, setNewLeadForm] = useState({ name: '', phone: '', district: '', monthly_bill: '', property_type: 'residential', notes: '' });
   const navigate = useNavigate();
+
+  // Auto-logout callback for staff
+  const handleStaffLogout = () => {
+    localStorage.removeItem("asrStaffAuth");
+    localStorage.removeItem("asrStaffData");
+    localStorage.removeItem("asrStaffId");
+    localStorage.removeItem("asrStaffName");
+  };
+
+  // Auto-logout after 15 minutes of inactivity
+  const isStaffAuthenticated = localStorage.getItem("asrStaffAuth") === "true";
+  useAutoLogout(isStaffAuthenticated, handleStaffLogout, 'staff');
 
   useEffect(() => {
     const isAuth = localStorage.getItem("asrStaffAuth");

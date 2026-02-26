@@ -169,7 +169,8 @@ export const LeadsManagement = () => {
     setImporting(true);
     try {
       const res = await axios.post(`${API}/crm/leads/confirm-import`, {
-        leads: selectedLeads.map(({ _selected, _index, ...lead }) => lead)
+        leads: selectedLeads.map(({ _selected, _index, ...lead }) => lead),
+        lead_type: leadType
       });
       
       setImportResult(res.data);
@@ -186,12 +187,55 @@ export const LeadsManagement = () => {
     setExtractedLeads([]);
     setImportResult(null);
     setSelectedFile(null);
+    setLeadType('auto');
     if (smartFileInputRef.current) smartFileInputRef.current.value = '';
   };
 
   const closeSmartImport = () => {
     resetSmartImport();
     setShowSmartImportModal(false);
+  };
+
+  // Bulk delete handlers
+  const handleToggleLeadSelect = (leadId) => {
+    setSelectedLeadIds(prev => 
+      prev.includes(leadId) 
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  const handleSelectAllLeads = () => {
+    if (selectedLeadIds.length === filteredLeads.length) {
+      setSelectedLeadIds([]);
+    } else {
+      setSelectedLeadIds(filteredLeads.map(l => l.id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedLeadIds.length === 0) {
+      alert("Please select leads to delete");
+      return;
+    }
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedLeadIds.length} leads? This action cannot be undone.`)) {
+      return;
+    }
+    
+    setBulkDeleting(true);
+    try {
+      const res = await axios.post(`${API}/crm/leads/bulk-delete`, {
+        lead_ids: selectedLeadIds
+      });
+      
+      alert(res.data.message);
+      setSelectedLeadIds([]);
+      fetchLeads();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error deleting leads");
+    }
+    setBulkDeleting(false);
   };
 
   const handleStatusChange = async (leadId, status) => {

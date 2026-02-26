@@ -1080,22 +1080,23 @@ export const LeadsManagement = () => {
                           <div className="flex items-center">
                             <MapPin className="w-4 h-4 mr-2" />
                             {lead.district || "N/A"}, Bihar
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        <span className="bg-gray-50 border border-gray-300 px-2 py-1 rounded text-gray-600">{lead.property_type}</span>
-                        <span className="bg-gray-50 border border-gray-300 px-2 py-1 rounded text-gray-600">{lead.roof_type} roof</span>
-                        {lead.monthly_bill && <span className="bg-green-700 px-2 py-1 rounded text-green-300">₹{lead.monthly_bill}/month</span>}
-                        {lead.recommended_system && <span className="bg-blue-700 px-2 py-1 rounded text-blue-300">{lead.recommended_system}</span>}
-                      </div>
-
-                      {lead.ai_analysis && (
-                        <div className="mt-3 bg-purple-600 bg-opacity-20 border border-purple-600 rounded-lg p-3">
-                          <span className="text-purple-400 text-xs font-semibold">AI Analysis: </span>
-                          <span className="text-gray-600 text-xs">{lead.ai_analysis}</span>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          <span className="bg-gray-50 border border-gray-300 px-2 py-1 rounded text-gray-600">{lead.property_type}</span>
+                          <span className="bg-gray-50 border border-gray-300 px-2 py-1 rounded text-gray-600">{lead.roof_type} roof</span>
+                          {lead.monthly_bill && <span className="bg-green-700 px-2 py-1 rounded text-green-300">₹{lead.monthly_bill}/month</span>}
+                          {lead.recommended_system && <span className="bg-blue-700 px-2 py-1 rounded text-blue-300">{lead.recommended_system}</span>}
                         </div>
-                      )}
+
+                        {lead.ai_analysis && (
+                          <div className="mt-3 bg-purple-600 bg-opacity-20 border border-purple-600 rounded-lg p-3">
+                            <span className="text-purple-400 text-xs font-semibold">AI Analysis: </span>
+                            <span className="text-gray-600 text-xs">{lead.ai_analysis}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex flex-col space-y-2">

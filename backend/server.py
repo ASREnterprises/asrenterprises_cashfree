@@ -6510,7 +6510,7 @@ async def confirm_import_leads(data: Dict[str, Any]):
     """Confirm and import the extracted leads after preview with lead type classification"""
     try:
         leads_to_import = data.get('leads', [])
-        lead_type = data.get('lead_type', 'auto')  # 'pm_surya_ghar', 'commercial', or 'auto'
+        lead_type = data.get('lead_type', 'auto')  # 'residential', 'commercial', or 'auto'
         
         if not leads_to_import:
             raise HTTPException(status_code=400, detail="No leads to import")
@@ -6518,7 +6518,7 @@ async def confirm_import_leads(data: Dict[str, Any]):
         imported = []
         errors = []
         duplicates = []
-        pm_surya_count = 0
+        residential_count = 0
         commercial_count = 0
         
         for idx, lead_data in enumerate(leads_to_import):
@@ -6526,16 +6526,27 @@ async def confirm_import_leads(data: Dict[str, Any]):
                 name = sanitize_input(str(lead_data.get('name', '')).strip())
                 phone = clean_phone_number(str(lead_data.get('phone', '')))
                 
-                if not name and not phone:
-                    errors.append({"index": idx, "error": "Name or Phone required"})
+                if not phone:
+                    errors.append({"index": idx, "error": "Valid mobile number required", "name": name})
                     continue
                 
-                # Check for duplicate
-                if phone:
-                    existing = await db.crm_leads.find_one({"phone": phone}, {"_id": 0, "name": 1})
-                    if existing:
-                        duplicates.append({"phone": phone, "name": name, "existing_name": existing.get('name')})
-                        continue
+                # Check for duplicate by mobile number only (check multiple formats)
+                phone_variants = [phone]
+                if len(phone) == 10:
+                    phone_variants.extend([f"91{phone}", f"+91{phone}", f"0{phone}"])
+                
+                existing = await db.crm_leads.find_one(
+                    {"phone": {"$in": phone_variants}}, 
+                    {"_id": 0, "name": 1, "phone": 1}
+                )
+                if existing:
+                    duplicates.append({
+                        "phone": phone, 
+                        "name": name, 
+                        "existing_name": existing.get('name'),
+                        "existing_phone": existing.get('phone')
+                    })
+                    continue
                 
                 # Parse optional fields
                 email = str(lead_data.get('email', '')).strip()
@@ -6557,12 +6568,14 @@ async def confirm_import_leads(data: Dict[str, Any]):
                 notes = sanitize_input(str(lead_data.get('notes', '')).strip())
                 
                 # Determine lead category based on data or user selection
-                if lead_type == 'pm_surya_ghar':
-                    lead_category = 'pm_surya_ghar'
-                    source_label = 'PM Surya Ghar Yojana'
+                if lead_type == 'residential':
+                    lead_category = 'residential_solar'
+                    source_label = 'Residential Solar Customer'
+                    residential_count += 1
                 elif lead_type == 'commercial':
                     lead_category = 'commercial_solar'
-                    source_label = 'Commercial Solar'
+                    source_label = 'Commercial Solar Customer'
+                    commercial_count += 1
                 else:
                     # Auto-detect based on property type and business info
                     is_commercial = (
@@ -6572,12 +6585,12 @@ async def confirm_import_leads(data: Dict[str, Any]):
                     )
                     if is_commercial:
                         lead_category = 'commercial_solar'
-                        source_label = 'Commercial Solar'
+                        source_label = 'Commercial Solar Customer'
                         commercial_count += 1
                     else:
-                        lead_category = 'pm_surya_ghar'
-                        source_label = 'PM Surya Ghar Yojana'
-                        pm_surya_count += 1
+                        lead_category = 'residential_solar'
+                        source_label = 'Residential Solar Customer'
+                        residential_count += 1
                 
                 # Build notes with business info
                 lead_notes = []

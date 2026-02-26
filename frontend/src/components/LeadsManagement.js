@@ -585,6 +585,55 @@ export const LeadsManagement = () => {
                     </button>
                   </div>
 
+                  {/* Lead Type Selection */}
+                  <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-green-50 rounded-xl border border-orange-200">
+                    <h4 className="font-semibold text-gray-700 mb-3">Select Lead Destination:</h4>
+                    <div className="flex flex-wrap gap-3">
+                      <label className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${leadType === 'auto' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <input
+                          type="radio"
+                          name="leadType"
+                          value="auto"
+                          checked={leadType === 'auto'}
+                          onChange={(e) => setLeadType(e.target.value)}
+                          className="text-purple-600"
+                        />
+                        <div>
+                          <span className="font-medium text-gray-700">Auto Detect</span>
+                          <p className="text-xs text-gray-500">AI classifies based on data</p>
+                        </div>
+                      </label>
+                      <label className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${leadType === 'pm_surya_ghar' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <input
+                          type="radio"
+                          name="leadType"
+                          value="pm_surya_ghar"
+                          checked={leadType === 'pm_surya_ghar'}
+                          onChange={(e) => setLeadType(e.target.value)}
+                          className="text-orange-600"
+                        />
+                        <div>
+                          <span className="font-medium text-orange-700">PM Surya Ghar Yojana</span>
+                          <p className="text-xs text-gray-500">Residential / Home customers</p>
+                        </div>
+                      </label>
+                      <label className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${leadType === 'commercial' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                        <input
+                          type="radio"
+                          name="leadType"
+                          value="commercial"
+                          checked={leadType === 'commercial'}
+                          onChange={(e) => setLeadType(e.target.value)}
+                          className="text-green-600"
+                        />
+                        <div>
+                          <span className="font-medium text-green-700">Commercial Solar</span>
+                          <p className="text-xs text-gray-500">Business / Industrial customers</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="flex-1 overflow-y-auto border rounded-xl">
                     <table className="w-full">
                       <thead className="bg-gray-50 sticky top-0">

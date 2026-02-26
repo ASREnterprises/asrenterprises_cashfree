@@ -39,6 +39,15 @@ const STATUSES = [
 
 export const HRManagement = () => {
   const navigate = useNavigate();
+  
+  // Auto-logout after 15 minutes of inactivity
+  const isAuthenticated = localStorage.getItem("asrAdminAuth") === "true";
+  useAutoLogout(isAuthenticated, () => {
+    localStorage.removeItem("asrAdminAuth");
+    localStorage.removeItem("asrAdminEmail");
+    localStorage.removeItem("asrAdminRole");
+  }, 'admin');
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboard, setDashboard] = useState(null);
   const [employees, setEmployees] = useState([]);

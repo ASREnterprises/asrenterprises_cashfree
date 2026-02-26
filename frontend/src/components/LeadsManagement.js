@@ -41,6 +41,9 @@ export const LeadsManagement = () => {
   const [extracting, setExtracting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [leadType, setLeadType] = useState('auto'); // 'auto', 'pm_surya_ghar', 'commercial'
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const smartFileInputRef = useRef(null);
   const [addingLead, setAddingLead] = useState(false);
   const fileInputRef = useRef(null);

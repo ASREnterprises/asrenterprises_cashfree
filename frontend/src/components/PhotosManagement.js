@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Image, MapPin, Upload, Camera, X, ChevronDown, Loader2 } from "lucide-react";
 import axios from "axios";
+import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export const PhotosManagement = () => {
+  const navigate = useNavigate();
+  
+  // Auto-logout after 15 minutes of inactivity
+  const isAuthenticated = localStorage.getItem("asrAdminAuth") === "true";
+  useAutoLogout(isAuthenticated, () => {
+    localStorage.removeItem("asrAdminAuth");
+    localStorage.removeItem("asrAdminEmail");
+    localStorage.removeItem("asrAdminRole");
+  }, 'admin');
+
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);

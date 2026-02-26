@@ -603,18 +603,18 @@ export const LeadsManagement = () => {
                           <p className="text-xs text-gray-500">AI classifies based on data</p>
                         </div>
                       </label>
-                      <label className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${leadType === 'pm_surya_ghar' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <label className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${leadType === 'residential' ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}>
                         <input
                           type="radio"
                           name="leadType"
-                          value="pm_surya_ghar"
-                          checked={leadType === 'pm_surya_ghar'}
+                          value="residential"
+                          checked={leadType === 'residential'}
                           onChange={(e) => setLeadType(e.target.value)}
                           className="text-orange-600"
                         />
                         <div>
-                          <span className="font-medium text-orange-700">PM Surya Ghar Yojana</span>
-                          <p className="text-xs text-gray-500">Residential / Home customers</p>
+                          <span className="font-medium text-orange-700">Residential Solar Customer</span>
+                          <p className="text-xs text-gray-500">Home / Household customers</p>
                         </div>
                       </label>
                       <label className={`flex items-center space-x-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition ${leadType === 'commercial' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -627,7 +627,7 @@ export const LeadsManagement = () => {
                           className="text-green-600"
                         />
                         <div>
-                          <span className="font-medium text-green-700">Commercial Solar</span>
+                          <span className="font-medium text-green-700">Commercial Solar Customer</span>
                           <p className="text-xs text-gray-500">Business / Industrial customers</p>
                         </div>
                       </label>

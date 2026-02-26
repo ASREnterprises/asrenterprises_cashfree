@@ -1042,32 +1042,44 @@ export const LeadsManagement = () => {
                 ) : (
                   /* View Mode */
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-xl font-bold text-[#0a355e]">{lead.name}</h3>
-                        <span className={`${getStatusColor(lead.status)} text-[#0a355e] text-xs px-2 py-1 rounded capitalize`}>
-                          {lead.status || "new"}
-                        </span>
-                        {lead.lead_score && (
-                          <span className={`${getScoreColor(lead.lead_score)} font-bold flex items-center`}>
-                            <Star className="w-4 h-4 mr-1" />
-                            {lead.lead_score}%
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedLeadIds.includes(lead.id)}
+                        onChange={() => handleToggleLeadSelect(lead.id)}
+                        className="mt-1.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-xl font-bold text-[#0a355e]">{lead.name}</h3>
+                          <span className={`${getStatusColor(lead.status)} text-[#0a355e] text-xs px-2 py-1 rounded capitalize`}>
+                            {lead.status || "new"}
                           </span>
-                        )}
-                      </div>
-                      
-                      <div className="grid md:grid-cols-3 gap-2 text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <Phone className="w-4 h-4 mr-2" />
-                          <a href={`tel:${lead.phone}`} className="hover:text-[#0a355e]">{lead.phone}</a>
+                          {lead.lead_category && (
+                            <span className={`text-xs px-2 py-1 rounded ${lead.lead_category === 'pm_surya_ghar' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                              {lead.lead_category === 'pm_surya_ghar' ? 'PM Surya Ghar' : 'Commercial'}
+                            </span>
+                          )}
+                          {lead.lead_score && (
+                            <span className={`${getScoreColor(lead.lead_score)} font-bold flex items-center`}>
+                              <Star className="w-4 h-4 mr-1" />
+                              {lead.lead_score}%
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center">
-                          <Mail className="w-4 h-4 mr-2" />
-                          <a href={`mailto:${lead.email}`} className="hover:text-[#0a355e] truncate">{lead.email || "N/A"}</a>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-2" />
-                          {lead.district || "N/A"}, Bihar
+                        
+                        <div className="grid md:grid-cols-3 gap-2 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Phone className="w-4 h-4 mr-2" />
+                            <a href={`tel:${lead.phone}`} className="hover:text-[#0a355e]">{lead.phone}</a>
+                          </div>
+                          <div className="flex items-center">
+                            <Mail className="w-4 h-4 mr-2" />
+                            <a href={`mailto:${lead.email}`} className="hover:text-[#0a355e] truncate">{lead.email || "N/A"}</a>
+                          </div>
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            {lead.district || "N/A"}, Bihar
                         </div>
                       </div>
 

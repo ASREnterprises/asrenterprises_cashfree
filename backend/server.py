@@ -6507,15 +6507,19 @@ If no valid leads found, return: []"""
 
 @api_router.post("/crm/leads/confirm-import")
 async def confirm_import_leads(data: Dict[str, Any]):
-    """Confirm and import the extracted leads after preview"""
+    """Confirm and import the extracted leads after preview with lead type classification"""
     try:
         leads_to_import = data.get('leads', [])
+        lead_type = data.get('lead_type', 'auto')  # 'pm_surya_ghar', 'commercial', or 'auto'
+        
         if not leads_to_import:
             raise HTTPException(status_code=400, detail="No leads to import")
         
         imported = []
         errors = []
         duplicates = []
+        pm_surya_count = 0
+        commercial_count = 0
         
         for idx, lead_data in enumerate(leads_to_import):
             try:
@@ -6549,12 +6553,39 @@ async def confirm_import_leads(data: Dict[str, Any]):
                     except:
                         pass
                 
-                source = str(lead_data.get('source', 'smart_import')).strip()
-                notes = sanitize_input(str(lead_data.get('notes', '')).strip())
                 business_type = str(lead_data.get('business_type', '')).strip()
+                notes = sanitize_input(str(lead_data.get('notes', '')).strip())
                 
+                # Determine lead category based on data or user selection
+                if lead_type == 'pm_surya_ghar':
+                    lead_category = 'pm_surya_ghar'
+                    source_label = 'PM Surya Ghar Yojana'
+                elif lead_type == 'commercial':
+                    lead_category = 'commercial_solar'
+                    source_label = 'Commercial Solar'
+                else:
+                    # Auto-detect based on property type and business info
+                    is_commercial = (
+                        property_type in ['commercial', 'industrial'] or
+                        bool(business_type) or
+                        (monthly_bill and monthly_bill > 10000)
+                    )
+                    if is_commercial:
+                        lead_category = 'commercial_solar'
+                        source_label = 'Commercial Solar'
+                        commercial_count += 1
+                    else:
+                        lead_category = 'pm_surya_ghar'
+                        source_label = 'PM Surya Ghar Yojana'
+                        pm_surya_count += 1
+                
+                # Build notes with business info
+                lead_notes = []
                 if business_type:
-                    notes = f"Business: {business_type}. {notes}" if notes else f"Business: {business_type}"
+                    lead_notes.append(f"Business: {business_type}")
+                if notes:
+                    lead_notes.append(notes)
+                final_notes = ". ".join(lead_notes) if lead_notes else ""
                 
                 # Calculate lead score
                 lead_score = min(100, 40 + int((monthly_bill or 0) / 100))
@@ -6572,12 +6603,14 @@ async def confirm_import_leads(data: Dict[str, Any]):
                     "property_type": property_type,
                     "monthly_bill": monthly_bill,
                     "roof_area": None,
-                    "source": source,
+                    "source": f"smart_import:{source_label}",
+                    "lead_category": lead_category,
+                    "business_type": business_type,
                     "stage": "new",
                     "assigned_to": None,
                     "assigned_by": None,
                     "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
-                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Smart imported. {notes}" if notes else "",
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Imported as {source_label}. {final_notes}" if final_notes else f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Imported as {source_label}",
                     "quoted_amount": None,
                     "system_size": None,
                     "advance_paid": 0.0,
@@ -6586,17 +6619,76 @@ async def confirm_import_leads(data: Dict[str, Any]):
                     "lead_score": lead_score,
                     "ai_priority": ai_priority,
                     "ai_suggestions": None,
-                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Smart imported"}],
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": f"Imported as {source_label}"}],
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 
                 await db.crm_leads.insert_one(lead)
-                imported.append({"name": name, "phone": phone, "id": lead_id})
+                imported.append({"name": name, "phone": phone, "id": lead_id, "category": lead_category})
                 
             except Exception as e:
                 errors.append({"index": idx, "error": str(e)})
         
-        logger.info(f"Smart import confirmed: {len(imported)} leads imported, {len(duplicates)} duplicates, {len(errors)} errors")
+        logger.info(f"Smart import confirmed: {len(imported)} leads imported ({pm_surya_count} PM Surya Ghar, {commercial_count} Commercial), {len(duplicates)} duplicates, {len(errors)} errors")
+        
+        return {
+            "success": True,
+            "imported_count": len(imported),
+            "pm_surya_ghar_count": pm_surya_count,
+            "commercial_count": commercial_count,
+            "duplicate_count": len(duplicates),
+            "error_count": len(errors),
+            "imported_leads": imported[:20],
+            "duplicates": duplicates[:10],
+            "errors": errors[:10],
+            "message": f"Successfully imported {len(imported)} leads ({pm_surya_count} PM Surya Ghar, {commercial_count} Commercial)" + 
+                      (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
+                      (f", {len(errors)} errors" if errors else "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Confirm import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+
+@api_router.post("/crm/leads/bulk-delete")
+async def bulk_delete_leads(data: Dict[str, Any]):
+    """Delete multiple leads at once"""
+    try:
+        lead_ids = data.get('lead_ids', [])
+        if not lead_ids:
+            raise HTTPException(status_code=400, detail="No lead IDs provided")
+        
+        deleted_count = 0
+        errors = []
+        
+        for lead_id in lead_ids:
+            try:
+                result = await db.crm_leads.delete_one({"id": lead_id})
+                if result.deleted_count > 0:
+                    deleted_count += 1
+                    # Also delete from leads collection if exists
+                    await db.leads.delete_one({"id": lead_id})
+            except Exception as e:
+                errors.append({"id": lead_id, "error": str(e)})
+        
+        logger.info(f"Bulk delete: {deleted_count} leads deleted, {len(errors)} errors")
+        
+        return {
+            "success": True,
+            "deleted_count": deleted_count,
+            "error_count": len(errors),
+            "errors": errors[:10],
+            "message": f"Successfully deleted {deleted_count} leads" + (f", {len(errors)} errors" if errors else "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Bulk delete error: {e}")
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
         
         return {
             "success": True,

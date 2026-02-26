@@ -110,6 +110,87 @@ export const LeadsManagement = () => {
     }
   };
 
+  // Smart Import Handlers
+  const handleSmartFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setSelectedFile(file);
+    setExtracting(true);
+    setExtractedLeads([]);
+    setImportResult(null);
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      const res = await axios.post(`${API}/crm/leads/smart-import`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      if (res.data.success && res.data.preview_data?.length > 0) {
+        setExtractedLeads(res.data.preview_data.map((lead, idx) => ({
+          ...lead,
+          _selected: true,
+          _index: idx
+        })));
+        setSmartImportStep('preview');
+      } else {
+        alert("No leads found in the file. Please check the file format.");
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error extracting data from file");
+    }
+    setExtracting(false);
+  };
+
+  const handleToggleLeadSelection = (index) => {
+    setExtractedLeads(prev => prev.map((lead, idx) => 
+      idx === index ? { ...lead, _selected: !lead._selected } : lead
+    ));
+  };
+
+  const handleEditExtractedLead = (index, field, value) => {
+    setExtractedLeads(prev => prev.map((lead, idx) => 
+      idx === index ? { ...lead, [field]: value } : lead
+    ));
+  };
+
+  const handleConfirmImport = async () => {
+    const selectedLeads = extractedLeads.filter(l => l._selected);
+    if (selectedLeads.length === 0) {
+      alert("Please select at least one lead to import");
+      return;
+    }
+    
+    setImporting(true);
+    try {
+      const res = await axios.post(`${API}/crm/leads/confirm-import`, {
+        leads: selectedLeads.map(({ _selected, _index, ...lead }) => lead)
+      });
+      
+      setImportResult(res.data);
+      setSmartImportStep('result');
+      fetchLeads();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error importing leads");
+    }
+    setImporting(false);
+  };
+
+  const resetSmartImport = () => {
+    setSmartImportStep('upload');
+    setExtractedLeads([]);
+    setImportResult(null);
+    setSelectedFile(null);
+    if (smartFileInputRef.current) smartFileInputRef.current.value = '';
+  };
+
+  const closeSmartImport = () => {
+    resetSmartImport();
+    setShowSmartImportModal(false);
+  };
+
   const handleStatusChange = async (leadId, status) => {
     try {
       await axios.put(`${API}/leads/${leadId}/status`, { status });

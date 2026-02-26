@@ -34,6 +34,14 @@ export const LeadsManagement = () => {
   const [editForm, setEditForm] = useState({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCSVModal, setShowCSVModal] = useState(false);
+  const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+  const [smartImportStep, setSmartImportStep] = useState('upload'); // upload, preview, importing
+  const [extractedLeads, setExtractedLeads] = useState([]);
+  const [importResult, setImportResult] = useState(null);
+  const [extracting, setExtracting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const smartFileInputRef = useRef(null);
   const [addingLead, setAddingLead] = useState(false);
   const fileInputRef = useRef(null);
   const [newLead, setNewLead] = useState({

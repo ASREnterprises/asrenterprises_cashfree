@@ -6642,20 +6642,20 @@ async def confirm_import_leads(data: Dict[str, Any]):
             except Exception as e:
                 errors.append({"index": idx, "error": str(e)})
         
-        logger.info(f"Smart import confirmed: {len(imported)} leads imported ({pm_surya_count} PM Surya Ghar, {commercial_count} Commercial), {len(duplicates)} duplicates, {len(errors)} errors")
+        logger.info(f"Smart import confirmed: {len(imported)} leads imported ({residential_count} Residential, {commercial_count} Commercial), {len(duplicates)} duplicates, {len(errors)} errors")
         
         return {
             "success": True,
             "imported_count": len(imported),
-            "pm_surya_ghar_count": pm_surya_count,
+            "residential_count": residential_count,
             "commercial_count": commercial_count,
             "duplicate_count": len(duplicates),
             "error_count": len(errors),
             "imported_leads": imported[:20],
             "duplicates": duplicates[:10],
             "errors": errors[:10],
-            "message": f"Successfully imported {len(imported)} leads ({pm_surya_count} PM Surya Ghar, {commercial_count} Commercial)" + 
-                      (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
+            "message": f"Successfully imported {len(imported)} leads ({residential_count} Residential Solar, {commercial_count} Commercial Solar)" + 
+                      (f", {len(duplicates)} duplicates skipped (matched by mobile)" if duplicates else "") +
                       (f", {len(errors)} errors" if errors else "")
         }
         

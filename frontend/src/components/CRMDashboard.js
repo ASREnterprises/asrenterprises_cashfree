@@ -179,6 +179,17 @@ export const CRMDashboard = () => {
   const [bulkImportResult, setBulkImportResult] = useState(null);
   const bulkFileInputRef = useRef(null);
   
+  // Smart Import State
+  const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+  const [smartImportStep, setSmartImportStep] = useState('upload');
+  const [extractedLeads, setExtractedLeads] = useState([]);
+  const [smartImportResult, setSmartImportResult] = useState(null);
+  const [extracting, setExtracting] = useState(false);
+  const [smartImporting, setSmartImporting] = useState(false);
+  const [selectedSmartFile, setSelectedSmartFile] = useState(null);
+  const [leadType, setLeadType] = useState('auto');
+  const smartFileInputRef = useRef(null);
+  
   // Quick Add Lead State
   const [showQuickAddModal, setShowQuickAddModal] = useState(false);
   const [quickLeadForm, setQuickLeadForm] = useState({ name: '', phone: '', district: '', source: 'manual' });

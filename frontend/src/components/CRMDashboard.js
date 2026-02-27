@@ -1147,12 +1147,12 @@ export const CRMDashboard = () => {
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-sm">{lead.phone}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          lead.source === 'whatsapp' ? 'bg-green-600' : 
-                          lead.source === 'facebook' ? 'bg-blue-600' : 
-                          lead.source === 'website' ? 'bg-purple-600' : 
-                          lead.source === 'registration' ? 'bg-orange-600' : 'bg-gray-600'
-                        } text-[#0a355e]`}>
+                        <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                          lead.source === 'whatsapp' ? 'bg-green-500 text-white' : 
+                          lead.source === 'facebook' ? 'bg-blue-500 text-white' : 
+                          lead.source === 'website' ? 'bg-purple-500 text-white' : 
+                          lead.source === 'registration' ? 'bg-orange-500 text-white' : 'bg-gray-500 text-white'
+                        }`}>
                           {lead.source?.toUpperCase() || 'MANUAL'}
                         </span>
                       </td>

@@ -179,12 +179,12 @@ const InteractiveROISlider = ({ onBookSurvey }) => {
     monthlySavings = Math.round(bill * 0.85);
     annualSavings = monthlySavings * 12;
     
-    // Cost calculation (approximate)
-    const baseCost = systemSize * 55000;
+    // Cost calculation at ₹70,000 per kW (2kW=₹1.5L, 3kW=₹2.1L, 5kW=₹3.5L)
+    const baseCost = systemSize * 70000;
     const netCost = baseCost - subsidy;
     paybackYears = Math.round((netCost / annualSavings) * 10) / 10;
     
-    return { systemSize, subsidy, monthlySavings, annualSavings, paybackYears, netCost };
+    return { systemSize, subsidy, monthlySavings, annualSavings, paybackYears, netCost, baseCost };
   };
   
   const metrics = calculateMetrics(monthlyBill);

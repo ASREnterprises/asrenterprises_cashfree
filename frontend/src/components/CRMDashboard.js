@@ -10,6 +10,7 @@ import {
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
+import { AdminAIAssistant } from "@/components/AdminAIAssistant";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 

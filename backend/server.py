@@ -9694,20 +9694,6 @@ async def get_public_google_reviews():
     except Exception as e:
         return {"success": False, "reviews": []}
 
-@api_router.delete("/admin/google-reviews/{review_id}")
-async def delete_google_review(review_id: str):
-    """Delete a Google review by ID"""
-    try:
-        result = await db.google_reviews.delete_one({"id": review_id})
-        if result.deleted_count == 0:
-            raise HTTPException(status_code=404, detail="Review not found")
-        return {"success": True, "message": "Review deleted"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Delete Google review error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 # ==================== DATABASE BACKUP SYSTEM ====================
 BACKUP_DIR = Path("/app/backups")
 BACKUP_DIR.mkdir(exist_ok=True)

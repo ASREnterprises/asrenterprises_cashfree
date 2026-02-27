@@ -186,6 +186,21 @@ const InteractiveROISlider = ({ onBookSurvey }) => {
   };
   
   const metrics = calculateMetrics(monthlyBill);
+
+  // Generate WhatsApp URL for FREE site survey
+  const whatsappSurveyUrl = `https://wa.me/918877896889?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
+
+I'm interested in a FREE site survey for solar installation.
+
+📊 My Details:
+• Monthly Bill: ₹${monthlyBill.toLocaleString()}
+• Recommended System: ${metrics.systemSize} kW
+• Expected Savings: ₹${metrics.monthlySavings.toLocaleString()}/month
+• Govt. Subsidy: ₹${metrics.subsidy.toLocaleString()}
+
+Please schedule a FREE site survey at my location.
+
+Thank you!`)}`;
   
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-8 border border-amber-200">
@@ -247,14 +262,17 @@ const InteractiveROISlider = ({ onBookSurvey }) => {
         <p className="text-green-600 mt-2">That's <strong>₹{(metrics.annualSavings * 25).toLocaleString()}</strong> over 25 years!</p>
       </div>
       
-      {/* CTA Button */}
+      {/* CTA Button - WhatsApp for FREE Survey */}
       <div className="text-center">
-        <button
-          onClick={onBookSurvey}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition shadow-xl shadow-amber-500/30 transform hover:scale-105"
+        <a
+          href={whatsappSurveyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-xl shadow-green-500/30 transform hover:scale-105"
         >
-          Book FREE Site Survey Now
-        </button>
+          <MessageSquare className="w-5 h-5" />
+          <span>Book FREE Site Survey Now</span>
+        </a>
         <p className="text-gray-500 text-sm mt-3">Get exact quote after site inspection</p>
       </div>
     </div>

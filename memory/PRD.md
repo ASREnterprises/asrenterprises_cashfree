@@ -460,6 +460,35 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
   - Staff attribution
   - Auto-optimization of uploaded images
 
+### Session Update (Feb 27, 2026 - Part 3) - Visual ROI Engine
+
+#### 1. Floating Icons Fixed (COMPLETED)
+- **Issue:** Call and Email icons were hiding WhatsApp button
+- **Fix:** Repositioned all icons higher (`bottom-24` instead of `bottom-6`)
+- **Added:** Facebook and Instagram icons above Call/Email
+- **Order (top to bottom):** Facebook → Instagram → Call → Email → WhatsApp
+
+#### 2. Live Subsidy Countdown Meter (COMPLETED)
+- **Component:** `/app/frontend/src/components/SubsidyCountdownMeter.js`
+- **Features:**
+  - Bihar quota progress bar (10,000 slots total, ~2,158 remaining)
+  - Live countdown timer to scheme deadline (March 31, 2026)
+  - Urgency messaging when slots < 2,500 or days < 30
+  - Real-time slot decrease simulation
+  - Quick stats: ₹78K Max, Govt. Verified, 30% Subsidy
+- **Psychology:** Creates "urgency to buy" effect
+
+#### 3. 25-Year Zero Bill Comparison Chart (COMPLETED)
+- **Component:** `/app/frontend/src/components/ZeroBillComparison.js`
+- **Features:**
+  - Side-by-side comparison: DISCOM vs ASR Solar
+  - DISCOM: Shows 7% yearly inflation, reaches ₹22.8L in 25 years
+  - Solar: One-time ₹1.4L investment, break-even in 3 years
+  - Animated savings counter: ₹21.4L total savings
+  - Visual line chart showing cost growth over time
+  - Break-even year marker
+  - WhatsApp CTA with savings included in message
+
 ## Pending Tasks
 - **P0:** Refactor server.py into modular APIRouter files (9900+ lines needs decomposition)
 - **P1:** Performance: WebP conversion, lazy loading, asset minification, server-side caching

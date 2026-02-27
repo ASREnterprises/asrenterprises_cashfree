@@ -1525,6 +1525,11 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* NEW: Bihar Installation Trust Map */}
+      <Suspense fallback={<div className="py-16 text-center"><Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto" /></div>}>
+        <BiharInstallationMap />
+      </Suspense>
+
       {/* Testimonials */}
       <TestimonialsSection />
 

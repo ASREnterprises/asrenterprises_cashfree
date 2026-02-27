@@ -9807,6 +9807,24 @@ async def delete_backup(filename: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/admin/backup/download/{filename}")
+async def download_backup(filename: str):
+    """Download a backup file"""
+    from fastapi.responses import FileResponse
+    try:
+        backup_path = BACKUP_DIR / filename
+        if not backup_path.exists() or backup_path.suffix != ".json":
+            raise HTTPException(status_code=404, detail="Backup not found")
+        return FileResponse(
+            path=str(backup_path),
+            filename=filename,
+            media_type="application/json"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/admin/backup/restore/{filename}")
 async def restore_backup(filename: str, data: Dict[str, Any] = {}):
     """Restore database from backup (with confirmation)"""

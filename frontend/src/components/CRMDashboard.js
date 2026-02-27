@@ -1244,6 +1244,28 @@ export const CRMDashboard = () => {
           </div>
         )}
 
+        {/* AI Assistant Tab */}
+        {activeTab === "ai_assistant" && (
+          <div className="space-y-4">
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[#0a355e] font-bold flex items-center space-x-2">
+                  <Zap className="w-5 h-5 text-purple-500" />
+                  <span>AI Assistant</span>
+                </h3>
+                <span className="bg-purple-100 text-purple-700 text-xs px-3 py-1 rounded-full">
+                  Powered by Gemini AI
+                </span>
+              </div>
+              <p className="text-gray-500 text-sm mb-4">
+                Your intelligent assistant for generating quotes, WhatsApp replies, and lead analysis. 
+                Ask anything about solar business!
+              </p>
+              <AdminAIAssistant />
+            </div>
+          </div>
+        )}
+
         {/* Messages Tab - Staff-wise Private Conversations */}
         {activeTab === "messages" && (
           <div className="space-y-4">

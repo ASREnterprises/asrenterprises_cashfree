@@ -51,3 +51,10 @@
 .animate-marquee:hover {
     animation-play-state: paused;
 }
+
+/* Hide reCAPTCHA badge as per user request */
+.grecaptcha-badge {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}

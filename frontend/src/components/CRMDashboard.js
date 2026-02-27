@@ -500,14 +500,39 @@ export const CRMDashboard = () => {
     try {
       // Use the optimized widget endpoint
       const res = await axios.get(`${API}/crm/widget/stats`);
-      setDashboardData(res.data);
+      // Merge with actual leads count
+      const data = res.data;
+      if (!data.total_leads && leads.length > 0) {
+        data.total_leads = leads.length;
+      }
+      setDashboardData(data);
     } catch (err) { 
       console.error("Dashboard error:", err);
       // Fallback to regular endpoint
       try {
         const res = await axios.get(`${API}/crm/dashboard`);
-        setDashboardData(res.data);
-      } catch (e) { console.error("Fallback error:", e); }
+        const data = res.data;
+        if (!data.total_leads && leads.length > 0) {
+          data.total_leads = leads.length;
+        }
+        setDashboardData(data);
+      } catch (e) { 
+        // Ultimate fallback - create dashboard from leads
+        setDashboardData({
+          total_leads: leads.length,
+          pipeline_stats: {
+            new: leads.filter(l => l.stage === 'new').length,
+            contacted: leads.filter(l => l.stage === 'contacted').length,
+            quotation: leads.filter(l => l.stage === 'quotation').length,
+            site_survey: leads.filter(l => l.stage === 'site_survey').length,
+            negotiation: leads.filter(l => l.stage === 'negotiation').length,
+            completed: leads.filter(l => l.stage === 'completed').length,
+            lost: leads.filter(l => l.stage === 'lost').length,
+          },
+          recent_leads: leads.slice(0, 10),
+          total_revenue: 0
+        });
+      }
     }
     setLoading(false);
   };

@@ -95,6 +95,283 @@ const TestimonialsTab = memo(() => {
   );
 });
 
+// Google Reviews Tab Component
+const GoogleReviewsTab = memo(() => {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [syncForm, setSyncForm] = useState({ reviewer_name: '', review_text: '', rating: 5, review_date: '' });
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/admin/google-reviews`);
+      setReviews(res.data?.reviews || []);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+  const syncReview = async () => {
+    if (!syncForm.reviewer_name || !syncForm.review_text) {
+      alert("Reviewer name and review text required");
+      return;
+    }
+    setLoading(true);
+    try {
+      await axios.post(`${API}/admin/google-reviews/sync`, syncForm);
+      setSyncForm({ reviewer_name: '', review_text: '', rating: 5, review_date: '' });
+      fetchReviews();
+      alert("Review synced successfully!");
+    } catch (err) { alert(err.response?.data?.message || "Error syncing review"); }
+    setLoading(false);
+  };
+
+  const deleteReview = async (id) => {
+    if (!window.confirm('Delete this Google review?')) return;
+    try {
+      await axios.delete(`${API}/admin/google-reviews/${id}`);
+      fetchReviews();
+    } catch (err) { alert("Error deleting review"); }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Info Banner */}
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6">
+        <div className="flex items-start space-x-4">
+          <div className="p-3 bg-white/20 rounded-xl">
+            <Star className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold mb-2">Google Business Reviews</h3>
+            <p className="text-blue-100 text-sm">
+              Manually sync your Google Business Profile reviews here. Copy reviews from your 
+              <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" className="underline ml-1">Google Business Profile</a> 
+              and paste them below to display on your website.
+            </p>
+            <p className="text-blue-200 text-xs mt-2">Place ID: ChIJAR33l2BX7TkRJ4CYdw8Hkps</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Add Review Form */}
+      <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-[#0a355e] mb-4 flex items-center">
+          <Plus className="w-5 h-5 mr-2" />
+          Add Google Review
+        </h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          <input 
+            type="text" 
+            placeholder="Reviewer Name *" 
+            value={syncForm.reviewer_name} 
+            onChange={(e) => setSyncForm({...syncForm, reviewer_name: e.target.value})}
+            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+            data-testid="google-review-name"
+          />
+          <input 
+            type="date" 
+            value={syncForm.review_date} 
+            onChange={(e) => setSyncForm({...syncForm, review_date: e.target.value})}
+            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+          />
+          <textarea 
+            placeholder="Review Text *" 
+            value={syncForm.review_text} 
+            onChange={(e) => setSyncForm({...syncForm, review_text: e.target.value})}
+            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg md:col-span-2 min-h-24"
+            data-testid="google-review-text"
+          />
+          <select 
+            value={syncForm.rating} 
+            onChange={(e) => setSyncForm({...syncForm, rating: parseInt(e.target.value)})}
+            className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-lg"
+          >
+            <option value={5}>5 Stars</option>
+            <option value={4}>4 Stars</option>
+            <option value={3}>3 Stars</option>
+            <option value={2}>2 Stars</option>
+            <option value={1}>1 Star</option>
+          </select>
+          <button 
+            onClick={syncReview} 
+            disabled={loading}
+            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:from-blue-600 hover:to-blue-700 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+            data-testid="sync-google-review-btn"
+          >
+            {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Plus className="w-5 h-5" />}
+            <span>{loading ? 'Syncing...' : 'Sync Review'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Synced Reviews List */}
+      <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-[#0a355e] mb-4">Synced Google Reviews ({reviews.length})</h3>
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {reviews.map((r) => (
+            <div key={r.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="font-bold text-[#0a355e]">{r.reviewer_name}</span>
+                  <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded">Google</span>
+                  {r.verified && <CheckCircle className="w-4 h-4 text-green-500" />}
+                </div>
+                <div className="flex mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} />
+                  ))}
+                </div>
+                <p className="text-gray-600 text-sm">{r.review_text}</p>
+                <p className="text-gray-400 text-xs mt-2">Synced: {new Date(r.synced_at).toLocaleDateString()}</p>
+              </div>
+              <button onClick={() => deleteReview(r.id)} className="text-red-400 hover:text-red-600 p-2">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {reviews.length === 0 && (
+            <div className="text-center py-8">
+              <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No Google reviews synced yet</p>
+              <p className="text-gray-400 text-sm">Add reviews from your Google Business Profile above</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Backups Tab Component
+const BackupsTab = memo(() => {
+  const [backups, setBackups] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const fetchBackups = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/admin/backup/list`);
+      setBackups(res.data?.backups || []);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchBackups(); }, [fetchBackups]);
+
+  const createBackup = async () => {
+    setCreating(true);
+    try {
+      const res = await axios.post(`${API}/admin/backup/create`);
+      alert(`Backup created: ${res.data.filename} (${res.data.size_mb} MB)`);
+      fetchBackups();
+    } catch (err) { alert("Error creating backup: " + err.message); }
+    setCreating(false);
+  };
+
+  const deleteBackup = async (filename) => {
+    if (!window.confirm(`Delete backup ${filename}?`)) return;
+    try {
+      await axios.delete(`${API}/admin/backup/${filename}`);
+      fetchBackups();
+    } catch (err) { alert("Error deleting backup"); }
+  };
+
+  const downloadBackup = (filename) => {
+    // Open backup download URL
+    window.open(`${API}/admin/backup/download/${filename}`, '_blank');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Info Banner */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl p-6">
+        <div className="flex items-start space-x-4">
+          <div className="p-3 bg-white/20 rounded-xl">
+            <Shield className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold mb-2">Database Backups</h3>
+            <p className="text-green-100 text-sm">
+              Create manual backups of your entire database including leads, orders, testimonials, and settings.
+              Automated weekly backups are recommended for data safety.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Create Backup */}
+      <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-[#0a355e] mb-1">Create Manual Backup</h3>
+            <p className="text-gray-500 text-sm">Backup all collections: Leads, Orders, Testimonials, Staff, etc.</p>
+          </div>
+          <button 
+            onClick={createBackup} 
+            disabled={creating}
+            className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition disabled:opacity-50 flex items-center space-x-2"
+            data-testid="create-backup-btn"
+          >
+            {creating ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
+            <span>{creating ? 'Creating...' : 'Create Backup Now'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Backups List */}
+      <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-[#0a355e] mb-4">Available Backups ({backups.length})</h3>
+        {loading ? (
+          <div className="text-center py-8">
+            <RefreshCw className="w-8 h-8 animate-spin text-gray-400 mx-auto" />
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {backups.map((backup) => (
+              <div key={backup.filename} className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex justify-between items-center">
+                <div>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Shield className="w-4 h-4 text-green-500" />
+                    <span className="font-semibold text-[#0a355e]">{backup.filename}</span>
+                  </div>
+                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                    <span>{backup.size_mb} MB</span>
+                    <span>{new Date(backup.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => downloadBackup(backup.filename)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                    title="Download"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => deleteBackup(backup.filename)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {backups.length === 0 && (
+              <div className="text-center py-8">
+                <Shield className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No backups created yet</p>
+                <p className="text-gray-400 text-sm">Create your first backup above</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 const PIPELINE_STAGES = [
   { id: "new", label: "New Lead", color: "bg-blue-500" },
   { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },

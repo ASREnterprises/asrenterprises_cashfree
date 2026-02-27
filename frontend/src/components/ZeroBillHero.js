@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Zap, ArrowRight, CheckCircle, TrendingDown, Sun } from "lucide-react";
+import { Zap, ArrowRight, CheckCircle, TrendingDown, Sun, MessageSquare } from "lucide-react";
 
 export const ZeroBillHero = ({ onBookSurvey }) => {
   const [isHovering, setIsHovering] = useState(false);
@@ -10,6 +10,20 @@ export const ZeroBillHero = ({ onBookSurvey }) => {
   const beforeBill = 5000;
   const afterBill = 0;
   const savings = beforeBill - afterBill;
+
+  // WhatsApp URL for FREE site survey
+  const whatsappSurveyUrl = `https://wa.me/918877896889?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
+
+I want to make my electricity bill ZERO like shown on your website!
+
+📊 My Current Situation:
+• Monthly Bill: Around ₹5,000
+• Looking for: Solar Rooftop Installation
+• Interested in: PM Surya Ghar ₹78,000 Subsidy
+
+Please schedule a FREE site survey at my location.
+
+Thank you!`)}`;
 
   const handleMouseMove = (e) => {
     if (!isDragging) return;

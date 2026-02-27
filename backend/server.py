@@ -4863,6 +4863,98 @@ async def generate_and_update_photo_caption(photo_id: str, title: str, location:
     except Exception as e:
         logger.error(f"AI caption generation error: {e}")
 
+@api_router.post("/gallery/generate-mobile-link")
+async def generate_mobile_upload_link(data: Dict[str, Any]):
+    """Generate a unique mobile upload link for field staff"""
+    try:
+        staff_id = data.get("staff_id", "")
+        staff_name = data.get("staff_name", "Field Staff")
+        expires_hours = data.get("expires_hours", 24)
+        
+        # Generate unique token
+        token = str(uuid.uuid4())[:8]
+        expires_at = (datetime.now(timezone.utc) + timedelta(hours=expires_hours)).isoformat()
+        
+        upload_link = {
+            "id": str(uuid.uuid4()),
+            "token": token,
+            "staff_id": staff_id,
+            "staff_name": staff_name,
+            "expires_at": expires_at,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "uploads_count": 0,
+            "active": True
+        }
+        
+        await db.mobile_upload_links.insert_one(upload_link)
+        
+        # The link would be: /mobile-upload/{token}
+        # But we'll return a sharable message for WhatsApp
+        share_message = f"""📸 ASR Enterprises Photo Upload Link
+
+👤 Staff: {staff_name}
+🔗 Link: {os.getenv('FRONTEND_URL', '')}/mobile-upload/{token}
+⏰ Valid for: {expires_hours} hours
+
+Upload installation photos directly to our website gallery!"""
+        
+        return {
+            "success": True, 
+            "token": token,
+            "upload_url": f"/mobile-upload/{token}",
+            "expires_at": expires_at,
+            "share_message": share_message
+        }
+        
+    except Exception as e:
+        logger.error(f"Mobile link generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/gallery/mobile-upload/{token}")
+async def mobile_upload_with_token(
+    token: str,
+    file: UploadFile = File(...),
+    title: str = Form(...),
+    location: str = Form(""),
+    system_size: str = Form("")
+):
+    """Upload photo via mobile link token"""
+    try:
+        # Verify token
+        link = await db.mobile_upload_links.find_one({"token": token, "active": True})
+        if not link:
+            raise HTTPException(status_code=404, detail="Invalid or expired upload link")
+        
+        # Check expiry
+        expires_at = datetime.fromisoformat(link["expires_at"].replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > expires_at:
+            await db.mobile_upload_links.update_one({"token": token}, {"$set": {"active": False}})
+            raise HTTPException(status_code=400, detail="Upload link has expired")
+        
+        # Use existing upload function
+        result = await upload_gallery_photo_file(
+            file=file,
+            title=title,
+            description="",  # Will be auto-generated
+            location=location,
+            system_size=system_size,
+            category="installation"
+        )
+        
+        # Update link usage count
+        await db.mobile_upload_links.update_one(
+            {"token": token},
+            {"$inc": {"uploads_count": 1}, "$push": {"uploads": {"photo_id": result["photo"]["id"], "timestamp": datetime.now(timezone.utc).isoformat()}}}
+        )
+        
+        return {**result, "uploaded_by": link.get("staff_name")}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Mobile upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ==================== SHOP/E-COMMERCE API ENDPOINTS ====================
 
 # Product Categories

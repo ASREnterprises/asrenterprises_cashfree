@@ -1015,30 +1015,30 @@ export const CRMDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100">
-      {/* Header */}
-      <div className="bg-white shadow-lg border border-sky-200 border-b border-sky-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+      {/* Header - Mobile Friendly */}
+      <div className="bg-white shadow-lg border-b border-sky-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link to="/admin/dashboard" className="text-gray-600 hover:text-[#0a355e]"><ArrowLeft className="w-6 h-6" /></Link>
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link to="/admin/dashboard" className="text-gray-600 hover:text-[#0a355e]"><ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" /></Link>
               <div>
-                <h1 className="text-2xl font-bold text-[#0a355e]">ASR CRM System</h1>
-                <p className="text-gray-600 text-sm">Manage leads, staff & operations</p>
+                <h1 className="text-lg sm:text-2xl font-bold text-[#0a355e]">ASR CRM</h1>
+                <p className="text-gray-500 text-xs sm:text-sm hidden sm:block">Manage leads & operations</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <button onClick={fetchAllData} className="bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2">
-                <RefreshCw className="w-4 h-4" /><span>Refresh</span>
+            <div className="flex items-center space-x-2">
+              <button onClick={fetchAllData} className="bg-blue-500 text-white px-3 py-2 rounded-lg flex items-center space-x-1 text-sm">
+                <RefreshCw className="w-4 h-4" /><span className="hidden sm:inline">Refresh</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="bg-white shadow-lg border border-sky-200 border-b border-sky-200">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex space-x-1 overflow-x-auto py-2">
+      {/* Navigation - Scrollable on Mobile */}
+      <div className="bg-white shadow-sm border-b border-sky-200">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+          <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-hide">
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },

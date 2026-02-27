@@ -2315,21 +2315,30 @@ async def get_dashboard_counts():
     if cached_data:
         return cached_data
     
+    # Count from both leads collections
     results = await asyncio.gather(
         db.leads.count_documents({}),
         db.orders.count_documents({}),
         db.leads.count_documents({"status": "new"}),
-        db.orders.count_documents({"status": "pending"})
+        db.orders.count_documents({"status": "pending"}),
+        db.crm_leads.count_documents({}),  # CRM leads
+        db.crm_leads.count_documents({"stage": "new"})  # New CRM leads
     )
     
+    # Use max of both collections
+    total_leads = max(results[0], results[4])
+    new_leads = max(results[2], results[5])
+    
     response = {
-        "total_leads": results[0],
+        "total_leads": total_leads,
         "total_orders": results[1],
-        "new_leads": results[2],
-        "pending_orders": results[3]
+        "new_leads": new_leads,
+        "pending_orders": results[3],
+        "crm_leads": results[4],
+        "website_leads": results[0]
     }
     
-    await cache_set(cache_key, response, ttl=20)
+    await cache_set(cache_key, response, ttl=10)  # Shorter cache for fresh data
     return response
 
 @api_router.get("/dashboard/widget/recent-leads")

@@ -61,7 +61,32 @@ export const TestimonialsSection = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayedReviews.map((review) => (
-            <div key={review.id} className="bg-gray-800/70 rounded-xl p-6 border border-gray-700/50 hover:border-amber-500/30 transition-all" data-testid={`review-${review.id}`}>
+            <div key={review.id} className="bg-gray-800/70 rounded-xl p-6 border border-gray-700/50 hover:border-amber-500/50 transition-all group relative overflow-hidden" data-testid={`review-${review.id}`}>
+              {/* Hover overlay for Before/After */}
+              {review.monthly_bill_before && (
+                <div className="absolute inset-0 bg-gradient-to-br from-green-900/95 to-emerald-900/95 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center z-10">
+                  <div className="text-center p-6">
+                    <p className="text-white/80 text-sm mb-4">Electricity Bill Transformation</p>
+                    <div className="flex items-center justify-center space-x-6">
+                      <div className="text-center">
+                        <p className="text-red-400 text-xs mb-1">BEFORE Solar</p>
+                        <p className="text-3xl font-bold text-red-400">₹{review.monthly_bill_before}</p>
+                        <p className="text-red-300/70 text-xs">/month</p>
+                      </div>
+                      <div className="text-4xl text-white">→</div>
+                      <div className="text-center">
+                        <p className="text-green-400 text-xs mb-1">AFTER Solar</p>
+                        <p className="text-3xl font-bold text-green-400">₹{review.monthly_bill_after || '0'}</p>
+                        <p className="text-green-300/70 text-xs">/month</p>
+                      </div>
+                    </div>
+                    <div className="mt-4 bg-white/10 rounded-lg px-4 py-2 inline-block">
+                      <p className="text-amber-400 font-bold">Saving ₹{(parseInt(review.monthly_bill_before) - parseInt(review.monthly_bill_after || 0)).toLocaleString()}/month</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
@@ -88,11 +113,15 @@ export const TestimonialsSection = () => {
               <p className="text-gray-300 text-sm leading-relaxed mb-3">{review.review_text}</p>
               
               {(review.solar_capacity || review.system_installed) && (
-                <div className="flex items-center text-amber-400 text-xs mt-3 pt-3 border-t border-gray-700/50">
-                  <Zap className="w-3 h-3 mr-1" />
-                  <span>{review.solar_capacity ? `${review.solar_capacity} kW System` : review.system_installed}</span>
+                <div className="flex items-center justify-between text-xs mt-3 pt-3 border-t border-gray-700/50">
+                  <div className="flex items-center text-amber-400">
+                    <Zap className="w-3 h-3 mr-1" />
+                    <span>{review.solar_capacity ? `${review.solar_capacity} kW System` : review.system_installed}</span>
+                  </div>
                   {review.monthly_bill_before && (
-                    <span className="ml-2 text-green-400">| Bill: ₹{review.monthly_bill_before} → ₹{review.monthly_bill_after || '0'}</span>
+                    <span className="text-green-400 bg-green-900/30 px-2 py-1 rounded cursor-pointer">
+                      Hover to see savings
+                    </span>
                   )}
                 </div>
               )}

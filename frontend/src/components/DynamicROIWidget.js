@@ -33,14 +33,15 @@ Thank you!`;
   };
 
   // Solar system configurations for different bill ranges
+  // Pricing: ₹70,000 per kW (2kW=₹1.5L, 3kW=₹2.1L, 5kW=₹3.5L)
   const getSystemConfig = (bill) => {
-    if (bill <= 1500) return { capacity: 2, baseCost: 110000, subsidy: 60000 };
-    if (bill <= 2500) return { capacity: 2, baseCost: 110000, subsidy: 60000 };
-    if (bill <= 3500) return { capacity: 3, baseCost: 165000, subsidy: 78000 };
-    if (bill <= 5000) return { capacity: 4, baseCost: 220000, subsidy: 78000 };
-    if (bill <= 7000) return { capacity: 5, baseCost: 275000, subsidy: 78000 };
-    if (bill <= 10000) return { capacity: 7, baseCost: 385000, subsidy: 78000 };
-    return { capacity: 10, baseCost: 550000, subsidy: 78000 };
+    if (bill <= 1500) return { capacity: 2, baseCost: 150000, subsidy: 60000 };
+    if (bill <= 2500) return { capacity: 2, baseCost: 150000, subsidy: 60000 };
+    if (bill <= 3500) return { capacity: 3, baseCost: 210000, subsidy: 78000 };
+    if (bill <= 5000) return { capacity: 4, baseCost: 280000, subsidy: 78000 };
+    if (bill <= 7000) return { capacity: 5, baseCost: 350000, subsidy: 78000 };
+    if (bill <= 10000) return { capacity: 7, baseCost: 490000, subsidy: 78000 };
+    return { capacity: 10, baseCost: 700000, subsidy: 78000 };
   };
 
   const config = getSystemConfig(monthlyBill);

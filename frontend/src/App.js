@@ -141,6 +141,119 @@ const BIHAR_DISTRICTS = [
   "Nalanda", "Rohtas", "Saran", "East Champaran", "West Champaran"
 ];
 
+// Interactive ROI Slider Component
+const InteractiveROISlider = ({ onBookSurvey }) => {
+  const [monthlyBill, setMonthlyBill] = useState(3000);
+  
+  // Calculate solar metrics based on bill
+  const calculateMetrics = (bill) => {
+    let systemSize, subsidy, monthlySavings, annualSavings, paybackYears;
+    
+    if (bill <= 1500) {
+      systemSize = 2;
+      subsidy = 60000;
+    } else if (bill <= 3000) {
+      systemSize = 3;
+      subsidy = 78000;
+    } else if (bill <= 4500) {
+      systemSize = 4;
+      subsidy = 78000;
+    } else if (bill <= 6000) {
+      systemSize = 5;
+      subsidy = 78000;
+    } else {
+      systemSize = Math.min(10, Math.ceil(bill / 1000));
+      subsidy = 78000;
+    }
+    
+    // Assume 80-90% savings after solar
+    monthlySavings = Math.round(bill * 0.85);
+    annualSavings = monthlySavings * 12;
+    
+    // Cost calculation (approximate)
+    const baseCost = systemSize * 55000;
+    const netCost = baseCost - subsidy;
+    paybackYears = Math.round((netCost / annualSavings) * 10) / 10;
+    
+    return { systemSize, subsidy, monthlySavings, annualSavings, paybackYears, netCost };
+  };
+  
+  const metrics = calculateMetrics(monthlyBill);
+  
+  return (
+    <div className="bg-white rounded-3xl shadow-2xl p-8 border border-amber-200">
+      {/* Slider Section */}
+      <div className="mb-8">
+        <label className="block text-lg font-semibold text-gray-700 mb-4 text-center">
+          Your Monthly Electricity Bill
+        </label>
+        <div className="relative pt-2">
+          <input
+            type="range"
+            min="500"
+            max="15000"
+            step="100"
+            value={monthlyBill}
+            onChange={(e) => setMonthlyBill(parseInt(e.target.value))}
+            className="w-full h-3 bg-gradient-to-r from-green-300 via-amber-300 to-red-300 rounded-full appearance-none cursor-pointer slider-thumb"
+            style={{
+              background: `linear-gradient(to right, #22c55e 0%, #fbbf24 50%, #ef4444 100%)`
+            }}
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>₹500</span>
+            <span>₹5,000</span>
+            <span>₹10,000</span>
+            <span>₹15,000</span>
+          </div>
+        </div>
+        <div className="text-center mt-4">
+          <span className="text-5xl md:text-6xl font-bold text-amber-600">₹{monthlyBill.toLocaleString()}</span>
+          <span className="text-gray-500 text-lg ml-2">/month</span>
+        </div>
+      </div>
+      
+      {/* Results Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 text-center text-white transform hover:scale-105 transition">
+          <div className="text-3xl md:text-4xl font-bold">{metrics.systemSize} kW</div>
+          <div className="text-blue-100 text-sm">Recommended System</div>
+        </div>
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-5 text-center text-white transform hover:scale-105 transition">
+          <div className="text-3xl md:text-4xl font-bold">₹{metrics.monthlySavings.toLocaleString()}</div>
+          <div className="text-green-100 text-sm">Monthly Savings</div>
+        </div>
+        <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-5 text-center text-white transform hover:scale-105 transition">
+          <div className="text-3xl md:text-4xl font-bold">₹{metrics.subsidy.toLocaleString()}</div>
+          <div className="text-amber-100 text-sm">Govt. Subsidy</div>
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-5 text-center text-white transform hover:scale-105 transition">
+          <div className="text-3xl md:text-4xl font-bold">{metrics.paybackYears} Yrs</div>
+          <div className="text-purple-100 text-sm">Payback Period</div>
+        </div>
+      </div>
+      
+      {/* Annual Savings Highlight */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6 mb-6 text-center">
+        <p className="text-gray-600 mb-2">Your Estimated Annual Savings</p>
+        <p className="text-5xl md:text-6xl font-bold text-green-600">₹{metrics.annualSavings.toLocaleString()}</p>
+        <p className="text-green-600 mt-2">That's <strong>₹{(metrics.annualSavings * 25).toLocaleString()}</strong> over 25 years!</p>
+      </div>
+      
+      {/* CTA Button */}
+      <div className="text-center">
+        <button
+          onClick={onBookSurvey}
+          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition shadow-xl shadow-amber-500/30 transform hover:scale-105"
+        >
+          Book FREE Site Survey Now
+        </button>
+        <p className="text-gray-500 text-sm mt-3">Get exact quote after site inspection</p>
+      </div>
+    </div>
+  );
+};
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem("asrAdminAuth") === "true";

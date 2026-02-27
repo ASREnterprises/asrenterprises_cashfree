@@ -4815,6 +4815,11 @@ async def upload_gallery_photo_file(
             "optimized": original_size != len(optimized_content),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
+        
+        # AI Auto-Caption: Generate caption if description is empty
+        if not description and title:
+            asyncio.create_task(generate_and_update_photo_caption(photo["id"], title, location, system_size))
+        
         await db.work_photos.insert_one(photo)
         logger.info(f"Photo uploaded: {title} - {len(optimized_content)} bytes (original: {original_size})")
         return {"success": True, "photo": {**photo, "_id": None}, "optimization": {"original": original_size, "optimized": len(optimized_content)}}

@@ -1493,6 +1493,207 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
 
 # API Routes
 
+# ==================== GEMINI AI CHAT ENDPOINTS ====================
+@api_router.post("/ai/chat/public")
+async def public_ai_chat(request: Request, data: Dict[str, Any]):
+    """Public AI chat for website visitors - ASR Solar Expert"""
+    try:
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        message = data.get("message", "").strip()
+        
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+        
+        if not GEMINI_API_KEY:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Get or create chat session
+        if session_id not in chat_sessions:
+            chat_sessions[session_id] = {
+                "messages": [],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "lead_captured": False
+            }
+        
+        session = chat_sessions[session_id]
+        
+        # Add user message to history
+        session["messages"].append({
+            "role": "user",
+            "content": message,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Build conversation history for context
+        history_text = ""
+        for msg in session["messages"][-10:]:  # Last 10 messages for context
+            role = "Customer" if msg["role"] == "user" else "ASR Expert"
+            history_text += f"{role}: {msg['content']}\n"
+        
+        # Create Gemini chat instance
+        chat = LlmChat(
+            api_key=GEMINI_API_KEY,
+            session_id=session_id,
+            system_message=ASR_SOLAR_EXPERT_PROMPT
+        ).with_model("gemini", "gemini-2.0-flash")
+        
+        # Send message with context
+        context_message = f"Previous conversation:\n{history_text}\n\nCustomer's latest message: {message}"
+        response = await chat.send_message(UserMessage(text=context_message))
+        
+        # Add assistant response to history
+        session["messages"].append({
+            "role": "assistant",
+            "content": response,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        # Check if lead info was captured (phone number pattern)
+        phone_pattern = r'(?:\+91)?[6-9]\d{9}'
+        if re.search(phone_pattern, message) and not session["lead_captured"]:
+            session["lead_captured"] = True
+            # Log potential lead
+            logger.info(f"AI Chat potential lead captured in session {session_id}")
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "response": response,
+            "message_count": len(session["messages"])
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Public AI chat error: {e}")
+        return {
+            "success": False,
+            "response": "I apologize, but I'm having trouble connecting. Please call us at 8877896889 for immediate assistance with your solar inquiry!",
+            "error": str(e)
+        }
+
+
+@api_router.post("/ai/chat/admin")
+async def admin_ai_chat(request: Request, data: Dict[str, Any]):
+    """Admin AI assistant for staff - quote generation, WhatsApp replies"""
+    try:
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        message = data.get("message", "").strip()
+        context_type = data.get("context_type", "general")  # general, quote, whatsapp, lead
+        
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+        
+        if not GEMINI_API_KEY:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Create admin chat instance
+        admin_session_id = f"admin_{session_id}"
+        
+        # Prepare context-specific prompt addition
+        context_additions = {
+            "quote": "\n\nThe user needs help generating a quote. Ask for system size, location, and property type if not provided.",
+            "whatsapp": "\n\nThe user needs a WhatsApp message template. Generate a professional, friendly message.",
+            "lead": "\n\nThe user needs help analyzing a lead. Provide prioritization and next action suggestions.",
+            "general": ""
+        }
+        
+        enhanced_prompt = ASR_ADMIN_ASSISTANT_PROMPT + context_additions.get(context_type, "")
+        
+        chat = LlmChat(
+            api_key=GEMINI_API_KEY,
+            session_id=admin_session_id,
+            system_message=enhanced_prompt
+        ).with_model("gemini", "gemini-2.0-flash")
+        
+        response = await chat.send_message(UserMessage(text=message))
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "response": response,
+            "context_type": context_type
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin AI chat error: {e}")
+        return {
+            "success": False,
+            "response": "AI assistant temporarily unavailable. Please try again.",
+            "error": str(e)
+        }
+
+
+@api_router.post("/ai/chat/save-lead")
+async def save_chat_lead(data: Dict[str, Any]):
+    """Save lead captured from AI chat"""
+    try:
+        session_id = data.get("session_id")
+        name = sanitize_input(data.get("name", "AI Chat Lead"))
+        phone = data.get("phone", "")
+        district = data.get("district", "")
+        notes = data.get("notes", "")
+        
+        if not phone:
+            raise HTTPException(status_code=400, detail="Phone number is required")
+        
+        # Clean phone number
+        phone_clean = re.sub(r'[^\d]', '', phone)
+        if len(phone_clean) == 10 and phone_clean[0] in '6789':
+            phone_clean = f"91{phone_clean}"
+        
+        # Check for duplicate
+        existing = await db.crm_leads.find_one({"phone": {"$regex": phone_clean[-10:]}})
+        if existing:
+            return {
+                "success": False,
+                "message": "Lead with this phone number already exists",
+                "lead_id": existing.get("id")
+            }
+        
+        # Create lead
+        lead_id = str(uuid.uuid4())
+        lead = {
+            "id": lead_id,
+            "name": name,
+            "phone": phone_clean,
+            "district": district,
+            "source": "ai_chat",
+            "stage": "new",
+            "notes": f"Captured via AI Chat. {notes}",
+            "lead_category": "residential_solar",
+            "ai_priority": "high",
+            "lead_score": 75,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "AI Chat lead"}]
+        }
+        
+        await db.crm_leads.insert_one(lead)
+        logger.info(f"AI Chat lead saved: {lead_id}")
+        
+        return {
+            "success": True,
+            "message": "Lead saved successfully",
+            "lead_id": lead_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Save chat lead error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.delete("/ai/chat/session/{session_id}")
+async def clear_chat_session(session_id: str):
+    """Clear a chat session"""
+    if session_id in chat_sessions:
+        del chat_sessions[session_id]
+    return {"success": True, "message": "Session cleared"}
+
+
 @api_router.post("/verify-recaptcha")
 async def verify_recaptcha_endpoint(request: Request, data: Dict[str, Any]):
     """Verify reCAPTCHA token and honeypot field"""

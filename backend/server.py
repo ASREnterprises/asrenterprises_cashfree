@@ -1587,7 +1587,9 @@ async def admin_ai_chat(request: Request, data: Dict[str, Any]):
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
         
-        if not GEMINI_API_KEY:
+        # Use Emergent LLM key with Gemini model
+        api_key = EMERGENT_LLM_KEY or GEMINI_API_KEY
+        if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
         # Create admin chat instance
@@ -1604,10 +1606,10 @@ async def admin_ai_chat(request: Request, data: Dict[str, Any]):
         enhanced_prompt = ASR_ADMIN_ASSISTANT_PROMPT + context_additions.get(context_type, "")
         
         chat = LlmChat(
-            api_key=GEMINI_API_KEY,
+            api_key=api_key,
             session_id=admin_session_id,
             system_message=enhanced_prompt
-        ).with_model("gemini", "gemini-2.0-flash")
+        ).with_model("gemini", "gemini-2.5-flash")
         
         response = await chat.send_message(UserMessage(text=message))
         

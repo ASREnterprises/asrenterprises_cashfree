@@ -135,6 +135,16 @@ input[type="range"].slider-thumb::-moz-range-thumb {
     animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* Hide scrollbar but allow scroll */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
 /* Map pin hover effects */
 .map-pin-hover {
     transition: all 0.3s ease;

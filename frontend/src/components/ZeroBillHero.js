@@ -1,0 +1,180 @@
+import { useState, useEffect } from "react";
+import { Zap, ArrowRight, CheckCircle, TrendingDown, Sun } from "lucide-react";
+
+export const ZeroBillHero = ({ onBookSurvey }) => {
+  const [isHovering, setIsHovering] = useState(false);
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Before/After bill values
+  const beforeBill = 5000;
+  const afterBill = 0;
+  const savings = beforeBill - afterBill;
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+    setSliderPosition((x / rect.width) * 100);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = Math.max(0, Math.min(touch.clientX - rect.left, rect.width));
+    setSliderPosition((x / rect.width) * 100);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-[#0a355e] via-[#0c4270] to-[#0a355e] py-12 md:py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-8 items-center">
+          {/* Left: Text Content */}
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Sun className="w-4 h-4" />
+              <span>PM Surya Ghar Yojana Partner</span>
+            </div>
+            
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight">
+              Make Your Electricity Bill{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
+                ZERO!
+              </span>
+            </h2>
+            
+            <p className="text-lg md:text-xl text-gray-300 mb-6 max-w-xl">
+              Switch to solar and save up to <strong className="text-amber-400">₹{(savings * 12).toLocaleString()}/year</strong>. 
+              Join 25+ happy customers across Bihar who now enjoy <strong className="text-green-400">zero electricity bills</strong>.
+            </p>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl md:text-3xl font-bold text-green-400">₹78K</div>
+                <div className="text-xs text-gray-400">Govt Subsidy</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl md:text-3xl font-bold text-amber-400">3.5</div>
+                <div className="text-xs text-gray-400">Yr Payback</div>
+              </div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
+                <div className="text-2xl md:text-3xl font-bold text-blue-400">25</div>
+                <div className="text-xs text-gray-400">Yr Warranty</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <button
+                onClick={onBookSurvey}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30"
+                data-testid="hero-book-survey-btn"
+              >
+                <Zap className="w-5 h-5" />
+                <span>Book FREE Survey</span>
+              </button>
+              <a
+                href="tel:8877896889"
+                className="border-2 border-white/30 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"
+              >
+                <span>Call: 8877896889</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Right: Before/After Bill Comparison Slider */}
+          <div className="relative">
+            <div 
+              className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden cursor-ew-resize shadow-2xl border-4 border-white/20"
+              onMouseMove={handleMouseMove}
+              onMouseDown={() => setIsDragging(true)}
+              onMouseUp={() => setIsDragging(false)}
+              onMouseLeave={() => setIsDragging(false)}
+              onTouchMove={handleTouchMove}
+              onTouchStart={() => setIsDragging(true)}
+              onTouchEnd={() => setIsDragging(false)}
+              data-testid="before-after-slider"
+            >
+              {/* BEFORE - Left Side (Red/Old Bill) */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-br from-red-600 via-red-700 to-red-900"
+                style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+              >
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center w-full max-w-xs">
+                    <p className="text-red-200 text-sm font-medium mb-2">BEFORE Solar</p>
+                    <div className="bg-white rounded-xl p-4 mb-4">
+                      <img src="/electricity-bill-icon.png" alt="Bill" className="w-16 h-16 mx-auto mb-2 opacity-80" onError={(e) => e.target.style.display = 'none'} />
+                      <p className="text-gray-500 text-xs">Monthly Electricity Bill</p>
+                    </div>
+                    <div className="text-5xl md:text-6xl font-bold text-white mb-2">
+                      ₹{beforeBill.toLocaleString()}
+                    </div>
+                    <p className="text-red-200 text-sm">/month</p>
+                    <div className="mt-4 bg-red-500/30 rounded-lg px-4 py-2">
+                      <p className="text-sm">Annual Cost: <strong>₹{(beforeBill * 12).toLocaleString()}</strong></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AFTER - Right Side (Green/Zero Bill) */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-br from-green-500 via-emerald-600 to-green-800"
+                style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+              >
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center w-full max-w-xs">
+                    <p className="text-green-200 text-sm font-medium mb-2">AFTER Solar</p>
+                    <div className="bg-white rounded-xl p-4 mb-4">
+                      <Sun className="w-16 h-16 mx-auto mb-2 text-amber-500" />
+                      <p className="text-gray-500 text-xs">Solar Powered Home</p>
+                    </div>
+                    <div className="text-5xl md:text-6xl font-bold text-white mb-2">
+                      ₹{afterBill}
+                    </div>
+                    <p className="text-green-200 text-sm">/month</p>
+                    <div className="mt-4 bg-green-500/30 rounded-lg px-4 py-2">
+                      <p className="text-sm">You Save: <strong>₹{(savings * 12).toLocaleString()}/year</strong></p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slider Handle */}
+              <div 
+                className="absolute top-0 bottom-0 w-1 bg-white shadow-lg cursor-ew-resize z-10"
+                style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
+              >
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center">
+                  <div className="flex space-x-1">
+                    <ArrowRight className="w-4 h-4 text-gray-600 rotate-180" />
+                    <ArrowRight className="w-4 h-4 text-gray-600" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Slider Instructions */}
+            <p className="text-center text-gray-400 text-sm mt-4">
+              <span className="inline-flex items-center space-x-1">
+                <ArrowRight className="w-4 h-4 rotate-180" />
+                <span>Drag slider to compare</span>
+                <ArrowRight className="w-4 h-4" />
+              </span>
+            </p>
+
+            {/* Trust Badge */}
+            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-full px-6 py-2 shadow-lg flex items-center space-x-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
+              <span className="text-sm font-semibold text-gray-700">25+ Verified Installations</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ZeroBillHero;

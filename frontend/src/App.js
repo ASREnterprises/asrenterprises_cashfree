@@ -1064,8 +1064,36 @@ const HomePage = () => {
             </h2>
             <p className="text-gray-600 text-lg">See real-time cost breakdown with ₹78,000 government subsidy!</p>
           </div>
+          
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* ROI Widget - Takes 2 columns */}
+            <div className="lg:col-span-2">
+              <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-amber-500" /></div>}>
+                <DynamicROIWidget onBookSurvey={() => setShowBookService(true)} />
+              </Suspense>
+            </div>
+            
+            {/* Subsidy Countdown Meter - 1 column */}
+            <div className="lg:col-span-1">
+              <Suspense fallback={null}>
+                <SubsidyCountdownMeter />
+              </Suspense>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* NEW: 25-Year Zero Bill Comparison Chart */}
+      <div className="bg-gradient-to-b from-gray-50 to-white py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0a355e] mb-4">
+              DISCOM vs Solar: 25-Year Cost Reality
+            </h2>
+            <p className="text-gray-600 text-lg">See why smart Bihar families are switching to solar!</p>
+          </div>
           <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-amber-500" /></div>}>
-            <DynamicROIWidget onBookSurvey={() => setShowBookService(true)} />
+            <ZeroBillComparison monthlyBill={3000} />
           </Suspense>
         </div>
       </div>

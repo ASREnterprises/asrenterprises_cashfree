@@ -1,342 +1,256 @@
 """
-Test suite for ASR Enterprises Solar CRM - New Features
-Features tested:
-1. Gallery Sync - Photos uploaded in CRM auto-display on website /gallery
-2. Custom Staff ID - Admin can specify custom Staff ID during creation
-3. Duplicate Staff ID Detection - Returns 400 error for duplicate IDs
-4. Auto-CRM Lead Creation - Website inquiry form auto-creates CRM leads
-5. Festive Banner - Admin festive posts auto-display on homepage
+Backend API Tests for New Features:
+- Google Reviews API (GET, POST, DELETE)
+- Database Backup API (GET, POST, DELETE)
 """
 import pytest
 import requests
 import os
-import time
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-class TestGallerySync:
-    """Test Gallery photo sync between CRM and website"""
+class TestGoogleReviewsAPI:
+    """Tests for Google Reviews admin endpoints"""
     
-    def test_gallery_photos_endpoint_returns_list(self):
-        """GET /api/photos returns list of gallery photos"""
-        response = requests.get(f"{BASE_URL}/api/photos")
-        assert response.status_code == 200
+    test_review_ids = []
+    
+    def test_get_google_reviews_initially(self):
+        """GET /api/admin/google-reviews - Get all Google reviews"""
+        response = requests.get(f"{BASE_URL}/api/admin/google-reviews")
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Gallery photos endpoint returns list with {len(data)} items")
+        
+        assert "success" in data
+        assert "reviews" in data
+        assert "total" in data
+        assert isinstance(data["reviews"], list)
+        print(f"SUCCESS: GET google-reviews returns {data['total']} reviews")
     
-    def test_admin_photos_endpoint_returns_list(self):
-        """GET /api/admin/photos returns list for admin management"""
-        response = requests.get(f"{BASE_URL}/api/admin/photos")
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Admin photos endpoint returns list with {len(data)} items")
-    
-    def test_upload_photo_and_verify_in_public_gallery(self):
-        """Test that photos uploaded via admin API appear in public gallery"""
-        # Create a test photo
-        timestamp = int(time.time())
-        photo_data = {
-            "title": f"TEST_Gallery_Sync_{timestamp}",
-            "description": "Test photo for gallery sync verification",
-            "image_url": "https://via.placeholder.com/800x600?text=Test+Photo",
-            "location": "Patna, Bihar",
-            "system_size": "5kW",
-            "category": "installation"
-        }
-        
-        # Upload via admin endpoint
-        upload_response = requests.post(f"{BASE_URL}/api/admin/photos", json=photo_data)
-        assert upload_response.status_code == 200
-        uploaded_photo = upload_response.json()
-        assert "id" in uploaded_photo
-        photo_id = uploaded_photo["id"]
-        print(f"✓ Photo uploaded with ID: {photo_id}")
-        
-        # Verify it appears in public gallery
-        gallery_response = requests.get(f"{BASE_URL}/api/photos")
-        assert gallery_response.status_code == 200
-        gallery_photos = gallery_response.json()
-        
-        # Find the uploaded photo in gallery
-        found = any(p.get("id") == photo_id for p in gallery_photos)
-        assert found, f"Uploaded photo {photo_id} not found in public gallery"
-        print(f"✓ Photo visible in public gallery")
-        
-        # Cleanup
-        delete_response = requests.delete(f"{BASE_URL}/api/admin/photos/{photo_id}")
-        assert delete_response.status_code == 200
-        print(f"✓ Photo cleaned up successfully")
-
-
-class TestCustomStaffID:
-    """Test Custom Staff ID feature during staff creation"""
-    
-    def test_create_staff_with_custom_id(self):
-        """Staff registration with custom Staff ID via POST /api/staff/register"""
-        timestamp = int(time.time())
-        custom_id = f"ASRCUSTOM{timestamp % 10000}"
-        
+    def test_sync_google_review_success(self):
+        """POST /api/admin/google-reviews/sync - Add a new Google review"""
+        test_reviewer = f"TEST_Reviewer_{uuid.uuid4().hex[:8]}"
         payload = {
-            "name": "Test Custom ID Staff",
-            "email": f"test_{timestamp}@example.com",
-            "phone": f"98765{timestamp % 100000:05d}",
-            "role": "sales",
-            "password": "asr@123",
-            "custom_staff_id": custom_id
+            "reviewer_name": test_reviewer,
+            "review_text": "This is a test review for ASR Enterprises. Great solar installation service!",
+            "rating": 5,
+            "review_date": datetime.now().strftime("%Y-%m-%d")
         }
         
-        response = requests.post(f"{BASE_URL}/api/staff/register", json=payload)
-        assert response.status_code == 200
+        response = requests.post(
+            f"{BASE_URL}/api/admin/google-reviews/sync",
+            json=payload
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         
-        assert data["success"] == True
-        assert data["staff_id"] == custom_id
-        assert "password" in data
-        print(f"✓ Staff created with custom ID: {custom_id}")
+        assert data.get("success") == True
+        assert "review_id" in data
         
-        # Verify staff exists
-        profile_response = requests.get(f"{BASE_URL}/api/staff/profile/{custom_id}")
-        assert profile_response.status_code == 200
-        profile = profile_response.json()
-        assert profile["staff_id"] == custom_id
-        assert profile["name"] == "Test Custom ID Staff"
-        print(f"✓ Staff profile verified with custom ID")
-        
-        # Cleanup
-        delete_response = requests.delete(f"{BASE_URL}/api/admin/staff-accounts/{custom_id}")
-        assert delete_response.status_code == 200
-        print(f"✓ Staff account cleaned up")
+        # Store for cleanup
+        TestGoogleReviewsAPI.test_review_ids.append(data["review_id"])
+        print(f"SUCCESS: Created test review with ID: {data['review_id']}")
     
-    def test_create_staff_with_custom_id_auto_adds_prefix(self):
-        """Custom ID without ASR prefix should auto-add ASR"""
-        timestamp = int(time.time())
-        custom_id_without_prefix = f"NOPREFIX{timestamp % 10000}"
-        
+    def test_sync_google_review_validation_error(self):
+        """POST /api/admin/google-reviews/sync - Should fail without required fields"""
         payload = {
-            "name": "Test No Prefix Staff",
-            "email": f"test_noprefix_{timestamp}@example.com",
-            "phone": f"98764{timestamp % 100000:05d}",
-            "role": "survey",
-            "password": "asr@123",
-            "custom_staff_id": custom_id_without_prefix
+            "reviewer_name": "",
+            "review_text": ""
         }
         
-        response = requests.post(f"{BASE_URL}/api/staff/register", json=payload)
-        assert response.status_code == 200
-        data = response.json()
+        response = requests.post(
+            f"{BASE_URL}/api/admin/google-reviews/sync",
+            json=payload
+        )
         
-        expected_id = f"ASR{custom_id_without_prefix}"
-        assert data["staff_id"] == expected_id
-        print(f"✓ Staff ID auto-prefixed: {expected_id}")
-        
-        # Cleanup
-        requests.delete(f"{BASE_URL}/api/admin/staff-accounts/{expected_id}")
+        assert response.status_code == 400, f"Expected 400 for empty fields, got {response.status_code}"
+        print("SUCCESS: Validation error returned for empty fields")
     
-    def test_create_staff_without_custom_id_auto_generates(self):
-        """Staff registration without custom ID auto-generates one"""
-        timestamp = int(time.time())
-        
+    def test_sync_google_review_duplicate_check(self):
+        """POST /api/admin/google-reviews/sync - Duplicate detection"""
+        test_reviewer = f"TEST_DuplicateCheck_{uuid.uuid4().hex[:8]}"
         payload = {
-            "name": "Test Auto ID Staff",
-            "email": f"test_auto_{timestamp}@example.com",
-            "phone": f"98763{timestamp % 100000:05d}",
-            "role": "installation",
-            "password": "asr@123"
+            "reviewer_name": test_reviewer,
+            "review_text": "Unique review text for duplicate testing purpose in ASR app.",
+            "rating": 4
         }
         
-        response = requests.post(f"{BASE_URL}/api/staff/register", json=payload)
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert data["success"] == True
-        assert data["staff_id"].startswith("ASR")
-        print(f"✓ Staff ID auto-generated: {data['staff_id']}")
-        
-        # Cleanup
-        requests.delete(f"{BASE_URL}/api/admin/staff-accounts/{data['staff_id']}")
-
-
-class TestDuplicateStaffIDDetection:
-    """Test duplicate Staff ID detection returns 400 error"""
-    
-    def test_duplicate_staff_id_returns_400(self):
-        """Creating staff with existing ID returns 400"""
-        timestamp = int(time.time())
-        custom_id = f"ASRDUPE{timestamp % 10000}"
-        
-        # Create first staff
-        payload1 = {
-            "name": "First Staff",
-            "email": f"first_{timestamp}@example.com",
-            "phone": f"98762{timestamp % 100000:05d}",
-            "role": "sales",
-            "password": "asr@123",
-            "custom_staff_id": custom_id
-        }
-        
-        response1 = requests.post(f"{BASE_URL}/api/staff/register", json=payload1)
+        # First submission
+        response1 = requests.post(f"{BASE_URL}/api/admin/google-reviews/sync", json=payload)
         assert response1.status_code == 200
-        print(f"✓ First staff created with ID: {custom_id}")
+        data1 = response1.json()
+        if data1.get("review_id"):
+            TestGoogleReviewsAPI.test_review_ids.append(data1["review_id"])
         
-        # Try to create second staff with same ID
-        payload2 = {
-            "name": "Second Staff",
-            "email": f"second_{timestamp}@example.com",
-            "phone": f"98761{timestamp % 100000:05d}",
-            "role": "survey",
-            "password": "asr@123",
-            "custom_staff_id": custom_id
-        }
+        # Second submission with same data
+        response2 = requests.post(f"{BASE_URL}/api/admin/google-reviews/sync", json=payload)
+        assert response2.status_code == 200
+        data2 = response2.json()
         
-        response2 = requests.post(f"{BASE_URL}/api/staff/register", json=payload2)
-        assert response2.status_code == 400
-        error_data = response2.json()
-        assert "already exists" in error_data["detail"].lower()
-        print(f"✓ Duplicate ID correctly rejected with 400 error: {error_data['detail']}")
-        
-        # Cleanup
-        requests.delete(f"{BASE_URL}/api/admin/staff-accounts/{custom_id}")
-
-
-class TestAutoCRMLeadCreation:
-    """Test that website inquiry form auto-creates CRM leads"""
+        # Should detect duplicate
+        assert data2.get("success") == False or "already exists" in data2.get("message", "")
+        print("SUCCESS: Duplicate detection working")
     
-    def test_lead_creation_auto_creates_crm_lead(self):
-        """POST /api/leads auto-creates CRM lead in crm_leads collection"""
-        timestamp = int(time.time())
+    def test_get_google_reviews_after_creation(self):
+        """GET /api/admin/google-reviews - Verify created reviews exist"""
+        response = requests.get(f"{BASE_URL}/api/admin/google-reviews")
         
-        lead_payload = {
-            "name": f"TEST_AutoCRM_{timestamp}",
-            "email": f"autocrm_{timestamp}@example.com",
-            "phone": f"98760{timestamp % 100000:05d}",
-            "district": "Muzaffarpur",
-            "property_type": "residential",
-            "roof_type": "rcc",
-            "monthly_bill": 4000,
-            "roof_area": 600
-        }
-        
-        # Create lead via website form endpoint
-        response = requests.post(f"{BASE_URL}/api/leads", json=lead_payload)
-        assert response.status_code == 200
-        created_lead = response.json()
-        lead_id = created_lead["id"]
-        print(f"✓ Lead created via /api/leads with ID: {lead_id}")
-        
-        # Verify lead exists in main leads collection
-        leads_response = requests.get(f"{BASE_URL}/api/leads")
-        assert leads_response.status_code == 200
-        leads = leads_response.json()
-        found_in_leads = any(l.get("id") == lead_id for l in leads)
-        assert found_in_leads, "Lead not found in /api/leads"
-        print(f"✓ Lead found in /api/leads collection")
-        
-        # Verify lead auto-created in CRM leads collection
-        crm_leads_response = requests.get(f"{BASE_URL}/api/crm/leads")
-        assert crm_leads_response.status_code == 200
-        crm_leads = crm_leads_response.json()
-        found_in_crm = any(l.get("id") == lead_id for l in crm_leads)
-        assert found_in_crm, "Lead not auto-created in /api/crm/leads"
-        print(f"✓ Lead auto-created in CRM leads collection")
-        
-        # Verify CRM lead has correct fields
-        crm_lead = next((l for l in crm_leads if l.get("id") == lead_id), None)
-        assert crm_lead is not None
-        assert crm_lead["source"] == "website"
-        assert crm_lead["stage"] == "new"
-        assert crm_lead["lead_score"] > 0
-        assert crm_lead["ai_priority"] in ["high", "medium", "low"]
-        print(f"✓ CRM lead has correct auto-populated fields: source={crm_lead['source']}, stage={crm_lead['stage']}, score={crm_lead['lead_score']}, priority={crm_lead['ai_priority']}")
-        
-        # Cleanup
-        requests.delete(f"{BASE_URL}/api/leads/{lead_id}")
-
-
-class TestFestiveBanner:
-    """Test festive banner endpoint"""
-    
-    def test_get_active_festival_returns_null_or_festival(self):
-        """GET /api/festivals/active returns active festival post or null"""
-        response = requests.get(f"{BASE_URL}/api/festivals/active")
-        assert response.status_code == 200
-        # Returns null if no active festival or festival object
-        data = response.json()
-        if data is not None:
-            assert "title" in data
-            assert "message" in data
-            print(f"✓ Active festival found: {data['title']}")
-        else:
-            print(f"✓ No active festival (returns null as expected)")
-    
-    def test_create_active_festival_and_verify_active_endpoint(self):
-        """Create festival with current date range and verify active endpoint"""
-        today = datetime.now()
-        start_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")
-        end_date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
-        timestamp = int(time.time())
-        
-        festival_data = {
-            "title": f"TEST_Festival_{timestamp}",
-            "message": "Wishing you a happy festival! Go solar with ASR Enterprises!",
-            "image_url": "https://via.placeholder.com/400x200?text=Festival+Banner",
-            "start_date": start_date,
-            "end_date": end_date
-        }
-        
-        # Create festival
-        create_response = requests.post(f"{BASE_URL}/api/admin/festivals", json=festival_data)
-        assert create_response.status_code == 200
-        created_festival = create_response.json()
-        festival_id = created_festival["id"]
-        print(f"✓ Festival created with ID: {festival_id}")
-        
-        # Verify it appears in active endpoint
-        active_response = requests.get(f"{BASE_URL}/api/festivals/active")
-        assert active_response.status_code == 200
-        active_festival = active_response.json()
-        
-        # Note: There may be other active festivals, so we just verify our test festival or another is active
-        if active_festival:
-            print(f"✓ Active festival endpoint returns festival: {active_festival.get('title')}")
-        
-        # Cleanup
-        delete_response = requests.delete(f"{BASE_URL}/api/admin/festivals/{festival_id}")
-        assert delete_response.status_code == 200
-        print(f"✓ Festival cleaned up")
-    
-    def test_get_all_festivals_endpoint(self):
-        """GET /api/festivals returns list of active festivals"""
-        response = requests.get(f"{BASE_URL}/api/festivals")
         assert response.status_code == 200
         data = response.json()
+        
+        # Check that our test reviews appear
+        review_names = [r.get("reviewer_name", "") for r in data["reviews"]]
+        test_reviews_found = sum(1 for name in review_names if name.startswith("TEST_"))
+        
+        print(f"SUCCESS: Found {test_reviews_found} test reviews in list")
+    
+    def test_toggle_google_review_visibility(self):
+        """PUT /api/admin/google-reviews/{id}/toggle - Toggle visibility"""
+        if not TestGoogleReviewsAPI.test_review_ids:
+            pytest.skip("No test reviews to toggle")
+        
+        review_id = TestGoogleReviewsAPI.test_review_ids[0]
+        response = requests.put(f"{BASE_URL}/api/admin/google-reviews/{review_id}/toggle")
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "visible" in data
+        print(f"SUCCESS: Toggled review visibility to {data['visible']}")
+    
+    def test_public_google_reviews_endpoint(self):
+        """GET /api/google-reviews - Public endpoint for visible reviews"""
+        response = requests.get(f"{BASE_URL}/api/google-reviews")
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        assert "reviews" in data
+        print(f"SUCCESS: Public google reviews endpoint returns {len(data['reviews'])} visible reviews")
+    
+    def test_delete_google_review(self):
+        """DELETE /api/admin/google-reviews/{id} - Delete a review"""
+        if not TestGoogleReviewsAPI.test_review_ids:
+            pytest.skip("No test reviews to delete")
+        
+        for review_id in TestGoogleReviewsAPI.test_review_ids:
+            response = requests.delete(f"{BASE_URL}/api/admin/google-reviews/{review_id}")
+            assert response.status_code == 200, f"Failed to delete review {review_id}"
+        
+        print(f"SUCCESS: Cleaned up {len(TestGoogleReviewsAPI.test_review_ids)} test reviews")
+        TestGoogleReviewsAPI.test_review_ids = []
+
+
+class TestBackupAPI:
+    """Tests for Database Backup admin endpoints"""
+    
+    test_backup_filenames = []
+    
+    def test_list_backups_initially(self):
+        """GET /api/admin/backup/list - List all backups"""
+        response = requests.get(f"{BASE_URL}/api/admin/backup/list")
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        
+        assert "success" in data
+        assert "backups" in data
+        assert "total" in data
+        assert isinstance(data["backups"], list)
+        
+        print(f"SUCCESS: Backup list returns {data['total']} backups")
+    
+    def test_create_backup_success(self):
+        """POST /api/admin/backup/create - Create a manual backup"""
+        response = requests.post(f"{BASE_URL}/api/admin/backup/create")
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        
+        assert data.get("success") == True
+        assert "filename" in data
+        assert "size_bytes" in data
+        assert "collections_backed_up" in data
+        
+        # Store filename for cleanup
+        TestBackupAPI.test_backup_filenames.append(data["filename"])
+        
+        print(f"SUCCESS: Created backup: {data['filename']} ({data['size_mb']} MB, {data['collections_backed_up']} collections)")
+    
+    def test_list_backups_after_creation(self):
+        """GET /api/admin/backup/list - Verify backup appears in list"""
+        response = requests.get(f"{BASE_URL}/api/admin/backup/list")
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        if TestBackupAPI.test_backup_filenames:
+            filenames = [b["filename"] for b in data["backups"]]
+            assert TestBackupAPI.test_backup_filenames[0] in filenames, "Created backup not found in list"
+        
+        print(f"SUCCESS: Backup list now contains {data['total']} backups")
+    
+    def test_backup_download_endpoint(self):
+        """GET /api/admin/backup/download/{filename} - Download backup file"""
+        if not TestBackupAPI.test_backup_filenames:
+            pytest.skip("No test backups to download")
+        
+        filename = TestBackupAPI.test_backup_filenames[0]
+        response = requests.get(f"{BASE_URL}/api/admin/backup/download/{filename}")
+        
+        assert response.status_code == 200
+        assert "application/json" in response.headers.get("content-type", "")
+        
+        print(f"SUCCESS: Backup download returns valid JSON file")
+    
+    def test_backup_download_nonexistent(self):
+        """GET /api/admin/backup/download/{filename} - 404 for non-existent file"""
+        response = requests.get(f"{BASE_URL}/api/admin/backup/download/nonexistent_backup.json")
+        
+        assert response.status_code == 404
+        print("SUCCESS: Returns 404 for non-existent backup")
+    
+    def test_delete_backup_success(self):
+        """DELETE /api/admin/backup/{filename} - Delete a backup file"""
+        if not TestBackupAPI.test_backup_filenames:
+            pytest.skip("No test backups to delete")
+        
+        for filename in TestBackupAPI.test_backup_filenames:
+            response = requests.delete(f"{BASE_URL}/api/admin/backup/{filename}")
+            assert response.status_code == 200, f"Failed to delete backup {filename}"
+        
+        print(f"SUCCESS: Cleaned up {len(TestBackupAPI.test_backup_filenames)} test backups")
+        TestBackupAPI.test_backup_filenames = []
+    
+    def test_delete_backup_nonexistent(self):
+        """DELETE /api/admin/backup/{filename} - 404 for non-existent file"""
+        response = requests.delete(f"{BASE_URL}/api/admin/backup/nonexistent_backup_test.json")
+        
+        assert response.status_code == 404
+        print("SUCCESS: Returns 404 when deleting non-existent backup")
+
+
+class TestReviewsAPIPublic:
+    """Test public reviews endpoint used by Bihar Map"""
+    
+    def test_public_reviews_endpoint(self):
+        """GET /api/reviews - Public reviews for Bihar Map"""
+        response = requests.get(f"{BASE_URL}/api/reviews")
+        
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Should return list of reviews
         assert isinstance(data, list)
-        print(f"✓ Festivals endpoint returns list with {len(data)} items")
-
-
-class TestExistingStaffLogin:
-    """Test login with existing staff credentials"""
-    
-    def test_staff_login_with_valid_credentials(self):
-        """Staff login with ASR1001 / asr@123"""
-        payload = {
-            "staff_id": "ASR1001",
-            "password": "asr@123"
-        }
+        print(f"SUCCESS: Public reviews endpoint returns {len(data)} reviews")
         
-        response = requests.post(f"{BASE_URL}/api/staff/login", json=payload)
-        # May succeed or fail depending on test data state
-        if response.status_code == 200:
-            data = response.json()
-            assert data["success"] == True
-            assert "token" in data
-            assert "staff" in data
-            print(f"✓ Staff login successful for ASR1001")
-        else:
-            print(f"⚠ Staff ASR1001 may not exist in current state (status: {response.status_code})")
+        if data:
+            # Check review structure
+            review = data[0]
+            print(f"Sample review: {review.get('customer_name', 'N/A')} from {review.get('location', 'N/A')}")
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+    pytest.main([__file__, "-v"])

@@ -1779,10 +1779,115 @@ async def create_secure_lead(request: Request, data: Dict[str, Any]):
         crm_doc = crm_lead.model_dump()
         crm_doc['timestamp'] = crm_doc['timestamp'].isoformat()
         await db.crm_leads.insert_one(crm_doc)
+        
+        # AI Auto-Response: Generate and send instant quotation via WhatsApp
+        asyncio.create_task(send_ai_auto_response(lead_data, ai_result))
+        
+        # Send Lead Alert to Admin/Sales Team
+        asyncio.create_task(send_lead_alert_to_team(lead_data, ai_result))
+        
     except Exception as e:
         logger.error(f"CRM lead creation error: {e}")
     
     return {"success": True, "lead": lead_obj.model_dump()}
+
+async def send_ai_auto_response(lead_data, ai_result):
+    """Send AI-generated auto-response with instant quotation to new leads"""
+    try:
+        # Calculate rough quotation based on monthly bill
+        monthly_bill = lead_data.monthly_bill or 3000
+        system_size = max(2, min(10, int(monthly_bill / 1000) + 1))
+        subsidy = 78000 if system_size >= 3 else 60000
+        total_cost = system_size * 55000
+        net_cost = total_cost - subsidy
+        monthly_savings = int(monthly_bill * 0.85)
+        payback_years = round(net_cost / (monthly_savings * 12), 1)
+        
+        # Generate personalized message
+        message = f"""नमस्ते {lead_data.name} जी! 🙏
+
+ASR Enterprises Patna में आपका स्वागत है! 🌞
+
+आपकी ₹{monthly_bill:,}/month बिल के आधार पर, हमारी AI ने आपके लिए सोलर प्लान तैयार किया है:
+
+📊 *आपका Solar Plan:*
+━━━━━━━━━━━━━━━
+✅ System Size: *{system_size} kW*
+✅ Total Cost: ₹{total_cost:,}
+✅ Govt Subsidy: *-₹{subsidy:,}* (PM Surya Ghar)
+✅ Your Investment: *₹{net_cost:,}*
+✅ Monthly Savings: ₹{monthly_savings:,}
+✅ Payback: ~{payback_years} years
+━━━━━━━━━━━━━━━
+
+🎁 *FREE Site Survey Available!*
+हमारी टीम आपके घर आकर exact quotation देगी।
+
+📞 अभी call करें: *8877896889*
+
+_आपको 5 मिनट में हमारी team का call आएगा!_
+
+~Team ASR Enterprises"""
+        
+        # Log the auto-response
+        await db.lead_auto_responses.insert_one({
+            "id": str(uuid.uuid4()),
+            "lead_id": lead_data.name,
+            "phone": lead_data.phone,
+            "message": message,
+            "system_size": system_size,
+            "quotation": {
+                "total_cost": total_cost,
+                "subsidy": subsidy,
+                "net_cost": net_cost,
+                "monthly_savings": monthly_savings
+            },
+            "sent_at": datetime.now(timezone.utc).isoformat(),
+            "status": "logged"  # Would be "sent" if WhatsApp API is configured
+        })
+        
+        logger.info(f"AI auto-response generated for lead: {lead_data.name} ({lead_data.phone})")
+        
+    except Exception as e:
+        logger.error(f"AI auto-response error: {e}")
+
+async def send_lead_alert_to_team(lead_data, ai_result):
+    """Send instant lead alert to sales team"""
+    try:
+        priority = ai_result.get("ai_priority", "medium")
+        lead_score = ai_result.get("lead_score", 50)
+        
+        # Determine system size recommendation
+        monthly_bill = lead_data.monthly_bill or 3000
+        system_size = max(2, min(10, int(monthly_bill / 1000) + 1))
+        
+        # Create alert notification
+        alert = {
+            "id": str(uuid.uuid4()),
+            "type": "new_lead_alert",
+            "title": f"🔔 New Lead: {lead_data.name}",
+            "message": f"Priority: {priority.upper()} | Score: {lead_score}/100 | Bill: ₹{monthly_bill:,} | System: {system_size}kW | District: {lead_data.district or 'Not specified'}",
+            "lead_data": {
+                "name": lead_data.name,
+                "phone": lead_data.phone,
+                "email": lead_data.email,
+                "district": lead_data.district,
+                "monthly_bill": monthly_bill,
+                "property_type": lead_data.property_type,
+                "recommended_system": f"{system_size} kW"
+            },
+            "priority": priority,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "read": False
+        }
+        
+        # Store in staff notifications
+        await db.staff_notifications.insert_one(alert)
+        
+        logger.info(f"Lead alert sent for: {lead_data.name} (Priority: {priority})")
+        
+    except Exception as e:
+        logger.error(f"Lead alert error: {e}")
 
 @api_router.get("/districts")
 async def get_districts():

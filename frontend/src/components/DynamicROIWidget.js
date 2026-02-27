@@ -14,6 +14,24 @@ export const DynamicROIWidget = ({ onBookSurvey, className = "" }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const prevBillRef = useRef(3000);
 
+  // Generate WhatsApp URL for FREE site survey
+  const getWhatsAppSurveyUrl = () => {
+    const config = getSystemConfig(monthlyBill);
+    const message = `Hi ASR Enterprises! 👋
+
+I'm interested in a FREE site survey for solar installation.
+
+📊 My Details:
+• Monthly Bill: ₹${monthlyBill.toLocaleString()}
+• Recommended System: ${config.capacity} kW
+• Expected Savings: ₹${Math.round(monthlyBill * 0.90).toLocaleString()}/month
+
+Please schedule a FREE site survey at my location.
+
+Thank you!`;
+    return `https://wa.me/918877896889?text=${encodeURIComponent(message)}`;
+  };
+
   // Solar system configurations for different bill ranges
   const getSystemConfig = (bill) => {
     if (bill <= 1500) return { capacity: 2, baseCost: 110000, subsidy: 60000 };

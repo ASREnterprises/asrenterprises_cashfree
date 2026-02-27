@@ -411,6 +411,55 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
 - **Frontend:** 100% (All 7 new components verified)
 - **Test Report:** `/app/test_reports/iteration_30.json`
 
+### Session Update (Feb 27, 2026 - Part 2) - Strategic Upgrades
+
+#### 1. Book FREE Site Survey → WhatsApp (FIXED)
+- **Issue:** "Book FREE Site Survey" buttons opened paid service modal
+- **Fix:** All FREE survey buttons now link directly to WhatsApp with pre-filled messages
+- **Files Updated:**
+  - `/app/frontend/src/components/ZeroBillHero.js` - Hero section button
+  - `/app/frontend/src/components/DynamicROIWidget.js` - ROI widget button  
+  - `/app/frontend/src/App.js` - InteractiveROISlider button
+- **Message Includes:** Monthly bill, recommended system size, expected savings, subsidy amount
+
+#### 2. AI Auto-Response for New Leads (COMPLETED)
+- **Feature:** When a new lead is created, AI generates instant quotation in Hindi/English
+- **Backend:** `send_ai_auto_response()` function in server.py
+- **Message Includes:**
+  - Personalized greeting with customer name
+  - Recommended system size based on bill
+  - Total cost, subsidy, net investment
+  - Monthly savings calculation
+  - Call to action for FREE site survey
+- **Logged to:** `lead_auto_responses` collection
+
+#### 3. Lead Alert System for Sales Team (COMPLETED)
+- **Feature:** Instant notifications when new leads enter pipeline
+- **Backend:** `send_lead_alert_to_team()` function in server.py
+- **Alert Includes:**
+  - Lead name, phone, district
+  - AI priority (high/medium/low)
+  - Lead score (0-100)
+  - Monthly bill and recommended system
+- **Stored in:** `staff_notifications` collection
+
+#### 4. Gallery AI Auto-Caption (COMPLETED)
+- **Feature:** When staff uploads photos without description, AI generates SEO-friendly caption
+- **Backend:** `generate_and_update_photo_caption()` async task
+- **Caption Style:** Instagram-style with emojis and hashtags
+- **Example:** "Another successful 5kW installation in Patna! ☀️ #GoSolar #ZeroBill"
+
+#### 5. Mobile Upload Link for Field Staff (COMPLETED)
+- **Feature:** Generate shareable links for field staff to upload photos directly
+- **API Endpoints:**
+  - `POST /api/gallery/generate-mobile-link` - Generate unique upload link
+  - `POST /api/gallery/mobile-upload/{token}` - Upload via token
+- **Features:**
+  - Configurable expiry (default 24 hours)
+  - Usage tracking (uploads count)
+  - Staff attribution
+  - Auto-optimization of uploaded images
+
 ## Pending Tasks
 - **P0:** Refactor server.py into modular APIRouter files (9900+ lines needs decomposition)
 - **P1:** Performance: WebP conversion, lazy loading, asset minification, server-side caching

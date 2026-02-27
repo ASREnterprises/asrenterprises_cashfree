@@ -1624,6 +1624,11 @@ const HomePage = () => {
           </span>
         </a>
       </div>
+
+      {/* AI Chat Widget - Solar Expert */}
+      <Suspense fallback={null}>
+        <AIChatWidget />
+      </Suspense>
     </div>
   );
 };

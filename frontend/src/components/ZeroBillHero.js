@@ -80,14 +80,16 @@ Thank you!`)}`;
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <button
-                onClick={onBookSurvey}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30"
+              <a
+                href={whatsappSurveyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition flex items-center justify-center space-x-2 shadow-xl shadow-green-500/30"
                 data-testid="hero-book-survey-btn"
               >
-                <Zap className="w-5 h-5" />
+                <MessageSquare className="w-5 h-5" />
                 <span>Book FREE Survey</span>
-              </button>
+              </a>
               <a
                 href="tel:8877896889"
                 className="border-2 border-white/30 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"

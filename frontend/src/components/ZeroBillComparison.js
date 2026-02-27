@@ -20,8 +20,9 @@ const calculateCosts = (monthlyBill) => {
   }
   
   // Solar costs (one-time investment + maintenance)
+  // Pricing: ₹70,000 per kW
   const systemSize = Math.max(2, Math.min(10, Math.ceil(monthlyBill / 1000)));
-  const totalCost = systemSize * 55000;
+  const totalCost = systemSize * 70000;
   const subsidy = systemSize >= 3 ? 78000 : 60000;
   const netCost = totalCost - subsidy;
   

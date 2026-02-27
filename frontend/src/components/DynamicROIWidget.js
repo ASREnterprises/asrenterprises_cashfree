@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Zap, Sun, TrendingUp, ArrowRight, CheckCircle, IndianRupee, Calculator, Gift, Calendar, Leaf } from "lucide-react";
+import { Zap, Sun, TrendingUp, ArrowRight, CheckCircle, IndianRupee, Calculator, Gift, Calendar, Leaf, MessageSquare } from "lucide-react";
 
 // Update WhatsApp context when user interacts
 const updateWhatsAppContext = (data) => {

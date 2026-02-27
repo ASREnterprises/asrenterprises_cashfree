@@ -1504,7 +1504,10 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
         
-        if not GEMINI_API_KEY:
+        # Use Emergent LLM key with Gemini model as primary (better quota management)
+        # Fall back to user's Gemini key if available
+        api_key = EMERGENT_LLM_KEY or GEMINI_API_KEY
+        if not api_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
         # Get or create chat session
@@ -1530,12 +1533,12 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
             role = "Customer" if msg["role"] == "user" else "ASR Expert"
             history_text += f"{role}: {msg['content']}\n"
         
-        # Create Gemini chat instance
+        # Create Gemini chat instance using Emergent key
         chat = LlmChat(
-            api_key=GEMINI_API_KEY,
+            api_key=api_key,
             session_id=session_id,
             system_message=ASR_SOLAR_EXPERT_PROMPT
-        ).with_model("gemini", "gemini-2.0-flash")
+        ).with_model("gemini", "gemini-2.5-flash")
         
         # Send message with context
         context_message = f"Previous conversation:\n{history_text}\n\nCustomer's latest message: {message}"

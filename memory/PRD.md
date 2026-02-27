@@ -490,13 +490,29 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
   - WhatsApp CTA with savings included in message
 
 ## Pending Tasks
-- **P0:** Refactor server.py into modular APIRouter files (9900+ lines needs decomposition)
+- **P0:** Refactor server.py into modular APIRouter files (10,000+ lines needs decomposition)
 - **P1:** Performance: WebP conversion, lazy loading, asset minification, server-side caching
 - **P1:** Security: HTTP Security Headers (CSP, HSTS, X-Frame-Options)
-- **P2:** Localized SEO sub-pages (Muzaffarpur, Bhagalpur, Gaya, etc.)
+- **P1:** Staff Gamification leaderboard in HR portal
+- **P2:** District-specific SEO pages (solar-in-gaya, solar-in-bhagalpur, etc.)
 - **P2:** Enhanced "Before & After" testimonial graphics hover effect
-- **P2:** Mobile responsiveness audit
 - **P2:** Bill parsing in AI chat endpoint for electricity bills
 - **P3:** Cloudflare CDN setup guidance
 - **P3:** Persist Staff Notifications in database
+
+### Session Update (Feb 27, 2026 - Part 4) - Bug Fixes & UI Improvements
+
+#### Changes Made:
+1. **Removed PM Surya Ghar Subsidy Meter** from homepage (per user request)
+2. **Removed Google Reviews tab** from CRM Dashboard
+3. **Removed AI Assistant tab** from CRM Dashboard
+4. **Fixed Lead Source visibility** - Changed from dark text on colored background to white text
+5. **Fixed Dashboard Stats** - Added fallback to use actual leads array count
+6. **Added Facebook & Instagram icons** to floating buttons (above Call/Email)
+7. **Repositioned floating icons** - Now at `bottom-24` so WhatsApp is not hidden
+8. **Updated ASR Enterprises header** - Increased logo text size, decreased tagline size
+9. **Updated loan interest rate** - Changed from 7-9% to 6-9%
+10. **Updated EMI starting amount** - Changed from ₹3,000 to ₹2,000
+11. **Made CRM mobile-friendly** - Scrollable tabs, responsive header
+12. **AI Assistant upgraded** - Already using Gemini 2.5 Flash with Emergent LLM key
 

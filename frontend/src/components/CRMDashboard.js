@@ -1268,6 +1268,20 @@ export const CRMDashboard = () => {
           </div>
         )}
 
+        {/* Google Reviews Tab */}
+        {activeTab === "google_reviews" && (
+          <div className="space-y-6">
+            <GoogleReviewsTab />
+          </div>
+        )}
+
+        {/* Backups Tab */}
+        {activeTab === "backups" && (
+          <div className="space-y-6">
+            <BackupsTab />
+          </div>
+        )}
+
         {/* Messages Tab - Staff-wise Private Conversations */}
         {activeTab === "messages" && (
           <div className="space-y-4">

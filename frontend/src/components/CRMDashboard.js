@@ -1037,25 +1037,25 @@ export const CRMDashboard = () => {
         {activeTab === "dashboard" && dashboardData && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-5 text-[#0a355e]">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 text-white">
                 <ClipboardList className="w-8 h-8 mb-2 opacity-80" />
-                <div className="text-3xl font-bold">{dashboardData.total_leads || 0}</div>
-                <div className="text-blue-200 text-sm">Total Leads</div>
+                <div className="text-3xl font-bold">{dashboardData.total_leads || leads.length || 0}</div>
+                <div className="text-blue-100 text-sm">Total Leads</div>
               </div>
-              <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-5 text-[#0a355e]">
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 text-white">
                 <CheckCircle className="w-8 h-8 mb-2 opacity-80" />
-                <div className="text-3xl font-bold">{dashboardData.pipeline_stats?.completed || 0}</div>
-                <div className="text-green-200 text-sm">Completed</div>
+                <div className="text-3xl font-bold">{dashboardData.pipeline_stats?.completed || leads.filter(l => l.stage === 'completed').length || 0}</div>
+                <div className="text-green-100 text-sm">Completed</div>
               </div>
-              <div className="bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl p-5 text-[#0a355e]">
+              <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl p-5 text-white">
                 <Users className="w-8 h-8 mb-2 opacity-80" />
                 <div className="text-3xl font-bold">{staffAccounts.length}</div>
-                <div className="text-yellow-200 text-sm">Staff Members</div>
+                <div className="text-amber-100 text-sm">Staff Members</div>
               </div>
-              <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-5 text-[#0a355e]">
+              <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-5 text-white">
                 <DollarSign className="w-8 h-8 mb-2 opacity-80" />
                 <div className="text-3xl font-bold">₹{((dashboardData.total_revenue || 0) / 1000).toFixed(0)}K</div>
-                <div className="text-purple-200 text-sm">Revenue</div>
+                <div className="text-purple-100 text-sm">Revenue</div>
               </div>
             </div>
 

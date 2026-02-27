@@ -7,7 +7,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://solar-admin-build.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-smart-solar.preview.emergentagent.com').rstrip('/')
 
 class TestStaffAuthentication:
     """Test Staff Login and Registration"""

@@ -58,9 +58,8 @@ const PageLoader = () => (
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-// reCAPTCHA disabled - key is domain-specific and not valid for preview environments
-// Honeypot protection remains active for spam prevention
-const RECAPTCHA_SITE_KEY = null; // process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+// reCAPTCHA v3 - badge hidden via CSS
+const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY || "6LchBnosAAAAAMMA-FmUYPboJHIQPoS-3CC96A2m";
 
 // Month-wise Color Schemes for ASR Enterprises Title
 const MONTH_COLOR_SCHEMES = {

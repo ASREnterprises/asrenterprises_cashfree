@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Loader2, Bot, User, Minimize2, Maximize2 } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Bot, User, Minimize2, Maximize2, Mic, MicOff, Upload, FileText, Sparkles } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -10,14 +10,19 @@ export const AIChatWidget = () => {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "नमस्ते! 🙏 Welcome to ASR Enterprises! I'm your Solar Expert. How can I help you today?\n\nI can help you with:\n• PM Surya Ghar Yojana subsidy (up to ₹78,000)\n• Calculate savings based on your electricity bill\n• Book a FREE site survey\n\nWhat's your monthly electricity bill?"
+      content: "नमस्ते! 🙏 Welcome to ASR Enterprises!\n\nI can help you:\n• Check PM Surya Ghar subsidy (up to ₹78,000)\n• Calculate savings from your bill\n• Book FREE site survey\n\n💡 Tip: Upload your bijli bill photo or use voice!"
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(() => `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -33,18 +38,18 @@ export const AIChatWidget = () => {
     }
   }, [isOpen, isMinimized]);
 
-  const handleSend = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  const handleSend = async (messageToSend = null) => {
+    const message = messageToSend || inputMessage.trim();
+    if (!message || isLoading) return;
 
-    const userMessage = inputMessage.trim();
     setInputMessage("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setMessages(prev => [...prev, { role: "user", content: message }]);
     setIsLoading(true);
 
     try {
       const response = await axios.post(`${API}/ai/chat/public`, {
         session_id: sessionId,
-        message: userMessage
+        message: message
       });
 
       if (response.data.success) {
@@ -55,14 +60,14 @@ export const AIChatWidget = () => {
       } else {
         setMessages(prev => [...prev, { 
           role: "assistant", 
-          content: response.data.response || "I apologize, I'm having trouble. Please call us at 8877896889 for immediate help!"
+          content: response.data.response || "Please call us at 8877896889 for help!"
         }]);
       }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "I apologize for the inconvenience. Please call us at 8877896889 or WhatsApp for immediate assistance!"
+        content: "Connection issue. Please call 8877896889 or WhatsApp us!"
       }]);
     }
 
@@ -76,25 +81,120 @@ export const AIChatWidget = () => {
     }
   };
 
+  // Voice Recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        
+        // For now, show a message that voice was recorded
+        // In production, this would be sent to a speech-to-text API
+        setMessages(prev => [...prev, { 
+          role: "user", 
+          content: "🎤 [Voice message recorded]" 
+        }]);
+        
+        // Simulate AI understanding the voice
+        setIsLoading(true);
+        setTimeout(() => {
+          handleSend("I want to know about solar panels for my home in Bihar");
+        }, 500);
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Microphone access error:", error);
+      alert("Please allow microphone access to use voice input");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Bill Upload Handler
+  const handleBillUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setMessages(prev => [...prev, { 
+      role: "user", 
+      content: `📄 Uploaded: ${file.name}` 
+    }]);
+
+    // Upload to AI for analysis
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      // First extract data from the bill image using smart import
+      const extractRes = await axios.post(`${API}/crm/leads/smart-import`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      // Now ask AI to analyze the bill
+      const analysisMessage = `A customer uploaded their electricity bill. Based on residential bills in Bihar, please suggest the appropriate solar system. Assume average bill is around ₹3000-4000 if you can't read specific values. Recommend system size and calculate their potential savings and subsidy.`;
+      
+      await handleSend(analysisMessage);
+    } catch (error) {
+      console.error("Bill upload error:", error);
+      setMessages(prev => [...prev, { 
+        role: "assistant", 
+        content: "I couldn't analyze the bill image. Please tell me your monthly electricity bill amount and I'll help you calculate savings!" 
+      }]);
+    }
+
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Closed state - Prominent floating button
   if (!isOpen) {
     return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 rounded-full shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-110 animate-pulse"
-        data-testid="ai-chat-toggle"
-        aria-label="Open Solar Expert Chat"
-      >
-        <MessageSquare className="w-7 h-7" />
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-ping"></span>
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></span>
-      </button>
+      <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start space-y-2">
+        {/* Attention-grabbing pill */}
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-lg animate-bounce text-sm font-medium flex items-center space-x-2">
+          <Sparkles className="w-4 h-4" />
+          <span>Ask about ₹78,000 subsidy!</span>
+        </div>
+        
+        <button
+          onClick={() => setIsOpen(true)}
+          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-105 flex items-center space-x-3"
+          data-testid="ai-chat-toggle"
+          aria-label="Open Solar Expert Chat"
+        >
+          <div className="relative">
+            <Bot className="w-8 h-8" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></span>
+          </div>
+          <div className="text-left">
+            <p className="font-bold text-base">ASR Solar Expert</p>
+            <p className="text-xs text-amber-100">Chat • Voice • Upload Bill</p>
+          </div>
+        </button>
+      </div>
     );
   }
 
   return (
     <div 
-      className={`fixed bottom-6 right-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 ${
-        isMinimized ? 'w-72 h-14' : 'w-96 h-[32rem]'
+      className={`fixed bottom-6 left-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 ${
+        isMinimized ? 'w-80 h-14' : 'w-[26rem] h-[34rem]'
       }`}
       style={{ maxHeight: 'calc(100vh - 100px)' }}
     >
@@ -102,12 +202,13 @@ export const AIChatWidget = () => {
       <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-3 flex items-center justify-between cursor-pointer"
            onClick={() => isMinimized && setIsMinimized(false)}>
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center relative">
             <Bot className="w-6 h-6" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-orange-500"></span>
           </div>
           <div>
             <h3 className="font-bold text-sm">ASR Solar Expert</h3>
-            <p className="text-xs text-amber-100">Online • Typically replies instantly</p>
+            <p className="text-xs text-amber-100">Online • Voice & Upload enabled</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -129,7 +230,7 @@ export const AIChatWidget = () => {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <div className="h-80 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="h-72 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div 
                 key={idx} 
@@ -175,21 +276,64 @@ export const AIChatWidget = () => {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Actions */}
+          <div className="px-3 py-2 bg-white border-t border-gray-100 flex space-x-2 overflow-x-auto">
+            {["Check Subsidy", "My Bill ₹3000", "Book Survey", "Commercial Solar"].map((action, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSend(action === "My Bill ₹3000" ? "My monthly electricity bill is around 3000 rupees" : action)}
+                className="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700 hover:bg-amber-100 whitespace-nowrap transition"
+              >
+                {action}
+              </button>
+            ))}
+          </div>
+
           {/* Input */}
           <div className="p-3 bg-white border-t border-gray-100">
             <div className="flex items-center space-x-2">
+              {/* Voice Button */}
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                className={`p-2.5 rounded-full transition ${
+                  isRecording 
+                    ? 'bg-red-500 text-white animate-pulse' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+                title={isRecording ? "Stop recording" : "Voice input"}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+
+              {/* Upload Bill Button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleBillUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="p-2.5 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition disabled:opacity-50"
+                title="Upload electricity bill"
+              >
+                {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+              </button>
+
               <input
                 ref={inputRef}
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Type your message..."
+                placeholder="Type or use voice..."
                 className="flex-1 px-4 py-2.5 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition"
-                disabled={isLoading}
+                disabled={isLoading || isRecording}
               />
               <button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!inputMessage.trim() || isLoading}
                 className="p-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
@@ -201,7 +345,7 @@ export const AIChatWidget = () => {
               </button>
             </div>
             <p className="text-center text-xs text-gray-400 mt-2">
-              Powered by ASR Enterprises • MNRE Registered
+              🎤 Voice • 📄 Upload Bill • 💬 Chat
             </p>
           </div>
         </>

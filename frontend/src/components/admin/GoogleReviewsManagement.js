@@ -4,6 +4,11 @@ import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// Google Business Place ID for ASR Enterprises
+const GOOGLE_PLACE_ID = "ChIJAR33l2BX7TkRJ4CYdw8Hkps";
+const GOOGLE_MAPS_URL = `https://www.google.com/maps/place/?q=place_id:${GOOGLE_PLACE_ID}`;
+const GOOGLE_REVIEWS_URL = `https://search.google.com/local/reviews?placeid=${GOOGLE_PLACE_ID}`;
+
 export const GoogleReviewsManagement = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);

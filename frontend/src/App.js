@@ -910,6 +910,48 @@ const HomePage = () => {
         </div>
       </div>
 
+      {/* Live Installation Counter Section */}
+      <div className="bg-gradient-to-r from-[#0a355e] via-[#0c4270] to-[#0a355e] py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="text-4xl md:text-5xl font-bold text-amber-400 mb-2">100+</div>
+              <div className="text-white/90 font-medium">kW Installed</div>
+              <div className="text-amber-300/70 text-sm">Total Capacity</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="text-4xl md:text-5xl font-bold text-green-400 mb-2">25+</div>
+              <div className="text-white/90 font-medium">Happy Customers</div>
+              <div className="text-green-300/70 text-sm">Across Bihar</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="text-4xl md:text-5xl font-bold text-blue-400 mb-2">₹78K</div>
+              <div className="text-white/90 font-medium">Max Subsidy</div>
+              <div className="text-blue-300/70 text-sm">PM Surya Ghar</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div className="text-4xl md:text-5xl font-bold text-purple-400 mb-2">25</div>
+              <div className="text-white/90 font-medium">Years Warranty</div>
+              <div className="text-purple-300/70 text-sm">Performance Guarantee</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive ROI Calculator Slider Section */}
+      <div className="bg-gradient-to-b from-amber-50 to-white py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#0a355e] mb-4">
+              Calculate Your Solar Savings
+            </h2>
+            <p className="text-gray-600 text-lg">Slide to see how much you can save with solar!</p>
+          </div>
+          
+          <InteractiveROISlider onBookSurvey={() => setShowBookService(true)} />
+        </div>
+      </div>
+
       {/* Brands We Offer Section - Light Theme */}
       <div className="bg-gradient-to-b from-sky-100 to-white py-12 border-y border-sky-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

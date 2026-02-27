@@ -296,15 +296,17 @@ Thank you!`;
 
         {/* CTA */}
         <div className="text-center">
-          <button
-            onClick={onBookSurvey}
-            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition shadow-xl shadow-amber-500/30 transform hover:scale-105 flex items-center justify-center space-x-2 mx-auto"
+          <a
+            href={getWhatsAppSurveyUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-10 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-xl shadow-green-500/30 transform hover:scale-105 flex items-center justify-center space-x-2 mx-auto"
             data-testid="roi-book-survey-btn"
           >
-            <Zap className="w-5 h-5" />
+            <MessageSquare className="w-5 h-5" />
             <span>Book FREE Site Survey</span>
             <ArrowRight className="w-5 h-5" />
-          </button>
+          </a>
           <p className="text-gray-500 text-sm mt-3">
             <CheckCircle className="w-4 h-4 inline mr-1 text-green-500" />
             Get exact quote after FREE site inspection

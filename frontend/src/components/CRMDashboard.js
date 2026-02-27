@@ -743,6 +743,8 @@ export const CRMDashboard = () => {
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "ai_assistant", label: "AI Assistant", icon: <Zap className="w-4 h-4" /> },
+              { id: "google_reviews", label: "Google Reviews", icon: <Star className="w-4 h-4" /> },
+              { id: "backups", label: "Backups", icon: <Shield className="w-4 h-4" /> },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> },
               { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
             ].map((tab) => (

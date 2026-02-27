@@ -516,3 +516,28 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
 11. **Made CRM mobile-friendly** - Scrollable tabs, responsive header
 12. **AI Assistant upgraded** - Already using Gemini 2.5 Flash with Emergent LLM key
 
+### Session Update (Feb 27, 2026 - Part 5) - Pricing & AI Upgrade
+
+#### Pricing Updates (₹70,000/kW):
+- 2 kW System: ₹1,50,000 total cost
+- 3 kW System: ₹2,10,000 total cost  
+- 5 kW System: ₹3,50,000 total cost
+- 7 kW System: ₹4,90,000 total cost
+- 10 kW System: ₹7,00,000 total cost
+
+#### Dashboard Fixes:
+- Fixed Total Leads and New Leads counts to sync from both `leads` and `crm_leads` collections
+- Dashboard now shows: 43 Total Leads, 39 New Leads
+
+#### "Get Quote" WhatsApp Integration:
+- Footer "Get Quote" link now opens WhatsApp directly with pre-filled message
+
+#### AI Chatbot Enhanced:
+- Updated system prompt with comprehensive solar knowledge
+- Now answers all customer questions about:
+  - Solar panel costs and installation (with exact ₹70K/kW pricing)
+  - Government subsidies and incentives (PM Surya Ghar details)
+  - ROI and savings calculations (payback period, lifetime savings)
+  - Maintenance and warranty information (25-year panel, 5-year free maintenance)
+  - System sizing and requirements (based on monthly bill)
+

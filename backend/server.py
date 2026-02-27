@@ -4830,6 +4830,39 @@ async def upload_gallery_photo_file(
         logger.error(f"Photo upload error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+async def generate_and_update_photo_caption(photo_id: str, title: str, location: str, system_size: str):
+    """AI Auto-Caption: Generate SEO-friendly caption for gallery photos"""
+    try:
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="""You are a social media expert for ASR Enterprises, a solar company in Bihar, India.
+            Write short, engaging captions for solar installation photos.
+            Include emojis, location tag, and hashtags.
+            Keep it under 150 characters. Make it feel authentic and professional.
+            Example: "Another successful 5kW installation in Patna! Customer now enjoys ₹0 electricity bills. ☀️ #GoSolar #ZeroBill"
+            Write in English with occasional Hindi words for authenticity."""
+        ).with_model("openai", "gpt-4o-mini")
+        
+        prompt = f"Write a short Instagram-style caption for: {title}"
+        if location:
+            prompt += f" in {location}"
+        if system_size:
+            prompt += f" ({system_size} kW system)"
+        
+        response = await chat.send_message_async(UserMessage(text=prompt))
+        caption = response.text.strip()
+        
+        # Update the photo with AI caption
+        await db.work_photos.update_one(
+            {"id": photo_id},
+            {"$set": {"ai_caption": caption, "description": caption}}
+        )
+        logger.info(f"AI caption generated for photo {photo_id}: {caption[:50]}...")
+        
+    except Exception as e:
+        logger.error(f"AI caption generation error: {e}")
+
 # ==================== SHOP/E-COMMERCE API ENDPOINTS ====================
 
 # Product Categories

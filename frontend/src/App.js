@@ -1630,7 +1630,7 @@ const HomePage = () => {
                 <div><Link to="/chat" className="hover:text-white transition">WhatsApp Support</Link></div>
                 <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Solar Products</a></div>
                 <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
-                <div><Link to="/contact" className="hover:text-white transition">Get Quote</Link></div>
+                <div><a href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I%20want%20a%20FREE%20quote%20for%20solar%20rooftop%20installation.%20Please%20share%20details%20about%20pricing%20and%20subsidy." target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Get Quote</a></div>
               </div>
             </div>
             <div>

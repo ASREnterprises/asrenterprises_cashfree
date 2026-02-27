@@ -1065,18 +1065,11 @@ const HomePage = () => {
             <p className="text-gray-600 text-lg">See real-time cost breakdown with ₹78,000 government subsidy!</p>
           </div>
           
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* ROI Widget - Takes 2 columns */}
-            <div className="lg:col-span-2">
+          <div className="grid lg:grid-cols-1 gap-8">
+            {/* ROI Widget - Full width */}
+            <div className="w-full">
               <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-amber-500" /></div>}>
                 <DynamicROIWidget onBookSurvey={() => setShowBookService(true)} />
-              </Suspense>
-            </div>
-            
-            {/* Subsidy Countdown Meter - 1 column */}
-            <div className="lg:col-span-1">
-              <Suspense fallback={null}>
-                <SubsidyCountdownMeter />
               </Suspense>
             </div>
           </div>

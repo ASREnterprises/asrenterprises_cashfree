@@ -9551,6 +9551,354 @@ async def cleanup_non_asr_orders():
         "deleted_orders": [o.get("order_number") for o in orders_to_delete]
     }
 
+# ==================== GOOGLE REVIEWS MANUAL SYNC ====================
+@api_router.get("/admin/google-reviews")
+async def get_google_reviews():
+    """Get all manually synced Google reviews"""
+    try:
+        reviews = await db.google_reviews.find({}, {"_id": 0}).sort("synced_at", -1).to_list(100)
+        return {"success": True, "reviews": reviews, "total": len(reviews)}
+    except Exception as e:
+        logger.error(f"Get Google reviews error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/google-reviews/sync")
+async def sync_google_review(data: Dict[str, Any]):
+    """Manually add/sync a Google review"""
+    try:
+        reviewer_name = data.get("reviewer_name", "").strip()
+        review_text = data.get("review_text", "").strip()
+        rating = int(data.get("rating", 5))
+        review_date = data.get("review_date", "")
+        profile_photo = data.get("profile_photo", "")
+        
+        if not reviewer_name or not review_text:
+            raise HTTPException(status_code=400, detail="Reviewer name and review text required")
+        
+        # Check for duplicate
+        existing = await db.google_reviews.find_one({
+            "reviewer_name": reviewer_name,
+            "review_text": {"$regex": review_text[:50], "$options": "i"}
+        })
+        
+        if existing:
+            return {"success": False, "message": "This review already exists"}
+        
+        review_id = str(uuid.uuid4())
+        review = {
+            "id": review_id,
+            "reviewer_name": reviewer_name,
+            "review_text": review_text,
+            "rating": min(5, max(1, rating)),
+            "review_date": review_date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "profile_photo": profile_photo,
+            "source": "google",
+            "verified": True,
+            "visible": True,
+            "synced_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.google_reviews.insert_one(review)
+        logger.info(f"Google review synced: {reviewer_name}")
+        
+        return {"success": True, "message": "Review synced successfully", "review_id": review_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Sync Google review error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/google-reviews/bulk-sync")
+async def bulk_sync_google_reviews(data: Dict[str, Any]):
+    """Bulk sync multiple Google reviews at once"""
+    try:
+        reviews_data = data.get("reviews", [])
+        if not reviews_data:
+            raise HTTPException(status_code=400, detail="No reviews provided")
+        
+        synced = 0
+        skipped = 0
+        
+        for r in reviews_data:
+            reviewer_name = r.get("reviewer_name", "").strip()
+            review_text = r.get("review_text", "").strip()
+            
+            if not reviewer_name or not review_text:
+                skipped += 1
+                continue
+            
+            # Check duplicate
+            existing = await db.google_reviews.find_one({
+                "reviewer_name": reviewer_name,
+                "review_text": {"$regex": review_text[:30], "$options": "i"}
+            })
+            
+            if existing:
+                skipped += 1
+                continue
+            
+            review = {
+                "id": str(uuid.uuid4()),
+                "reviewer_name": reviewer_name,
+                "review_text": review_text,
+                "rating": min(5, max(1, int(r.get("rating", 5)))),
+                "review_date": r.get("review_date", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
+                "profile_photo": r.get("profile_photo", ""),
+                "source": "google",
+                "verified": True,
+                "visible": True,
+                "synced_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            await db.google_reviews.insert_one(review)
+            synced += 1
+        
+        logger.info(f"Bulk Google review sync: {synced} synced, {skipped} skipped")
+        return {"success": True, "synced": synced, "skipped": skipped}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Bulk sync error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/google-reviews/{review_id}")
+async def delete_google_review(review_id: str):
+    """Delete a Google review"""
+    result = await db.google_reviews.delete_one({"id": review_id})
+    return {"success": result.deleted_count > 0}
+
+@api_router.put("/admin/google-reviews/{review_id}/toggle")
+async def toggle_google_review_visibility(review_id: str):
+    """Toggle review visibility"""
+    review = await db.google_reviews.find_one({"id": review_id})
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    
+    new_visibility = not review.get("visible", True)
+    await db.google_reviews.update_one(
+        {"id": review_id},
+        {"$set": {"visible": new_visibility}}
+    )
+    return {"success": True, "visible": new_visibility}
+
+# Public endpoint to get visible Google reviews
+@api_router.get("/google-reviews")
+async def get_public_google_reviews():
+    """Get visible Google reviews for public display"""
+    try:
+        reviews = await db.google_reviews.find(
+            {"visible": True}, 
+            {"_id": 0}
+        ).sort("synced_at", -1).to_list(20)
+        return {"success": True, "reviews": reviews}
+    except Exception as e:
+        return {"success": False, "reviews": []}
+
+# ==================== DATABASE BACKUP SYSTEM ====================
+BACKUP_DIR = Path("/app/backups")
+BACKUP_DIR.mkdir(exist_ok=True)
+
+@api_router.post("/admin/backup/create")
+async def create_database_backup():
+    """Create a manual database backup"""
+    try:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        backup_filename = f"asr_backup_{timestamp}.json"
+        backup_path = BACKUP_DIR / backup_filename
+        
+        # Collections to backup
+        collections = [
+            "crm_leads", "leads", "testimonials", "google_reviews", 
+            "photos", "festivals", "orders", "employees", "staffs",
+            "agents", "consultations", "feedback", "admin_users"
+        ]
+        
+        backup_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "collections": {}
+        }
+        
+        for collection_name in collections:
+            try:
+                collection = db[collection_name]
+                docs = await collection.find({}, {"_id": 0}).to_list(10000)
+                backup_data["collections"][collection_name] = {
+                    "count": len(docs),
+                    "data": docs
+                }
+            except Exception as e:
+                backup_data["collections"][collection_name] = {"error": str(e)}
+        
+        # Save backup
+        with open(backup_path, 'w') as f:
+            json.dump(backup_data, f, default=str, indent=2)
+        
+        # Get file size
+        file_size = backup_path.stat().st_size
+        
+        # Log backup
+        await db.backup_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "filename": backup_filename,
+            "path": str(backup_path),
+            "size_bytes": file_size,
+            "type": "manual",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+        
+        logger.info(f"Database backup created: {backup_filename} ({file_size} bytes)")
+        
+        return {
+            "success": True,
+            "filename": backup_filename,
+            "size_bytes": file_size,
+            "size_mb": round(file_size / (1024 * 1024), 2),
+            "collections_backed_up": len([c for c in backup_data["collections"] if "error" not in backup_data["collections"][c]])
+        }
+    except Exception as e:
+        logger.error(f"Backup creation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/backup/list")
+async def list_backups():
+    """List all available backups"""
+    try:
+        backups = []
+        for backup_file in BACKUP_DIR.glob("asr_backup_*.json"):
+            backups.append({
+                "filename": backup_file.name,
+                "size_bytes": backup_file.stat().st_size,
+                "size_mb": round(backup_file.stat().st_size / (1024 * 1024), 2),
+                "created_at": datetime.fromtimestamp(backup_file.stat().st_mtime).isoformat()
+            })
+        
+        backups.sort(key=lambda x: x["created_at"], reverse=True)
+        return {"success": True, "backups": backups, "total": len(backups)}
+    except Exception as e:
+        logger.error(f"List backups error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.delete("/admin/backup/{filename}")
+async def delete_backup(filename: str):
+    """Delete a backup file"""
+    try:
+        backup_path = BACKUP_DIR / filename
+        if backup_path.exists() and backup_path.suffix == ".json":
+            backup_path.unlink()
+            await db.backup_logs.delete_one({"filename": filename})
+            return {"success": True, "message": f"Backup {filename} deleted"}
+        raise HTTPException(status_code=404, detail="Backup not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/admin/backup/restore/{filename}")
+async def restore_backup(filename: str, data: Dict[str, Any] = {}):
+    """Restore database from backup (with confirmation)"""
+    try:
+        backup_path = BACKUP_DIR / filename
+        if not backup_path.exists():
+            raise HTTPException(status_code=404, detail="Backup not found")
+        
+        confirm = data.get("confirm", False)
+        if not confirm:
+            return {
+                "success": False,
+                "message": "Please confirm restoration. This will overwrite current data.",
+                "requires_confirmation": True
+            }
+        
+        with open(backup_path, 'r') as f:
+            backup_data = json.load(f)
+        
+        restored_collections = []
+        for collection_name, collection_data in backup_data.get("collections", {}).items():
+            if "data" in collection_data and collection_data["data"]:
+                # Clear existing and restore
+                await db[collection_name].delete_many({})
+                if collection_data["data"]:
+                    await db[collection_name].insert_many(collection_data["data"])
+                restored_collections.append(collection_name)
+        
+        logger.info(f"Database restored from: {filename}")
+        
+        return {
+            "success": True,
+            "message": f"Restored {len(restored_collections)} collections",
+            "restored_collections": restored_collections
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Restore error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Weekly backup scheduler
+async def weekly_backup_task():
+    """Automated weekly backup task"""
+    while True:
+        try:
+            # Wait until Sunday 2 AM
+            now = datetime.now(timezone.utc)
+            days_until_sunday = (6 - now.weekday()) % 7
+            if days_until_sunday == 0 and now.hour >= 2:
+                days_until_sunday = 7
+            
+            next_sunday = now + timedelta(days=days_until_sunday)
+            next_backup_time = next_sunday.replace(hour=2, minute=0, second=0, microsecond=0)
+            
+            wait_seconds = (next_backup_time - now).total_seconds()
+            logger.info(f"Next scheduled backup in {wait_seconds/3600:.1f} hours")
+            
+            await asyncio.sleep(wait_seconds)
+            
+            # Create backup
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            backup_filename = f"asr_backup_weekly_{timestamp}.json"
+            backup_path = BACKUP_DIR / backup_filename
+            
+            collections = ["crm_leads", "leads", "testimonials", "google_reviews", 
+                          "photos", "festivals", "orders", "employees", "staffs"]
+            
+            backup_data = {"timestamp": datetime.now(timezone.utc).isoformat(), "collections": {}}
+            
+            for coll in collections:
+                try:
+                    docs = await db[coll].find({}, {"_id": 0}).to_list(10000)
+                    backup_data["collections"][coll] = {"count": len(docs), "data": docs}
+                except:
+                    pass
+            
+            with open(backup_path, 'w') as f:
+                json.dump(backup_data, f, default=str)
+            
+            # Log it
+            await db.backup_logs.insert_one({
+                "id": str(uuid.uuid4()),
+                "filename": backup_filename,
+                "type": "weekly_auto",
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+            
+            logger.info(f"Weekly automated backup created: {backup_filename}")
+            
+            # Keep only last 4 weekly backups
+            weekly_backups = sorted(BACKUP_DIR.glob("asr_backup_weekly_*.json"), reverse=True)
+            for old_backup in weekly_backups[4:]:
+                old_backup.unlink()
+                logger.info(f"Old backup deleted: {old_backup.name}")
+                
+        except Exception as e:
+            logger.error(f"Weekly backup error: {e}")
+            await asyncio.sleep(3600)  # Retry in 1 hour
+
+# Start weekly backup scheduler on startup
+@app.on_event("startup")
+async def start_backup_scheduler():
+    asyncio.create_task(weekly_backup_task())
+    logger.info("Weekly backup scheduler started")
+
 app.include_router(api_router)
 
 # CORS configuration with security

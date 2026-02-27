@@ -40,6 +40,13 @@ const HRManagement = lazy(() => import("@/components/HRManagement").then(m => ({
 const FestiveThemeOverlay = lazy(() => import("@/components/FestiveThemeOverlay").then(m => ({ default: m.FestiveThemeOverlay })));
 const AIChatWidget = lazy(() => import("@/components/AIChatWidget").then(m => ({ default: m.AIChatWidget })));
 
+// New Homepage Components
+const ZeroBillHero = lazy(() => import("@/components/ZeroBillHero").then(m => ({ default: m.ZeroBillHero })));
+const BiharInstallationMap = lazy(() => import("@/components/BiharInstallationMap").then(m => ({ default: m.BiharInstallationMap })));
+const SmartWhatsAppButton = lazy(() => import("@/components/SmartWhatsAppButton").then(m => ({ default: m.SmartWhatsAppButton })));
+const LeadCapturePopup = lazy(() => import("@/components/LeadCapturePopup").then(m => ({ default: m.LeadCapturePopup })));
+const DynamicROIWidget = lazy(() => import("@/components/DynamicROIWidget").then(m => ({ default: m.DynamicROIWidget })));
+
 // CRM & Staff Portals - Heavy components (Lazy load critical for performance)
 const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({ default: m.CRMDashboard })));
 const StaffLogin = lazy(() => import("@/components/StaffLogin").then(m => ({ default: m.StaffLogin })));

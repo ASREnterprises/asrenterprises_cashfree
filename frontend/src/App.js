@@ -1217,7 +1217,7 @@ const HomePage = () => {
               </div>
               <ul className="text-sm space-y-2 mb-4">
                 <li>✓ Low-interest loans (7-9%)</li>
-                <li>✓ EMI starting ₹3,000/month</li>
+                <li>✓ EMI starting ₹2,000/month</li>
                 <li>✓ 3-5 year payback period</li>
                 <li>✓ Zero down payment</li>
               </ul>

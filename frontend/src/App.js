@@ -46,6 +46,8 @@ const BiharInstallationMap = lazy(() => import("@/components/BiharInstallationMa
 const SmartWhatsAppButton = lazy(() => import("@/components/SmartWhatsAppButton").then(m => ({ default: m.SmartWhatsAppButton })));
 const LeadCapturePopup = lazy(() => import("@/components/LeadCapturePopup").then(m => ({ default: m.LeadCapturePopup })));
 const DynamicROIWidget = lazy(() => import("@/components/DynamicROIWidget").then(m => ({ default: m.DynamicROIWidget })));
+const SubsidyCountdownMeter = lazy(() => import("@/components/SubsidyCountdownMeter").then(m => ({ default: m.SubsidyCountdownMeter })));
+const ZeroBillComparison = lazy(() => import("@/components/ZeroBillComparison").then(m => ({ default: m.ZeroBillComparison })));
 
 // CRM & Staff Portals - Heavy components (Lazy load critical for performance)
 const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({ default: m.CRMDashboard })));

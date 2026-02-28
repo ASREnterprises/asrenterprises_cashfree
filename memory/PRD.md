@@ -21,38 +21,51 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Root Cause:** `/api/crm/widget/stats` only queried `leads` collection, not `crm_leads`
 - **Fix:** Updated endpoint to query both `leads` and `crm_leads` collections
 - **Result:** Total Leads now correctly shows 43
-- **File:** `/app/backend/server.py` line 2488
 
 #### 2. Backend Modularization - HR Router (COMPLETED)
 - **Problem:** `server.py` was 10,500+ lines, making it unmaintainable
 - **Solution:** Extracted HR Management endpoints into modular router
 - **New File:** `/app/backend/routes/hr.py` (636 lines)
-- **Endpoints Moved:**
-  - `GET /api/hr/dashboard` - HR statistics
-  - `GET/POST /api/hr/employees` - Employee CRUD
-  - `GET/PUT /api/hr/employees/{id}` - Single employee operations
-  - `PUT /api/hr/employees/{id}/onboarding` - Onboarding checklist
-  - `DELETE /api/hr/employees/{id}/permanent` - Permanent deletion
-  - `GET/POST /api/hr/leaves` - Leave requests
-  - `PUT /api/hr/leaves/{id}` - Approve/reject leaves
-  - `GET /api/hr/attendance` - Attendance records
-  - `POST /api/hr/attendance` - Mark attendance
-  - `POST /api/hr/attendance/bulk` - Bulk attendance
-  - `GET /api/hr/performance` - Performance data
-  - `PUT /api/hr/employees/{id}/performance` - Update performance
-  - `GET /api/hr/reports/summary` - HR summary report
-- **Result:** `server.py` reduced by ~470 lines
+- **Endpoints Moved:** 14 HR endpoints including dashboard, employees CRUD, leaves, attendance, performance
 
-#### 3. Router Initialization Pattern Established
-- HR router initialized with database connection in startup event
-- Pattern: `init_hr_router(db)` passes database reference to modular router
-- Router included: `api_router.include_router(hr_router)` before app registration
+#### 3. Backend Modularization - CRM Router (COMPLETED)
+- **New File:** `/app/backend/routes/crm.py` (617 lines)
+- **Endpoints Implemented:**
+  - `GET /api/crm/widget/stats` - Quick stats widget
+  - `GET /api/crm/widget/pipeline` - Lead pipeline stages
+  - `GET /api/crm/widget/recent-activity` - Recent activities
+  - `GET /api/crm/dashboard` - Comprehensive dashboard
+  - `GET/POST /api/crm/employees` - Employee management
+  - `GET/POST/PUT /api/crm/leads` - Lead management
+  - `POST /api/crm/leads/{id}/assign` - Lead assignment
+  - `GET/POST/PUT/DELETE /api/crm/tasks` - Task management
+  - `GET/POST/PUT /api/crm/followups` - Follow-up management
+  - `GET /api/crm/followups/today` - Today's follow-ups
+  - `GET/POST /api/crm/leads/{id}/activities` - Lead activities
+  - `GET /api/crm/reports/monthly` - Monthly reports
+  - `GET /api/crm/leaderboard` - Staff leaderboard
+- **Result:** `server.py` reduced to ~10,060 lines
+
+#### 4. CRM Mobile Usability Fix (COMPLETED)
+- Added `overflow-x-auto` and `min-w-[XXXpx]` to CRM tables (leads, tasks, payments)
+- Button labels now hide on mobile (`hidden sm:inline`) to save space
+- Tables now scroll horizontally on mobile devices
+- **File:** `/app/frontend/src/components/CRMDashboard.js`
+
+#### 5. Security Headers Verification (COMPLETED)
+- All security headers confirmed working:
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `X-XSS-Protection: 1; mode=block`
+  - `Content-Security-Policy` (CSP)
+  - `Strict-Transport-Security` (HSTS)
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+- **File:** `/app/backend/security.py`
 
 #### Testing Results (Feb 28, 2026)
-- **Backend:** 100% (20/20 tests passed)
-- **Test Report:** `/app/test_reports/iteration_31.json`
-- All HR endpoints verified working through modular router
-- CRM lead counter fix verified (total_leads = 43)
+- **Iteration 31:** 100% (20/20 tests) - HR router & lead counter fix
+- **Iteration 32:** 100% (26/26 tests) - CRM router & security headers
+- **Test Reports:** `/app/test_reports/iteration_31.json`, `/app/test_reports/iteration_32.json`
 
 ### Previous Session (Feb 24, 2026) - Part 5
 

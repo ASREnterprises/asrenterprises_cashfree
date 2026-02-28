@@ -821,7 +821,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 overflow-x-hidden">
       {/* Festive Theme Overlay - Shows on all pages when festival is active */}
       <Suspense fallback={null}>
         <FestiveThemeOverlay festival={festiveBanner} />

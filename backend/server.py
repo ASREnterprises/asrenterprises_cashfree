@@ -482,6 +482,9 @@ async def startup_event():
     # Initialize HR router with database connection
     init_hr_router(db)
     
+    # Initialize CRM router with database connection and utilities
+    init_crm_router(db, sanitize_input, cache_get, cache_set)
+    
     # Start automated cleanup scheduler
     cleanup_task = asyncio.create_task(cleanup_scheduler())
     

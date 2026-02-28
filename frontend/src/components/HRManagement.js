@@ -493,6 +493,15 @@ export const HRManagement = () => {
           </div>
         )}
 
+        {/* Training Tab */}
+        {activeTab === "training" && (
+          <StaffTraining 
+            staffId="hr_admin"
+            staffName="HR Manager"
+            staffRole="manager"
+          />
+        )}
+
         {/* Onboarding Tab */}
         {activeTab === "onboarding" && (
           <div className="space-y-4">

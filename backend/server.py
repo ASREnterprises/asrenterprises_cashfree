@@ -9755,9 +9755,9 @@ async def start_backup_scheduler():
 
 # ==================== HR MANAGEMENT API ENDPOINTS ====================
 
-@api_router.get("/hr/employees")
-async def get_hr_employees():
-    """Get all employees for HR dashboard"""
+@api_router.get("/hr/employees-gamification")
+async def get_hr_employees_gamification():
+    """Get all employees for HR gamification dashboard"""
     try:
         employees = await db.employees.find({}, {"_id": 0}).to_list(100)
         # Add mock scores for gamification

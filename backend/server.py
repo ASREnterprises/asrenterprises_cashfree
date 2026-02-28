@@ -2493,22 +2493,33 @@ async def get_crm_stats_widget():
     if cached_data:
         return cached_data
     
+    # Query both leads and crm_leads collections
     results = await asyncio.gather(
         db.leads.count_documents({}),
+        db.crm_leads.count_documents({}),
         db.leads.count_documents({"status": "new"}),
+        db.crm_leads.count_documents({"stage": "new"}),
         db.leads.count_documents({"status": "qualified"}),
+        db.crm_leads.count_documents({"stage": "quotation"}),
         db.leads.count_documents({"status": "converted"}),
-        db.staff.count_documents({"is_active": True}),
+        db.crm_leads.count_documents({"stage": "completed"}),
+        db.crm_staff_accounts.count_documents({"is_active": True}),
         db.crm_tasks.count_documents({"status": "pending"})
     )
     
+    # Total leads from both collections
+    total_leads = max(results[0], results[1])  # Take higher value to avoid undercounting
+    new_leads = results[2] + results[3]
+    qualified_leads = results[4] + results[5]
+    converted_leads = results[6] + results[7]
+    
     response = {
-        "total_leads": results[0],
-        "new_leads": results[1],
-        "qualified_leads": results[2],
-        "converted_leads": results[3],
-        "active_staff": results[4],
-        "pending_tasks": results[5]
+        "total_leads": total_leads,
+        "new_leads": new_leads,
+        "qualified_leads": qualified_leads,
+        "converted_leads": converted_leads,
+        "active_staff": results[8],
+        "pending_tasks": results[9]
     }
     
     await cache_set(cache_key, response, ttl=30)

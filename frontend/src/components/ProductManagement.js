@@ -706,7 +706,8 @@ export const ProductManagement = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
             {filteredProducts.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 No products found. Add your first product!

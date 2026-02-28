@@ -478,6 +478,9 @@ async def startup_event():
     # Create database indexes
     await create_indexes()
     
+    # Initialize HR router with database connection
+    init_hr_router(db)
+    
     # Start automated cleanup scheduler
     cleanup_task = asyncio.create_task(cleanup_scheduler())
     

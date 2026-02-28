@@ -58,9 +58,6 @@ from cache import (
     init_redis,
     close_redis,
     cache_get,
-
-# Import HR routes module
-from routes.hr import router as hr_router, init_router as init_hr_router
     cache_set,
     cache_delete,
     cache_clear_pattern,
@@ -69,6 +66,9 @@ from routes.hr import router as hr_router, init_router as init_hr_router
     cached,
     CACHE_TTL
 )
+
+# Import HR routes module
+from routes.hr import router as hr_router, init_router as init_hr_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')

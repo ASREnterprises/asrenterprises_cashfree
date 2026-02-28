@@ -1685,6 +1685,259 @@ async def admin_ai_chat(request: Request, data: Dict[str, Any]):
         }
 
 
+# ASR Staff Training Assistant System Prompt
+ASR_TRAINING_ASSISTANT_PROMPT = """You are the AI Training Assistant for ASR Enterprises - a leading solar energy company in Bihar, India.
+
+## About ASR Enterprises
+- **Company**: ASR Enterprises (आसर एंटरप्राइजेज)
+- **Location**: Patna, Bihar
+- **Business**: Solar panel installation under PM Surya Ghar Yojana
+- **Experience**: Trusted solar installer with 500+ installations in Bihar
+- **Services**: Residential rooftop solar, commercial solar, on-grid systems
+- **USP**: End-to-end service from consultation to installation to subsidy processing
+
+## Your Role
+You are training new staff members (telecallers, sales executives, technicians) to become solar sales experts. Be encouraging, practical, and always provide actionable advice.
+
+## PM Surya Ghar Yojana 2024-25 Knowledge (CRITICAL - Always provide accurate info):
+
+### Subsidy Structure:
+- 1 kW to 2 kW: ₹30,000 per kW (Maximum ₹60,000)
+- 2 kW to 3 kW: ₹18,000 per kW (₹60,000 + ₹18,000 = ₹78,000 for 3 kW)
+- Above 3 kW: Fixed subsidy of ₹78,000
+- Note: Subsidy comes DIRECTLY to customer's bank account from government
+
+### Eligibility:
+- Only for residential properties (not commercial)
+- Must have valid electricity connection
+- Must have adequate shadow-free roof space
+- One subsidy per household
+
+### Application Process:
+1. Customer applies on pmsuryaghar.gov.in
+2. Chooses vendor (ASR Enterprises)
+3. Site survey and quotation
+4. Installation (7-10 days)
+5. DISCOM inspection and net meter installation
+6. Subsidy credited to bank account (within 30-60 days)
+
+### System Sizing Guide:
+| Monthly Bill | Recommended System | Approx. Cost (After Subsidy) |
+|-------------|-------------------|------------------------------|
+| ₹1,000-2,000 | 1-2 kW | ₹10,000-30,000 |
+| ₹2,000-4,000 | 2-3 kW | ₹30,000-50,000 |
+| ₹4,000-6,000 | 3-4 kW | ₹60,000-90,000 |
+| ₹6,000+ | 5+ kW | ₹1,00,000+ |
+
+## ASR Enterprises Pricing (2024-25):
+- Installation Cost: ₹70,000 per kW (all-inclusive)
+- Includes: Panels, Inverter, Mounting, Wiring, Installation, Net Meter Processing
+- Warranty: 25 years on panels, 5 years on inverter
+- Free: First year maintenance
+
+## Sales Training Guidelines:
+
+### Opening Call Script:
+"नमस्ते [Name] जी, मैं ASR Enterprises से बोल रहा/रही हूं। क्या आपको पता है कि PM Surya Ghar योजना में ₹78,000 तक सरकारी सब्सिडी मिल रही है? आपका बिजली बिल लगभग शून्य हो जाएगा।"
+
+### Key Objection Handling:
+1. "बहुत महंगा है" → Focus on subsidy + EMI + 25-year free electricity
+2. "बाद में देखेंगे" → Create urgency - subsidy scheme has limited period
+3. "Quality का भरोसा नहीं" → Share 500+ installations, show gallery, offer site visit
+4. "छत पर जगह नहीं" → Offer free site survey to check
+
+### Closing Techniques:
+1. Ask for convenient time for FREE site survey
+2. Offer to send WhatsApp quotation
+3. Mention current month's special offer/discount
+4. Share nearby installation reference
+
+## Training Topics by Role:
+
+### For Telecallers:
+- How to open calls professionally
+- Handling objections gracefully
+- Qualifying leads (monthly bill, location, roof type)
+- Scheduling site visits
+- Follow-up timing and frequency
+
+### For Sales Executives:
+- Site survey checklist
+- Quotation generation
+- Closing deals
+- Payment collection process
+- Document collection for subsidy
+
+### For Technicians:
+- Panel mounting best practices
+- Inverter installation
+- Wiring safety standards
+- Net meter process
+- Maintenance procedures
+
+## Response Style:
+- Be conversational and supportive
+- Use Hindi/English mix (Hinglish) when appropriate
+- Provide practical examples
+- Include scripts they can use directly
+- Always encourage and motivate
+
+Remember: Your goal is to make every staff member confident and knowledgeable about solar sales!
+"""
+
+
+@api_router.post("/ai/training-assistant")
+async def ai_training_assistant(data: Dict[str, Any]):
+    """AI Training Assistant for staff - helps with solar sales training"""
+    try:
+        message = data.get("message", "").strip()
+        staff_role = data.get("staff_role", "sales")
+        context = data.get("context", "general")
+        session_id = data.get("session_id", str(uuid.uuid4()))
+        
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+        
+        # Use Emergent LLM key with Gemini model
+        api_key = EMERGENT_LLM_KEY or GEMINI_API_KEY
+        if not api_key:
+            raise HTTPException(status_code=500, detail="AI service not configured")
+        
+        # Enhance prompt based on role
+        role_context = {
+            "telecaller": "\n\nThis staff member is a TELECALLER. Focus on call scripts, objection handling, and lead qualification.",
+            "sales": "\n\nThis staff member is a SALES EXECUTIVE. Focus on site visits, quotations, and closing techniques.",
+            "technician": "\n\nThis staff member is a TECHNICIAN. Focus on installation procedures, safety, and technical knowledge.",
+            "manager": "\n\nThis staff member is a MANAGER. Provide comprehensive training overview and team management tips."
+        }
+        
+        # Topic-specific context
+        topic_context = {
+            "pm_surya_ghar": "\n\nFocus on PM Surya Ghar Yojana details - subsidy, eligibility, application process.",
+            "sales_calling": "\n\nFocus on calling techniques, scripts, and objection handling.",
+            "technical_knowledge": "\n\nFocus on technical aspects of solar installation.",
+            "customer_handling": "\n\nFocus on customer service and relationship building.",
+            "roi_calculator": "\n\nFocus on explaining ROI, savings, and financial benefits to customers."
+        }
+        
+        enhanced_prompt = ASR_TRAINING_ASSISTANT_PROMPT + role_context.get(staff_role, "") + topic_context.get(context, "")
+        
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"training_{session_id}",
+            system_message=enhanced_prompt
+        ).with_model("gemini", "gemini-2.5-flash")
+        
+        response = await chat.send_message(UserMessage(text=message))
+        
+        # Log training interaction for analytics
+        await db.training_logs.insert_one({
+            "session_id": session_id,
+            "staff_role": staff_role,
+            "context": context,
+            "question": message,
+            "response_length": len(response),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "response": response,
+            "staff_role": staff_role,
+            "context": context
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Training AI error: {e}")
+        return {
+            "success": False,
+            "response": "माफ़ कीजिए, AI सेवा अभी उपलब्ध नहीं है। कृपया बाद में प्रयास करें।",
+            "error": str(e)
+        }
+
+
+@api_router.get("/training/modules")
+async def get_training_modules():
+    """Get available training modules with progress tracking"""
+    modules = [
+        {
+            "id": "pm_surya_ghar",
+            "title": "PM Surya Ghar Yojana",
+            "description": "Complete guide to PM Surya Ghar scheme for rooftop solar",
+            "duration": "45 mins",
+            "topics": ["Scheme Overview", "Subsidy Structure", "Application Process", "Documentation", "Installation", "Customer FAQs"]
+        },
+        {
+            "id": "sales_calling",
+            "title": "Sales & Calling Skills",
+            "description": "Master telecalling and lead conversion techniques",
+            "duration": "30 mins",
+            "topics": ["Opening Scripts", "Objection Handling", "Building Trust", "Closing Techniques", "Follow-up Strategies"]
+        },
+        {
+            "id": "technical_knowledge",
+            "title": "Solar Technical Knowledge",
+            "description": "Technical aspects of solar installation",
+            "duration": "60 mins",
+            "topics": ["Panel Types", "System Sizing", "Inverters", "Mounting", "Net Metering", "Maintenance"]
+        },
+        {
+            "id": "asr_company",
+            "title": "About ASR Enterprises",
+            "description": "Know your company - history, values, services",
+            "duration": "20 mins",
+            "topics": ["Company History", "Our Values", "Services Offered", "Our USP", "Success Stories", "Team Structure"]
+        }
+    ]
+    return {"modules": modules}
+
+
+@api_router.post("/training/progress")
+async def save_training_progress(data: Dict[str, Any]):
+    """Save staff training progress"""
+    try:
+        staff_id = data.get("staff_id")
+        module_id = data.get("module_id")
+        topic_index = data.get("topic_index")
+        completed = data.get("completed", True)
+        
+        if not staff_id or not module_id:
+            raise HTTPException(status_code=400, detail="Staff ID and Module ID required")
+        
+        progress_key = f"{staff_id}_{module_id}_{topic_index}"
+        
+        await db.training_progress.update_one(
+            {"progress_key": progress_key},
+            {"$set": {
+                "staff_id": staff_id,
+                "module_id": module_id,
+                "topic_index": topic_index,
+                "completed": completed,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }},
+            upsert=True
+        )
+        
+        return {"success": True, "message": "Progress saved"}
+    except Exception as e:
+        logger.error(f"Save training progress error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/training/progress/{staff_id}")
+async def get_training_progress(staff_id: str):
+    """Get training progress for a staff member"""
+    progress = await db.training_progress.find(
+        {"staff_id": staff_id},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {"staff_id": staff_id, "progress": progress}
+
+
 @api_router.post("/ai/chat/save-lead")
 async def save_chat_lead(data: Dict[str, Any]):
     """Save lead captured from AI chat"""

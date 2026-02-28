@@ -54,6 +54,7 @@ const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({
 const StaffLogin = lazy(() => import("@/components/StaffLogin").then(m => ({ default: m.StaffLogin })));
 const StaffPortal = lazy(() => import("@/components/StaffPortal").then(m => ({ default: m.StaffPortal })));
 const BusinessDashboard = lazy(() => import("@/components/BusinessDashboard").then(m => ({ default: m.BusinessDashboard })));
+const StaffTraining = lazy(() => import("@/components/StaffTraining").then(m => ({ default: m.default })));
 
 // Loading Spinner Component for Suspense fallback
 const PageLoader = () => (

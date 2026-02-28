@@ -10042,6 +10042,9 @@ async def get_staff_leaderboard():
 # Include HR router under /api prefix
 api_router.include_router(hr_router)
 
+# Include CRM router under /api prefix
+api_router.include_router(crm_router)
+
 app.include_router(api_router)
 
 # CORS configuration with security

@@ -58,6 +58,9 @@ from cache import (
     init_redis,
     close_redis,
     cache_get,
+
+# Import HR routes module
+from routes.hr import router as hr_router, init_router as init_hr_router
     cache_set,
     cache_delete,
     cache_clear_pattern,

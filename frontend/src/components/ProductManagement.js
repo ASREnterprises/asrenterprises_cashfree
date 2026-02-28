@@ -771,18 +771,19 @@ export const ProductManagement = () => {
 
           {/* Orders Table */}
           <div className="bg-white shadow-lg border border-sky-200/30 rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-white shadow-lg border border-sky-200/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Order #</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Customer</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Items</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Total</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Payment</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Status</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Actions</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[800px]">
+                <thead className="bg-white shadow-lg border border-sky-200/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Order #</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Customer</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Items</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Total</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Payment</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Status</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Actions</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-gray-700/50">
                 {orders.map(order => (
                   <tr key={order.id} className="hover:bg-white shadow-lg border border-sky-200/20">

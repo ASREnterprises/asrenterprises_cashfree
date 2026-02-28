@@ -2004,6 +2004,14 @@ export default function App() {
               <HRManagement />
             </ProtectedRoute>
           } />
+          <Route path="/admin/training" element={
+            <ProtectedRoute>
+              <StaffTraining staffId="admin" staffName="Admin" staffRole="manager" />
+            </ProtectedRoute>
+          } />
+          <Route path="/staff/training" element={
+            <StaffTraining staffId="staff" staffName="Staff Member" staffRole="sales" />
+          } />
         </Routes>
       </Suspense>
     </BrowserRouter>

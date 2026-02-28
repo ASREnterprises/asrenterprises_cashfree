@@ -215,6 +215,7 @@ export const HRManagement = () => {
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
     { id: "employees", label: "Employees", icon: <Users className="w-4 h-4" /> },
+    { id: "training", label: "Training", icon: <GraduationCap className="w-4 h-4" /> },
     { id: "onboarding", label: "Onboarding", icon: <CheckCircle className="w-4 h-4" /> },
     { id: "leaves", label: "Leaves", icon: <Calendar className="w-4 h-4" /> },
     { id: "performance", label: "Performance", icon: <TrendingUp className="w-4 h-4" /> },

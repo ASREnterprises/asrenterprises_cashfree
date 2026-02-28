@@ -2495,9 +2495,9 @@ async def get_chart_data_widget():
 
 # ==================== CRM LAZY LOADING WIDGETS ====================
 
-@api_router.get("/crm/widget/stats")
-async def get_crm_stats_widget():
-    """CRM quick stats - loads first"""
+@api_router.get("/crm/widget/stats-v1")
+async def get_crm_stats_widget_v1():
+    """Legacy CRM stats widget - use /crm/widget/stats from modular router instead"""
     cache_key = "crm_stats"
     cached_data = await cache_get(cache_key)
     if cached_data:

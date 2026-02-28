@@ -1221,7 +1221,8 @@ export const CRMDashboard = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -1235,16 +1236,17 @@ export const CRMDashboard = () => {
               </button>
             </div>
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border border-gray-300">
-                  <tr>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Task</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Assigned To</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Due Date</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Priority</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Status</th>
-                  </tr>
-                </thead>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px]">
+                  <thead className="bg-gray-50 border border-gray-300">
+                    <tr>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Task</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Assigned To</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Due Date</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Priority</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Status</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {tasks.map((task) => (
                     <tr key={task.id} className="border-t border-sky-200">

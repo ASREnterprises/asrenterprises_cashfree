@@ -841,8 +841,36 @@ const HomePage = () => {
         <FestiveThemeOverlay festival={festiveBanner} />
       </Suspense>
       
-      {/* Premium Navigation - Light Theme */}
-      <nav className="bg-white/95 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-amber-200">
+      {/* Premium Navigation - Solar Panel Shadow Effect */}
+      <nav className="sticky top-0 z-50 border-b border-amber-200" style={{
+        background: `
+          linear-gradient(to bottom, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 48px,
+            rgba(59, 130, 246, 0.03) 48px,
+            rgba(59, 130, 246, 0.03) 50px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 48px,
+            rgba(59, 130, 246, 0.03) 48px,
+            rgba(59, 130, 246, 0.03) 50px
+          )
+        `,
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 20px rgba(245, 158, 11, 0.1), 0 2px 8px rgba(0,0,0,0.05), inset 0 -1px 0 rgba(245, 158, 11, 0.1)'
+      }}>
+        {/* Solar Panel Grid Overlay - Subtle */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+          backgroundImage: `
+            linear-gradient(rgba(59, 130, 246, 0.5) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59, 130, 246, 0.5) 1px, transparent 1px)
+          `,
+          backgroundSize: '24px 24px'
+        }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">

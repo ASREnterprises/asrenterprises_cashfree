@@ -209,6 +209,8 @@ async def get_crm_dashboard():
     # Recent activities
     recent_leads = await db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
     
+    converted_count = pipeline_stats.get("converted", 0) + pipeline_stats.get("completed", 0)
+    
     return {
         "total_leads": len(all_leads),
         "pipeline_stats": pipeline_stats,
@@ -216,7 +218,7 @@ async def get_crm_dashboard():
         "todays_followups": len(todays_followups),
         "active_staff": len(staff_list),
         "recent_leads": recent_leads,
-        "conversion_rate": round((pipeline_stats.get("converted", 0) + pipeline_stats.get("completed", 0)) / max(len(all_leads), 1) * 100, 1)
+        "conversion_rate": round(converted_count / max(len(all_leads), 1) * 100, 1)
     }
 
 

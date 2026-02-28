@@ -1132,37 +1132,38 @@ export const CRMDashboard = () => {
               </select>
               <div className="flex flex-wrap gap-2">
                 <button onClick={() => setShowQuickAddModal(true)} className="bg-green-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-green-700 transition" data-testid="quick-add-btn">
-                  <Plus className="w-4 h-4" /><span>Quick Add</span>
+                  <Plus className="w-4 h-4" /><span className="hidden sm:inline">Quick Add</span><span className="sm:hidden">+</span>
                 </button>
                 <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-blue-700 transition" data-testid="add-lead-btn">
-                  <UserPlus className="w-4 h-4" /><span>Full Form</span>
+                  <UserPlus className="w-4 h-4" /><span className="hidden sm:inline">Full Form</span>
                 </button>
                 <button onClick={() => setShowSmartImportModal(true)} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-600 hover:to-purple-700 transition" data-testid="smart-import-btn">
-                  <FileSpreadsheet className="w-4 h-4" /><span>Smart Import</span>
+                  <FileSpreadsheet className="w-4 h-4" /><span className="hidden sm:inline">Smart Import</span>
                 </button>
                 <button onClick={() => setShowBulkImportModal(true)} className="bg-orange-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-orange-700 transition" data-testid="bulk-import-btn">
-                  <Upload className="w-4 h-4" /><span>CSV</span>
+                  <Upload className="w-4 h-4" /><span className="hidden sm:inline">CSV</span>
                 </button>
                 <button onClick={fetchSocialLeads} className="bg-gradient-to-r from-green-500 to-teal-500 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-green-600 hover:to-teal-600 transition" data-testid="fetch-social-btn">
-                  <Download className="w-4 h-4" /><span>Fetch Social Leads</span>
+                  <Download className="w-4 h-4" /><span className="hidden md:inline">Fetch Social</span>
                 </button>
                 <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
-                  <Zap className="w-4 h-4" /><span>AI Auto-Assign</span>
+                  <Zap className="w-4 h-4" /><span className="hidden md:inline">AI Auto-Assign</span>
                 </button>
               </div>
             </div>
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border border-gray-300">
-                  <tr>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Lead</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Contact</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Source</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Stage</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Assign To</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Actions</th>
-                  </tr>
-                </thead>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[800px]">
+                  <thead className="bg-gray-50 border border-gray-300">
+                    <tr>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Lead</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Contact</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Source</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Stage</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Assign To</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Actions</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {leads.filter(l => !filterStage || l.stage === filterStage).map((lead) => (
                     <tr key={lead.id} className="border-t border-sky-200">

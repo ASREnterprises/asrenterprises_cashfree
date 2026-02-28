@@ -69,6 +69,7 @@ from cache import (
 
 # Import HR routes module
 from routes.hr import router as hr_router, init_router as init_hr_router
+from routes.crm import router as crm_router, init_router as init_crm_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')

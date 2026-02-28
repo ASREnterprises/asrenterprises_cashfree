@@ -1265,7 +1265,8 @@ export const CRMDashboard = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
               {tasks.length === 0 && <div className="text-center py-12 text-gray-600">No tasks assigned yet</div>}
             </div>
           </div>

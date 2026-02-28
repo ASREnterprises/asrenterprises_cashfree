@@ -8,7 +8,7 @@ import os
 import json
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-smart-solar.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-management-hub.preview.emergentagent.com').rstrip('/')
 
 class TestDashboardWidgets:
     """Test Dashboard Widget APIs - these load stats for Admin Dashboard"""

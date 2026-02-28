@@ -66,7 +66,34 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Iteration 31:** 100% (20/20 tests) - HR router & lead counter fix
 - **Iteration 32:** 100% (26/26 tests) - CRM router & security headers
 - **Iteration 33:** 100% (4/4 tests) - Shop mobile, WhatsApp Business, floating icon
-- **Test Reports:** `/app/test_reports/iteration_31.json`, `/app/test_reports/iteration_32.json`, `/app/test_reports/iteration_33.json`
+- **Iteration 34:** 100% (8/8 backend + 7 frontend tests) - Staff Training Module
+- **Test Reports:** `/app/test_reports/iteration_31.json` - `/app/test_reports/iteration_34.json`
+
+#### 9. Staff Training & Learning Module (COMPLETED)
+- **New Component:** `/app/frontend/src/components/StaffTraining.js`
+- **Access URLs:**
+  - Public: `/staff/training` (no auth required for staff)
+  - Admin: `/admin/training` or HR Management > Training tab
+- **Training Modules (6 total):**
+  1. About ASR Enterprises - Company history, values, services, USP
+  2. PM Surya Ghar Yojana - Subsidy, eligibility, application process
+  3. Sales & Calling Skills - Opening scripts, objection handling
+  4. Solar Technical Knowledge - Panels, inverters, net metering
+  5. Customer Handling - Professional service techniques
+  6. ROI & Financial Benefits - Savings explanation, EMI options
+- **Features:**
+  - AI Training Assistant (Gemini-powered) for real-time Q&A in Hindi/English
+  - Ready-to-use Call Scripts in Hindi for telecallers
+  - Quick Reference Cards (subsidy rates, system sizing)
+  - Progress tracking with localStorage persistence
+  - Suggested questions for common staff queries
+  - Pro Tips section with best practices
+- **Backend APIs:**
+  - `POST /api/ai/training-assistant` - AI-powered training assistance
+  - `GET /api/training/modules` - Get available training modules
+  - `POST /api/training/progress` - Save training progress
+  - `GET /api/training/progress/{staff_id}` - Get staff progress
+- **Files:** `/app/frontend/src/components/StaffTraining.js`, `/app/backend/server.py` (lines 1687-1940)
 
 ### Previous Session (Feb 24, 2026) - Part 5
 

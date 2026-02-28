@@ -12,9 +12,101 @@ const API = process.env.REACT_APP_BACKEND_URL;
 // Training modules data
 const TRAINING_MODULES = [
   {
+    id: "asr_company",
+    title: "About ASR Enterprises",
+    icon: <Sun className="w-6 h-6" />,
+    color: "from-blue-600 to-cyan-500",
+    description: "Know your company - history, values, and services",
+    duration: "20 mins",
+    topics: [
+      "Company Overview & History",
+      "Our Mission & Vision",
+      "Services We Offer",
+      "Our USP & Competitive Advantage",
+      "Success Stories (500+ Installations)",
+      "Team Structure & Hierarchy"
+    ],
+    content: {
+      "Company Overview & History": `ASR Enterprises (आसर एंटरप्राइजेज) is a leading solar energy company based in Patna, Bihar. We specialize in rooftop solar installations under the PM Surya Ghar Yojana.
+
+• Founded with a vision to make Bihar solar-powered
+• 500+ successful installations across Bihar
+• Authorized vendor under PM Surya Ghar scheme
+• End-to-end solar solutions provider`,
+      "Our Mission & Vision": `MISSION: To make clean, affordable solar energy accessible to every household in Bihar.
+
+VISION: To be Bihar's most trusted solar installation company, leading the state's transition to renewable energy.
+
+VALUES:
+• Customer First - हमारे लिए ग्राहक संतुष्टि सबसे जरूरी है
+• Quality - No compromise on panel and installation quality
+• Transparency - Clear pricing, no hidden charges
+• Support - Lifetime support for our customers`,
+      "Services We Offer": `1. RESIDENTIAL SOLAR
+   • 1kW to 10kW rooftop systems
+   • On-grid (net metering) systems
+   • Complete installation with warranty
+
+2. COMMERCIAL SOLAR
+   • Larger capacity systems
+   • Industrial rooftop installations
+
+3. END-TO-END SERVICE
+   • Free site survey
+   • System design & quotation
+   • Government subsidy processing
+   • Installation (7-10 days)
+   • Net meter coordination with DISCOM
+   • After-sales maintenance`,
+      "Our USP & Competitive Advantage": `Why customers choose ASR Enterprises:
+
+✓ TRUSTED BRAND - 500+ happy customers
+✓ COMPLETE SERVICE - From survey to subsidy, we handle everything
+✓ QUALITY PRODUCTS - Tier-1 panels with 25-year warranty
+✓ TRANSPARENT PRICING - ₹70,000/kW all-inclusive
+✓ FAST INSTALLATION - 7-10 days completion
+✓ LOCAL PRESENCE - Based in Patna, we understand Bihar
+✓ FREE MAINTENANCE - First year maintenance included
+✓ AFTER-SALES SUPPORT - Lifetime technical support`,
+      "Success Stories (500+ Installations)": `Our installations across Bihar:
+
+📍 PATNA - 200+ installations
+📍 GAYA - 50+ installations  
+📍 MUZAFFARPUR - 40+ installations
+📍 BHAGALPUR - 35+ installations
+📍 DARBHANGA - 30+ installations
+📍 Other districts - 145+ installations
+
+Customer Testimonials:
+"ASR ने हमारा पूरा काम संभाला, सब्सिडी भी समय पर मिली" - Rajesh Kumar, Patna
+
+"बहुत professional work, अब बिजली बिल लगभग zero आता है" - Sunita Devi, Gaya`,
+      "Team Structure & Hierarchy": `ASR ENTERPRISES TEAM:
+
+MANAGEMENT
+• Owner/Director - Overall business decisions
+
+SALES TEAM
+• Sales Manager - Team management, targets
+• Sales Executives - Site visits, quotations
+• Telecallers - Lead calling, follow-ups
+
+TECHNICAL TEAM
+• Technical Head - Installation supervision
+• Technicians - Panel & inverter installation
+
+SUPPORT TEAM  
+• Customer Support - Query handling
+• Documentation - Subsidy paperwork
+
+YOUR ROLE IS IMPORTANT:
+Every team member contributes to customer satisfaction!`
+    }
+  },
+  {
     id: "pm_surya_ghar",
     title: "PM Surya Ghar Yojana",
-    icon: <Sun className="w-6 h-6" />,
+    icon: <Home className="w-6 h-6" />,
     color: "from-amber-500 to-orange-500",
     description: "Complete guide to PM Surya Ghar scheme for rooftop solar",
     duration: "45 mins",

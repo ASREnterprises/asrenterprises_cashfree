@@ -530,15 +530,21 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
   - WhatsApp CTA with savings included in message
 
 ## Pending Tasks
-- **P0:** Refactor server.py into modular APIRouter files (10,000+ lines needs decomposition)
+- **P0:** ~~Refactor server.py into modular APIRouter files~~ - **STARTED** (HR routes moved, more to do)
+- **P0:** Continue backend modularization - Move CRM, Shop, Admin routes to separate files
+- **P1:** Fix CRM Mobile Usability - Leads table and modals on mobile devices
+- **P1:** Verify Security Headers - Test CSP, HSTS, X-Frame-Options in security.py
 - **P1:** Performance: WebP conversion, lazy loading, asset minification, server-side caching
-- **P1:** Security: HTTP Security Headers (CSP, HSTS, X-Frame-Options)
 - **P1:** Staff Gamification leaderboard in HR portal
+- **P2:** Fix "Request Free Consultation" button navigation in Contact section
+- **P2:** Fix lead source text visibility in CRM
 - **P2:** District-specific SEO pages (solar-in-gaya, solar-in-bhagalpur, etc.)
 - **P2:** Enhanced "Before & After" testimonial graphics hover effect
 - **P2:** Bill parsing in AI chat endpoint for electricity bills
 - **P3:** Cloudflare CDN setup guidance
 - **P3:** Persist Staff Notifications in database
+- **P3:** Predictive Operations Hub (AI inventory management)
+- **P3:** Hyper-Local SEO Pages
 
 ### Session Update (Feb 27, 2026 - Part 4) - Bug Fixes & UI Improvements
 

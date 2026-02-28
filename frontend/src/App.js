@@ -1780,6 +1780,22 @@ const HomePage = () => {
 
       {/* Floating Action Buttons - Positioned above WhatsApp */}
       <div className="fixed bottom-24 right-6 z-40 flex flex-col space-y-3">
+        {/* ASR Solar Shop Button - Most prominent */}
+        <Link
+          to="/shop"
+          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-3 rounded-full shadow-xl hover:from-amber-600 hover:to-orange-600 transition-all hover:scale-110 group relative animate-pulse"
+          data-testid="shop-float-btn"
+        >
+          <ShoppingBag className="w-5 h-5" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+            ASR Solar Shop
+          </span>
+          {/* Badge */}
+          <span className="absolute -top-1 -left-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            NEW
+          </span>
+        </Link>
+        
         {/* Social Media Icons */}
         <a
           href="https://www.facebook.com/share/1CU69hsGbJ/"

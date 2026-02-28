@@ -10035,10 +10035,10 @@ async def get_staff_leaderboard():
         logger.error(f"Leaderboard error: {e}")
         return []
 
-app.include_router(api_router)
-
 # Include HR router under /api prefix
 api_router.include_router(hr_router)
+
+app.include_router(api_router)
 
 # CORS configuration with security
 cors_origins = os.environ.get('CORS_ORIGINS', '*').split(',')

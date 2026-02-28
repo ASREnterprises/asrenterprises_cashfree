@@ -1603,7 +1603,7 @@ const HomePage = () => {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://www.facebook.com/share/1ALVBDkYKe/"
+                  href="https://www.facebook.com/share/1CU69hsGbJ/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-blue-600 p-2 rounded-full hover:scale-110 transition-transform"
@@ -1782,7 +1782,7 @@ const HomePage = () => {
       <div className="fixed bottom-24 right-6 z-40 flex flex-col space-y-3">
         {/* Social Media Icons */}
         <a
-          href="https://www.facebook.com/asrenterprisespatna"
+          href="https://www.facebook.com/share/1CU69hsGbJ/"
           target="_blank"
           rel="noopener noreferrer"
           className="bg-[#1877F2] text-white p-3 rounded-full shadow-xl hover:bg-[#166FE5] transition-all hover:scale-110 group relative"

@@ -844,32 +844,33 @@ const HomePage = () => {
       {/* Premium Navigation - Solar Panel Shadow Effect */}
       <nav className="sticky top-0 z-50 border-b border-amber-200" style={{
         background: `
-          linear-gradient(to bottom, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%),
-          repeating-linear-gradient(
-            90deg,
-            transparent 0px,
-            transparent 48px,
-            rgba(59, 130, 246, 0.03) 48px,
-            rgba(59, 130, 246, 0.03) 50px
-          ),
-          repeating-linear-gradient(
-            0deg,
-            transparent 0px,
-            transparent 48px,
-            rgba(59, 130, 246, 0.03) 48px,
-            rgba(59, 130, 246, 0.03) 50px
-          )
+          linear-gradient(to bottom, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.95) 100%)
         `,
         backdropFilter: 'blur(12px)',
-        boxShadow: '0 4px 20px rgba(245, 158, 11, 0.1), 0 2px 8px rgba(0,0,0,0.05), inset 0 -1px 0 rgba(245, 158, 11, 0.1)'
+        boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15), 0 2px 8px rgba(0,0,0,0.08)'
       }}>
-        {/* Solar Panel Grid Overlay - Subtle */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+        {/* Solar Panel Grid Shadow - More Visible */}
+        <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `
-            linear-gradient(rgba(59, 130, 246, 0.5) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(59, 130, 246, 0.5) 1px, transparent 1px)
+            linear-gradient(90deg, rgba(30, 58, 138, 0.06) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(30, 58, 138, 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(30, 58, 138, 0.03) 2px, transparent 2px),
+            linear-gradient(0deg, rgba(30, 58, 138, 0.03) 2px, transparent 2px)
           `,
-          backgroundSize: '24px 24px'
+          backgroundSize: '40px 40px, 40px 40px, 80px 80px, 80px 80px',
+          backgroundPosition: '0 0, 0 0, -1px -1px, -1px -1px'
+        }} />
+        {/* Solar Cell Reflection Effect */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: `
+            repeating-linear-gradient(
+              135deg,
+              transparent 0px,
+              transparent 38px,
+              rgba(59, 130, 246, 0.04) 38px,
+              rgba(59, 130, 246, 0.04) 40px
+            )
+          `
         }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">

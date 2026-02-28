@@ -990,7 +990,10 @@ export const CRMDashboard = () => {
   const sendWhatsApp = (phone, message) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
-    window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+    // Use api.whatsapp.com which prioritizes WhatsApp Business app on mobile
+    // Falls back to regular WhatsApp if Business app is not installed
+    const businessUrl = `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(message)}`;
+    window.open(businessUrl, '_blank');
   };
 
   const forwardLeadToStaffWhatsApp = async (lead, staff) => {

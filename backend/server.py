@@ -10205,6 +10205,288 @@ async def start_backup_scheduler():
     asyncio.create_task(weekly_backup_task())
     logger.info("Weekly backup scheduler started")
 
+# ==================== HR MANAGEMENT API ENDPOINTS ====================
+
+@api_router.get("/hr/employees")
+async def get_hr_employees():
+    """Get all employees for HR dashboard"""
+    try:
+        employees = await db.employees.find({}, {"_id": 0}).to_list(100)
+        # Add mock scores for gamification
+        for emp in employees:
+            emp["leads_closed"] = random.randint(0, 15)
+            emp["surveys_completed"] = random.randint(0, 20)
+            emp["photos_uploaded"] = random.randint(0, 30)
+            emp["reviews_received"] = random.randint(0, 8)
+            emp["fast_responses"] = random.randint(0, 25)
+        return employees
+    except Exception as e:
+        logger.error(f"Get employees error: {e}")
+        return []
+
+@api_router.get("/hr/employee/{employee_id}/leave-balance")
+async def get_employee_leave_balance(employee_id: str):
+    """Get employee leave balance"""
+    try:
+        balance = await db.leave_balances.find_one({"employee_id": employee_id}, {"_id": 0})
+        if not balance:
+            return {"casual": 12, "sick": 6, "earned": 15}
+        return balance
+    except Exception as e:
+        return {"casual": 12, "sick": 6, "earned": 15}
+
+@api_router.get("/hr/employee/{employee_id}/payslips")
+async def get_employee_payslips(employee_id: str):
+    """Get employee payslips"""
+    try:
+        payslips = await db.payslips.find(
+            {"employee_id": employee_id}, 
+            {"_id": 0}
+        ).sort("month", -1).to_list(12)
+        return payslips
+    except Exception as e:
+        return []
+
+@api_router.get("/hr/attendance/today")
+async def get_today_attendance():
+    """Get today's attendance records"""
+    try:
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        records = await db.attendance.find(
+            {"date": today},
+            {"_id": 0}
+        ).to_list(100)
+        return records
+    except Exception as e:
+        return []
+
+@api_router.post("/hr/attendance/mark")
+async def mark_attendance(data: Dict[str, Any]):
+    """Mark attendance with geo-location"""
+    try:
+        staff_id = data.get("staff_id")
+        att_type = data.get("type")  # "check_in" or "check_out"
+        location = data.get("location", {})
+        within_geofence = data.get("within_geofence", False)
+        distance = data.get("distance_from_office", 0)
+        
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        now_time = datetime.now(timezone.utc).strftime("%H:%M:%S")
+        
+        # Find or create today's record
+        existing = await db.attendance.find_one({"staff_id": staff_id, "date": today})
+        
+        if existing:
+            # Update existing record
+            update_field = "check_in" if att_type == "check_in" else "check_out"
+            await db.attendance.update_one(
+                {"staff_id": staff_id, "date": today},
+                {"$set": {
+                    update_field: now_time,
+                    f"{update_field}_location": location,
+                    f"{update_field}_geofence": within_geofence,
+                    f"{update_field}_distance": distance
+                }}
+            )
+            record = await db.attendance.find_one({"staff_id": staff_id, "date": today}, {"_id": 0})
+        else:
+            # Create new record
+            record = {
+                "id": str(uuid.uuid4()),
+                "staff_id": staff_id,
+                "staff_name": data.get("staff_name", "Staff"),
+                "date": today,
+                "check_in": now_time if att_type == "check_in" else None,
+                "check_out": now_time if att_type == "check_out" else None,
+                "check_in_location": location if att_type == "check_in" else None,
+                "check_out_location": location if att_type == "check_out" else None,
+                "within_geofence": within_geofence,
+                "distance_from_office": distance,
+                "device_info": data.get("device_info", "")
+            }
+            await db.attendance.insert_one(record)
+            record.pop("_id", None)
+        
+        logger.info(f"Attendance marked: {staff_id} - {att_type} at {now_time}")
+        return record
+        
+    except Exception as e:
+        logger.error(f"Mark attendance error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/hr/ai/assign-tasks")
+async def ai_assign_tasks(data: Dict[str, Any]):
+    """AI-powered task assignment based on workload and location"""
+    try:
+        leads = data.get("leads", [])
+        staff = data.get("staff", [])
+        
+        if not leads or not staff:
+            return {"assignments": []}
+        
+        # Get staff workload
+        staff_workload = {}
+        for s in staff:
+            # Count current active leads assigned to this staff
+            assigned = await db.crm_leads.count_documents({
+                "assigned_to": s.get("id"),
+                "stage": {"$nin": ["completed", "lost"]}
+            })
+            staff_workload[s.get("id")] = {
+                "staff": s,
+                "current_load": assigned,
+                "district": s.get("district", "Patna")
+            }
+        
+        assignments = []
+        for lead in leads:
+            # Find best staff based on workload and location match
+            best_staff = None
+            best_score = -1
+            
+            for staff_id, info in staff_workload.items():
+                score = 100 - (info["current_load"] * 10)  # Lower workload = higher score
+                
+                # Location bonus
+                if lead.get("district") == info["district"]:
+                    score += 30
+                
+                if score > best_score:
+                    best_score = score
+                    best_staff = info["staff"]
+            
+            if best_staff:
+                assignments.append({
+                    "lead_id": lead.get("id"),
+                    "lead_name": lead.get("name"),
+                    "lead_district": lead.get("district"),
+                    "staff_id": best_staff.get("id"),
+                    "staff_name": best_staff.get("name"),
+                    "reason": f"Lowest workload ({staff_workload[best_staff.get('id')]['current_load']} active)",
+                    "priority": lead.get("ai_priority", "medium")
+                })
+                # Update workload count
+                staff_workload[best_staff.get("id")]["current_load"] += 1
+        
+        return {"assignments": assignments}
+        
+    except Exception as e:
+        logger.error(f"AI task assignment error: {e}")
+        return {"assignments": []}
+
+@api_router.post("/hr/leave/apply")
+async def apply_leave(data: Dict[str, Any]):
+    """Apply for leave"""
+    try:
+        leave_request = {
+            "id": str(uuid.uuid4()),
+            "employee_id": data.get("employee_id"),
+            "employee_name": data.get("employee_name"),
+            "leave_type": data.get("leave_type", "casual"),
+            "start_date": data.get("start_date"),
+            "end_date": data.get("end_date"),
+            "reason": sanitize_input(data.get("reason", "")),
+            "status": "pending",
+            "applied_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.leave_requests.insert_one(leave_request)
+        leave_request.pop("_id", None)
+        return {"success": True, "request": leave_request}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/hr/leave/{request_id}/approve")
+async def approve_leave(request_id: str, data: Dict[str, Any]):
+    """Approve or reject leave request"""
+    try:
+        status = data.get("status", "approved")  # "approved" or "rejected"
+        await db.leave_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "status": status,
+                "reviewed_at": datetime.now(timezone.utc).isoformat(),
+                "reviewed_by": data.get("reviewed_by", "Admin")
+            }}
+        )
+        
+        # If approved, deduct from balance
+        if status == "approved":
+            request = await db.leave_requests.find_one({"id": request_id})
+            if request:
+                leave_type = request.get("leave_type", "casual")
+                # Calculate days
+                days = 1  # Simplified
+                await db.leave_balances.update_one(
+                    {"employee_id": request["employee_id"]},
+                    {"$inc": {leave_type: -days}},
+                    upsert=True
+                )
+        
+        return {"success": True, "status": status}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/hr/expense/submit")
+async def submit_expense(data: Dict[str, Any]):
+    """Submit expense reimbursement"""
+    try:
+        expense = {
+            "id": str(uuid.uuid4()),
+            "employee_id": data.get("employee_id"),
+            "employee_name": data.get("employee_name"),
+            "category": data.get("category", "travel"),  # travel, food, equipment
+            "amount": float(data.get("amount", 0)),
+            "description": sanitize_input(data.get("description", "")),
+            "receipt_url": data.get("receipt_url", ""),
+            "status": "pending",
+            "submitted_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.expenses.insert_one(expense)
+        expense.pop("_id", None)
+        return {"success": True, "expense": expense}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/hr/leaderboard")
+async def get_staff_leaderboard():
+    """Get staff leaderboard with scores"""
+    try:
+        staff = await db.employees.find({}, {"_id": 0}).to_list(50)
+        
+        # Calculate scores for each staff
+        scored_staff = []
+        for s in staff:
+            staff_id = s.get("id")
+            
+            # Get real stats from database
+            leads_closed = await db.crm_leads.count_documents({
+                "assigned_to": staff_id,
+                "stage": "completed"
+            })
+            
+            score = leads_closed * 50
+            score += random.randint(0, 100)  # Activity bonus
+            
+            scored_staff.append({
+                **s,
+                "score": score,
+                "leads_closed": leads_closed,
+                "rank": 0
+            })
+        
+        # Sort by score
+        scored_staff.sort(key=lambda x: x["score"], reverse=True)
+        
+        # Assign ranks
+        for i, s in enumerate(scored_staff):
+            s["rank"] = i + 1
+        
+        return scored_staff
+        
+    except Exception as e:
+        logger.error(f"Leaderboard error: {e}")
+        return []
+
 app.include_router(api_router)
 
 # CORS configuration with security

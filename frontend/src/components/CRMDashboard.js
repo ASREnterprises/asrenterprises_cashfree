@@ -1877,26 +1877,28 @@ export const CRMDashboard = () => {
               <div className="px-6 py-4 border-b border-sky-200">
                 <h3 className="text-lg font-bold text-[#0a355e]">Payment History</h3>
               </div>
-              <table className="w-full">
-                <thead className="bg-gray-50 border border-gray-300">
-                  <tr>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Date</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Amount</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Type</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Mode</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((pay) => (
-                    <tr key={pay.id} className="border-t border-sky-200">
-                      <td className="px-4 py-3 text-[#0a355e]">{pay.timestamp?.split('T')[0]}</td>
-                      <td className="px-4 py-3 text-green-400 font-bold">₹{pay.amount?.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-gray-600 capitalize">{pay.payment_type}</td>
-                      <td className="px-4 py-3 text-gray-600 capitalize">{pay.payment_mode}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px]">
+                  <thead className="bg-gray-50 border border-gray-300">
+                    <tr>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Date</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Amount</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Type</th>
+                      <th className="text-left text-gray-600 px-4 py-3 text-sm">Mode</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {payments.map((pay) => (
+                      <tr key={pay.id} className="border-t border-sky-200">
+                        <td className="px-4 py-3 text-[#0a355e]">{pay.timestamp?.split('T')[0]}</td>
+                        <td className="px-4 py-3 text-green-400 font-bold">₹{pay.amount?.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-gray-600 capitalize">{pay.payment_type}</td>
+                        <td className="px-4 py-3 text-gray-600 capitalize">{pay.payment_mode}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {payments.length === 0 && <div className="text-center py-12 text-gray-600">No payments recorded</div>}
             </div>
           </div>

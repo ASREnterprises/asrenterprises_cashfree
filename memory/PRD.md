@@ -543,12 +543,12 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
   - WhatsApp CTA with savings included in message
 
 ## Pending Tasks
-- **P0:** ~~Refactor server.py into modular APIRouter files~~ - **STARTED** (HR routes moved, more to do)
-- **P0:** Continue backend modularization - Move CRM, Shop, Admin routes to separate files
-- **P1:** Fix CRM Mobile Usability - Leads table and modals on mobile devices
-- **P1:** Verify Security Headers - Test CSP, HSTS, X-Frame-Options in security.py
-- **P1:** Performance: WebP conversion, lazy loading, asset minification, server-side caching
+- **P0:** ~~Refactor server.py into modular APIRouter files~~ - **IN PROGRESS** (HR + CRM routers done, more to do)
+- **P0:** Continue backend modularization - Move Shop, Admin, Auth routes to separate files
+- **P1:** ~~Fix CRM Mobile Usability~~ - **COMPLETED** (tables now scroll horizontally)
+- **P1:** ~~Verify Security Headers~~ - **COMPLETED** (all 6 headers working)
 - **P1:** Staff Gamification leaderboard in HR portal
+- **P1:** Performance: WebP conversion, lazy loading, asset minification, server-side caching
 - **P2:** Fix "Request Free Consultation" button navigation in Contact section
 - **P2:** Fix lead source text visibility in CRM
 - **P2:** District-specific SEO pages (solar-in-gaya, solar-in-bhagalpur, etc.)

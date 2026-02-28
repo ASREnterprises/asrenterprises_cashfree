@@ -145,6 +145,12 @@ input[type="range"].slider-thumb::-moz-range-thumb {
     display: none;
 }
 
+/* Prevent horizontal scroll on mobile */
+.no-horizontal-scroll {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
 /* Map pin hover effects */
 .map-pin-hover {
     transition: all 0.3s ease;

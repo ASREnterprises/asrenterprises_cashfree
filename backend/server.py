@@ -4625,9 +4625,9 @@ async def create_payment(data: Dict[str, Any]):
     return payment
 
 # CRM Dashboard Stats
-@api_router.get("/crm/dashboard")
-async def get_crm_dashboard():
-    """Optimized CRM Dashboard with caching and parallel DB queries"""
+@api_router.get("/crm/dashboard-v1")
+async def get_crm_dashboard_v1():
+    """Legacy CRM Dashboard endpoint - use /crm/dashboard from modular router instead"""
     cache_key = "crm_dashboard"
     cached = get_cached(cache_key, ttl=20)  # 20 second cache for CRM
     if cached:

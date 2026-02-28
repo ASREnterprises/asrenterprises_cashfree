@@ -856,7 +856,8 @@ export const ProductManagement = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
             {orders.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 No orders yet. Click "Sync Payments" to import from Razorpay.

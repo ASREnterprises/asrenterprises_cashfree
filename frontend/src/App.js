@@ -843,34 +843,38 @@ const HomePage = () => {
       
       {/* Premium Navigation - Solar Panel Shadow Effect */}
       <nav className="sticky top-0 z-50 border-b border-amber-200" style={{
-        background: `
-          linear-gradient(to bottom, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.95) 100%)
-        `,
+        background: `rgba(255,255,255,0.97)`,
         backdropFilter: 'blur(12px)',
         boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15), 0 2px 8px rgba(0,0,0,0.08)'
       }}>
-        {/* Solar Panel Grid Shadow - More Visible */}
+        {/* Solar Panel Grid Shadow - Visible Blue Grid */}
         <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `
-            linear-gradient(90deg, rgba(30, 58, 138, 0.06) 1px, transparent 1px),
-            linear-gradient(0deg, rgba(30, 58, 138, 0.06) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(30, 58, 138, 0.03) 2px, transparent 2px),
-            linear-gradient(0deg, rgba(30, 58, 138, 0.03) 2px, transparent 2px)
+            linear-gradient(90deg, rgba(30, 64, 175, 0.08) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(30, 64, 175, 0.08) 1px, transparent 1px)
           `,
-          backgroundSize: '40px 40px, 40px 40px, 80px 80px, 80px 80px',
-          backgroundPosition: '0 0, 0 0, -1px -1px, -1px -1px'
+          backgroundSize: '32px 32px'
         }} />
-        {/* Solar Cell Reflection Effect */}
+        {/* Solar Cell Inner Grid - Finer Detail */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: `
+            linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: '8px 8px'
+        }} />
+        {/* Diagonal Light Reflection on Solar Cells */}
         <div className="absolute inset-0 pointer-events-none" style={{
           background: `
             repeating-linear-gradient(
-              135deg,
+              -45deg,
               transparent 0px,
-              transparent 38px,
-              rgba(59, 130, 246, 0.04) 38px,
-              rgba(59, 130, 246, 0.04) 40px
+              transparent 30px,
+              rgba(255, 255, 255, 0.5) 30px,
+              rgba(255, 255, 255, 0.5) 32px
             )
-          `
+          `,
+          opacity: 0.3
         }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">

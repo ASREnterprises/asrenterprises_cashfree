@@ -72,73 +72,86 @@ const API = `${BACKEND_URL}/api`;
 const RECAPTCHA_SITE_KEY = process.env.REACT_APP_RECAPTCHA_SITE_KEY || "6LchBnosAAAAAMMA-FmUYPboJHIQPoS-3CC96A2m";
 
 // Month-wise Color Schemes for ASR Enterprises Title
-const MONTH_COLOR_SCHEMES = {
-  0: { // January - Blue
+// Daily rotating color schemes for ASR Enterprises (changes every day)
+const DAY_COLOR_SCHEMES = [
+  { // Day 0 - Blue
     gradient: 'linear-gradient(180deg, #E3F2FD 0%, #2196F3 30%, #1976D2 70%, #0D47A1 100%)',
     shadow: 'rgba(13, 71, 161, 0.8)',
     name: 'Blue'
   },
-  1: { // February - Sky Blue
+  { // Day 1 - Sky Blue
     gradient: 'linear-gradient(180deg, #E0F7FA 0%, #00BCD4 30%, #00ACC1 70%, #0097A7 100%)',
     shadow: 'rgba(0, 151, 167, 0.8)',
     name: 'Sky Blue'
   },
-  2: { // March - Green
+  { // Day 2 - Green
     gradient: 'linear-gradient(180deg, #E8F5E9 0%, #4CAF50 30%, #388E3C 70%, #1B5E20 100%)',
     shadow: 'rgba(27, 94, 32, 0.8)',
     name: 'Green'
   },
-  3: { // April - Light Green
+  { // Day 3 - Light Green
     gradient: 'linear-gradient(180deg, #F1F8E9 0%, #8BC34A 30%, #7CB342 70%, #558B2F 100%)',
     shadow: 'rgba(85, 139, 47, 0.8)',
     name: 'Light Green'
   },
-  4: { // May - Orange
+  { // Day 4 - Orange
     gradient: 'linear-gradient(180deg, #FFF3E0 0%, #FF9800 30%, #F57C00 70%, #E65100 100%)',
     shadow: 'rgba(230, 81, 0, 0.8)',
     name: 'Orange'
   },
-  5: { // June - Dark Orange
+  { // Day 5 - Dark Orange
     gradient: 'linear-gradient(180deg, #FBE9E7 0%, #FF5722 30%, #E64A19 70%, #BF360C 100%)',
     shadow: 'rgba(191, 54, 12, 0.8)',
     name: 'Dark Orange'
   },
-  6: { // July - Gold
+  { // Day 6 - Gold
     gradient: 'linear-gradient(180deg, #FFFACD 0%, #FFD700 30%, #FFA500 70%, #FF8C00 100%)',
     shadow: 'rgba(139, 69, 19, 0.8)',
     name: 'Gold'
   },
-  7: { // August - Saffron (Indian Independence)
+  { // Day 7 - Saffron
     gradient: 'linear-gradient(180deg, #FFF8E1 0%, #FF9933 30%, #FF6600 70%, #CC5200 100%)',
     shadow: 'rgba(204, 82, 0, 0.8)',
     name: 'Saffron'
   },
-  8: { // September - Golden
+  { // Day 8 - Golden
     gradient: 'linear-gradient(180deg, #FFF8DC 0%, #DAA520 30%, #B8860B 70%, #8B6914 100%)',
     shadow: 'rgba(139, 105, 20, 0.8)',
     name: 'Golden'
   },
-  9: { // October - Festive Gold (Diwali Season)
+  { // Day 9 - Festive Gold
     gradient: 'linear-gradient(180deg, #FFFDE7 0%, #FFEB3B 20%, #FFC107 40%, #FF9800 60%, #FF5722 80%, #E64A19 100%)',
     shadow: 'rgba(230, 74, 25, 0.8)',
     name: 'Festive Gold'
   },
-  10: { // November - Silver
+  { // Day 10 - Silver
     gradient: 'linear-gradient(180deg, #FAFAFA 0%, #BDBDBD 30%, #9E9E9E 70%, #616161 100%)',
     shadow: 'rgba(97, 97, 97, 0.8)',
     name: 'Silver'
   },
-  11: { // December - Red (Christmas/New Year)
+  { // Day 11 - Red
     gradient: 'linear-gradient(180deg, #FFEBEE 0%, #F44336 30%, #D32F2F 70%, #B71C1C 100%)',
     shadow: 'rgba(183, 28, 28, 0.8)',
     name: 'Red'
+  },
+  { // Day 12 - Purple
+    gradient: 'linear-gradient(180deg, #F3E5F5 0%, #9C27B0 30%, #7B1FA2 70%, #4A148C 100%)',
+    shadow: 'rgba(74, 20, 140, 0.8)',
+    name: 'Purple'
+  },
+  { // Day 13 - Teal
+    gradient: 'linear-gradient(180deg, #E0F2F1 0%, #009688 30%, #00796B 70%, #004D40 100%)',
+    shadow: 'rgba(0, 77, 64, 0.8)',
+    name: 'Teal'
   }
-};
+];
 
-// Get current month's color scheme with random variation on refresh
+// Get daily rotating color scheme (changes every day)
 const getHeaderColorScheme = () => {
-  const currentMonth = new Date().getMonth();
-  return MONTH_COLOR_SCHEMES[currentMonth];
+  const today = new Date();
+  const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+  const colorIndex = dayOfYear % DAY_COLOR_SCHEMES.length;
+  return DAY_COLOR_SCHEMES[colorIndex];
 };
 
 // Bihar Districts

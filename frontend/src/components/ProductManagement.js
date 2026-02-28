@@ -629,17 +629,18 @@ export const ProductManagement = () => {
 
           {/* Products Table */}
           <div className="bg-white shadow-lg border border-sky-200/30 rounded-xl overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-white shadow-lg border border-sky-200/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Product</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Category</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Price</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Stock</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Status</th>
-                  <th className="px-4 py-3 text-left text-gray-500 text-sm">Actions</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead className="bg-white shadow-lg border border-sky-200/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Product</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Category</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Price</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Stock</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Status</th>
+                    <th className="px-4 py-3 text-left text-gray-500 text-sm">Actions</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-gray-700/50">
                 {filteredProducts.map(product => (
                   <tr key={product.id} className="hover:bg-white shadow-lg border border-sky-200/20">

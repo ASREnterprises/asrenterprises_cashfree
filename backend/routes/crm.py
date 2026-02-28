@@ -1,0 +1,615 @@
+"""
+CRM Management Router
+Handles core CRM endpoints: leads, tasks, dashboard, widgets, and staff management
+"""
+
+from fastapi import APIRouter, HTTPException
+from typing import Optional, Dict, Any, List
+from datetime import datetime, timezone, timedelta
+from pydantic import BaseModel, Field, ConfigDict
+import uuid
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/crm", tags=["CRM Management"])
+
+# Database and dependencies will be passed from main app
+db = None
+sanitize_input = None
+cache_get = None
+cache_set = None
+
+def init_router(database, sanitize_fn=None, cache_get_fn=None, cache_set_fn=None):
+    """Initialize router with database connection and utility functions"""
+    global db, sanitize_input, cache_get, cache_set
+    db = database
+    sanitize_input = sanitize_fn or (lambda x: x)
+    cache_get = cache_get_fn
+    cache_set = cache_set_fn
+
+
+# ==================== PYDANTIC MODELS ====================
+
+class CRMLead(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str = ""
+    phone: str
+    district: str = ""
+    address: str = ""
+    property_type: str = "residential"
+    monthly_bill: Optional[int] = None
+    roof_area: Optional[int] = None
+    source: str = "manual"
+    stage: str = "new"
+    lead_score: int = 50
+    ai_priority: str = "medium"
+    assigned_to: Optional[str] = None
+    assigned_to_name: Optional[str] = None
+    notes: str = ""
+    follow_up_notes: str = ""
+    next_follow_up: Optional[str] = None
+    total_amount: float = 0
+    advance_paid: float = 0
+    pending_amount: float = 0
+    status_history: List[Dict[str, Any]] = []
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class CRMTask(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    task_type: str
+    title: str
+    description: str = ""
+    staff_id: str
+    staff_name: str = ""
+    lead_id: Optional[str] = None
+    lead_name: Optional[str] = None
+    due_date: str
+    due_time: str = "10:00"
+    priority: str = "medium"
+    status: str = "pending"
+    notes: str = ""
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class CRMEmployee(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    email: str = ""
+    phone: str = ""
+    role: str = "sales"
+    department: str = "sales"
+    is_active: bool = True
+    leads_assigned: int = 0
+    leads_converted: int = 0
+    total_revenue: float = 0
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ==================== WIDGET ENDPOINTS ====================
+
+@router.get("/widget/stats")
+async def get_crm_stats_widget():
+    """CRM quick stats - loads first"""
+    cache_key = "crm_stats"
+    if cache_get:
+        cached_data = await cache_get(cache_key)
+        if cached_data:
+            return cached_data
+    
+    # Query both leads and crm_leads collections
+    results = await asyncio.gather(
+        db.leads.count_documents({}),
+        db.crm_leads.count_documents({}),
+        db.leads.count_documents({"status": "new"}),
+        db.crm_leads.count_documents({"stage": "new"}),
+        db.leads.count_documents({"status": "qualified"}),
+        db.crm_leads.count_documents({"stage": "quotation"}),
+        db.leads.count_documents({"status": "converted"}),
+        db.crm_leads.count_documents({"stage": "completed"}),
+        db.crm_staff_accounts.count_documents({"is_active": True}),
+        db.crm_tasks.count_documents({"status": "pending"})
+    )
+    
+    # Total leads from both collections
+    total_leads = max(results[0], results[1])
+    new_leads = results[2] + results[3]
+    qualified_leads = results[4] + results[5]
+    converted_leads = results[6] + results[7]
+    
+    response = {
+        "total_leads": total_leads,
+        "new_leads": new_leads,
+        "qualified_leads": qualified_leads,
+        "converted_leads": converted_leads,
+        "active_staff": results[8],
+        "pending_tasks": results[9]
+    }
+    
+    if cache_set:
+        await cache_set(cache_key, response, ttl=30)
+    return response
+
+
+@router.get("/widget/pipeline")
+async def get_crm_pipeline_widget():
+    """Get lead pipeline stages"""
+    stages = ["new", "contacted", "site_visit", "quotation", "negotiation", "converted", "completed", "lost"]
+    pipeline = {}
+    for stage in stages:
+        count = await db.crm_leads.count_documents({"stage": stage})
+        pipeline[stage] = count
+    return {"pipeline": pipeline}
+
+
+@router.get("/widget/recent-activity")
+async def get_crm_recent_activity():
+    """Get recent CRM activities"""
+    # Get recent leads
+    recent_leads = await db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5)
+    
+    # Get recent follow-ups
+    recent_followups = await db.crm_followups.find({}, {"_id": 0}).sort("timestamp", -1).limit(5).to_list(5)
+    
+    activities = []
+    for lead in recent_leads:
+        activities.append({
+            "type": "new_lead",
+            "title": f"New lead: {lead.get('name', 'Unknown')}",
+            "subtitle": lead.get('district', ''),
+            "timestamp": lead.get('timestamp', '')
+        })
+    
+    for fu in recent_followups:
+        activities.append({
+            "type": "followup",
+            "title": f"Follow-up: {fu.get('lead_name', 'Unknown')}",
+            "subtitle": fu.get('notes', '')[:50],
+            "timestamp": fu.get('timestamp', '')
+        })
+    
+    # Sort by timestamp and return top 10
+    activities.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    return {"activities": activities[:10]}
+
+
+# ==================== DASHBOARD ====================
+
+@router.get("/dashboard")
+async def get_crm_dashboard():
+    """Get comprehensive CRM dashboard data"""
+    # Get all leads with stages
+    all_leads = await db.crm_leads.find({}, {"_id": 0}).to_list(1000)
+    
+    # Pipeline stats
+    pipeline_stats = {}
+    stages = ["new", "contacted", "site_visit", "quotation", "negotiation", "converted", "completed", "lost"]
+    for stage in stages:
+        pipeline_stats[stage] = sum(1 for l in all_leads if l.get("stage") == stage)
+    
+    # Source breakdown
+    source_stats = {}
+    for lead in all_leads:
+        source = lead.get("source", "manual")
+        source_stats[source] = source_stats.get(source, 0) + 1
+    
+    # Today's follow-ups
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    todays_followups = await db.crm_followups.find({"scheduled_date": today}, {"_id": 0}).to_list(100)
+    
+    # Staff performance
+    staff_list = await db.crm_staff_accounts.find({"is_active": True}, {"_id": 0}).to_list(50)
+    
+    # Recent activities
+    recent_leads = await db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
+    
+    return {
+        "total_leads": len(all_leads),
+        "pipeline_stats": pipeline_stats,
+        "source_stats": source_stats,
+        "todays_followups": len(todays_followups),
+        "active_staff": len(staff_list),
+        "recent_leads": recent_leads,
+        "conversion_rate": round((pipeline_stats.get("converted", 0) + pipeline_stats.get("completed", 0)) / max(len(all_leads), 1) * 100, 1)
+    }
+
+
+@router.get("/stats/quick")
+async def get_quick_stats():
+    """Quick stats for dashboard header"""
+    results = await asyncio.gather(
+        db.crm_leads.count_documents({}),
+        db.crm_leads.count_documents({"stage": "new"}),
+        db.crm_leads.count_documents({"stage": {"$in": ["converted", "completed"]}}),
+        db.crm_tasks.count_documents({"status": "pending"})
+    )
+    return {
+        "total_leads": results[0],
+        "new_leads": results[1],
+        "converted": results[2],
+        "pending_tasks": results[3]
+    }
+
+
+# ==================== EMPLOYEE MANAGEMENT ====================
+
+@router.get("/employees")
+async def get_crm_employees():
+    """Get all CRM employees"""
+    employees = await db.crm_employees.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return employees
+
+
+@router.post("/employees")
+async def create_crm_employee(data: Dict[str, Any]):
+    """Create CRM employee"""
+    employee = CRMEmployee(
+        name=sanitize_input(data.get("name", "")),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+        role=data.get("role", "sales"),
+        department=data.get("department", "sales")
+    )
+    doc = employee.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_employees.insert_one(doc)
+    return employee
+
+
+@router.put("/employees/{employee_id}")
+async def update_crm_employee(employee_id: str, data: Dict[str, Any]):
+    """Update CRM employee"""
+    update_data = {k: sanitize_input(v) if isinstance(v, str) else v for k, v in data.items()}
+    await db.crm_employees.update_one({"id": employee_id}, {"$set": update_data})
+    return {"success": True}
+
+
+@router.delete("/employees/{employee_id}")
+async def delete_crm_employee(employee_id: str):
+    """Delete CRM employee"""
+    await db.crm_employees.delete_one({"id": employee_id})
+    return {"success": True}
+
+
+# ==================== LEAD MANAGEMENT ====================
+
+@router.get("/leads")
+async def get_crm_leads(stage: Optional[str] = None, assigned_to: Optional[str] = None):
+    """Get all CRM leads with optional filters"""
+    query = {}
+    if stage:
+        query["stage"] = stage
+    if assigned_to:
+        query["assigned_to"] = assigned_to
+    leads = await db.crm_leads.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    return leads
+
+
+@router.post("/leads")
+async def create_crm_lead(data: Dict[str, Any]):
+    """Create new CRM lead with AI scoring"""
+    # AI lead scoring and priority
+    monthly_bill = data.get("monthly_bill") or 0
+    lead_score = min(100, 40 + int(monthly_bill / 100))
+    ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
+    
+    # Process notes into follow_up_notes
+    notes = data.get("notes", "")
+    follow_up_notes = ""
+    if notes:
+        follow_up_notes = f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Initial Notes: {notes}"
+    
+    lead = CRMLead(
+        name=sanitize_input(data.get("name", "")),
+        email=data.get("email", ""),
+        phone=data.get("phone", ""),
+        district=data.get("district", ""),
+        address=sanitize_input(data.get("address", "")),
+        property_type=data.get("property_type", "residential"),
+        monthly_bill=data.get("monthly_bill"),
+        roof_area=data.get("roof_area"),
+        source=data.get("source", "manual"),
+        stage="new",
+        lead_score=lead_score,
+        ai_priority=ai_priority,
+        follow_up_notes=follow_up_notes,
+        next_follow_up=(datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+        status_history=[{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": f"Lead created via {data.get('source', 'manual')}"}]
+    )
+    doc = lead.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_leads.insert_one(doc)
+    
+    logger.info(f"CRM lead created: {data.get('name')} from source: {data.get('source', 'manual')}")
+    return lead
+
+
+@router.put("/leads/{lead_id}")
+async def update_crm_lead(lead_id: str, data: Dict[str, Any]):
+    """Update CRM lead"""
+    current_lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not current_lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Track stage changes
+    if "stage" in data and data["stage"] != current_lead.get("stage"):
+        history_entry = {
+            "stage": data["stage"],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "notes": data.get("notes", f"Stage changed to {data['stage']}")
+        }
+        status_history = current_lead.get("status_history", [])
+        status_history.append(history_entry)
+        data["status_history"] = status_history
+    
+    # Calculate pending amount
+    if "total_amount" in data or "advance_paid" in data:
+        total = data.get("total_amount", current_lead.get("total_amount", 0))
+        advance = data.get("advance_paid", current_lead.get("advance_paid", 0))
+        data["pending_amount"] = total - advance
+    
+    update_data = {k: sanitize_input(v) if isinstance(v, str) and k not in ["status_history"] else v for k, v in data.items()}
+    await db.crm_leads.update_one({"id": lead_id}, {"$set": update_data})
+    return {"success": True}
+
+
+@router.post("/leads/{lead_id}/assign")
+async def assign_lead(lead_id: str, data: Dict[str, Any]):
+    """Assign lead to staff member"""
+    employee_id = data.get("employee_id")
+    assigned_by = data.get("assigned_by", "admin")
+    
+    # Get lead details
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get staff details
+    staff = await db.crm_staff_accounts.find_one({"id": employee_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    # Update lead
+    await db.crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "assigned_to": employee_id,
+            "assigned_to_name": staff.get("name"),
+            "assigned_date": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update staff lead count
+    await db.crm_staff_accounts.update_one(
+        {"id": employee_id},
+        {"$inc": {"leads_assigned": 1}}
+    )
+    
+    return {"success": True, "assigned_to": staff.get("name")}
+
+
+# ==================== TASK MANAGEMENT ====================
+
+@router.get("/tasks")
+async def get_crm_tasks(staff_id: Optional[str] = None, status: Optional[str] = None):
+    """Get CRM tasks"""
+    query = {}
+    if staff_id:
+        query["staff_id"] = staff_id
+    if status:
+        query["status"] = status
+    tasks = await db.crm_tasks.find(query, {"_id": 0}).sort("due_date", 1).to_list(200)
+    return tasks
+
+
+@router.post("/tasks")
+async def create_crm_task(data: Dict[str, Any]):
+    """Create CRM task"""
+    # Get staff name
+    staff = await db.crm_staff_accounts.find_one({"id": data.get("staff_id")}, {"_id": 0})
+    staff_name = staff.get("name", "Unknown") if staff else "Unknown"
+    
+    # Get lead name if provided
+    lead_name = ""
+    if data.get("lead_id"):
+        lead = await db.crm_leads.find_one({"id": data.get("lead_id")}, {"_id": 0})
+        lead_name = lead.get("name", "") if lead else ""
+    
+    task = CRMTask(
+        task_type=data.get("task_type", "call"),
+        title=sanitize_input(data.get("title", "")),
+        description=sanitize_input(data.get("description", "")),
+        staff_id=data.get("staff_id"),
+        staff_name=staff_name,
+        lead_id=data.get("lead_id"),
+        lead_name=lead_name,
+        due_date=data.get("due_date"),
+        due_time=data.get("due_time", "10:00"),
+        priority=data.get("priority", "medium"),
+        status="pending"
+    )
+    doc = task.model_dump()
+    doc['timestamp'] = doc['timestamp'].isoformat()
+    await db.crm_tasks.insert_one(doc)
+    return task
+
+
+@router.put("/tasks/{task_id}")
+async def update_crm_task(task_id: str, data: Dict[str, Any]):
+    """Update CRM task"""
+    await db.crm_tasks.update_one({"id": task_id}, {"$set": data})
+    return {"success": True}
+
+
+@router.delete("/tasks/{task_id}")
+async def delete_crm_task(task_id: str):
+    """Delete CRM task"""
+    await db.crm_tasks.delete_one({"id": task_id})
+    return {"success": True}
+
+
+# ==================== FOLLOW-UPS ====================
+
+@router.get("/followups")
+async def get_crm_followups(lead_id: Optional[str] = None):
+    """Get follow-ups"""
+    query = {}
+    if lead_id:
+        query["lead_id"] = lead_id
+    followups = await db.crm_followups.find(query, {"_id": 0}).sort("scheduled_date", -1).to_list(200)
+    return followups
+
+
+@router.post("/followups")
+async def create_crm_followup(data: Dict[str, Any]):
+    """Create follow-up"""
+    followup_id = str(uuid.uuid4())
+    
+    # Get lead name
+    lead_name = ""
+    if data.get("lead_id"):
+        lead = await db.crm_leads.find_one({"id": data.get("lead_id")}, {"_id": 0})
+        lead_name = lead.get("name", "") if lead else ""
+    
+    followup = {
+        "id": followup_id,
+        "lead_id": data.get("lead_id"),
+        "lead_name": lead_name,
+        "scheduled_date": data.get("scheduled_date"),
+        "scheduled_time": data.get("scheduled_time", "10:00"),
+        "followup_type": data.get("followup_type", "call"),
+        "notes": sanitize_input(data.get("notes", "")),
+        "status": "scheduled",
+        "employee_id": data.get("employee_id"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.crm_followups.insert_one(followup)
+    
+    # Update lead's next follow-up date
+    if data.get("lead_id"):
+        await db.crm_leads.update_one(
+            {"id": data.get("lead_id")},
+            {"$set": {"next_follow_up": data.get("scheduled_date")}}
+        )
+    
+    return {"success": True, "followup": {k: v for k, v in followup.items() if k != "_id"}}
+
+
+@router.get("/followups/today")
+async def get_todays_followups():
+    """Get today's follow-ups"""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    followups = await db.crm_followups.find(
+        {"scheduled_date": today, "status": {"$ne": "completed"}},
+        {"_id": 0}
+    ).to_list(100)
+    return {"followups": followups, "count": len(followups)}
+
+
+@router.put("/followups/{followup_id}")
+async def update_crm_followup(followup_id: str, data: Dict[str, Any]):
+    """Update follow-up"""
+    await db.crm_followups.update_one({"id": followup_id}, {"$set": data})
+    return {"success": True}
+
+
+# ==================== ACTIVITIES ====================
+
+@router.get("/leads/{lead_id}/activities")
+async def get_lead_activities(lead_id: str):
+    """Get activities for a specific lead"""
+    activities = await db.crm_activities.find({"lead_id": lead_id}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return activities
+
+
+@router.post("/leads/{lead_id}/activities")
+async def add_lead_activity(lead_id: str, data: Dict[str, Any]):
+    """Add activity to a lead"""
+    activity = {
+        "id": str(uuid.uuid4()),
+        "lead_id": lead_id,
+        "activity_type": data.get("activity_type", "note"),
+        "description": sanitize_input(data.get("description", "")),
+        "created_by": data.get("created_by", "admin"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.crm_activities.insert_one(activity)
+    return {"success": True, "activity": {k: v for k, v in activity.items() if k != "_id"}}
+
+
+# ==================== REPORTS ====================
+
+@router.get("/reports/monthly")
+async def get_monthly_report():
+    """Get monthly CRM report"""
+    # Get current month's data
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # Count leads created this month
+    all_leads = await db.crm_leads.find({}, {"_id": 0}).to_list(1000)
+    
+    monthly_leads = [l for l in all_leads if l.get("timestamp", "") >= month_start.isoformat()]
+    converted = [l for l in all_leads if l.get("stage") in ["converted", "completed"]]
+    
+    # Revenue calculation
+    total_revenue = sum(l.get("total_amount", 0) for l in converted)
+    
+    # Source breakdown
+    source_breakdown = {}
+    for lead in monthly_leads:
+        source = lead.get("source", "manual")
+        source_breakdown[source] = source_breakdown.get(source, 0) + 1
+    
+    return {
+        "month": now.strftime("%B %Y"),
+        "new_leads": len(monthly_leads),
+        "total_leads": len(all_leads),
+        "converted": len(converted),
+        "conversion_rate": round(len(converted) / max(len(all_leads), 1) * 100, 1),
+        "total_revenue": total_revenue,
+        "source_breakdown": source_breakdown
+    }
+
+
+# ==================== LEADERBOARD ====================
+
+@router.get("/leaderboard")
+async def get_leaderboard():
+    """Get staff leaderboard"""
+    staff_list = await db.crm_staff_accounts.find({"is_active": True}, {"_id": 0}).to_list(50)
+    
+    leaderboard = []
+    for staff in staff_list:
+        # Calculate conversion rate
+        assigned = staff.get("leads_assigned", 0)
+        converted = staff.get("leads_converted", 0)
+        conversion_rate = round(converted / max(assigned, 1) * 100, 1)
+        
+        leaderboard.append({
+            "id": staff.get("id"),
+            "staff_id": staff.get("staff_id"),
+            "name": staff.get("name"),
+            "role": staff.get("role"),
+            "leads_assigned": assigned,
+            "leads_converted": converted,
+            "conversion_rate": conversion_rate,
+            "total_revenue": staff.get("total_revenue", 0),
+            "score": converted * 100 + conversion_rate * 10 + staff.get("total_revenue", 0) / 10000
+        })
+    
+    # Sort by score
+    leaderboard.sort(key=lambda x: x.get("score", 0), reverse=True)
+    
+    # Add rank
+    for i, entry in enumerate(leaderboard):
+        entry["rank"] = i + 1
+    
+    return {"leaderboard": leaderboard}

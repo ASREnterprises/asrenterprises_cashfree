@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 
 // Holi festival dates configuration
-// Holi 2026: March 14 (Holika Dahan: March 13)
-// Effect shows 12 days before and 2 days after Holi
+// Holi 2026: March 3-4 (Holika Dahan: March 3, Main Holi: March 4)
+// Effect shows from March 3 and ends March 5, 2026
 const HOLI_CONFIG = {
-  2026: { main: new Date(2026, 2, 14), start: new Date(2026, 2, 1), end: new Date(2026, 2, 16) },
-  2027: { main: new Date(2027, 2, 3), start: new Date(2027, 1, 19), end: new Date(2027, 2, 5) },
-  2028: { main: new Date(2028, 2, 22), start: new Date(2028, 2, 10), end: new Date(2028, 2, 24) }
+  2026: { main: new Date(2026, 2, 4), start: new Date(2026, 2, 3), end: new Date(2026, 2, 5) },
+  2027: { main: new Date(2027, 2, 23), start: new Date(2027, 2, 22), end: new Date(2027, 2, 24) },
+  2028: { main: new Date(2028, 2, 12), start: new Date(2028, 2, 11), end: new Date(2028, 2, 13) }
 };
 
 // Vibrant Holi colors

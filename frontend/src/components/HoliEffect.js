@@ -1,12 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 
 // Holi festival dates configuration
-// Holi 2026: March 3-4 (Holika Dahan: March 3, Main Holi: March 4)
-// Effect shows from March 3 and ends March 5, 2026
+// Holi 2026: March 3-4 (Holika Dahan: March 3, Main Holi: March 4 until 12 PM)
 const HOLI_CONFIG = {
-  2026: { main: new Date(2026, 2, 4), start: new Date(2026, 2, 3), end: new Date(2026, 2, 5) },
-  2027: { main: new Date(2027, 2, 23), start: new Date(2027, 2, 22), end: new Date(2027, 2, 24) },
-  2028: { main: new Date(2028, 2, 12), start: new Date(2028, 2, 11), end: new Date(2028, 2, 13) }
+  2026: { main: new Date(2026, 2, 4), start: new Date(2026, 2, 3, 0, 0), end: new Date(2026, 2, 4, 12, 0) },
+  2027: { main: new Date(2027, 2, 23), start: new Date(2027, 2, 22, 0, 0), end: new Date(2027, 2, 23, 12, 0) },
+  2028: { main: new Date(2028, 2, 12), start: new Date(2028, 2, 11, 0, 0), end: new Date(2028, 2, 12, 12, 0) }
 };
 
 // Vibrant Holi colors
@@ -263,10 +262,12 @@ export const HoliEffect = () => {
                   background: 'linear-gradient(90deg, #FF1493, #9B59B6)',
                   WebkitBackgroundClip: 'text',
                 }}>
-                  Happy Holi! {daysUntil > 0 ? `${daysUntil} days to go!` : daysUntil === 0 ? "It's Holi Today!" : "Celebrate with colors!"}
+                  {daysUntil > 1 ? `Happy Holi! ${daysUntil} days to go!` : 
+                   daysUntil === 1 ? "Happy Holi! Tomorrow is Holi!" : 
+                   "🎉 Happy Holi! Celebrate with Colors! 🎉"}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Wishing you a colorful & prosperous solar journey!
+                  {daysUntil <= 0 ? "Wishing you & your family a vibrant, colorful Holi!" : "Wishing you a colorful & prosperous solar journey!"}
                 </p>
               </div>
             </div>

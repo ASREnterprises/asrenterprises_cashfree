@@ -849,20 +849,20 @@ const HomePage = () => {
       
       {/* Premium Navigation - Solar Corporate Premium Theme with Light Sky-Blue Solar Panel Effect */}
       <nav className="sticky top-0 z-50 border-b border-sky-300/60 shadow-xl" style={{
-        background: 'linear-gradient(180deg, #BAE6FD 0%, #E0F2FE 30%, #F0F9FF 60%, #FFFFFF 100%)',
-        boxShadow: '0 4px 20px rgba(56, 189, 248, 0.15), 0 2px 8px rgba(14, 165, 233, 0.1)'
+        background: 'linear-gradient(180deg, #7DD3FC 0%, #BAE6FD 30%, #E0F2FE 70%, #F0F9FF 100%)',
+        boxShadow: '0 4px 20px rgba(56, 189, 248, 0.2), 0 2px 8px rgba(14, 165, 233, 0.15)'
       }}>
         {/* Light Sky-Blue Solar Panel Grid Pattern */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.12]" style={{
+        <div className="absolute inset-0 pointer-events-none opacity-[0.15]" style={{
           backgroundImage: `
             linear-gradient(90deg, #0EA5E9 1px, transparent 1px),
             linear-gradient(0deg, #0EA5E9 1px, transparent 1px),
-            linear-gradient(90deg, transparent 0px, rgba(14, 165, 233, 0.03) 0px)
+            linear-gradient(90deg, transparent 0px, rgba(14, 165, 233, 0.05) 0px)
           `,
           backgroundSize: '28px 28px, 28px 28px, 56px 56px'
         }} />
         {/* Subtle blue glow effect at top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-blue-400 to-sky-400 opacity-60" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 via-blue-500 to-sky-500 opacity-70" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">

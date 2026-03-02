@@ -13,7 +13,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-management-hub.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-redesign.preview.emergentagent.com').rstrip('/')
 
 class TestMarkAsPaid:
     """Test Mark as Paid functionality for Razorpay payments"""

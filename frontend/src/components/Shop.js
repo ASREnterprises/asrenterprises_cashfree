@@ -356,30 +356,30 @@ export const ShopPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f1f3f6]" style={{ fontFamily: "'Segoe UI', Roboto, Arial, sans-serif" }}>
+    <div className="min-h-screen bg-[#F0F6FF]" style={{ fontFamily: "'Inter', 'Segoe UI', Roboto, Arial, sans-serif" }}>
       
-      {/* === TOP HEADER BAR === */}
-      <header className="bg-gradient-to-r from-sky-600 to-blue-600 sticky top-0 z-50 shadow-lg">
+      {/* === TOP HEADER BAR - Premium Dark Blue === */}
+      <header className="bg-gradient-to-r from-[#0B3C5D] to-[#071A2E] sticky top-0 z-50 shadow-xl">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-6">
-          <div className="flex items-center h-14 gap-3">
+          <div className="flex items-center h-16 gap-3">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <img src="/asr_logo_transparent.png" alt="ASR" className="h-8 w-8 object-contain" />
-              <span className="text-white font-bold text-lg hidden sm:block">ASR Solar Shop</span>
+              <img src="/asr_logo_transparent.png" alt="ASR" className="h-10 w-10 object-contain" />
+              <span className="text-white font-bold text-xl hidden sm:block font-[Poppins]">ASR Solar Shop</span>
             </Link>
 
-            {/* Search Bar */}
+            {/* Search Bar - Premium Glass Style */}
             <div className="flex-1 max-w-2xl relative" ref={searchRef}>
-              <div className="flex items-center bg-white rounded-md overflow-hidden">
+              <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full overflow-hidden border border-white/20">
                 <input
                   type="text"
                   placeholder="Search for solar products, inverters, batteries..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 px-4 py-2.5 text-sm text-gray-800 outline-none placeholder-gray-400"
+                  className="flex-1 px-5 py-3 text-sm text-white bg-transparent outline-none placeholder-white/60"
                   data-testid="search-input"
                 />
-                <button className="bg-amber-500 px-4 py-2.5 hover:bg-amber-600 transition">
+                <button className="bg-[#00C389] px-5 py-3 hover:bg-[#00A372] transition rounded-r-full">
                   <Search className="w-5 h-5 text-white" />
                 </button>
               </div>
@@ -387,35 +387,35 @@ export const ShopPage = () => {
 
             {/* Nav Items */}
             <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              <Link to="/track-order" className="text-white hover:text-amber-200 transition hidden sm:flex items-center gap-1 text-sm" data-testid="track-order-link">
+              <Link to="/track-order" className="text-white/80 hover:text-[#FFD166] transition hidden sm:flex items-center gap-1 text-sm" data-testid="track-order-link">
                 <Package className="w-4 h-4" />
                 <span>Track</span>
               </Link>
               <button 
                 onClick={() => setShowCart(true)}
-                className="relative text-white hover:text-amber-200 transition flex items-center gap-1"
+                className="relative text-white hover:text-[#FFD166] transition flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full"
                 data-testid="cart-button"
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span className="text-sm hidden sm:block">Cart</span>
                 {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">{cartItemCount}</span>
+                  <span className="absolute -top-1 -right-1 bg-[#00C389] text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">{cartItemCount}</span>
                 )}
               </button>
             </div>
           </div>
         </div>
-        {/* Category Strip */}
-        <div className="bg-sky-700 border-t border-sky-500/50">
+        {/* Category Strip - Premium Gold Active */}
+        <div className="bg-[#0B3C5D]/80 border-t border-white/10">
           <div className="max-w-[1400px] mx-auto px-3 sm:px-6 overflow-x-auto">
-            <div className="flex items-center gap-1 py-1.5">
+            <div className="flex items-center gap-2 py-2">
               <button onClick={() => { setSelectedCategory(null); fetchProducts(); }}
-                className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition ${!selectedCategory ? 'bg-amber-500 text-white' : 'text-white/90 hover:text-white hover:bg-sky-600'}`}
+                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition ${!selectedCategory ? 'bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] shadow-lg' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
                 data-testid="category-all"
-              >All</button>
+              >All Products</button>
               {categories.map(cat => (
                 <button key={cat.id} onClick={() => { setSelectedCategory(cat.id); fetchProducts(cat.id); }}
-                  className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap flex items-center gap-1 transition ${selectedCategory === cat.id ? 'bg-amber-500 text-white' : 'text-white/90 hover:text-white hover:bg-sky-600'}`}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition ${selectedCategory === cat.id ? 'bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] shadow-lg' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
                   data-testid={`category-${cat.id}`}
                 >{categoryIcons[cat.id]}<span>{cat.name}</span></button>
               ))}
@@ -488,30 +488,30 @@ export const ShopPage = () => {
             <p className="text-gray-400 text-sm mt-1">Try a different search or category</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
             {sortedProducts.map(product => {
               const discount = product.sale_price ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
               const isInCart = cart.some(item => item.product_id === product.id);
               const isWished = wishlist.includes(product.id);
               return (
-                <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group relative border border-gray-100" data-testid={`product-card-${product.id}`}>
-                  {/* Badges */}
-                  {discount > 0 && <div className="absolute top-2 left-2 z-10 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-sm">{discount}% OFF</div>}
+                <div key={product.id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group relative border border-gray-100/50 hover:-translate-y-1" data-testid={`product-card-${product.id}`}>
+                  {/* Badges - Gold Gradient */}
+                  {discount > 0 && <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">{discount}% OFF</div>}
                   
                   {/* Wishlist + Share */}
-                  <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+                  <div className="absolute top-3 right-3 z-10 flex flex-col gap-1.5">
                     <button onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                      className="bg-white shadow-md p-1.5 rounded-full hover:bg-gray-50 transition"
+                      className="bg-white/90 backdrop-blur-sm shadow-lg p-2 rounded-full hover:bg-white transition"
                       data-testid={`wishlist-btn-${product.id}`}
                     ><Heart className={`w-4 h-4 ${isWished ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} /></button>
                     <div className="relative">
                       <button onClick={(e) => { e.stopPropagation(); setShowShareMenu(showShareMenu === product.id ? null : product.id); }}
-                        className="bg-white shadow-md p-1.5 rounded-full hover:bg-gray-50 transition" data-testid={`share-btn-${product.id}`}
+                        className="bg-white/90 backdrop-blur-sm shadow-lg p-2 rounded-full hover:bg-white transition" data-testid={`share-btn-${product.id}`}
                       ><Share2 className="w-4 h-4 text-gray-400" /></button>
                       {showShareMenu === product.id && (
-                        <div className="absolute right-0 top-8 bg-white border shadow-xl rounded-lg p-1 min-w-[130px] z-30">
+                        <div className="absolute right-0 top-10 bg-white border shadow-2xl rounded-xl p-2 min-w-[140px] z-30">
                           {[["whatsapp","WhatsApp","text-green-600"],["facebook","Facebook","text-blue-600"],["email","Email","text-red-500"],["copy","Copy Link","text-gray-600"]].map(([key,label,color]) => (
-                            <button key={key} onClick={() => shareProduct(product, key)} className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-50 rounded ${color}`}>{label}</button>
+                            <button key={key} onClick={() => shareProduct(product, key)} className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 rounded-lg ${color}`}>{label}</button>
                           ))}
                         </div>
                       )}
@@ -519,7 +519,7 @@ export const ShopPage = () => {
                   </div>
 
                   {/* Product Image */}
-                  <div className="aspect-square bg-white p-4 relative cursor-pointer overflow-hidden" onClick={() => openProductDetail(product)} data-testid={`product-image-${product.id}`}>
+                  <div className="aspect-square bg-gradient-to-b from-gray-50 to-white p-4 relative cursor-pointer overflow-hidden" onClick={() => openProductDetail(product)} data-testid={`product-image-${product.id}`}>
                     {product.images?.[0] ? (
                       <img src={product.images[0]} alt={product.name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                     ) : (
@@ -528,9 +528,9 @@ export const ShopPage = () => {
                   </div>
 
                   {/* Product Info */}
-                  <div className="p-3 border-t border-gray-50">
-                    {product.brand && <p className="text-gray-400 text-[10px] uppercase tracking-wider mb-0.5">{product.brand}</p>}
-                    <h3 className="text-gray-800 font-medium text-sm line-clamp-2 mb-1 cursor-pointer hover:text-amber-600 transition leading-snug" onClick={() => openProductDetail(product)}>
+                  <div className="p-4 border-t border-gray-100">
+                    {product.brand && <p className="text-[#0B3C5D]/60 text-[10px] uppercase tracking-wider mb-1 font-semibold">{product.brand}</p>}
+                    <h3 className="text-[#0B3C5D] font-semibold text-sm line-clamp-2 mb-1.5 cursor-pointer hover:text-[#F5A623] transition leading-snug" onClick={() => openProductDetail(product)}>
                       {product.name}
                     </h3>
                     
@@ -565,16 +565,16 @@ export const ShopPage = () => {
                     {/* Stock */}
                     {product.stock <= 5 && product.stock > 0 && <p className="text-red-500 text-[10px] font-semibold mb-1">Only {product.stock} left!</p>}
 
-                    {/* Add to Cart */}
+                    {/* Add to Cart - Green CTA */}
                     {isInCart ? (
-                      <div className="flex items-center justify-between bg-amber-50 rounded-lg px-2 py-1.5">
-                        <button onClick={() => updateCartQuantity(product.id, -1)} className="w-7 h-7 bg-white border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50"><Minus className="w-3 h-3" /></button>
-                        <span className="text-sm font-semibold text-gray-800">{cart.find(i => i.product_id === product.id)?.quantity}</span>
-                        <button onClick={() => updateCartQuantity(product.id, 1)} className="w-7 h-7 bg-white border border-gray-200 rounded flex items-center justify-center hover:bg-gray-50"><Plus className="w-3 h-3" /></button>
+                      <div className="flex items-center justify-between bg-[#00C389]/10 rounded-xl px-3 py-2">
+                        <button onClick={() => updateCartQuantity(product.id, -1)} className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 shadow-sm"><Minus className="w-3 h-3" /></button>
+                        <span className="text-sm font-bold text-[#0B3C5D]">{cart.find(i => i.product_id === product.id)?.quantity}</span>
+                        <button onClick={() => updateCartQuantity(product.id, 1)} className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 shadow-sm"><Plus className="w-3 h-3" /></button>
                       </div>
                     ) : (
                       <button onClick={() => addToCart(product)} disabled={product.stock === 0}
-                        className={`w-full py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-1.5 ${product.stock === 0 ? 'bg-gray-100 text-gray-400' : addedToCart === product.id ? 'bg-green-500 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}
+                        className={`w-full py-2.5 rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 ${product.stock === 0 ? 'bg-gray-100 text-gray-400' : addedToCart === product.id ? 'bg-[#00C389] text-white shadow-lg' : 'bg-[#00C389] hover:bg-[#00A372] text-white shadow-md hover:shadow-lg hover:shadow-[#00C389]/30'}`}
                         data-testid={`add-to-cart-${product.id}`}
                       >
                         {addedToCart === product.id ? <><CheckCircle className="w-4 h-4" /> Added</> : product.stock === 0 ? 'Out of Stock' : <><ShoppingCart className="w-4 h-4" /> Add to Cart</>}
@@ -587,17 +587,17 @@ export const ShopPage = () => {
           </div>
         )}
 
-        {/* Recently Viewed */}
+        {/* Recently Viewed - Glass Card */}
         {recentlyViewed.length > 0 && !selectedProduct && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm p-4 sm:p-6">
-            <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Clock className="w-5 h-5 text-gray-400" /> Recently Viewed</h2>
+          <div className="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-4 sm:p-6 border border-white/50">
+            <h2 className="text-lg font-bold text-[#0B3C5D] mb-4 flex items-center gap-2 font-[Poppins]"><Clock className="w-5 h-5 text-[#F5A623]" /> Recently Viewed</h2>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {recentlyViewed.map(product => (
-                <div key={product.id} className="flex-shrink-0 w-36 bg-white rounded-lg border border-gray-100 cursor-pointer hover:shadow-md transition overflow-hidden" onClick={() => openProductDetail(product)}>
+                <div key={product.id} className="flex-shrink-0 w-36 bg-white rounded-xl border border-gray-100 cursor-pointer hover:shadow-lg transition overflow-hidden" onClick={() => openProductDetail(product)}>
                   <div className="aspect-square p-2">{product.images?.[0] ? <img src={product.images[0]} alt="" className="w-full h-full object-contain" /> : <div className="w-full h-full flex items-center justify-center"><Sun className="w-8 h-8 text-gray-200" /></div>}</div>
                   <div className="p-2 border-t border-gray-50">
-                    <p className="text-gray-700 text-xs line-clamp-1">{product.name}</p>
-                    <p className="text-gray-900 font-bold text-sm">₹{(product.sale_price || product.price).toLocaleString()}</p>
+                    <p className="text-[#0B3C5D] text-xs line-clamp-1">{product.name}</p>
+                    <p className="text-[#0B3C5D] font-bold text-sm">₹{(product.sale_price || product.price).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
@@ -605,8 +605,8 @@ export const ShopPage = () => {
           </div>
         )}
 
-        {/* Trust Badges */}
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Trust Badges - Premium Cards */}
+        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { icon: <Shield className="w-6 h-6 text-blue-500" />, title: "Genuine Products", sub: "100% authentic solar equipment" },
             { icon: <Truck className="w-6 h-6 text-green-500" />, title: "Bihar Delivery", sub: "All districts covered" },

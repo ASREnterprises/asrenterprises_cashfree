@@ -39,6 +39,7 @@ const SocialMediaIntegration = lazy(() => import("@/components/SocialMediaIntegr
 const HRManagement = lazy(() => import("@/components/HRManagement").then(m => ({ default: m.HRManagement })));
 const FestiveThemeOverlay = lazy(() => import("@/components/FestiveThemeOverlay").then(m => ({ default: m.FestiveThemeOverlay })));
 const AIChatWidget = lazy(() => import("@/components/AIChatWidget").then(m => ({ default: m.AIChatWidget })));
+const HoliEffect = lazy(() => import("@/components/HoliEffect").then(m => ({ default: m.HoliEffect })));
 
 // New Homepage Components
 const ZeroBillHero = lazy(() => import("@/components/ZeroBillHero").then(m => ({ default: m.ZeroBillHero })));
@@ -841,16 +842,27 @@ const HomePage = () => {
         <FestiveThemeOverlay festival={festiveBanner} />
       </Suspense>
       
-      {/* Premium Navigation - Solar Corporate Premium Theme */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-lg">
-        {/* Solar Panel Subtle Grid Pattern */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
+      {/* Holi Effect - Auto-enables during Holi festival period */}
+      <Suspense fallback={null}>
+        <HoliEffect />
+      </Suspense>
+      
+      {/* Premium Navigation - Solar Corporate Premium Theme with Light Sky-Blue Solar Panel Effect */}
+      <nav className="sticky top-0 z-50 border-b border-sky-300/60 shadow-xl" style={{
+        background: 'linear-gradient(180deg, #BAE6FD 0%, #E0F2FE 30%, #F0F9FF 60%, #FFFFFF 100%)',
+        boxShadow: '0 4px 20px rgba(56, 189, 248, 0.15), 0 2px 8px rgba(14, 165, 233, 0.1)'
+      }}>
+        {/* Light Sky-Blue Solar Panel Grid Pattern */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.12]" style={{
           backgroundImage: `
-            linear-gradient(90deg, #0B3C5D 1px, transparent 1px),
-            linear-gradient(0deg, #0B3C5D 1px, transparent 1px)
+            linear-gradient(90deg, #0EA5E9 1px, transparent 1px),
+            linear-gradient(0deg, #0EA5E9 1px, transparent 1px),
+            linear-gradient(90deg, transparent 0px, rgba(14, 165, 233, 0.03) 0px)
           `,
-          backgroundSize: '40px 40px'
+          backgroundSize: '28px 28px, 28px 28px, 56px 56px'
         }} />
+        {/* Subtle blue glow effect at top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-blue-400 to-sky-400 opacity-60" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">

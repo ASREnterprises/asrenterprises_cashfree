@@ -2,29 +2,213 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Google Fonts - Poppins & Inter */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ========================================
+   SOLAR CORPORATE PREMIUM - EMERGENT THEME
+   ======================================== */
+
+:root {
+  /* Brand Colors */
+  --solar-primary: #0B3C5D;
+  --solar-secondary: #071A2E;
+  --solar-gold: #F5A623;
+  --solar-gold-light: #FFD166;
+  --solar-cta-green: #00C389;
+  --solar-cta-green-dark: #00A372;
+  
+  /* Text Colors */
+  --text-primary: #0B3C5D;
+  --text-secondary: #475569;
+  --text-light: #F8FAFC;
+  --text-muted: #94A3B8;
+  
+  /* Background Colors */
+  --bg-dark: #071A2E;
+  --bg-light: #F7FAFC;
+  --bg-lighter: #F0F6FF;
+  
+  /* Glassmorphism */
+  --glass-light: rgba(255, 255, 255, 0.75);
+  --glass-dark: rgba(7, 26, 46, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  
+  /* Shadows */
+  --shadow-soft: 0 20px 40px -15px rgba(2, 6, 23, 0.12);
+  --shadow-glow-green: 0 0 20px rgba(0, 195, 137, 0.4);
+  --shadow-glow-gold: 0 0 25px rgba(245, 166, 35, 0.3);
+  --shadow-card: 0 20px 40px rgba(2, 6, 23, 0.12);
+}
+
 body {
-    margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  color: var(--text-primary);
 }
 
 html, body {
-    max-width: 100%;
-    overflow-x: hidden;
+  max-width: 100%;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 #root {
-    overflow-x: hidden;
+  overflow-x: hidden;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Gold Gradient Text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--solar-gold) 0%, var(--solar-gold-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Green CTA Button with Glow */
+.btn-cta-green {
+  background-color: var(--solar-cta-green);
+  color: white;
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(0, 195, 137, 0.3);
+}
+
+.btn-cta-green:hover {
+  background-color: var(--solar-cta-green-dark);
+  box-shadow: var(--shadow-glow-green);
+  transform: translateY(-2px);
+}
+
+/* Gold Gradient Button */
+.btn-gold {
+  background: linear-gradient(135deg, var(--solar-gold) 0%, var(--solar-gold-light) 100%);
+  color: var(--solar-secondary);
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px rgba(245, 166, 35, 0.3);
+}
+
+.btn-gold:hover {
+  box-shadow: var(--shadow-glow-gold);
+  transform: translateY(-2px);
+}
+
+/* Primary Blue Button */
+.btn-primary-blue {
+  background-color: var(--solar-primary);
+  color: white;
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-blue:hover {
+  background-color: #0a3450;
+  transform: translateY(-2px);
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: var(--glass-light);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.glass-card-dark {
+  background: var(--glass-dark);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+}
+
+/* Premium Card with Hover */
+.premium-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 25px 50px -12px rgba(2, 6, 23, 0.15);
+}
+
+/* Metric Card with Gradient Strip */
+.metric-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.metric-card-strip {
+  height: 4px;
+  width: 100%;
+}
+
+.metric-card-strip-blue {
+  background: linear-gradient(90deg, var(--solar-primary) 0%, #1E5A8A 100%);
+}
+
+.metric-card-strip-gold {
+  background: linear-gradient(90deg, var(--solar-gold) 0%, var(--solar-gold-light) 100%);
+}
+
+.metric-card-strip-green {
+  background: linear-gradient(90deg, var(--solar-cta-green) 0%, #34D399 100%);
+}
+
+/* Section Backgrounds */
+.section-dark {
+  background: radial-gradient(circle at 50% 50%, var(--solar-primary) 0%, var(--solar-secondary) 100%);
+}
+
+.section-light {
+  background-color: var(--bg-lighter);
+}
+
+.section-white {
+  background-color: white;
+}
+
+/* Soft Red Card (DISCOM) */
+.card-soft-red {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 16px;
+}
+
+/* Soft Green Card (Solar) */
+.card-soft-green {
+  background: rgba(0, 195, 137, 0.08);
+  border: 1px solid rgba(0, 195, 137, 0.2);
+  border-radius: 16px;
 }
 
 code {
-    font-family:
-        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 @layer base {

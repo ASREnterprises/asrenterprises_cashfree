@@ -835,46 +835,21 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50 overflow-x-hidden">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Festive Theme Overlay - Shows on all pages when festival is active */}
       <Suspense fallback={null}>
         <FestiveThemeOverlay festival={festiveBanner} />
       </Suspense>
       
-      {/* Premium Navigation - Solar Panel Shadow Effect */}
-      <nav className="sticky top-0 z-50 border-b border-amber-200" style={{
-        background: `rgba(255,255,255,0.97)`,
-        backdropFilter: 'blur(12px)',
-        boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15), 0 2px 8px rgba(0,0,0,0.08)'
-      }}>
-        {/* Solar Panel Grid Shadow - Visible Blue Grid */}
-        <div className="absolute inset-0 pointer-events-none" style={{
+      {/* Premium Navigation - Solar Corporate Premium Theme */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 shadow-lg">
+        {/* Solar Panel Subtle Grid Pattern */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
           backgroundImage: `
-            linear-gradient(90deg, rgba(30, 64, 175, 0.08) 1px, transparent 1px),
-            linear-gradient(0deg, rgba(30, 64, 175, 0.08) 1px, transparent 1px)
+            linear-gradient(90deg, #0B3C5D 1px, transparent 1px),
+            linear-gradient(0deg, #0B3C5D 1px, transparent 1px)
           `,
-          backgroundSize: '32px 32px'
-        }} />
-        {/* Solar Cell Inner Grid - Finer Detail */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          backgroundImage: `
-            linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-            linear-gradient(0deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: '8px 8px'
-        }} />
-        {/* Diagonal Light Reflection on Solar Cells */}
-        <div className="absolute inset-0 pointer-events-none" style={{
-          background: `
-            repeating-linear-gradient(
-              -45deg,
-              transparent 0px,
-              transparent 30px,
-              rgba(255, 255, 255, 0.5) 30px,
-              rgba(255, 255, 255, 0.5) 32px
-            )
-          `,
-          opacity: 0.3
+          backgroundSize: '40px 40px'
         }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
@@ -885,8 +860,8 @@ const HomePage = () => {
                 className="h-16 w-auto"
               />
               <div className="flex flex-col">
-                {/* Dynamic Month-wise Color Title - Increased Size */}
-                <span className="text-2xl sm:text-3xl md:text-[2rem] font-extrabold leading-tight"
+                {/* Daily Rotating Color Title */}
+                <span className="text-2xl sm:text-3xl md:text-[2rem] font-extrabold leading-tight font-[Poppins]"
                   style={{
                     background: getHeaderColorScheme().gradient,
                     WebkitBackgroundClip: 'text',
@@ -894,29 +869,44 @@ const HomePage = () => {
                     filter: `drop-shadow(1px 1px 1px ${getHeaderColorScheme().shadow})`,
                     letterSpacing: '0.02em'
                   }}>ASR Enterprises</span>
-                <span className="text-[8px] sm:text-[10px] md:text-xs text-emerald-600 font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
+                <span className="text-[8px] sm:text-[10px] md:text-xs text-[#0B3C5D] font-medium tracking-wide">Trusted Solar Rooftop Installation Experts in Bihar</span>
               </div>
             </Link>
             
             {/* Desktop Menu */}
             <div className="hidden md:flex space-x-6 items-center">
-              <Link to="/" className="text-gray-700 hover:text-amber-600 transition font-medium">Home</Link>
-              <Link to="/about" className="text-gray-700 hover:text-amber-600 transition font-medium">About Us</Link>
-              <a href="/shop" target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-amber-600 transition font-medium">Shop</a>
-              <Link to="/gallery" className="text-gray-700 hover:text-amber-600 transition font-medium">Gallery</Link>
-              <Link to="/contact" className="text-gray-700 hover:text-amber-600 transition font-medium">Contact Us</Link>
+              <Link to="/" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
+                Home
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
+              </Link>
+              <Link to="/about" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
+                About Us
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
+              </Link>
+              <a href="/shop" target="_blank" rel="noopener noreferrer" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
+                Shop
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
+              </a>
+              <Link to="/gallery" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
+                Gallery
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
+              </Link>
+              <Link to="/contact" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
+                Contact Us
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
+              </Link>
               {localStorage.getItem("asrAdminAuth") === "true" ? (
-                <Link to="/admin/dashboard" className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-5 py-2.5 rounded-lg hover:from-green-600 hover:to-emerald-600 transition text-sm font-bold shadow-lg flex items-center gap-2">
+                <Link to="/admin/dashboard" className="bg-[#00C389] text-white px-6 py-2.5 rounded-full hover:bg-[#00A372] transition text-sm font-bold shadow-lg hover:shadow-[0_0_20px_rgba(0,195,137,0.4)] flex items-center gap-2">
                   <span>Dashboard</span>
                 </Link>
               ) : (
-                <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-5 py-2.5 rounded-lg hover:from-amber-600 hover:to-orange-600 transition text-sm font-bold shadow-lg">Login</a>
+                <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="bg-[#0B3C5D] text-white px-6 py-2.5 rounded-full hover:bg-[#071A2E] transition text-sm font-bold shadow-lg">Login</a>
               )}
             </div>
 
             {/* Mobile Menu Button */}
             <button 
-              className="md:hidden text-gray-700"
+              className="md:hidden text-[#0B3C5D]"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               {showMobileMenu ? <X /> : <Menu />}
@@ -926,17 +916,17 @@ const HomePage = () => {
 
         {/* Mobile Menu */}
         {showMobileMenu && (
-          <div className="md:hidden bg-white border-t border-amber-200">
+          <div className="md:hidden bg-white border-t border-slate-200">
             <div className="px-4 py-2 space-y-2">
-              <Link to="/" className="block py-2 text-gray-700 hover:text-amber-600">Home</Link>
-              <Link to="/about" className="block py-2 text-gray-700 hover:text-amber-600">About Us</Link>
-              <a href="/shop" target="_blank" rel="noopener noreferrer" className="block py-2 text-gray-700 hover:text-amber-600">Shop</a>
-              <Link to="/gallery" className="block py-2 text-gray-700 hover:text-amber-600">Gallery</Link>
-              <Link to="/contact" className="block py-2 text-gray-700 hover:text-amber-600">Contact Us</Link>
+              <Link to="/" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Home</Link>
+              <Link to="/about" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">About Us</Link>
+              <a href="/shop" target="_blank" rel="noopener noreferrer" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Shop</a>
+              <Link to="/gallery" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Gallery</Link>
+              <Link to="/contact" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Contact Us</Link>
               {localStorage.getItem("asrAdminAuth") === "true" ? (
-                <Link to="/admin/dashboard" className="block py-2 text-green-600 font-semibold">Go to Dashboard</Link>
+                <Link to="/admin/dashboard" className="block py-2 text-[#00C389] font-bold">Go to Dashboard</Link>
               ) : (
-                <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-amber-600 font-semibold">Login (Admin/Staff)</a>
+                <a href="/admin/login" target="_blank" rel="noopener noreferrer" className="block py-2 text-[#0B3C5D] font-bold">Login (Admin/Staff)</a>
               )}
             </div>
           </div>
@@ -966,15 +956,26 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Hero Section - Premium Light Solar Design */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-50">
-        {/* Solar Pattern Background */}
-        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(245,158,11,0.5) 1px, transparent 0)', backgroundSize: '40px 40px'}}></div>
+      {/* Hero Section - Premium Dark Solar Corporate Theme */}
+      <div className="relative overflow-hidden" style={{
+        background: 'radial-gradient(ellipse at 50% 0%, #0B3C5D 0%, #071A2E 100%)'
+      }}>
+        {/* Solar Grid Pattern Overlay */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: `
+            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px'
+        }}></div>
         
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
+        {/* Glow Effect */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[#F5A623]/10 rounded-full blur-3xl"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 relative z-10">
           <div className="text-center">
             {/* Premium Running Banner */}
-            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 py-3 rounded-xl mb-8 relative overflow-hidden shadow-2xl border border-amber-400/30">
+            <div className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] py-3 rounded-2xl mb-10 relative overflow-hidden shadow-2xl">
               <a
                 href="https://wa.me/918877896889?text=Hi!%20I%20saw%20your%20flash%20offer%20and%20I'm%20interested%20in%20solar%20installation!"
                 target="_blank"
@@ -982,19 +983,19 @@ const HomePage = () => {
                 className="block"
               >
                 <div className="animate-marquee whitespace-nowrap flex items-center">
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-[#071A2E] font-bold text-sm md:text-base flex items-center">
                     Switch to Solar & Make Your Electricity Bill ZERO!
                   </span>
-                  <span className="mx-8 text-amber-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
                     💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
                   </span>
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
                     🛠️ 5 Year FREE Maintenance Included!
                   </span>
-                  <span className="mx-8 text-amber-100 font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-[#071A2E] font-bold text-sm md:text-base flex items-center">
                     📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
                   </span>
-                  <span className="mx-8 text-white font-bold text-sm md:text-base flex items-center">
+                  <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
                     Switch to Solar & Make Your Electricity Bill ZERO!
                   </span>
                 </div>
@@ -1002,52 +1003,54 @@ const HomePage = () => {
             </div>
 
             {/* Corporate Tagline */}
-            <p className="text-lg md:text-xl text-amber-700 italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
+            <p className="text-lg md:text-xl text-[#FFD166] italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
               "Powering Bihar's Future with Clean, Affordable Solar Energy"
             </p>
             
-            <div className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm text-gray-700 px-6 py-3 rounded-full mb-8 border border-amber-300 shadow-md">
-              <Award className="w-5 h-5 text-amber-600" />
+            <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm text-white px-6 py-3 rounded-full mb-8 border border-white/20 shadow-md">
+              <Award className="w-5 h-5 text-[#F5A623]" />
               <span className="text-sm font-medium">MNRE Bihar Registered Vendor | GSTIN: 10CCFPK3447Q3ZD</span>
             </div>
             
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6">
-              <span className="text-gray-800">Transform Your Energy Future with</span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600">
+            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 font-[Poppins]">
+              <span className="text-white">Transform Your Energy Future with</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#F5A623] to-[#FFD166]" style={{
+                textShadow: '0 0 40px rgba(245, 166, 35, 0.3)'
+              }}>
                 Solar Rooftop Solutions
               </span>
             </h1>
             
-            <p className="text-xl text-gray-700 max-w-4xl mx-auto mb-6 leading-relaxed">
-              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong className="text-amber-600">PM Surya Ghar Yojana</strong>.
+            <p className="text-xl text-white/90 max-w-4xl mx-auto mb-6 leading-relaxed">
+              ASR Enterprises is Bihar's trusted solar rooftop installation company, committed to delivering reliable and cost-effective renewable energy solutions. We specialize in design, supply, installation, and maintenance under government-approved schemes including <strong className="text-[#FFD166]">PM Surya Ghar Yojana</strong>.
             </p>
             
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-10">
-              Our mission: Making solar energy <strong className="text-gray-800">affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
+            <p className="text-lg text-white/70 max-w-3xl mx-auto mb-10">
+              Our mission: Making solar energy <strong className="text-white">affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
               <button
                 onClick={() => setShowBookService(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 border border-amber-400/30"
+                className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
                 data-testid="book-now-btn"
               >
                 <Zap className="w-5 h-5" />
-                <span>Book Service</span>
+                <span>Book Free Survey</span>
               </button>
               <a
                 href="tel:8877896889"
-                className="bg-[#0a355e] text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#0c4270] transition flex items-center justify-center space-x-2 shadow-lg"
+                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/30"
                 data-testid="call-now-btn"
               >
                 <Phone className="w-5 h-5" />
-                <span>Call Now: 8877896889</span>
+                <span>Call: 8877896889</span>
               </a>
               <a
                 href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-emerald-500 text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-600 transition flex items-center justify-center space-x-2 shadow-lg"
+                className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
                 data-testid="whatsapp-btn"
               >
                 <MessageSquare className="w-5 h-5" />
@@ -1058,7 +1061,7 @@ const HomePage = () => {
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10">
               <button
                 onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-blue-600 hover:to-cyan-600 transition shadow-lg"
+                className="bg-[#0B3C5D] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#0a3450] transition shadow-lg border border-white/20"
                 data-testid="free-consultation-btn"
               >
                 Request Free Consultation
@@ -1621,8 +1624,8 @@ const HomePage = () => {
       {/* Testimonials */}
       <TestimonialsSection />
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      {/* Footer - Premium Dark Navy */}
+      <footer className="bg-[#071A2E] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
@@ -1633,7 +1636,7 @@ const HomePage = () => {
                   className="h-12 w-auto"
                 />
               </div>
-              <h3 className="text-xl font-bold mb-2">ASR Enterprises</h3>
+              <h3 className="text-xl font-bold mb-2 font-[Poppins]">ASR Enterprises</h3>
               <p className="text-gray-400 text-sm mb-4">Leading solar energy solutions provider in Patna, Bihar</p>
               <p className="text-gray-400 text-xs mb-2">GSTIN: 10CCFPK3447Q3ZD</p>
               
@@ -1643,7 +1646,7 @@ const HomePage = () => {
                   href="https://instagram.com/asr_enterprises_patna"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full hover:scale-110 transition-transform"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all"
                   data-testid="instagram-link"
                   aria-label="Instagram"
                 >
@@ -1653,7 +1656,7 @@ const HomePage = () => {
                   href="https://www.facebook.com/share/1CU69hsGbJ/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-blue-600 p-2 rounded-full hover:scale-110 transition-transform"
+                  className="bg-blue-600 p-2 rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all"
                   data-testid="facebook-link"
                   aria-label="Facebook"
                 >
@@ -1662,61 +1665,61 @@ const HomePage = () => {
               </div>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Quick Links</h4>
+              <h4 className="font-bold mb-4 text-[#FFD166]">Quick Links</h4>
               <div className="space-y-2 text-gray-400">
-                <div><Link to="/" className="hover:text-white transition">Home</Link></div>
-                <div><Link to="/about" className="hover:text-white transition">About Us</Link></div>
-                <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
-                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Shop</a></div>
-                <div><Link to="/contact" className="hover:text-white transition">Contact Us</Link></div>
+                <div><Link to="/" className="hover:text-[#FFD166] transition">Home</Link></div>
+                <div><Link to="/about" className="hover:text-[#FFD166] transition">About Us</Link></div>
+                <div><Link to="/gallery" className="hover:text-[#FFD166] transition">Our Work</Link></div>
+                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Shop</a></div>
+                <div><Link to="/contact" className="hover:text-[#FFD166] transition">Contact Us</Link></div>
               </div>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Services</h4>
+              <h4 className="font-bold mb-4 text-[#FFD166]">Services</h4>
               <div className="space-y-2 text-gray-400">
-                <div><Link to="/chat" className="hover:text-white transition">WhatsApp Support</Link></div>
-                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Solar Products</a></div>
-                <div><Link to="/gallery" className="hover:text-white transition">Our Work</Link></div>
-                <div><a href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I%20want%20a%20FREE%20quote%20for%20solar%20rooftop%20installation.%20Please%20share%20details%20about%20pricing%20and%20subsidy." target="_blank" rel="noopener noreferrer" className="hover:text-white transition">Get Quote</a></div>
+                <div><Link to="/chat" className="hover:text-[#FFD166] transition">WhatsApp Support</Link></div>
+                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Solar Products</a></div>
+                <div><Link to="/gallery" className="hover:text-[#FFD166] transition">Our Work</Link></div>
+                <div><a href="https://wa.me/918877896889?text=Hi%20ASR%20Enterprises!%20I%20want%20a%20FREE%20quote%20for%20solar%20rooftop%20installation.%20Please%20share%20details%20about%20pricing%20and%20subsidy." target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Get Quote</a></div>
               </div>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Contact Us</h4>
+              <h4 className="font-bold mb-4 text-[#FFD166]">Contact Us</h4>
               <div className="space-y-3 text-gray-400 text-sm">
                 <div className="flex items-start space-x-2">
-                  <Phone className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <Phone className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
-                    <a href="tel:8877896889" className="hover:text-white transition">8877896889</a>
+                    <a href="tel:8877896889" className="hover:text-[#FFD166] transition">8877896889</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
-                  <Mail className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <Mail className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
-                    <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-white transition break-all">asrenterprisespatna@gmail.com</a>
+                    <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-[#FFD166] transition break-all">asrenterprisespatna@gmail.com</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
-                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
                     <p className="font-semibold text-white mb-1">Office:</p>
                     <p>Shop no 10, AMAN SKS COMPLEX<br/>Khagaul Saguna Road<br/>Patna 801503, Bihar</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
-                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
                     <p className="font-semibold text-white mb-1">Registered:</p>
                     <p>Dawarikapuri, Khagaul<br/>Patna 801105, Bihar</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 text-yellow-400 pt-2">
+                <div className="flex items-center space-x-2 text-[#FFD166] pt-2">
                   <Instagram className="w-4 h-4" />
                   <span className="font-semibold">@asr_enterprises_patna</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          <div className="border-t border-[#0B3C5D] mt-8 pt-8 text-center text-gray-400">
             <p className="text-sm">© 2025 ASR Enterprises. All rights reserved.</p>
             <p className="text-xs mt-2">GSTIN: 10CCFPK3447Q3ZD | Patna, Bihar</p>
             <p className="text-xs mt-1">Powered by AI | Follow us: @asr_enterprises_patna</p>

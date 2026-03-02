@@ -41,40 +41,40 @@ Thank you!`)}`;
   };
 
   return (
-    <div className="bg-gradient-to-br from-[#0a355e] via-[#0c4270] to-[#0a355e] py-12 md:py-16">
+    <div className="bg-gradient-to-br from-[#071A2E] via-[#0B3C5D] to-[#071A2E] py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left: Text Content */}
           <div className="text-center lg:text-left">
-            <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <div className="inline-flex items-center space-x-2 bg-[#F5A623]/20 text-[#FFD166] px-4 py-2 rounded-full text-sm font-medium mb-4">
               <Sun className="w-4 h-4" />
               <span>PM Surya Ghar Yojana Partner</span>
             </div>
             
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight font-[Poppins]">
               Make Your Electricity Bill{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00C389] to-[#34D399]">
                 ZERO!
               </span>
             </h2>
             
             <p className="text-lg md:text-xl text-gray-300 mb-6 max-w-xl">
-              Switch to solar and save up to <strong className="text-amber-400">₹{(savings * 12).toLocaleString()}/year</strong>. 
-              Join 25+ happy customers across Bihar who now enjoy <strong className="text-green-400">zero electricity bills</strong>.
+              Switch to solar and save up to <strong className="text-[#FFD166]">₹{(savings * 12).toLocaleString()}/year</strong>. 
+              Join 25+ happy customers across Bihar who now enjoy <strong className="text-[#00C389]">zero electricity bills</strong>.
             </p>
 
-            {/* Quick Stats */}
+            {/* Quick Stats - Premium Glass Cards */}
             <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                <div className="text-2xl md:text-3xl font-bold text-green-400">₹78K</div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+                <div className="text-2xl md:text-3xl font-bold text-[#00C389]">₹78K</div>
                 <div className="text-xs text-gray-400">Govt Subsidy</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                <div className="text-2xl md:text-3xl font-bold text-amber-400">3.5</div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+                <div className="text-2xl md:text-3xl font-bold text-[#FFD166]">3.5</div>
                 <div className="text-xs text-gray-400">Yr Payback</div>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center">
-                <div className="text-2xl md:text-3xl font-bold text-blue-400">25</div>
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
+                <div className="text-2xl md:text-3xl font-bold text-[#60A5FA]">25</div>
                 <div className="text-xs text-gray-400">Yr Warranty</div>
               </div>
             </div>
@@ -84,7 +84,7 @@ Thank you!`)}`;
                 href={whatsappSurveyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition flex items-center justify-center space-x-2 shadow-xl shadow-green-500/30"
+                className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
                 data-testid="hero-book-survey-btn"
               >
                 <MessageSquare className="w-5 h-5" />
@@ -92,7 +92,7 @@ Thank you!`)}`;
               </a>
               <a
                 href="tel:8877896889"
-                className="border-2 border-white/30 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"
+                className="border-2 border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"
               >
                 <span>Call: 8877896889</span>
               </a>

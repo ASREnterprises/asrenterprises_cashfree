@@ -18,9 +18,12 @@ router = APIRouter(prefix="/api/meta", tags=["Meta Webhook"])
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Meta Webhook Verify Token - Used during webhook setup
-META_VERIFY_TOKEN = os.environ.get("META_VERIFY_TOKEN", "ASR_SOLAR_META_2026_SECURE")
-META_APP_SECRET = os.environ.get("META_APP_SECRET", "")
+# Meta Webhook Configuration - loaded dynamically to support env updates
+def get_verify_token():
+    return os.environ.get("META_VERIFY_TOKEN", "asrsolar2026")
+
+def get_app_secret():
+    return os.environ.get("META_APP_SECRET", "")
 
 # Database reference (will be set from main server)
 db = None
@@ -33,19 +36,21 @@ def set_database(database):
 
 def verify_webhook_signature(payload: bytes, signature: str) -> bool:
     """Verify that the webhook request came from Meta"""
-    if not META_APP_SECRET:
+    app_secret = get_app_secret()
+    if not app_secret:
         logger.warning("META_APP_SECRET not configured - skipping signature verification")
         return True
     
     if not signature:
         return False
     
+    app_secret = get_app_secret()
     # Meta sends signature as 'sha256=xxx'
     if signature.startswith('sha256='):
         signature = signature[7:]
     
     expected_signature = hmac.new(
-        META_APP_SECRET.encode('utf-8'),
+        app_secret.encode('utf-8'),
         payload,
         hashlib.sha256
     ).hexdigest()
@@ -67,15 +72,16 @@ async def verify_webhook(request: Request):
     hub_verify_token = request.query_params.get("hub.verify_token")
     hub_challenge = request.query_params.get("hub.challenge")
     
+    expected_token = get_verify_token()
     logger.info(f"Webhook verification request: mode={hub_mode}, token={hub_verify_token}, challenge={hub_challenge}")
     
     # Meta verification check
-    if hub_mode == "subscribe" and hub_verify_token == META_VERIFY_TOKEN:
+    if hub_mode == "subscribe" and hub_verify_token == expected_token:
         logger.info("Webhook verification successful!")
         # Return challenge as plain text - this is required by Meta
         return PlainTextResponse(content=hub_challenge, status_code=200)
     
-    logger.warning(f"Webhook verification failed: mode={hub_mode}, expected_token={META_VERIFY_TOKEN}, received_token={hub_verify_token}")
+    logger.warning(f"Webhook verification failed: mode={hub_mode}, expected_token={expected_token}, received_token={hub_verify_token}")
     return PlainTextResponse(content="Verification failed", status_code=403)
 
 

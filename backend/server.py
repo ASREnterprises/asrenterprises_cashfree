@@ -70,6 +70,7 @@ from cache import (
 # Import HR routes module
 from routes.hr import router as hr_router, init_router as init_hr_router
 from routes.crm import router as crm_router, init_router as init_crm_router
+from routers.meta_webhook import router as meta_router, set_database as set_meta_db
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -484,6 +485,15 @@ async def startup_event():
     
     # Initialize CRM router with database connection and utilities
     init_crm_router(db, sanitize_input, cache_get, cache_set)
+    
+    # Initialize Meta Webhook router with database connection
+    set_meta_db(db)
+    
+    # Create index for meta_messages collection
+    await db.meta_messages.create_index("id", unique=True)
+    await db.meta_messages.create_index("platform")
+    await db.meta_messages.create_index("status")
+    await db.meta_messages.create_index("received_at")
     
     # Start automated cleanup scheduler
     cleanup_task = asyncio.create_task(cleanup_scheduler())
@@ -10297,6 +10307,9 @@ api_router.include_router(hr_router)
 
 # Include CRM router under /api prefix
 api_router.include_router(crm_router)
+
+# Include Meta Webhook router (Facebook, Instagram, WhatsApp)
+app.include_router(meta_router)
 
 app.include_router(api_router)
 

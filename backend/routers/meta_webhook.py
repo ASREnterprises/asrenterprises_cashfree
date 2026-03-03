@@ -56,23 +56,27 @@ def verify_webhook_signature(payload: bytes, signature: str) -> bool:
 # ==================== WEBHOOK VERIFICATION ====================
 
 @router.get("/webhook")
-async def verify_webhook(
-    hub_mode: str = Query(None, alias="hub.mode"),
-    hub_verify_token: str = Query(None, alias="hub.verify_token"),
-    hub_challenge: str = Query(None, alias="hub.challenge")
-):
+async def verify_webhook(request: Request):
     """
     Meta Webhook Verification Endpoint
     Called by Meta during webhook setup to verify ownership
+    Returns hub.challenge as plain text for Meta verification
     """
-    logger.info(f"Webhook verification request: mode={hub_mode}, token={hub_verify_token}")
+    # Get query parameters
+    hub_mode = request.query_params.get("hub.mode")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    hub_challenge = request.query_params.get("hub.challenge")
     
+    logger.info(f"Webhook verification request: mode={hub_mode}, token={hub_verify_token}, challenge={hub_challenge}")
+    
+    # Meta verification check
     if hub_mode == "subscribe" and hub_verify_token == META_VERIFY_TOKEN:
         logger.info("Webhook verification successful!")
+        # Return challenge as plain text - this is required by Meta
         return PlainTextResponse(content=hub_challenge, status_code=200)
-    else:
-        logger.warning(f"Webhook verification failed: mode={hub_mode}, token mismatch")
-        raise HTTPException(status_code=403, detail="Verification failed")
+    
+    logger.warning(f"Webhook verification failed: mode={hub_mode}, expected_token={META_VERIFY_TOKEN}, received_token={hub_verify_token}")
+    return PlainTextResponse(content="Verification failed", status_code=403)
 
 
 # ==================== MESSAGE WEBHOOK ====================

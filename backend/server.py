@@ -517,6 +517,28 @@ async def shutdown_event():
     
     logger.info("🛑 Application shutdown complete")
 
+# Simple Meta Webhook endpoint directly on app (no middleware interference)
+@app.get("/webhook")
+async def simple_meta_webhook(request: Request):
+    """Simple webhook verification for Meta - bypasses all middleware"""
+    hub_mode = request.query_params.get("hub.mode")
+    hub_verify_token = request.query_params.get("hub.verify_token")
+    hub_challenge = request.query_params.get("hub.challenge")
+    
+    logger.info(f"[SIMPLE WEBHOOK] mode={hub_mode}, token={hub_verify_token}, challenge={hub_challenge}")
+    
+    if hub_mode == "subscribe" and hub_verify_token == os.environ.get("META_VERIFY_TOKEN", "asrsolar2026"):
+        return PlainTextResponse(content=hub_challenge, status_code=200)
+    
+    return PlainTextResponse(content="Verification failed", status_code=403)
+
+@app.post("/webhook")
+async def simple_meta_webhook_post(request: Request):
+    """Simple webhook receiver for Meta messages"""
+    body = await request.json()
+    logger.info(f"[SIMPLE WEBHOOK POST] Received: {body.get('object', 'unknown')}")
+    return JSONResponse(content={"status": "received"}, status_code=200)
+
 api_router = APIRouter(prefix="/api")
 
 # LLM Configuration

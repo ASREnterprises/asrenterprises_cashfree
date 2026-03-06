@@ -343,6 +343,17 @@ const SolarInquiryForm = () => {
         recaptcha_token: token || "",
         website_url: honeypot
       });
+      
+      // Track Lead event with Meta Pixel
+      if (typeof fbq !== 'undefined') {
+        fbq('track', 'Lead', {
+          content_name: 'Solar Inquiry Form',
+          content_category: 'Solar Installation',
+          value: formData.monthly_bill || 0,
+          currency: 'INR'
+        });
+      }
+      
       setSuccess(true);
       setFormData({ name: "", phone: "", district: "", property_type: "residential", monthly_bill: "", solar_capacity: "" });
       setRecaptchaToken(null);
@@ -492,6 +503,16 @@ const ServiceRegistration = () => {
       if (res.data.success) {
         // Store registration ID for reference
         localStorage.setItem('pendingRegistrationId', res.data.registration_id);
+        
+        // Track Lead event with Meta Pixel
+        if (typeof fbq !== 'undefined') {
+          fbq('track', 'Lead', {
+            content_name: 'Solar Registration Form',
+            content_category: 'Solar Installation',
+            value: registrationFee,
+            currency: 'INR'
+          });
+        }
         
         // Redirect to Razorpay payment link
         window.location.href = RAZORPAY_PAYMENT_LINK;
@@ -1054,6 +1075,7 @@ const HomePage = () => {
                 href="tel:8877896889"
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/30"
                 data-testid="call-now-btn"
+                onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Hero Section' }); }}
               >
                 <Phone className="w-5 h-5" />
                 <span>Call: 8877896889</span>
@@ -1064,6 +1086,7 @@ const HomePage = () => {
                 rel="noopener noreferrer"
                 className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
                 data-testid="whatsapp-btn"
+                onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'WhatsApp Chat', content_category: 'Hero Section' }); }}
               >
                 <MessageSquare className="w-5 h-5" />
                 <span>WhatsApp Us</span>
@@ -1894,6 +1917,7 @@ const HomePage = () => {
           href="tel:8877896889"
           className="bg-blue-500 text-white p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative"
           data-testid="call-float-btn"
+          onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Floating Button' }); }}
         >
           <Phone className="w-5 h-5" />
           <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
@@ -2110,6 +2134,16 @@ const LeadCapturePage = () => {
       const response = await axios.post(`${API}/leads`, submitData);
       setSuccess(true);
       setAiAnalysis(response.data);
+      
+      // Track Lead event with Meta Pixel
+      if (typeof fbq !== 'undefined') {
+        fbq('track', 'Lead', {
+          content_name: 'AI Lead Capture Form',
+          content_category: 'Solar Installation',
+          value: formData.monthly_electricity_bill || 0,
+          currency: 'INR'
+        });
+      }
       
       // Automatically open WhatsApp with lead details
       const whatsappMessage = `New Lead Inquiry:\nName: ${formData.name}\nPhone: ${formData.phone}\nLocation: ${formData.location}\nInterest: ${formData.interest}\nMonthly Bill: ₹${formData.monthly_electricity_bill || 'N/A'}`;

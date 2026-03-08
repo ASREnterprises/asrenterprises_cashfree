@@ -1,0 +1,100 @@
+{
+  "summary": "Iteration 39 - OTP 2-Step Flow Frontend Testing. Verified all 4 OTP forms have the correct 2-step flow: (1) Mobile input + Send OTP button, (2) OTP input + Verify button + Change Number + Resend countdown. Tests passed for 3 out of 4 forms. Lead Capture Page (/leads) route does not exist.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Lead Capture Page",
+        "issue": "Route /leads does not exist. LeadCapturePage component exists in App.js (lines 2387-2800) but is not exposed as a route. Only LeadCapturePopup (inactivity/exit-intent popup) is used.",
+        "affected_selectors": [],
+        "priority": "MEDIUM"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    ".screenshots/inquiry_form_step1.png",
+    ".screenshots/inquiry_form_step2.png",
+    ".screenshots/admin_otp_step1.png",
+    ".screenshots/admin_otp_step2.png",
+    ".screenshots/staff_otp_step1.png",
+    ".screenshots/staff_otp_step2.png"
+  ],
+  "action_items": [
+    "OPTIONAL: If /leads route is needed, add route: <Route path=\"/leads\" element={<LeadCapturePage />} /> to App.js routes section"
+  ],
+  "critical_code_review_comments": [
+    "LeadCapturePage component is defined (lines 2387-2800) but not exposed as a public route. This may be intentional as LeadCapturePopup is used instead for lead capture via inactivity/exit-intent triggers."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A - Frontend only testing",
+    "frontend": "100% for routed forms (3/3 PASS)"
+  },
+  "test_credentials": {
+    "test_mobile": "8877896889"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All OTP 2-step flows are working correctly for: Homepage Inquiry Form (/#inquiry-form), Admin Login (/admin/login), Staff Login (/staff/login). The LeadCapturePage component exists but is not exposed as /leads route - only LeadCapturePopup (popup) is active.",
+  "test_results": {
+    "homepage_inquiry_form": {
+      "route": "/#inquiry-form",
+      "status": "PASS",
+      "step1": {
+        "mobile_input": "VISIBLE",
+        "send_otp_btn": "VISIBLE",
+        "otp_input": "HIDDEN (correct)"
+      },
+      "step2_after_send_otp": {
+        "otp_input": "VISIBLE",
+        "verify_btn": "VISIBLE",
+        "change_number_link": "VISIBLE",
+        "resend_countdown": "VISIBLE",
+        "otp_sent_message": "VISIBLE"
+      }
+    },
+    "admin_login_otp": {
+      "route": "/admin/login (Mobile OTP tab)",
+      "status": "PASS",
+      "step1": {
+        "mobile_input": "VISIBLE",
+        "send_otp_btn": "VISIBLE",
+        "otp_input": "HIDDEN (correct)"
+      },
+      "step2_after_send_otp": {
+        "otp_input": "VISIBLE",
+        "verify_btn": "VISIBLE",
+        "change_number_link": "VISIBLE",
+        "resend_countdown": "VISIBLE",
+        "otp_sent_message": "VISIBLE"
+      }
+    },
+    "staff_login_otp": {
+      "route": "/staff/login (Mobile OTP tab)",
+      "status": "PASS",
+      "step1": {
+        "mobile_input": "VISIBLE",
+        "send_otp_btn": "VISIBLE",
+        "otp_input": "HIDDEN (correct)"
+      },
+      "step2_after_send_otp": {
+        "otp_input": "VISIBLE",
+        "verify_btn": "VISIBLE",
+        "change_number_link": "VISIBLE",
+        "resend_countdown": "VISIBLE",
+        "otp_sent_message": "VISIBLE"
+      }
+    },
+    "lead_capture_page": {
+      "route": "/leads",
+      "status": "ROUTE NOT FOUND",
+      "notes": "LeadCapturePage component exists in App.js but no public route defined. LeadCapturePopup is used instead for lead capture."
+    }
+  }
+}

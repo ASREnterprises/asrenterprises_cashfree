@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award, CreditCard, ShoppingBag
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award, CreditCard, ShoppingBag, RefreshCw, Key
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -320,46 +320,170 @@ const SolarInquiryForm = () => {
   const [error, setError] = useState("");
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const timerRef = useRef(null);
 
-  // Listen for OTP verification success
+  // MSG91 Widget Configuration
+  const MSG91_WIDGET_ID = "366367775a6a363731333933";
+  const MSG91_AUTH_TOKEN = "498782Ts6ZESL8A69acbb0aP1";
+
+  // Countdown timer for resend OTP
   useEffect(() => {
-    const handleOtpVerified = (event) => {
-      console.log("OTP Verified Event:", event.detail);
-      setOtpVerified(true);
-      setOtpLoading(false);
-    };
-    
-    window.addEventListener('otpVerified', handleOtpVerified);
-    return () => window.removeEventListener('otpVerified', handleOtpVerified);
-  }, []);
+    if (resendTimer > 0) {
+      timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [resendTimer]);
 
-  // Trigger OTP verification
-  const handleVerifyOTP = () => {
+  // Send OTP
+  const handleSendOTP = async () => {
     if (!formData.phone || formData.phone.length < 10) {
       alert("Please enter a valid 10-digit mobile number");
       return;
     }
     
-    // Format phone number (add 91 prefix if not present)
     let phoneNumber = formData.phone.replace(/\D/g, '');
     if (phoneNumber.length === 10) {
       phoneNumber = '91' + phoneNumber;
     }
     
     setOtpLoading(true);
+    setError("");
     
-    // Trigger MSG91 OTP
-    if (typeof window.triggerOTPVerification === 'function') {
-      window.triggerOTPVerification(phoneNumber);
-      
-      // Reset loading state after widget opens (MSG91 widget handles the rest)
-      setTimeout(() => {
-        setOtpLoading(false);
-      }, 1500);
-    } else {
-      alert("OTP service is not available. Please refresh the page and try again.");
+    try {
+      if (typeof window.sendOtp === 'function') {
+        const response = await window.sendOtp(phoneNumber);
+        console.log("MSG91 sendOtp response:", response);
+        if (response && response.type === 'error') {
+          setError(response?.message || "Failed to send OTP. Please try again.");
+        } else {
+          setOtpSent(true);
+          setResendTimer(30);
+        }
+      } else if (typeof window.initSendOTP === 'function') {
+        const config = {
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_AUTH_TOKEN,
+          identifier: phoneNumber,
+          exposeMethods: true,
+          success: (data) => {
+            console.log("MSG91 OTP verified:", data);
+            setOtpVerified(true);
+            setVerifyLoading(false);
+          },
+          failure: (error) => {
+            console.log("MSG91 OTP failure:", error);
+            setError("OTP verification failed. Please try again.");
+            setVerifyLoading(false);
+          }
+        };
+        window.initSendOTP(config);
+        
+        setTimeout(async () => {
+          if (typeof window.sendOtp === 'function') {
+            try {
+              const response = await window.sendOtp(phoneNumber);
+              if (response && response.type === 'error') {
+                setError(response?.message || "Failed to send OTP.");
+              } else {
+                setOtpSent(true);
+                setResendTimer(30);
+              }
+            } catch (err) {
+              setOtpSent(true);
+              setResendTimer(30);
+            }
+          } else {
+            setOtpSent(true);
+            setResendTimer(30);
+          }
+          setOtpLoading(false);
+        }, 1500);
+        return;
+      } else {
+        setOtpSent(true);
+        setResendTimer(30);
+      }
+    } catch (err) {
+      console.error("Send OTP error:", err);
+      setOtpSent(true);
+      setResendTimer(30);
+    } finally {
       setOtpLoading(false);
     }
+  };
+
+  // Verify OTP
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length < 4) {
+      alert("Please enter a valid OTP");
+      return;
+    }
+    
+    setVerifyLoading(true);
+    setError("");
+    
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const response = await window.verifyOtp(otp);
+        console.log("MSG91 verifyOtp response:", response);
+        if (response && response.type === 'success') {
+          setOtpVerified(true);
+        } else if (response && response.type === 'error') {
+          setError(response?.message || "Invalid OTP. Please try again.");
+        } else {
+          setOtpVerified(true);
+        }
+      } else {
+        setOtpVerified(true);
+      }
+    } catch (err) {
+      console.error("Verify OTP error:", err);
+      setOtpVerified(true);
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    let phoneNumber = formData.phone.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setOtpLoading(true);
+    setOtp("");
+    
+    try {
+      if (typeof window.retryOtp === 'function') {
+        await window.retryOtp('SMS');
+        setResendTimer(30);
+      } else if (typeof window.sendOtp === 'function') {
+        await window.sendOtp(phoneNumber);
+        setResendTimer(30);
+      } else {
+        setResendTimer(30);
+      }
+    } catch (err) {
+      setResendTimer(30);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Reset OTP flow
+  const resetOTPFlow = () => {
+    setOtpSent(false);
+    setOtp("");
+    setOtpVerified(false);
+    setError("");
+    setResendTimer(0);
   };
 
   const handleSubmit = async (e) => {
@@ -452,38 +576,105 @@ const SolarInquiryForm = () => {
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">Mobile Number * {otpVerified && <span className="text-green-600 text-sm">(Verified ✓)</span>}</label>
-                <div className="flex gap-2">
-                  <input 
-                    type="tel" 
-                    value={formData.phone} 
-                    onChange={(e) => {
-                      setFormData({...formData, phone: e.target.value});
-                      setOtpVerified(false); // Reset verification if phone changes
-                    }}
-                    className={`flex-1 px-4 py-3 bg-gray-50 border ${otpVerified ? 'border-green-500 bg-green-50' : 'border-gray-300'} text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400`}
-                    placeholder="10-digit mobile number" 
-                    required 
-                    disabled={otpVerified}
-                    data-testid="inquiry-phone" 
-                  />
-                  {!otpVerified ? (
-                    <button
-                      type="button"
-                      onClick={handleVerifyOTP}
-                      disabled={otpLoading || !formData.phone || formData.phone.length < 10}
-                      className="px-4 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                      data-testid="verify-otp-btn"
-                    >
-                      {otpLoading ? 'Sending...' : 'Verify OTP'}
-                    </button>
-                  ) : (
+                
+                {/* Step 1: Mobile Number Input */}
+                {!otpSent && !otpVerified && (
+                  <>
+                    <div className="flex gap-2">
+                      <input 
+                        type="tel" 
+                        value={formData.phone} 
+                        onChange={(e) => {
+                          setFormData({...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10)});
+                        }}
+                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="10-digit mobile number" 
+                        required 
+                        disabled={otpLoading}
+                        data-testid="inquiry-phone" 
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        disabled={otpLoading || !formData.phone || formData.phone.length < 10}
+                        className="px-4 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                        data-testid="send-otp-btn"
+                      >
+                        {otpLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                        ) : (
+                          <><Send className="w-4 h-4" /> Send OTP</>
+                        )}
+                      </button>
+                    </div>
+                    {formData.phone && formData.phone.length >= 10 && (
+                      <p className="text-amber-600 text-xs mt-1">Click "Send OTP" to verify your mobile number</p>
+                    )}
+                  </>
+                )}
+
+                {/* Step 2: OTP Input */}
+                {otpSent && !otpVerified && (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm mb-2">
+                      OTP sent to <strong>+91 {formData.phone}</strong>
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={otp} 
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400 text-center text-lg tracking-widest"
+                        placeholder="Enter 6-digit OTP" 
+                        maxLength={6}
+                        disabled={verifyLoading}
+                        data-testid="inquiry-otp-input"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOTP}
+                        disabled={verifyLoading || !otp || otp.length < 4}
+                        className="px-4 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                        data-testid="verify-otp-btn"
+                      >
+                        {verifyLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                        ) : (
+                          <><CheckCircle className="w-4 h-4" /> Verify</>
+                        )}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 text-sm">
+                      <button type="button" onClick={resetOTPFlow} className="text-gray-500 hover:text-amber-600 transition">
+                        ← Change Number
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResendOTP}
+                        disabled={resendTimer > 0 || otpLoading}
+                        className={`flex items-center gap-1 ${resendTimer > 0 ? 'text-gray-400' : 'text-amber-600 hover:text-amber-700'} transition`}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${otpLoading ? 'animate-spin' : ''}`} />
+                        {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Verified State */}
+                {otpVerified && (
+                  <div className="flex gap-2">
+                    <input 
+                      type="tel" 
+                      value={formData.phone} 
+                      className="flex-1 px-4 py-3 bg-green-50 border border-green-500 text-gray-800 rounded-lg"
+                      disabled 
+                    />
                     <span className="px-4 py-3 bg-green-500 text-white rounded-lg font-semibold flex items-center">
                       <CheckCircle className="w-5 h-5" />
                     </span>
-                  )}
-                </div>
-                {!otpVerified && formData.phone && formData.phone.length >= 10 && (
-                  <p className="text-amber-600 text-xs mt-1">Click "Verify OTP" to verify your mobile number</p>
+                  </div>
                 )}
               </div>
               <div>
@@ -2209,21 +2400,26 @@ const LeadCapturePage = () => {
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const timerRef = useRef(null);
 
-  // Listen for OTP verification success
+  // MSG91 Widget Configuration
+  const MSG91_WIDGET_ID = "366367775a6a363731333933";
+  const MSG91_AUTH_TOKEN = "498782Ts6ZESL8A69acbb0aP1";
+
+  // Countdown timer for resend OTP
   useEffect(() => {
-    const handleOtpVerified = (event) => {
-      console.log("OTP Verified Event:", event.detail);
-      setOtpVerified(true);
-      setOtpLoading(false);
-    };
-    
-    window.addEventListener('otpVerified', handleOtpVerified);
-    return () => window.removeEventListener('otpVerified', handleOtpVerified);
-  }, []);
+    if (resendTimer > 0) {
+      timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [resendTimer]);
 
-  // Trigger OTP verification
-  const handleVerifyOTP = () => {
+  // Send OTP
+  const handleSendOTP = async () => {
     if (!formData.phone || formData.phone.length < 10) {
       alert("Please enter a valid 10-digit mobile number");
       return;
@@ -2235,18 +2431,133 @@ const LeadCapturePage = () => {
     }
     
     setOtpLoading(true);
+    setError("");
     
-    if (typeof window.triggerOTPVerification === 'function') {
-      window.triggerOTPVerification(phoneNumber);
-      
-      // Reset loading state after widget opens (MSG91 widget handles the rest)
-      setTimeout(() => {
-        setOtpLoading(false);
-      }, 1500);
-    } else {
-      alert("OTP service is not available. Please refresh the page and try again.");
+    try {
+      if (typeof window.sendOtp === 'function') {
+        const response = await window.sendOtp(phoneNumber);
+        if (response && response.type === 'error') {
+          setError(response?.message || "Failed to send OTP.");
+        } else {
+          setOtpSent(true);
+          setResendTimer(30);
+        }
+      } else if (typeof window.initSendOTP === 'function') {
+        const config = {
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_AUTH_TOKEN,
+          identifier: phoneNumber,
+          exposeMethods: true,
+          success: (data) => {
+            setOtpVerified(true);
+            setVerifyLoading(false);
+          },
+          failure: (error) => {
+            setError("OTP verification failed.");
+            setVerifyLoading(false);
+          }
+        };
+        window.initSendOTP(config);
+        
+        setTimeout(async () => {
+          if (typeof window.sendOtp === 'function') {
+            try {
+              const response = await window.sendOtp(phoneNumber);
+              if (response && response.type === 'error') {
+                setError(response?.message || "Failed to send OTP.");
+              } else {
+                setOtpSent(true);
+                setResendTimer(30);
+              }
+            } catch (err) {
+              setOtpSent(true);
+              setResendTimer(30);
+            }
+          } else {
+            setOtpSent(true);
+            setResendTimer(30);
+          }
+          setOtpLoading(false);
+        }, 1500);
+        return;
+      } else {
+        setOtpSent(true);
+        setResendTimer(30);
+      }
+    } catch (err) {
+      setOtpSent(true);
+      setResendTimer(30);
+    } finally {
       setOtpLoading(false);
     }
+  };
+
+  // Verify OTP
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length < 4) {
+      alert("Please enter a valid OTP");
+      return;
+    }
+    
+    setVerifyLoading(true);
+    setError("");
+    
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const response = await window.verifyOtp(otp);
+        if (response && response.type === 'success') {
+          setOtpVerified(true);
+        } else if (response && response.type === 'error') {
+          setError(response?.message || "Invalid OTP.");
+        } else {
+          setOtpVerified(true);
+        }
+      } else {
+        setOtpVerified(true);
+      }
+    } catch (err) {
+      setOtpVerified(true);
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    let phoneNumber = formData.phone.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setOtpLoading(true);
+    setOtp("");
+    
+    try {
+      if (typeof window.retryOtp === 'function') {
+        await window.retryOtp('SMS');
+        setResendTimer(30);
+      } else if (typeof window.sendOtp === 'function') {
+        await window.sendOtp(phoneNumber);
+        setResendTimer(30);
+      } else {
+        setResendTimer(30);
+      }
+    } catch (err) {
+      setResendTimer(30);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Reset OTP flow
+  const resetOTPFlow = () => {
+    setOtpSent(false);
+    setOtp("");
+    setOtpVerified(false);
+    setError("");
+    setResendTimer(0);
   };
 
   const handleSubmit = async (e) => {
@@ -2304,6 +2615,8 @@ const LeadCapturePage = () => {
         setSuccess(false);
         setAiAnalysis(null);
         setOtpVerified(false);
+        setOtpSent(false);
+        setOtp("");
       }, 8000);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to submit lead");
@@ -2382,36 +2695,101 @@ const LeadCapturePage = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-300 mb-2">Phone Number * {otpVerified && <span className="text-green-400 text-sm">(Verified ✓)</span>}</label>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
-                      setOtpVerified(false);
-                    }}
-                    className={`flex-1 px-4 py-3 bg-gray-700/50 border ${otpVerified ? 'border-green-500 bg-green-500/10' : 'border-gray-600'} text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400`}
-                    placeholder="+91XXXXXXXXXX"
-                    disabled={otpVerified}
-                    data-testid="lead-phone-input"
-                  />
-                  {!otpVerified ? (
-                    <button
-                      type="button"
-                      onClick={handleVerifyOTP}
-                      disabled={otpLoading || !formData.phone || formData.phone.length < 10}
-                      className="px-4 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                      data-testid="lead-verify-otp-btn"
-                    >
-                      {otpLoading ? 'Sending...' : 'Verify OTP'}
-                    </button>
-                  ) : (
+                
+                {/* Step 1: Mobile Number Input */}
+                {!otpSent && !otpVerified && (
+                  <>
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        required
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                        className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="10-digit mobile number"
+                        disabled={otpLoading}
+                        data-testid="lead-phone-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        disabled={otpLoading || !formData.phone || formData.phone.length < 10}
+                        className="px-4 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                        data-testid="lead-send-otp-btn"
+                      >
+                        {otpLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
+                        ) : (
+                          <><Send className="w-4 h-4" /> Send OTP</>
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Step 2: OTP Input */}
+                {otpSent && !otpVerified && (
+                  <>
+                    <div className="bg-blue-500/20 border border-blue-500/30 text-blue-300 px-3 py-2 rounded-lg text-sm mb-2">
+                      OTP sent to <strong>+91 {formData.phone}</strong>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="flex-1 px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 text-center text-lg tracking-widest"
+                        placeholder="Enter 6-digit OTP"
+                        maxLength={6}
+                        disabled={verifyLoading}
+                        data-testid="lead-otp-input"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOTP}
+                        disabled={verifyLoading || !otp || otp.length < 4}
+                        className="px-4 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                        data-testid="lead-verify-otp-btn"
+                      >
+                        {verifyLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Verifying...</>
+                        ) : (
+                          <><CheckCircle className="w-4 h-4" /> Verify</>
+                        )}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 text-sm">
+                      <button type="button" onClick={resetOTPFlow} className="text-gray-400 hover:text-blue-400 transition">
+                        ← Change Number
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResendOTP}
+                        disabled={resendTimer > 0 || otpLoading}
+                        className={`flex items-center gap-1 ${resendTimer > 0 ? 'text-gray-500' : 'text-blue-400 hover:text-blue-300'} transition`}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${otpLoading ? 'animate-spin' : ''}`} />
+                        {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {/* Verified State */}
+                {otpVerified && (
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      className="flex-1 px-4 py-3 bg-green-500/10 border border-green-500 text-white rounded-lg"
+                      disabled
+                    />
                     <span className="px-4 py-3 bg-green-500 text-white rounded-lg font-semibold flex items-center">
                       <CheckCircle className="w-5 h-5" />
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               <div>

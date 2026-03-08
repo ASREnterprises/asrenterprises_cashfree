@@ -19,6 +19,17 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Testing:** 100% pass rate (10/10 backend tests, all UI elements verified)
 - **Test Report:** `/app/test_reports/iteration_36.json`
 
+### OTP Button "Sending..." Stuck State Fix (COMPLETED)
+- **Issue:** OTP buttons stayed stuck in "Sending..." state indefinitely after clicking, even after MSG91 widget opened
+- **Root Cause:** `otpLoading` state was only reset on MSG91 success/failure callback, but the widget opens a popup while button stayed loading
+- **Fix Applied:** Added 1.5 second setTimeout to reset `otpLoading` after MSG91 widget is triggered
+- **Files Modified:**
+  - `/app/frontend/src/components/AdminLogin.js` - lines 100-138
+  - `/app/frontend/src/components/StaffLogin.js` - lines 98-134
+  - `/app/frontend/src/App.js` - SolarInquiryForm lines 336-363, LeadCapturePage lines 2225-2252
+- **Testing:** All 4 OTP buttons verified - they show "Sending..." briefly then reset to normal state
+- **Test Report:** `/app/test_reports/iteration_37.json`
+
 ### Admin/Staff Login Credentials
 - **Admin Email:** asrenterprisespatna@gmail.com
 - **Admin Password:** admin@asr123

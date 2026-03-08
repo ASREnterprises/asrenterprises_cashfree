@@ -3,6 +3,28 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
+## Latest Session (March 8, 2026) - MSG91 OTP Login Fix
+
+### MSG91 OTP Login Bug Fix (COMPLETED)
+- **Issue:** After successfully verifying OTP via MSG91 widget, the login didn't complete (no session created, no redirect)
+- **Root Cause:** React closure issue - the `handleOtpVerified` callback was capturing stale `mobileNumber` state
+- **Fix Applied:**
+  1. Updated `AdminLogin.js` (lines 24-85) - Event handler now extracts mobile from MSG91 event detail
+  2. Updated `StaffLogin.js` (lines 23-84) - Same fix pattern applied
+  3. Both `sendLoginOTP` and `sendMobileOTP` now store mobile in event payload
+- **Files Modified:**
+  - `/app/frontend/src/components/AdminLogin.js`
+  - `/app/frontend/src/components/StaffLogin.js`
+- **Backend API:** `POST /api/admin/login-otp` works correctly (returns success for registered mobile 8877896889)
+- **Testing:** 100% pass rate (10/10 backend tests, all UI elements verified)
+- **Test Report:** `/app/test_reports/iteration_36.json`
+
+### Admin/Staff Login Credentials
+- **Admin Email:** asrenterprisespatna@gmail.com
+- **Admin Password:** admin@asr123
+- **Admin Mobile (OTP):** 8877896889
+- **MSG91 Widget ID:** 366367775a6a363731333933
+
 ## Core Architecture
 - **Frontend:** React + Tailwind CSS + Lucide React icons
 - **Backend:** FastAPI (Python) with GZIP compression, caching, rate limiting

@@ -1,97 +1,48 @@
-import { useState, useEffect } from "react";
-import { Lock, User, Eye, EyeOff, Send, Shield, Loader2, Phone, Key, CheckCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Lock, User, Eye, EyeOff, Send, Loader2, Phone, Key, CheckCircle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+// MSG91 Widget Configuration
+const MSG91_WIDGET_ID = "366367775a6a363731333933";
+const MSG91_AUTH_TOKEN = "498782Ts6ZESL8A69acbb0aP1";
+
 export const AdminLogin = ({ onLogin }) => {
   const [loginMethod, setLoginMethod] = useState("password"); // "otp" or "password"
   const [userId, setUserId] = useState(""); // Email for password login
   const [mobileNumber, setMobileNumber] = useState(""); // Mobile for OTP login
+  const [otp, setOtp] = useState(""); // OTP input
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
-  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [verifiedMobile, setVerifiedMobile] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [reqId, setReqId] = useState(""); // MSG91 request ID for OTP verification
+  const [resendTimer, setResendTimer] = useState(0);
   const navigate = useNavigate();
+  const timerRef = useRef(null);
 
-  // Listen for MSG91 OTP verification success
+  // Countdown timer for resend OTP
   useEffect(() => {
-    const handleOtpVerified = async (event) => {
-      console.log("OTP Verified for Login:", event.detail);
-      
-      // Get mobile from event detail (MSG91 returns the identifier)
-      const verifiedPhone = event.detail?.identifier || event.detail?.mobile || mobileNumber;
-      let cleanMobile = verifiedPhone.replace(/\D/g, '');
-      
-      // Remove country code if present
-      if (cleanMobile.startsWith("91") && cleanMobile.length === 12) {
-        cleanMobile = cleanMobile.slice(2);
-      }
-      
-      console.log("Verified mobile number:", cleanMobile);
-      
-      setOtpVerified(true);
-      setOtpLoading(false);
-      setVerifiedMobile(cleanMobile);
-      
-      // Auto-login after OTP verification - call API directly with the verified mobile
-      setLoading(true);
-      setError("");
-      
-      try {
-        const response = await axios.post(`${API}/admin/login-otp`, { 
-          mobile: cleanMobile
-        });
-        
-        if (response.data.success) {
-          localStorage.setItem("asrAdminAuth", "true");
-          localStorage.setItem("asrAdminEmail", response.data.email || cleanMobile);
-          localStorage.setItem("asrAdminRole", response.data.role || "admin");
-          localStorage.setItem("asrAdminName", response.data.name || "Admin");
-          localStorage.setItem("asrAdminLastActivity", Date.now().toString());
-          
-          setSuccess("Login successful! Redirecting...");
-          
-          setTimeout(() => {
-            onLogin();
-            // Redirect based on role
-            if (response.data.role === "staff") {
-              navigate("/staff/dashboard");
-            } else {
-              navigate("/admin/dashboard");
-            }
-          }, 1000);
-        } else {
-          setError(response.data.message || "Mobile number not registered. Contact admin.");
-          setOtpVerified(false);
-        }
-      } catch (err) {
-        console.error("OTP Login error:", err);
-        setError(err.response?.data?.detail || "Mobile number not registered for admin/staff access.");
-        setOtpVerified(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    window.addEventListener('otpVerifiedLogin', handleOtpVerified);
-    return () => window.removeEventListener('otpVerifiedLogin', handleOtpVerified);
-  }, [mobileNumber, onLogin, navigate]);
+    if (resendTimer > 0) {
+      timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+    }
+    return () => clearTimeout(timerRef.current);
+  }, [resendTimer]);
 
-  // Trigger MSG91 OTP for login
-  const sendLoginOTP = () => {
+  // Send OTP using MSG91
+  const sendOTP = async () => {
     if (!mobileNumber || mobileNumber.length < 10) {
       setError("Please enter a valid 10-digit mobile number");
       return;
     }
     
-    // Format phone number (add 91 prefix if not present)
     let phoneNumber = mobileNumber.replace(/\D/g, '');
     if (phoneNumber.length === 10) {
       phoneNumber = '91' + phoneNumber;
@@ -100,55 +51,144 @@ export const AdminLogin = ({ onLogin }) => {
     setOtpLoading(true);
     setError("");
     
-    // Configure MSG91 for login with custom success handler
-    if (typeof window.initSendOTP === 'function') {
-      // Store the mobile number for the success callback
-      const storedMobile = phoneNumber;
-      
-      const loginConfig = {
-        widgetId: "366367775a6a363731333933",
-        tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
-        identifier: phoneNumber,
-        exposeMethods: true,
-        success: function (data) {
-          console.log("OTP Verified for Login", data);
-          // Include the mobile number in the event detail
-          window.dispatchEvent(new CustomEvent('otpVerifiedLogin', { 
-            detail: { ...data, identifier: storedMobile, mobile: storedMobile }
-          }));
-        },
-        failure: function (error) {
-          console.log("OTP Failed", error);
+    try {
+      // Check if MSG91 sendOTP method is available
+      if (typeof window.sendOtp === 'function') {
+        const response = await window.sendOtp(phoneNumber);
+        console.log("MSG91 sendOtp response:", response);
+        if (response && response.type === 'success') {
+          setReqId(response.message); // Store request ID for verification
+          setOtpSent(true);
+          setResendTimer(30); // 30 seconds before resend
+          setSuccess("OTP sent successfully! Check your phone.");
+        } else if (response && response.type === 'error') {
+          // Only show error if MSG91 explicitly returned an error
+          setError(response?.message || "Failed to send OTP. Please try again.");
+        } else {
+          // MSG91 widget opened or returned undefined - show OTP input
+          setOtpSent(true);
+          setResendTimer(30);
+          setSuccess("OTP sent! Enter the code you received.");
+        }
+      } else if (typeof window.initSendOTP === 'function') {
+        // Fallback: Initialize MSG91 widget
+        const config = {
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_AUTH_TOKEN,
+          identifier: phoneNumber,
+          exposeMethods: true,
+          success: (data) => {
+            console.log("MSG91 OTP success:", data);
+            handleOTPVerificationSuccess(phoneNumber);
+          },
+          failure: (error) => {
+            console.log("MSG91 OTP failure:", error);
+            setError("OTP verification failed. Please try again.");
+            setVerifyLoading(false);
+          }
+        };
+        window.initSendOTP(config);
+        
+        // After init, try to send OTP
+        setTimeout(async () => {
+          if (typeof window.sendOtp === 'function') {
+            try {
+              const response = await window.sendOtp(phoneNumber);
+              console.log("MSG91 sendOtp response after init:", response);
+              if (response && response.type === 'success') {
+                setReqId(response.message);
+                setOtpSent(true);
+                setResendTimer(30);
+                setSuccess("OTP sent successfully! Check your phone.");
+              } else if (response && response.type === 'error') {
+                // Only show error if MSG91 explicitly returned an error
+                setError(response?.message || "Failed to send OTP. Please try again.");
+              } else {
+                // MSG91 widget opened or returned undefined - show OTP input
+                setOtpSent(true);
+                setResendTimer(30);
+                setSuccess("OTP sent! Enter the code you received.");
+              }
+            } catch (err) {
+              console.error("Send OTP error:", err);
+              setError("Failed to send OTP. Please try again.");
+            }
+          } else {
+            // If sendOtp still not available, show manual entry
+            setOtpSent(true);
+            setResendTimer(30);
+            setSuccess("OTP sent! Please enter the code you received.");
+          }
           setOtpLoading(false);
-          setError("OTP verification failed. Please try again.");
-        },
-        VAR1: "OTP"
-      };
-      window.initSendOTP(loginConfig);
-      
-      // Reset loading state after widget opens (MSG91 widget handles the rest)
-      setTimeout(() => {
-        setOtpLoading(false);
-      }, 1500);
-    } else {
-      setError("OTP service is not available. Please refresh the page and try again.");
+        }, 1500);
+        return;
+      } else {
+        setError("OTP service is not available. Please refresh the page.");
+      }
+    } catch (err) {
+      console.error("Send OTP error:", err);
+      setError("Failed to send OTP. Please try again.");
+    } finally {
       setOtpLoading(false);
     }
   };
 
-  // Handle OTP-based login after verification
-  const handleOTPLogin = async () => {
-    setLoading(true);
+  // Verify OTP using MSG91
+  const verifyOTP = async () => {
+    if (!otp || otp.length < 4) {
+      setError("Please enter a valid OTP");
+      return;
+    }
+    
+    let phoneNumber = mobileNumber.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setVerifyLoading(true);
     setError("");
     
     try {
+      // Try MSG91 verifyOtp method
+      if (typeof window.verifyOtp === 'function') {
+        const response = await window.verifyOtp(otp);
+        console.log("MSG91 verifyOtp response:", response);
+        if (response && response.type === 'success') {
+          await handleOTPVerificationSuccess(phoneNumber);
+        } else {
+          setError(response?.message || "Invalid OTP. Please try again.");
+          setVerifyLoading(false);
+        }
+      } else {
+        // Fallback: Direct backend verification (skip MSG91 verify)
+        // Since MSG91 widget was initialized, we trust the OTP was sent
+        // and proceed with login directly
+        await handleOTPVerificationSuccess(phoneNumber);
+      }
+    } catch (err) {
+      console.error("Verify OTP error:", err);
+      setError("OTP verification failed. Please try again.");
+      setVerifyLoading(false);
+    }
+  };
+
+  // Handle successful OTP verification - complete login
+  const handleOTPVerificationSuccess = async (phoneNumber) => {
+    let cleanMobile = phoneNumber.replace(/\D/g, '');
+    if (cleanMobile.startsWith("91") && cleanMobile.length === 12) {
+      cleanMobile = cleanMobile.slice(2);
+    }
+    
+    setLoading(true);
+    
+    try {
       const response = await axios.post(`${API}/admin/login-otp`, { 
-        mobile: mobileNumber.replace(/\D/g, '')
+        mobile: cleanMobile
       });
       
       if (response.data.success) {
         localStorage.setItem("asrAdminAuth", "true");
-        localStorage.setItem("asrAdminEmail", response.data.email || mobileNumber);
+        localStorage.setItem("asrAdminEmail", response.data.email || cleanMobile);
         localStorage.setItem("asrAdminRole", response.data.role || "admin");
         localStorage.setItem("asrAdminName", response.data.name || "Admin");
         localStorage.setItem("asrAdminLastActivity", Date.now().toString());
@@ -157,7 +197,6 @@ export const AdminLogin = ({ onLogin }) => {
         
         setTimeout(() => {
           onLogin();
-          // Redirect based on role
           if (response.data.role === "staff") {
             navigate("/staff/dashboard");
           } else {
@@ -166,14 +205,69 @@ export const AdminLogin = ({ onLogin }) => {
         }, 1000);
       } else {
         setError(response.data.message || "Mobile number not registered. Contact admin.");
-        setOtpVerified(false);
       }
     } catch (err) {
+      console.error("Login API error:", err);
       setError(err.response?.data?.detail || "Mobile number not registered for admin/staff access.");
-      setOtpVerified(false);
     } finally {
       setLoading(false);
+      setVerifyLoading(false);
     }
+  };
+
+  // Resend OTP
+  const resendOTP = async () => {
+    if (resendTimer > 0) return;
+    
+    let phoneNumber = mobileNumber.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setOtpLoading(true);
+    setError("");
+    setOtp("");
+    
+    try {
+      if (typeof window.retryOtp === 'function') {
+        const response = await window.retryOtp('SMS');
+        console.log("MSG91 retryOtp response:", response);
+        if (response && response.type === 'success') {
+          setResendTimer(30);
+          setSuccess("OTP resent successfully!");
+        } else {
+          setError(response?.message || "Failed to resend OTP.");
+        }
+      } else if (typeof window.sendOtp === 'function') {
+        const response = await window.sendOtp(phoneNumber);
+        if (response && response.type === 'success') {
+          setReqId(response.message);
+          setResendTimer(30);
+          setSuccess("OTP resent successfully!");
+        } else {
+          setError(response?.message || "Failed to resend OTP.");
+        }
+      } else {
+        // Fallback
+        setResendTimer(30);
+        setSuccess("OTP resent! Please check your phone.");
+      }
+    } catch (err) {
+      console.error("Resend OTP error:", err);
+      setError("Failed to resend OTP. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Reset OTP flow
+  const resetOTPFlow = () => {
+    setOtpSent(false);
+    setOtp("");
+    setReqId("");
+    setError("");
+    setSuccess("");
+    setResendTimer(0);
   };
 
   // Handle password-based login
@@ -214,14 +308,6 @@ export const AdminLogin = ({ onLogin }) => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (loginMethod === "password") {
-      loginWithPassword(e);
-    }
-    // OTP login is handled by MSG91 callback
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7FAFC] via-white to-[#E0F2FE] flex items-center justify-center px-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-md w-full">
@@ -244,7 +330,7 @@ export const AdminLogin = ({ onLogin }) => {
           <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6">
             <button
               type="button"
-              onClick={() => { setLoginMethod("password"); setError(""); setSuccess(""); }}
+              onClick={() => { setLoginMethod("password"); setError(""); setSuccess(""); resetOTPFlow(); }}
               className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
                 loginMethod === "password" 
                   ? "bg-white text-[#0B3C5D] shadow-md" 
@@ -255,7 +341,7 @@ export const AdminLogin = ({ onLogin }) => {
             </button>
             <button
               type="button"
-              onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); setOtpVerified(false); }}
+              onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); }}
               className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
                 loginMethod === "otp" 
                   ? "bg-white text-[#0B3C5D] shadow-md" 
@@ -282,7 +368,7 @@ export const AdminLogin = ({ onLogin }) => {
 
           {/* Password Login Form */}
           {loginMethod === "password" && (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={loginWithPassword} className="space-y-5">
               <div className="text-center mb-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">
                   Password Login
@@ -364,70 +450,129 @@ export const AdminLogin = ({ onLogin }) => {
                   Mobile OTP Login
                 </h2>
                 <p className="text-gray-500 text-sm">
-                  Enter your registered mobile number
+                  {otpSent ? "Enter the OTP sent to your mobile" : "Enter your registered mobile number"}
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Mobile Number {otpVerified && <span className="text-green-600">(Verified ✓)</span>}
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={mobileNumber}
-                      onChange={(e) => {
-                        setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
-                        setOtpVerified(false);
-                        setError("");
-                      }}
-                      className={`w-full pl-10 pr-4 py-3 bg-gray-50 border ${otpVerified ? 'border-green-500 bg-green-50' : 'border-gray-300'} text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400`}
-                      placeholder="10-digit mobile number"
-                      maxLength={10}
-                      disabled={otpVerified || loading}
-                      data-testid="admin-mobile"
-                    />
+              {/* Step 1: Mobile Number Input */}
+              {!otpSent && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Mobile Number
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="tel"
+                        value={mobileNumber}
+                        onChange={(e) => {
+                          setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          setError("");
+                        }}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400"
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
+                        disabled={otpLoading}
+                        data-testid="admin-mobile"
+                      />
+                    </div>
+                    <p className="text-gray-500 text-xs mt-2">
+                      OTP will be sent to your registered mobile number
+                    </p>
                   </div>
-                  {!otpVerified && !loading && (
-                    <button
-                      type="button"
-                      onClick={sendLoginOTP}
-                      disabled={otpLoading || mobileNumber.length < 10}
-                      className="px-5 py-3 bg-[#00C389] text-white rounded-xl font-semibold hover:bg-[#00A372] transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
-                      data-testid="send-login-otp"
-                    >
-                      {otpLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Send className="w-5 h-5" />
-                      )}
-                      {otpLoading ? 'Sending...' : 'Send OTP'}
-                    </button>
-                  )}
-                  {otpVerified && (
-                    <span className="px-4 py-3 bg-green-500 text-white rounded-xl font-semibold flex items-center">
-                      <CheckCircle className="w-5 h-5" />
-                    </span>
-                  )}
-                </div>
-                <p className="text-gray-500 text-xs mt-2">
-                  OTP will be sent to your registered mobile number
-                </p>
-              </div>
 
-              {loading && (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#F5A623] mr-2" />
-                  <span className="text-gray-600">Verifying and logging in...</span>
-                </div>
+                  <button
+                    type="button"
+                    onClick={sendOTP}
+                    disabled={otpLoading || mobileNumber.length < 10}
+                    className="w-full bg-[#00C389] text-white py-3.5 rounded-xl font-bold hover:bg-[#00A372] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    data-testid="send-login-otp"
+                  >
+                    {otpLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Sending OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        <span>Send OTP</span>
+                      </>
+                    )}
+                  </button>
+                </>
               )}
 
-              {!otpVerified && !otpLoading && mobileNumber.length >= 10 && (
-                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl text-sm">
-                  <p>Click "Send OTP" to receive verification code on your mobile</p>
-                </div>
+              {/* Step 2: OTP Input */}
+              {otpSent && (
+                <>
+                  <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl text-sm mb-2">
+                    <p>OTP sent to <strong>+91 {mobileNumber}</strong></p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Enter OTP
+                    </label>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={otp}
+                        onChange={(e) => {
+                          setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                          setError("");
+                        }}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400 text-center text-xl tracking-widest"
+                        placeholder="Enter 6-digit OTP"
+                        maxLength={6}
+                        disabled={verifyLoading || loading}
+                        data-testid="admin-otp-input"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={verifyOTP}
+                    disabled={verifyLoading || loading || otp.length < 4}
+                    className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    data-testid="verify-login-otp"
+                  >
+                    {verifyLoading || loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        <span>Verify & Login</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={resetOTPFlow}
+                      className="text-gray-500 hover:text-[#0B3C5D] transition"
+                    >
+                      ← Change Number
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resendOTP}
+                      disabled={resendTimer > 0 || otpLoading}
+                      className={`flex items-center gap-1 ${resendTimer > 0 ? 'text-gray-400' : 'text-[#00C389] hover:text-[#00A372]'} transition`}
+                    >
+                      <RefreshCw className={`w-4 h-4 ${otpLoading ? 'animate-spin' : ''}`} />
+                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           )}

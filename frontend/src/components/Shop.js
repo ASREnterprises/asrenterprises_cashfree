@@ -433,7 +433,7 @@ export const ShopPage = () => {
           <span className="hidden sm:block">|</span>
           <span className="hidden sm:flex items-center gap-1"><CreditCard className="w-4 h-4" /> Secure Payments</span>
           <span className="hidden md:block">|</span>
-          <span className="hidden md:flex items-center gap-1"><Phone className="w-4 h-4" /> 9296389097</span>
+          <span className="hidden md:flex items-center gap-1"><Phone className="w-4 h-4" /> 8877896889</span>
         </div>
       </div>
 

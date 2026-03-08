@@ -1023,7 +1023,7 @@ const HomePage = () => {
       
       // Check if Razorpay is available
       if (!window.Razorpay) {
-        alert("Payment gateway unavailable. Please refresh the page and try again, or call 9296389097.");
+        alert("Payment gateway unavailable. Please refresh the page and try again, or call 8877896889.");
         setBookingLoading(false);
         return;
       }
@@ -1033,7 +1033,7 @@ const HomePage = () => {
       const { booking, key_id, razorpay_order_id } = res.data;
 
       if (!key_id || !razorpay_order_id) {
-        alert("Payment configuration error. Please call 9296389097.");
+        alert("Payment configuration error. Please call 8877896889.");
         setBookingLoading(false);
         return;
       }
@@ -1087,12 +1087,12 @@ const HomePage = () => {
       rzp.on("payment.failed", function(response) {
         console.error("Payment failed:", response.error);
         setBookingLoading(false);
-        alert(`Payment failed: ${response.error?.description || "Unknown error"}. Please try again or call 9296389097.`);
+        alert(`Payment failed: ${response.error?.description || "Unknown error"}. Please try again or call 8877896889.`);
       });
       rzp.open();
     } catch (err) {
       console.error(err);
-      alert("Unable to process. Please call 9296389097.");
+      alert("Unable to process. Please call 8877896889.");
       setBookingLoading(false);
     }
   };
@@ -1306,7 +1306,7 @@ const HomePage = () => {
                     🛠️ 5 Year FREE Maintenance Included!
                   </span>
                   <span className="mx-8 text-[#071A2E] font-bold text-sm md:text-base flex items-center">
-                    📞 Call Now: 9296389097 | WhatsApp for Instant Quote!
+                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
                   </span>
                   <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
                     Switch to Solar & Make Your Electricity Bill ZERO!
@@ -1352,13 +1352,13 @@ const HomePage = () => {
                 <span>Book Free Survey</span>
               </button>
               <a
-                href="tel:9296389097"
+                href="tel:8877896889"
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/30"
                 data-testid="call-now-btn"
                 onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Hero Section' }); }}
               >
                 <Phone className="w-5 h-5" />
-                <span>Call: 9296389097</span>
+                <span>Call: 8877896889</span>
               </a>
               <a
                 href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
@@ -1608,9 +1608,9 @@ const HomePage = () => {
           <div className="text-center">
             <p className="text-[#0a355e] text-xl font-bold mb-4">Get Started Today!</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href="tel:9296389097" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white px-8 py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg text-lg">
+              <a href="tel:8877896889" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white px-8 py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg text-lg">
                 <Phone className="w-5 h-5" />
-                Call: 9296389097
+                Call: 8877896889
               </a>
               <button onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })} className="bg-[#f87f2b] text-white px-8 py-4 rounded-lg font-bold hover:bg-orange-600 transition shadow-lg">
                 Get Free Consultation →
@@ -2004,7 +2004,7 @@ const HomePage = () => {
                 <div className="flex items-start space-x-2">
                   <Phone className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
-                    <a href="tel:9296389097" className="hover:text-[#FFD166] transition">9296389097</a>
+                    <a href="tel:8877896889" className="hover:text-[#FFD166] transition">8877896889</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
@@ -2194,14 +2194,14 @@ const HomePage = () => {
 
         {/* Call Icon */}
         <a
-          href="tel:9296389097"
+          href="tel:8877896889"
           className="bg-blue-500 text-white p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative"
           data-testid="call-float-btn"
           onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Floating Button' }); }}
         >
           <Phone className="w-5 h-5" />
           <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-            Call: 9296389097
+            Call: 8877896889
           </span>
         </a>
         

@@ -163,7 +163,7 @@ export const GalleryPage = () => {
               <span className="font-semibold">Follow us: @asr_enterprises_patna</span>
             </div>
             <div className="text-gray-500 text-sm mt-2">
-              <a href="tel:9296389097" className="hover:text-[#00C389] transition">9296389097</a>
+              <a href="tel:8877896889" className="hover:text-[#00C389] transition">8877896889</a>
               <span className="mx-2">|</span>
               <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-[#00C389] transition">asrenterprisespatna@gmail.com</a>
             </div>

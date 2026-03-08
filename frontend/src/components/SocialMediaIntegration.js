@@ -48,10 +48,10 @@ export const SocialMediaIntegration = () => {
     } catch (err) {
       // Generate fallback content
       const fallbackContent = {
-        promotion: "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy under PM Surya Ghar Yojana. 25-year warranty + 5 years FREE maintenance! 📞 Call: 9296389097 #SolarPower #BiharSolar #PMSuryaGhar",
-        project: "✨ Another successful installation in Bihar! Our team just completed a 5kW rooftop solar system. Save 90% on electricity bills! Contact us for a FREE site survey. 📱 WhatsApp: 9296389097 #SolarInstallation #CleanEnergy",
+        promotion: "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy under PM Surya Ghar Yojana. 25-year warranty + 5 years FREE maintenance! 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #SolarPower #BiharSolar #PMSuryaGhar",
+        project: "✨ Another successful installation in Bihar! Our team just completed a 5kW rooftop solar system. Save 90% on electricity bills! Contact us for a FREE site survey. 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #SolarInstallation #CleanEnergy",
         festival: "🎉 Wishing everyone a prosperous day! From all of us at ASR Enterprises - Bihar's trusted solar partner. 🌞 Go solar, save money, protect the environment! #GreenEnergy #SolarBihar",
-        scheme: "📢 Important Update! PM Surya Ghar Muft Bijli Yojana offers up to ₹78,000 subsidy for rooftop solar. Don't miss this opportunity! ASR Enterprises can help you apply. 📞 9296389097 #GovtScheme #SolarSubsidy"
+        scheme: "📢 Important Update! PM Surya Ghar Muft Bijli Yojana offers up to ₹78,000 subsidy for rooftop solar. Don't miss this opportunity! ASR Enterprises can help you apply. 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #GovtScheme #SolarSubsidy"
       };
       setPostContent(fallbackContent[type] || fallbackContent.promotion);
     }

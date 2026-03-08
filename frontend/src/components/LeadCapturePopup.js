@@ -139,7 +139,7 @@ export const LeadCapturePopup = ({
         handleClose();
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || "Something went wrong. Please call us at 9296389097");
+      setError(err.response?.data?.detail || "Something went wrong. Please call us at 8877896889");
     }
     
     setLoading(false);
@@ -292,11 +292,11 @@ export const LeadCapturePopup = ({
               <div className="mt-4 text-center">
                 <p className="text-gray-500 text-sm mb-2">Prefer to call?</p>
                 <a 
-                  href="tel:9296389097" 
+                  href="tel:8877896889" 
                   className="inline-flex items-center space-x-2 text-amber-600 font-semibold hover:text-amber-700"
                 >
                   <Phone className="w-4 h-4" />
-                  <span>9296389097</span>
+                  <span>8877896889</span>
                 </a>
               </div>
             </>

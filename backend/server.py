@@ -553,7 +553,7 @@ ASR_SOLAR_EXPERT_PROMPT = """You are the "ASR Solar Expert," the official AI ass
 - Credentials: MNRE Bihar Registered Vendor & PM Surya Ghar Partner.
 - Location: Shop 10, Aman SKS Complex, Khagaul Saguna Road, Patna.
 - Services: Design, supply, installation, and 5-year free maintenance.
-- Phone: 9296389097
+- Phone: 8877896889
 - Experience: 25+ verified installations across Bihar
 
 ### 2. SOLAR PANEL COSTS & INSTALLATION (Updated Pricing)
@@ -829,7 +829,7 @@ async def send_otp_email(email: str, otp: str, user_type: str = "Admin") -> bool
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="color: #999; font-size: 12px; text-align: center;">
             ASR Enterprises - Bihar's Trusted Solar Rooftop Installation Company<br>
-            📞 9296389097 | ✉️ asrenterprisespatna@gmail.com
+            📞 8877896889 | ✉️ asrenterprisespatna@gmail.com
         </p>
     </div>
     """
@@ -1563,7 +1563,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         response = await chat.send_message(
             model="gpt-4o-mini",
             messages=[UserMessage(text=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.
-            Phone: 9296389097, Email: asrenterprisespatna@gmail.com
+            Phone: 8877896889, Email: asrenterprisespatna@gmail.com
             Office: Shop 10 AMAN SKS COMPLEX Khagaul Saguna Road Patna 801503
             
             Help with: Solar panels, PM Surya Ghar subsidy (max ₹78,000), EMI options, installation.
@@ -1575,7 +1575,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         )
         return response
     except:
-        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 9296389097 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
+        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 8877896889 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
 
 # API Routes
 
@@ -1657,7 +1657,7 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
         logger.error(f"Public AI chat error: {e}")
         return {
             "success": False,
-            "response": "I apologize, but I'm having trouble connecting. Please call us at 9296389097 for immediate assistance with your solar inquiry!",
+            "response": "I apologize, but I'm having trouble connecting. Please call us at 8877896889 for immediate assistance with your solar inquiry!",
             "error": str(e)
         }
 
@@ -2162,7 +2162,7 @@ ASR Enterprises Patna में आपका स्वागत है! 🌞
 🎁 *FREE Site Survey Available!*
 हमारी टीम आपके घर आकर exact quotation देगी।
 
-📞 अभी call करें: *9296389097*
+📞 अभी call करें: *8877896889*
 
 _आपको 5 मिनट में हमारी team का call आएगा!_
 
@@ -3291,7 +3291,7 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 # Registered admin mobile number for OTP login
-ADMIN_REGISTERED_MOBILE = "9296389097"
+ADMIN_REGISTERED_MOBILE = "8877896889"
 
 @api_router.post("/admin/login-otp")
 @limiter.limit(RATE_LIMIT_AUTH)
@@ -3698,10 +3698,10 @@ async def generate_social_post(request: Dict[str, Any]):
         )
         
         prompts = {
-            "promotion": "Create a promotional social media post for ASR Enterprises, a solar installation company in Bihar. Mention PM Surya Ghar Yojana subsidy up to ₹78,000, 25-year warranty, and contact number 9296389097. Use emojis and hashtags.",
-            "project": "Create a social media post celebrating a successful solar installation project by ASR Enterprises in Bihar. Mention energy savings, professional installation, and invite others to contact 9296389097. Use emojis and hashtags.",
-            "festival": "Create a festive greeting social media post for ASR Enterprises, Bihar's trusted solar company. Make it warm, add solar energy reference, and mention contact 9296389097. Use emojis and hashtags.",
-            "scheme": "Create an informative social media post about PM Surya Ghar Muft Bijli Yojana government scheme for solar rooftop. Mention subsidy details (up to ₹78,000), how ASR Enterprises can help, and contact 9296389097. Use emojis and hashtags."
+            "promotion": "Create a promotional social media post for ASR Enterprises, a solar installation company in Bihar. Mention PM Surya Ghar Yojana subsidy up to ₹78,000, 25-year warranty, and contact number 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
+            "project": "Create a social media post celebrating a successful solar installation project by ASR Enterprises in Bihar. Mention energy savings, professional installation, and invite others to contact 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
+            "festival": "Create a festive greeting social media post for ASR Enterprises, Bihar's trusted solar company. Make it warm, add solar energy reference, and mention contact 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
+            "scheme": "Create an informative social media post about PM Surya Ghar Muft Bijli Yojana government scheme for solar rooftop. Mention subsidy details (up to ₹78,000), how ASR Enterprises can help, and contact 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags."
         }
         
         prompt = prompts.get(post_type, prompts["promotion"])
@@ -3715,10 +3715,10 @@ async def generate_social_post(request: Dict[str, Any]):
         logger.error(f"Error generating social post: {e}")
         # Return fallback content
         fallback = {
-            "promotion": "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy. 25-year warranty + 5 years FREE maintenance! 📞 9296389097 #SolarPower #BiharSolar",
-            "project": "✨ Another successful installation! Our team completed a rooftop solar system in Bihar. Save 90% on bills! 📱 9296389097 #SolarInstallation",
+            "promotion": "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy. 25-year warranty + 5 years FREE maintenance! 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #SolarPower #BiharSolar",
+            "project": "✨ Another successful installation! Our team completed a rooftop solar system in Bihar. Save 90% on bills! 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #SolarInstallation",
             "festival": "🎉 Warm wishes from ASR Enterprises! Go solar, save money, protect the environment! 🌞 #GreenEnergy #SolarBihar",
-            "scheme": "📢 PM Surya Ghar Yojana: Up to ₹78,000 subsidy for rooftop solar! ASR Enterprises can help you apply. 📞 9296389097 #GovtScheme"
+            "scheme": "📢 PM Surya Ghar Yojana: Up to ₹78,000 subsidy for rooftop solar! ASR Enterprises can help you apply. 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #GovtScheme"
         }
         return {"success": True, "suggestions": [fallback.get(post_type, fallback["promotion"])]}
 
@@ -4858,7 +4858,7 @@ Please let us know a convenient time to discuss.
 
 Best regards,
 ASR Enterprises
-📞 9296389097"""
+📞 8877896889"""
         
         customer_whatsapp_url = get_whatsapp_url(lead.get("phone", ""), customer_message) if lead else None
         
@@ -4915,7 +4915,7 @@ Thank you for your interest in solar rooftop installation!
 
 Ready to go solar? Reply YES or call us!
 
-📞 *9296389097*
+📞 *8877896889*
 📧 asrenterprisespatna@gmail.com
 
 _ASR Enterprises - Bihar's Trusted Solar Partner_"""
@@ -6143,7 +6143,7 @@ Your service booking has been confirmed!
 Our team will contact you within 24 hours to schedule your service appointment.
 
 *Need Help?*
-Call: 9296389097
+Call: 8877896889
 WhatsApp: 9296389097
 
 _Thank you for choosing ASR Enterprises!_
@@ -6152,7 +6152,7 @@ _Powering Bihar's future with clean energy_"""
     customer_whatsapp_url = get_whatsapp_url(customer_phone, customer_whatsapp_msg)
     
     # ===== WHATSAPP NOTIFICATION TO ADMIN =====
-    admin_phone = "9296389097"
+    admin_phone = "8877896889"
     admin_whatsapp_msg = f"""*NEW SERVICE BOOKING*
 
 *Booking #:* {booking_number}
@@ -6197,7 +6197,7 @@ _Please contact the customer within 24 hours to schedule the service!_"""
                         <p style="color: #666; font-size: 13px; margin: 0;">Our service team will call you at <strong>{customer_phone}</strong> within 24 hours to schedule your appointment.</p>
                     </div>
                     
-                    <p style="color: #666; font-size: 13px;">Need immediate help? Call us at <strong>9296389097</strong></p>
+                    <p style="color: #666; font-size: 13px;">Need immediate help? Call us at <strong>8877896889</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
                     <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
@@ -6522,7 +6522,7 @@ Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FRE
 {("Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503" if order.delivery_type == "pickup" else order.delivery_address)}
 
 📞 *Need Help?*
-Call: 9296389097
+Call: 8877896889
 WhatsApp: 9296389097
 
 ⏰ *{"Pickup" if order.delivery_type == "pickup" else "Delivery"} Time:*
@@ -6591,7 +6591,7 @@ async def create_order(order_data: Dict[str, Any]):
         )
     
     # Generate WhatsApp notification URL for admin (business number: 9296389097)
-    admin_phone = "9296389097"
+    admin_phone = "8877896889"
     whatsapp_message = generate_order_whatsapp_message(order)
     whatsapp_notification_url = get_whatsapp_url(admin_phone, whatsapp_message)
     
@@ -6856,7 +6856,7 @@ async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
     invalidate_cache("orders")
     
     # Generate WhatsApp payment confirmation notification for admin
-    admin_phone = "9296389097"
+    admin_phone = "8877896889"
     payment_message = f"""✅ *PAYMENT CONFIRMED - ASR Solar Shop*
 
 📦 Order #: {order.get('order_number', 'N/A')}
@@ -6899,7 +6899,8 @@ Your payment has been confirmed! ✅
 {"Visit our store during business hours (9 AM - 7 PM)" if order.get('delivery_type') == "pickup" else "Within 2-3 business days"}
 
 📞 *Need Help?*
-Call: 9296389097
+Call: 8877896889
+WhatsApp: 9296389097
 
 _Thank you for choosing ASR Enterprises!_
 _Powering Bihar's future with clean energy_ ☀️"""
@@ -6965,7 +6966,7 @@ _Powering Bihar's future with clean energy_ ☀️"""
                         <p style="color: #666; font-size: 13px; margin: 0;">{delivery_time}</p>
                     </div>
                     
-                    <p style="color: #666; font-size: 13px;">Need help? Call us at <strong>9296389097</strong></p>
+                    <p style="color: #666; font-size: 13px;">Need help? Call us at <strong>8877896889</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
                     <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
@@ -8620,7 +8621,7 @@ Your order has been received! 🎉
 
 📍 *Delivery:* {delivery_info}
 
-📞 *Support:* 9296389097
+📞 *Support:* 8877896889 | WhatsApp: 9296389097
 
 _Thank you for choosing ASR Enterprises!_
 _Powering Bihar with clean energy_ ☀️"""
@@ -8671,7 +8672,8 @@ Please share your details:
 
 We will calculate your PM Surya Ghar subsidy (up to ₹78,000) instantly! ☀️
 
-📞 Call: 9296389097
+📞 Call: 8877896889
+💬 WhatsApp: 9296389097
 📍 Office: Shop 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna"""
         else:
             message_body = """Thank you for contacting ASR Enterprises again! 🙏
@@ -8679,7 +8681,7 @@ We will calculate your PM Surya Ghar subsidy (up to ₹78,000) instantly! ☀️
 Our team will get back to you shortly.
 
 For immediate assistance:
-📞 Call: 9296389097
+📞 Call: 8877896889
 💬 WhatsApp: 9296389097"""
         
         async with httpx.AsyncClient() as client:

@@ -286,14 +286,14 @@ export const BiharInstallationMap = () => {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <a
-                    href="tel:8877896889"
+                    href="tel:9296389097"
                     className="flex items-center justify-center space-x-2 bg-[#0a355e] text-white px-4 py-3 rounded-xl font-semibold hover:bg-[#0c4270] transition"
                   >
                     <Phone className="w-4 h-4" />
                     <span>Call Now</span>
                   </a>
                   <a
-                    href={`https://wa.me/918877896889?text=Hi!%20I%20saw%20your%20installations%20in%20${encodeURIComponent(selectedDistrict)}%20and%20I'm%20interested%20in%20solar%20for%20my%20home.`}
+                    href={`https://wa.me/919296389097?text=Hi!%20I%20saw%20your%20installations%20in%20${encodeURIComponent(selectedDistrict)}%20and%20I'm%20interested%20in%20solar%20for%20my%20home.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center space-x-2 bg-green-500 text-white px-4 py-3 rounded-xl font-semibold hover:bg-green-600 transition"

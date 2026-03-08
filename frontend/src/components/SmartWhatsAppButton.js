@@ -89,7 +89,7 @@ export const SmartWhatsAppButton = ({ variant = 'floating', className = '' }) =>
   const context = useUserContext();
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const whatsappNumber = "918877896889";
+  const whatsappNumber = "919296389097";
   const message = generateContextualMessage(context);
   const encodedMessage = encodeURIComponent(message);
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;

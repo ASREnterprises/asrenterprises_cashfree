@@ -283,7 +283,7 @@ export const AboutUsPage = () => {
               <Phone className="w-6 h-6 text-[#00C389]" />
               <div>
                 <p className="text-gray-400 text-sm">Call Us</p>
-                <a href="tel:8877896889" className="text-white font-semibold hover:text-[#F5A623] transition">8877896889</a>
+                <a href="tel:9296389097" className="text-white font-semibold hover:text-[#F5A623] transition">9296389097</a>
               </div>
             </div>
             <div className="flex items-center justify-center space-x-3">

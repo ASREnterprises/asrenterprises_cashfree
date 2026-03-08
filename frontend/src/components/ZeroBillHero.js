@@ -12,7 +12,7 @@ export const ZeroBillHero = ({ onBookSurvey }) => {
   const savings = beforeBill - afterBill;
 
   // WhatsApp URL for FREE site survey
-  const whatsappSurveyUrl = `https://wa.me/918877896889?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
+  const whatsappSurveyUrl = `https://wa.me/919296389097?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
 
 I want to make my electricity bill ZERO like shown on your website!
 
@@ -91,10 +91,10 @@ Thank you!`)}`;
                 <span>Book FREE Survey</span>
               </a>
               <a
-                href="tel:8877896889"
+                href="tel:9296389097"
                 className="border-2 border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"
               >
-                <span>Call: 8877896889</span>
+                <span>Call: 9296389097</span>
               </a>
             </div>
           </div>

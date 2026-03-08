@@ -60,14 +60,14 @@ export const AIChatWidget = () => {
       } else {
         setMessages(prev => [...prev, { 
           role: "assistant", 
-          content: response.data.response || "Please call us at 8877896889 for help!"
+          content: response.data.response || "Please call us at 9296389097 for help!"
         }]);
       }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "Connection issue. Please call 8877896889 or WhatsApp us!"
+        content: "Connection issue. Please call 9296389097 or WhatsApp us!"
       }]);
     }
 

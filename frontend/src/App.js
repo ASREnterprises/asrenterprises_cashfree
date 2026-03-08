@@ -302,7 +302,7 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/admin/login" replace />;
 };
 
-// Solar Inquiry Form Component
+// Solar Inquiry Form Component with MSG91 OTP Verification
 const SolarInquiryForm = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -318,10 +318,55 @@ const SolarInquiryForm = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Listen for OTP verification success
+  useEffect(() => {
+    const handleOtpVerified = (event) => {
+      console.log("OTP Verified Event:", event.detail);
+      setOtpVerified(true);
+      setOtpLoading(false);
+    };
+    
+    window.addEventListener('otpVerified', handleOtpVerified);
+    return () => window.removeEventListener('otpVerified', handleOtpVerified);
+  }, []);
+
+  // Trigger OTP verification
+  const handleVerifyOTP = () => {
+    if (!formData.phone || formData.phone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    
+    // Format phone number (add 91 prefix if not present)
+    let phoneNumber = formData.phone.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setOtpLoading(true);
+    
+    // Trigger MSG91 OTP
+    if (typeof window.triggerOTPVerification === 'function') {
+      window.triggerOTPVerification(phoneNumber);
+    } else {
+      alert("OTP service is not available. Please refresh the page and try again.");
+      setOtpLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (honeypot) return;
+    
+    // Check OTP verification status
+    if (!otpVerified) {
+      alert("Please verify your mobile number before submitting.");
+      return;
+    }
+    
     setLoading(true);
     setError("");
     
@@ -341,7 +386,8 @@ const SolarInquiryForm = () => {
         monthly_bill: parseFloat(formData.monthly_bill) || null,
         roof_area: parseFloat(formData.solar_capacity) || null,
         recaptcha_token: token || "",
-        website_url: honeypot
+        website_url: honeypot,
+        otp_verified: true
       });
       
       // Track Lead event with Meta Pixel
@@ -357,6 +403,7 @@ const SolarInquiryForm = () => {
       setSuccess(true);
       setFormData({ name: "", phone: "", district: "", property_type: "residential", monthly_bill: "", solar_capacity: "" });
       setRecaptchaToken(null);
+      setOtpVerified(false);
       setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error submitting inquiry. Please try again.");
@@ -399,10 +446,40 @@ const SolarInquiryForm = () => {
                   placeholder="Your full name" required data-testid="inquiry-name" />
               </div>
               <div>
-                <label className="block text-gray-700 font-semibold mb-2">Mobile Number *</label>
-                <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
-                  placeholder="10-digit mobile number" required data-testid="inquiry-phone" />
+                <label className="block text-gray-700 font-semibold mb-2">Mobile Number * {otpVerified && <span className="text-green-600 text-sm">(Verified ✓)</span>}</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="tel" 
+                    value={formData.phone} 
+                    onChange={(e) => {
+                      setFormData({...formData, phone: e.target.value});
+                      setOtpVerified(false); // Reset verification if phone changes
+                    }}
+                    className={`flex-1 px-4 py-3 bg-gray-50 border ${otpVerified ? 'border-green-500 bg-green-50' : 'border-gray-300'} text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400`}
+                    placeholder="10-digit mobile number" 
+                    required 
+                    disabled={otpVerified}
+                    data-testid="inquiry-phone" 
+                  />
+                  {!otpVerified ? (
+                    <button
+                      type="button"
+                      onClick={handleVerifyOTP}
+                      disabled={otpLoading || !formData.phone || formData.phone.length < 10}
+                      className="px-4 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      data-testid="verify-otp-btn"
+                    >
+                      {otpLoading ? 'Sending...' : 'Verify OTP'}
+                    </button>
+                  ) : (
+                    <span className="px-4 py-3 bg-green-500 text-white rounded-lg font-semibold flex items-center">
+                      <CheckCircle className="w-5 h-5" />
+                    </span>
+                  )}
+                </div>
+                {!otpVerified && formData.phone && formData.phone.length >= 10 && (
+                  <p className="text-amber-600 text-xs mt-1">Click "Verify OTP" to verify your mobile number</p>
+                )}
               </div>
               <div>
                 <label className="block text-gray-700 font-semibold mb-2">District (Bihar) *</label>
@@ -448,10 +525,17 @@ const SolarInquiryForm = () => {
               <ReCAPTCHA ref={recaptchaRef} sitekey={RECAPTCHA_SITE_KEY} onChange={(token) => setRecaptchaToken(token)} onExpired={() => setRecaptchaToken(null)} size="invisible" />
             )}
 
-            <button type="submit" disabled={loading}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-lg font-bold text-lg hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 flex items-center justify-center shadow-lg"
+            {!otpVerified && (
+              <div className="bg-amber-50 border border-amber-300 text-amber-700 px-4 py-3 rounded-lg flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <span>Please verify your mobile number to submit the form</span>
+              </div>
+            )}
+
+            <button type="submit" disabled={loading || !otpVerified}
+              className={`w-full py-4 rounded-lg font-bold text-lg transition flex items-center justify-center shadow-lg ${otpVerified ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
               data-testid="inquiry-submit-btn">
-              {loading ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />Submitting...</>) : (<><Send className="w-5 h-5 mr-2" />Get Free Consultation</>)}
+              {loading ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />Submitting...</>) : (<><Send className="w-5 h-5 mr-2" />{otpVerified ? 'Get Free Consultation' : 'Verify Mobile First'}</>)}
             </button>
           </form>
         </div>
@@ -2103,7 +2187,7 @@ export default function App() {
   );
 }
 
-// Lead Capture Page
+// Lead Capture Page with OTP Verification
 const LeadCapturePage = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -2118,15 +2202,58 @@ const LeadCapturePage = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
+  // Listen for OTP verification success
+  useEffect(() => {
+    const handleOtpVerified = (event) => {
+      console.log("OTP Verified Event:", event.detail);
+      setOtpVerified(true);
+      setOtpLoading(false);
+    };
+    
+    window.addEventListener('otpVerified', handleOtpVerified);
+    return () => window.removeEventListener('otpVerified', handleOtpVerified);
+  }, []);
+
+  // Trigger OTP verification
+  const handleVerifyOTP = () => {
+    if (!formData.phone || formData.phone.length < 10) {
+      alert("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    
+    let phoneNumber = formData.phone.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setOtpLoading(true);
+    
+    if (typeof window.triggerOTPVerification === 'function') {
+      window.triggerOTPVerification(phoneNumber);
+    } else {
+      alert("OTP service is not available. Please refresh the page and try again.");
+      setOtpLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check OTP verification status
+    if (!otpVerified) {
+      alert("Please verify your mobile number before submitting.");
+      return;
+    }
+    
     setLoading(true);
     setError("");
     setSuccess(false);
 
     try {
-      const submitData = { ...formData };
+      const submitData = { ...formData, otp_verified: true };
       if (submitData.monthly_electricity_bill) {
         submitData.monthly_electricity_bill = parseFloat(submitData.monthly_electricity_bill);
       }
@@ -2166,6 +2293,7 @@ const LeadCapturePage = () => {
         });
         setSuccess(false);
         setAiAnalysis(null);
+        setOtpVerified(false);
       }, 8000);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to submit lead");
@@ -2243,16 +2371,37 @@ const LeadCapturePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Phone Number *</label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
-                  placeholder="+91XXXXXXXXXX"
-                  data-testid="lead-phone-input"
-                />
+                <label className="block text-sm font-semibold text-gray-300 mb-2">Phone Number * {otpVerified && <span className="text-green-400 text-sm">(Verified ✓)</span>}</label>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => {
+                      setFormData({ ...formData, phone: e.target.value });
+                      setOtpVerified(false);
+                    }}
+                    className={`flex-1 px-4 py-3 bg-gray-700/50 border ${otpVerified ? 'border-green-500 bg-green-500/10' : 'border-gray-600'} text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400`}
+                    placeholder="+91XXXXXXXXXX"
+                    disabled={otpVerified}
+                    data-testid="lead-phone-input"
+                  />
+                  {!otpVerified ? (
+                    <button
+                      type="button"
+                      onClick={handleVerifyOTP}
+                      disabled={otpLoading || !formData.phone || formData.phone.length < 10}
+                      className="px-4 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      data-testid="lead-verify-otp-btn"
+                    >
+                      {otpLoading ? 'Sending...' : 'Verify OTP'}
+                    </button>
+                  ) : (
+                    <span className="px-4 py-3 bg-green-500 text-white rounded-lg font-semibold flex items-center">
+                      <CheckCircle className="w-5 h-5" />
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -2309,10 +2458,17 @@ const LeadCapturePage = () => {
               />
             </div>
 
+            {!otpVerified && (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-3 rounded-lg flex items-center">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <span>Please verify your mobile number to submit the form</span>
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              disabled={loading || !otpVerified}
+              className={`w-full py-4 rounded-lg font-semibold transition flex items-center justify-center space-x-2 ${otpVerified ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}`}
               data-testid="submit-lead-btn"
             >
               {loading ? (
@@ -2323,7 +2479,7 @@ const LeadCapturePage = () => {
               ) : (
                 <>
                   <Send className="w-5 h-5" />
-                  <span>Submit & Get AI Analysis</span>
+                  <span>{otpVerified ? 'Submit & Get AI Analysis' : 'Verify Mobile First'}</span>
                 </>
               )}
             </button>

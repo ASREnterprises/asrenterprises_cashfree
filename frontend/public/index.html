@@ -308,5 +308,64 @@
                 },
             });
         </script>
+        
+        <!-- MSG91 OTP Verification Script -->
+        <script type="text/javascript">
+            var msg91Configuration = {
+                widgetId: "366367775a6a363731333933",
+                tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
+                identifier: "",
+                exposeMethods: true,
+                success: function (data) {
+                    console.log("OTP Verified", data);
+                    // Dispatch custom event for React components to listen
+                    window.dispatchEvent(new CustomEvent('otpVerified', { detail: data }));
+                    // Set global flag
+                    window.otpVerificationStatus = 'verified';
+                },
+                failure: function (error) {
+                    console.log("OTP Failed", error);
+                    window.otpVerificationStatus = 'failed';
+                    alert("OTP verification failed. Please try again.");
+                },
+                VAR1: "OTP"
+            };
+            
+            // Function to trigger OTP with phone number
+            window.triggerOTPVerification = function(phoneNumber) {
+                msg91Configuration.identifier = phoneNumber;
+                if (typeof window.initSendOTP === 'function') {
+                    window.initSendOTP(msg91Configuration);
+                } else {
+                    alert("OTP service is loading. Please try again.");
+                }
+            };
+        </script>
+        <script type="text/javascript">
+            (function loadOtpScript(urls) {
+                let i = 0;
+                function attempt() {
+                    const s = document.createElement('script');
+                    s.src = urls[i];
+                    s.async = true;
+                    s.onload = function() {
+                        console.log("MSG91 OTP script loaded");
+                        if (typeof window.initSendOTP === 'function') {
+                            console.log("MSG91 OTP initialized");
+                        }
+                    };
+                    s.onerror = function() {
+                        i++;
+                        if (i < urls.length) attempt();
+                    };
+                    document.head.appendChild(s);
+                }
+                attempt();
+            })([
+                'https://verify.msg91.com/otp-provider.js',
+                'https://verify.phone91.com/otp-provider.js'
+            ]);
+        </script>
+        <!-- End MSG91 OTP Script -->
     </body>
 </html>

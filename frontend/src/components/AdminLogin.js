@@ -24,17 +24,65 @@ export const AdminLogin = ({ onLogin }) => {
   useEffect(() => {
     const handleOtpVerified = async (event) => {
       console.log("OTP Verified for Login:", event.detail);
+      
+      // Get mobile from event detail (MSG91 returns the identifier)
+      const verifiedPhone = event.detail?.identifier || event.detail?.mobile || mobileNumber;
+      let cleanMobile = verifiedPhone.replace(/\D/g, '');
+      
+      // Remove country code if present
+      if (cleanMobile.startsWith("91") && cleanMobile.length === 12) {
+        cleanMobile = cleanMobile.slice(2);
+      }
+      
+      console.log("Verified mobile number:", cleanMobile);
+      
       setOtpVerified(true);
       setOtpLoading(false);
-      setVerifiedMobile(mobileNumber);
+      setVerifiedMobile(cleanMobile);
       
-      // Auto-login after OTP verification
-      await handleOTPLogin();
+      // Auto-login after OTP verification - call API directly with the verified mobile
+      setLoading(true);
+      setError("");
+      
+      try {
+        const response = await axios.post(`${API}/admin/login-otp`, { 
+          mobile: cleanMobile
+        });
+        
+        if (response.data.success) {
+          localStorage.setItem("asrAdminAuth", "true");
+          localStorage.setItem("asrAdminEmail", response.data.email || cleanMobile);
+          localStorage.setItem("asrAdminRole", response.data.role || "admin");
+          localStorage.setItem("asrAdminName", response.data.name || "Admin");
+          localStorage.setItem("asrAdminLastActivity", Date.now().toString());
+          
+          setSuccess("Login successful! Redirecting...");
+          
+          setTimeout(() => {
+            onLogin();
+            // Redirect based on role
+            if (response.data.role === "staff") {
+              navigate("/staff/dashboard");
+            } else {
+              navigate("/admin/dashboard");
+            }
+          }, 1000);
+        } else {
+          setError(response.data.message || "Mobile number not registered. Contact admin.");
+          setOtpVerified(false);
+        }
+      } catch (err) {
+        console.error("OTP Login error:", err);
+        setError(err.response?.data?.detail || "Mobile number not registered for admin/staff access.");
+        setOtpVerified(false);
+      } finally {
+        setLoading(false);
+      }
     };
     
     window.addEventListener('otpVerifiedLogin', handleOtpVerified);
     return () => window.removeEventListener('otpVerifiedLogin', handleOtpVerified);
-  }, [mobileNumber]);
+  }, [mobileNumber, onLogin, navigate]);
 
   // Trigger MSG91 OTP for login
   const sendLoginOTP = () => {
@@ -54,6 +102,9 @@ export const AdminLogin = ({ onLogin }) => {
     
     // Configure MSG91 for login with custom success handler
     if (typeof window.initSendOTP === 'function') {
+      // Store the mobile number for the success callback
+      const storedMobile = phoneNumber;
+      
       const loginConfig = {
         widgetId: "366367775a6a363731333933",
         tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
@@ -61,7 +112,10 @@ export const AdminLogin = ({ onLogin }) => {
         exposeMethods: true,
         success: function (data) {
           console.log("OTP Verified for Login", data);
-          window.dispatchEvent(new CustomEvent('otpVerifiedLogin', { detail: data }));
+          // Include the mobile number in the event detail
+          window.dispatchEvent(new CustomEvent('otpVerifiedLogin', { 
+            detail: { ...data, identifier: storedMobile, mobile: storedMobile }
+          }));
         },
         failure: function (error) {
           console.log("OTP Failed", error);

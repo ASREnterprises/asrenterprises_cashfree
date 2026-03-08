@@ -7,58 +7,70 @@ The user wants to build a feature-rich website for their solar energy business, 
 - A comprehensive HR management portal.
 
 **Recent User Requests (Summary):**
-1.  **Full UI/UX Overhaul:** Implement a global Solar Corporate Premium – Emergent design system across the entire application (public site, admin dashboard, shop, etc.). This includes specific brand colors (dark blue, gold, green), typography, glassmorphism card styles, modern layouts, and updated buttons.
-2.  **Header Styling:** Update the white website header with a light sky-blue solar panel shadow effect.
-3.  **New HR Training Module:** Create an AI-powered training and learning module for new staff (telecallers, sales) to provide knowledge on products, sales techniques, and company information.
-4.  **Shop & CRM Fixes:** Make the Shop Management dashboard mobile-friendly. Ensure clicking the WhatsApp icon in the CRM opens the WhatsApp Business application. Add a Solar Shop icon to the main website.
+1.  **UI/UX Overhaul:** Implement a Solar Corporate Premium design system.
+2.  **Header Styling:** Change the white header to sky-blue.
+3.  **Holi Theme:** Add a temporary, date-based Holi festival effect to the website.
+4.  **Meta/Facebook Integration:**
+    -   Integrate Facebook, Instagram, and WhatsApp messages into the CRM via a webhook.
+    -   Add Open Graph (OG) and Twitter Card meta tags for social sharing.
+    -   Upload a domain verification file for Meta Business Manager.
+    -   Install the Meta Pixel and track  and  conversion events.
+5.  **MSG91 OTP Integration:**
+    -   Add mobile number verification to all inquiry forms.
+    -   Add a secondary login option using mobile OTP for the Admin and Staff portals, while keeping the existing password login.
+6.  **Deployment:** Make the live domain  show the actual website instead of a placeholder page.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application with a React frontend and a FastAPI backend. The backend, previously a large monolith (), is being actively refactored into a modular structure with dedicated routers for HR and CRM in . A new AI-powered Staff Training module has been implemented with both frontend () and backend () components. A major UI/UX overhaul to a Solar Corporate Premium theme has been started, with changes applied to the homepage (Hero, Footer) and global CSS. Critical bugs, like the admin dashboard lead counter, have been fixed.
+A full-stack application (React frontend, FastAPI backend) that has undergone significant feature additions and a UI overhaul. Key completed work includes a Solar Corporate Premium theme across all pages, a sky-blue header, and a temporary Holi theme. A full suite of Meta/Facebook integrations has been implemented: a webhook endpoint for CRM messages, OG/Twitter meta tags, a domain verification file, and Meta Pixel with conversion event tracking. MSG91 OTP verification has been added to inquiry forms, and a dual-login system (password + OTP) has been implemented for admins and staff, though the OTP login flow is currently broken. Backend refactoring is ongoing, with HR and CRM modules already extracted from the main  file.
 
 **Last working item**:
-- **Last item agent was working:** Implementing the comprehensive Solar Corporate Premium – Emergent UI/UX overhaul. The agent had just received detailed instructions from the user and had started applying the global theme by setting up CSS variables and updating the homepage Hero section and Footer. The next steps were to apply this theme across all other pages (Shop, Admin, About, etc.) and address the specific header styling request.
+- **Last item agent was working:** Fixing the Admin/Staff MSG91 OTP login flow. The user reported that after successfully verifying the OTP, the login process does not complete (i.e., no session is created, and the user is not redirected to the dashboard). The agent identified that the frontend was not making a backend call after the MSG91  callback to finalize the login and create a session.
 - **Status:** IN PROGRESS
 - **Agent Testing Done:** N
-- **Which testing method agent to use?** frontend testing agent
+- **Which testing method agent to use?** both
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: The monolithic  is still too large. (P0)**
+-   **Issue 1: MSG91 OTP login does not complete after successful verification. (P0)**
+-   **Issue 2: The monolithic  is still too large. (P1)**
 
 **Issues Detail:**
 -   **Issue 1:**
-    -   **Attempted fixes:** The agent successfully extracted HR and CRM routes into separate  files (, ). This reduced the  file size but significant logic (auth, shop, gallery, etc.) remains.
+    -   **Attempted fixes:** The agent started updating  and  to handle the OTP success event. The plan was to create a function that calls a backend endpoint () to validate the mobile number and create a user session. This implementation is incomplete.
+    -   **Next debug checklist:**
+        1.  In  and , implement a function (e.g., ) that is exposed to the  object.
+        2.  This function should accept the verified mobile number from the MSG91 callback data.
+        3.  Inside the function, make a  request to the backend OTP login endpoint (e.g., ).
+        4.  On a successful API response, save the received JWT token to local storage and redirect the user to their respective dashboard ( or ).
+        5.  On failure, display an error message (e.g., Mobile number not registered).
+        6.  Update the MSG91  script in  to call this new window function from its  callback.
+        7.  Verify the backend endpoint () correctly finds the user by mobile number, generates a token, and returns it.
+    -   **Why fix this issue and what will be achieved with the fix?** The OTP login feature, a key user request, is currently unusable. Fixing it will provide the secure, alternative login method for admins and staff.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+-   **Issue 2:**
+    -   **Attempted fixes:** The agent successfully extracted HR and CRM routes into separate  files. However, significant logic for authentication, shop, gallery, etc., remains in .
     -   **Next debug checklist:**
         1.  Identify the next logical domain to extract (e.g., shop or auth).
-        2.  Create a new router file (e.g., ).
-        3.  Move all related endpoints, models, and helper functions from  to the new file.
-        4.  Include the new router in the main application.
-        5.  Remove or comment out the moved code from .
-    -   **Why fix this issue and what will be achieved with the fix?** Completing the refactoring will make the backend scalable, maintainable, and easier to debug, improving overall application stability and development velocity.
+        2.  Create a new router file in .
+        3.  Move all related endpoints and logic from  to the new file.
+        4.  Include the new router in the main FastAPI application in .
+    -   **Why fix this issue and what will be achieved with the fix?** Completing the refactoring will make the backend scalable, maintainable, and easier to debug, improving overall application stability.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
+    -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   **Task 1: Complete Solar Corporate Premium UI/UX Overhaul (P0)**
-
-**Task Detail:**
--   **Task 1:**
-    -   **Where to resume:**
-        1.  Update the website header with a light sky-blue solar panel effect.
-        2.  Apply the premium theme to the **Shop Page** (, ), including glassmorphism product cards and green CTA buttons.
-        3.  Apply the theme to the **Admin Dashboard** (), including the dark sidebar and premium metric cards.
-        4.  Apply the theme to the **About, Gallery, and Contact** pages.
-    -   **What will be achieved with this?** A consistent, premium, and professional user interface across the entire application, as per the user's detailed specifications.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** frontend
-    -   **Blocked on something:** None.
+-   None
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    -   **(P0) Continue Backend Refactoring:** Extract remaining modules (Shop, Auth, Gallery) from  into their own routers.
+    -   **(P1) Continue Backend Refactoring:** Extract remaining modules (Shop, Auth, Gallery) from .
     -   **(P1) Advanced HR Features:** Implement AI-driven task assignment and OCR for expense reimbursement.
     -   **(P1) Predictive Operations Hub:** Implement AI-powered inventory management and route optimization for field staff.
     -   **(P2) Hyper-Local SEO Pages:** Create district-specific landing pages.
@@ -69,117 +81,99 @@ A full-stack application with a React frontend and a FastAPI backend. The backen
     -   **(P3) Full Performance Audit:** Convert images to WebP, minify assets, and implement server-side caching.
 
 **Completed work in this session**
-- **Backend Refactoring:**
-    -   Modularized the backend by creating  and , moving significant logic out of the monolithic .
-- **Feature Implementation:**
-    -   Created a comprehensive AI-powered **Staff Training Module** ( and ) with sections for training topics, call scripts, and an interactive AI assistant.
-- **Bug Fixes & UI Improvements:**
-    -   **Fixed Admin Lead Counter:** Corrected the API endpoint () to query the correct  collection, resolving the data sync issue.
-    -   **Shop & CRM Mobile Usability:** Added  to tables in the Shop and CRM dashboards to fix horizontal scrolling on mobile.
-    -   **WhatsApp Business Integration:** Updated the CRM's  function to prioritize opening the WhatsApp Business app.
-    -   **UI Enhancements:**
-        -   Added a floating ASR Solar Shop icon to the homepage.
-        -   Changed the header's theme color to rotate daily instead of monthly.
-        -   Added a solar panel shadow effect to the header.
-        -   Initiated the Solar Corporate Premium theme overhaul on the homepage and global styles.
-- **Verification:**
-    -   Verified that all required HTTP security headers are correctly implemented and served.
+- **UI/UX Overhaul:**
+    -   Completed the Solar Corporate Premium theme application across all pages (Homepage, About, Gallery, Contact, Shop).
+    -   Updated the header background from white to a vibrant sky-blue gradient with a solar panel effect.
+- **Seasonal Feature:**
+    -   Implemented a Holi Festival theme with a banner, particles, and borders, configured to auto-activate/deactivate from March 3rd to March 5th, 2026.
+- **Meta/Facebook Integration Suite:**
+    -   **Webhook:** Created a backend endpoint () to receive CRM messages.
+    -   **Meta Tags:** Added Open Graph and Twitter Card tags to .
+    -   **Social Preview Image:** Generated  and placed it in .
+    -   **Domain Verification:** Created the  file for Meta Domain Verification.
+    -   **Pixel & Conversion Tracking:** Installed the Meta Pixel and implemented  and  event tracking.
+- **MSG91 OTP Integration:**
+    -   Added mandatory mobile number verification to all website inquiry forms.
+    -   Implemented the UI and initial logic for a dual login system (Password + OTP) for Admin and Staff portals.
+- **Deployment Guidance:**
+    -   Diagnosed Meta webhook verification failure as a preview environment restriction and repeatedly advised the user to deploy to production to resolve it.
+    -   Instructed the user to Redeploy to make the live domain active and push all recent changes.
 
 **Earlier issues found/mentioned but not fixed**
-- The full refactoring of  is the main ongoing technical debt that is not fully resolved.
-- Several future-facing features requested by the user (Predictive Ops Hub, Hyper-Local SEO) have not been started.
+-   The full refactoring of  is the main ongoing technical debt that is not fully resolved, already tracked in the pending issue list.
 
 **Known issue recurrence from previous fork**
-- **Monolithic  architecture:** This issue persists, although significant progress has been made by extracting HR and CRM modules. The file is still over 9,000 lines and requires further refactoring.
+-   **Monolithic  architecture:** This issue persists, although progress has been made. The file still requires further modularization.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, Pydantic, MongoDB, Gemini AI (),  for modularization.
--   **Frontend:** React (custom hooks), Tailwind CSS, Responsive Design, Global Theming with CSS Variables.
+-   **Backend:** FastAPI, Pydantic, MongoDB,  for modularization.
+-   **Frontend:** React (custom hooks), Tailwind CSS, Responsive Design.
+-   **Integrations:** Meta Webhooks, Meta Pixel, MSG91 OTP.
 
 **key DB schema**
--   ****: Original collection for website leads.
--   ****: Primary collection used by the CRM system.
--   ****: Stores employee data for the HR module.
--   ****: Manages leave requests.
--   ****: Logs staff attendance.
+-   ****: Primary collection for CRM leads.
+-   ****: Stores employee data.
+-   ****: (New) Stores incoming messages from Facebook, Instagram, and WhatsApp.
 
 **changes in tech stack**
--   No new technologies were added. The focus was on refactoring the existing stack and implementing a new design system.
+-   No new technologies were added. The focus was on integrating third-party services (Meta, MSG91).
 
 **All files of reference**
--   : The core application file, which was significantly refactored.
--   : New file containing all HR-related API endpoints.
--   : New file containing core CRM-related API endpoints.
--   : Modified for the new theme, floating shop icon, and staff training route.
--   : Updated with global CSS variables for the Solar Corporate Premium theme.
--   : Updated with the new theme's color palette.
--   : New component for the AI-powered training portal.
--   : Updated with responsive table styles.
--   : Updated with the new premium hero section design.
--   : Contains the detailed design system for the Solar Corporate Premium theme.
+-   : Needs to be fixed to complete OTP login flow.
+-   : Needs to be fixed to complete OTP login flow.
+-   : New file for Meta webhook integration.
+-   : Modified to include the meta router and new OTP login endpoints.
+-   : Contains all third-party scripts and meta tags (Meta Pixel, OG tags, MSG91).
+-   : Contains logic for inquiry form OTP verification.
+-   : Contains updated header styling.
 
 **Areas that need refactoring**:
 -   ** (CRITICAL):** Must be further broken down. The next modules to extract should be , , and .
 
 **key api endpoints**
--   **HR Module (New):**
-    -   , , , 
--   **CRM Module (Refactored):**
-    -   , , , 
--   **AI Training (New):**
-    -   
+-   **Meta Webhook (New):**
+    -   : Endpoint for Meta to verify the webhook and send message data.
+-   **OTP Login (New):**
+    -   : Endpoint to validate a mobile number and return a login token.
 
 **Critical Info for New Agent**
--   **Top Priority:** Your immediate task is to continue and complete the Solar Corporate Premium UI overhaul across all specified pages (Shop, Admin, About, etc.). The user has provided extremely detailed instructions in the chat history and the  file. Adhere to them strictly.
--   **Header Update:** The user specifically requested a light sky-blue solar panel effect on the white website header. This needs to be implemented as part of the UI task.
--   **Continue Refactoring:** Once the UI overhaul is complete and verified, the next most critical task is to continue refactoring the  monolith. Plan to extract the shop or auth routes next.
--   **Testing:** The agent has successfully used the  for backend and functional verification. Use it again after completing the UI overhaul to ensure no regressions have been introduced.
+-   **TOP PRIORITY:** Fix the broken MSG91 OTP login flow. The UI is done, but the frontend needs to call the backend after OTP verification to create a session and log the user in.
+-   **Meta Webhook Issue:** The Meta webhook verification is failing because of security restrictions in the **preview environment**. This is **NOT** a code bug. Do not waste time debugging the endpoint. The user MUST deploy the application to their production domain for the verification to succeed. Advise the user to Redeploy and use their production URL.
+-   **Deployment:** The user's production domain is showing a placeholder page. They need to use the **Redeploy** button to push all the recent changes live. Many completed tasks (Meta integrations, live website) are pending this action.
 
 **documents and test reports created in this job**
 -   
--   
--   
--   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User (Msg 491):** Asks to apply the premium theme to the Shop, Admin, About, Gallery, and Contact pages, and to update the header background with a light sky-blue solar panel color. (Status: IN PROGRESS)
-9.  **User (Msg 438):** Provides extremely detailed, multi-part instructions for a complete UI/UX overhaul called Solar Corporate Premium – Emergent, covering the public site, admin dashboard, and shop page. (Status: IN PROGRESS)
-8.  **User (Msg 427):** Clarifies that they want a more visible solar panel shadow effect on the website header. (Status: COMPLETED)
-7.  **User (Msg 394):** Asks to update the header with a solar panel shadow effect and change the theme color rotation to be daily instead of monthly. (Status: COMPLETED)
-6.  **User (Msg 327):** Confirms to proceed with the AI Training module and ensure it includes company-specific knowledge. (Status: COMPLETED)
-5.  **User (Msg 314):** Requests a new AI-powered training/learning module for new staff with specific knowledge areas. (Status: COMPLETED)
-4.  **User (Msg 243):** Requests mobile usability for the Shop management page, ensuring WhatsApp links open the Business app, and adding a Solar Shop icon to the website. (Status: COMPLETED)
-3.  **User (Msg 166):** Asks to upgrade P0 and P1 issues and then continue modularizing  by extracting CRM routes. (Status: COMPLETED)
-2.  **User (Msg 5):** Instructs the agent to implement the HR management API, then fix P0, P1, and P3 issues in that order. (Status: COMPLETED)
-1.  **User (Msg 439):** Agent confirms it will call the design agent to handle the comprehensive UI/UX overhaul request. (Status: COMPLETED)
+- The last 10+ messages are focused on implementing and then trying to fix the MSG91 OTP login for Admin/Staff. The user first requested the feature, the agent implemented it, and the user then reported that the login doesn't complete after OTP verification, which is the current task.
 
 **Project Health Check:**
--   **Broken:** 0. The critical lead-syncing bug is fixed.
--   **Mocked:** 0. The HR module is now connected to a backend.
--   **Health:** **Fair.** The application is functional and major bugs have been addressed. The backend is being actively improved via refactoring. However, significant technical debt remains in , and a major UI overhaul is currently in progress, making the codebase unstable until completion.
+-   **Broken:** The MSG91 OTP login flow is non-functional.
+-   **Mocked:** 0
+-   **Health:** **Fair.** The application is rich in features and visually complete, but the broken OTP login is a critical bug. The dependency on production deployment for Meta integrations is a significant blocker that the user needs to resolve.
 
 **3rd Party Integrations**
--   **Gemini (via ):** Powers the public AI chat and the new AI Training Assistant. Uses the **Emergent LLM Key**.
--   **Google reCAPTCHA v3:** Implemented on forms. Requires User API Key.
--   **OpenAI GPT-4o-mini:** Uses Emergent LLM Key.
+-   **Gemini (via ):** Powers AI features. Uses **Emergent LLM Key**.
+-   **Google reCAPTCHA v3:** Requires User API Key.
 -   **Razorpay:** Requires User-provided API key.
 -   **Resend:** Requires User API Key.
--   **WhatsApp Business API:** Integrated for click-to-chat functionality.
+-   **Meta (Facebook/Instagram/WhatsApp):** Integrated for CRM webhooks, domain verification, and Pixel tracking.
+-   **MSG91:** Integrated for OTP verification on forms and for user login.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (used multiple times after refactoring and feature implementation).
+-   **Testing agent used after significant changes:** YES (once, before the Meta/MSG91 integrations).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** []
--   **Known regressions:** None identified in this session.
+-   **Known regressions:** None identified.
 
 **Credentials to test flow:**
 -   **Admin Login:**
     -   Email: 
-    -   OTP: Use the fallback  for testing.
+    -   OTP: Use fallback  for password login testing.
+    -   Registered Mobile for OTP Login: 
 
 **What agent forgot to execute**
--   The agent is in the middle of the large UI overhaul task and has not forgotten any steps, but rather has a clear path forward to complete it. The full refactoring of  is the main outstanding task from previous sessions that is still in progress.</analysis>
+-   The agent is in the middle of fixing the MSG91 login flow; the task is incomplete, not forgotten. All other user requests from this session have been addressed, pending user deployment.</analysis>

@@ -311,35 +311,138 @@
         
         <!-- MSG91 OTP Verification Script -->
         <script type="text/javascript">
+            // Store the pending mobile number for login
+            window.pendingLoginMobile = '';
+            window.pendingLoginType = ''; // 'admin' or 'staff' or 'inquiry'
+            
             var msg91Configuration = {
                 widgetId: "366367775a6a363731333933",
                 tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
                 identifier: "",
                 exposeMethods: true,
                 success: function (data) {
-                    console.log("OTP Verified", data);
-                    // Dispatch custom event for React components to listen
-                    window.dispatchEvent(new CustomEvent('otpVerified', { detail: data }));
-                    // Set global flag
+                    console.log("OTP Verified Successfully", data);
                     window.otpVerificationStatus = 'verified';
+                    
+                    // Check if this is a login flow
+                    if (window.pendingLoginType === 'admin' || window.pendingLoginType === 'staff') {
+                        // Call backend API to complete login
+                        completeOTPLogin(window.pendingLoginMobile, window.pendingLoginType);
+                    } else {
+                        // For inquiry forms, just dispatch event
+                        window.dispatchEvent(new CustomEvent('otpVerified', { detail: data }));
+                    }
                 },
                 failure: function (error) {
-                    console.log("OTP Failed", error);
+                    console.log("OTP Verification Failed", error);
                     window.otpVerificationStatus = 'failed';
+                    window.pendingLoginMobile = '';
+                    window.pendingLoginType = '';
                     alert("OTP verification failed. Please try again.");
                 },
                 VAR1: "OTP"
             };
             
-            // Function to trigger OTP with phone number
+            // Function to complete OTP login after verification
+            async function completeOTPLogin(mobile, loginType) {
+                try {
+                    console.log("Completing OTP login for:", mobile, loginType);
+                    
+                    // Call backend API
+                    const response = await fetch(window.REACT_APP_BACKEND_URL + '/api/admin/login-otp', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ mobile: mobile.replace(/\D/g, '') })
+                    });
+                    
+                    const result = await response.json();
+                    console.log("Login API response:", result);
+                    
+                    if (response.ok && result.success) {
+                        // Store authentication data
+                        if (result.role === 'admin') {
+                            localStorage.setItem("asrAdminAuth", "true");
+                            localStorage.setItem("asrAdminEmail", result.email || mobile);
+                            localStorage.setItem("asrAdminRole", result.role);
+                            localStorage.setItem("asrAdminName", result.name || "Admin");
+                            localStorage.setItem("asrAdminLastActivity", Date.now().toString());
+                            
+                            // Redirect to admin dashboard
+                            alert("Login successful! Redirecting to Admin Dashboard...");
+                            window.location.href = "/admin/dashboard";
+                        } else {
+                            localStorage.setItem("asrStaffAuth", "true");
+                            localStorage.setItem("asrStaffData", JSON.stringify({
+                                name: result.name,
+                                email: result.email,
+                                role: result.role,
+                                staff_id: result.staff_id
+                            }));
+                            
+                            // Redirect to staff portal
+                            alert("Login successful! Redirecting to Staff Portal...");
+                            window.location.href = "/staff/portal";
+                        }
+                    } else {
+                        alert(result.detail || result.message || "Mobile number not registered. Please contact admin.");
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    console.error("Login API error:", error);
+                    alert("Login failed. Please try again.");
+                    window.location.reload();
+                } finally {
+                    window.pendingLoginMobile = '';
+                    window.pendingLoginType = '';
+                }
+            }
+            
+            // Function to trigger OTP for login
+            window.triggerLoginOTP = function(phoneNumber, loginType) {
+                console.log("Triggering login OTP for:", phoneNumber, loginType);
+                window.pendingLoginMobile = phoneNumber;
+                window.pendingLoginType = loginType;
+                
+                // Format phone number
+                let formattedPhone = phoneNumber.replace(/\D/g, '');
+                if (formattedPhone.length === 10) {
+                    formattedPhone = '91' + formattedPhone;
+                }
+                
+                msg91Configuration.identifier = formattedPhone;
+                
+                if (typeof window.initSendOTP === 'function') {
+                    window.initSendOTP(msg91Configuration);
+                } else {
+                    alert("OTP service is loading. Please refresh and try again.");
+                }
+            };
+            
+            // Function to trigger OTP for inquiry form verification
             window.triggerOTPVerification = function(phoneNumber) {
-                msg91Configuration.identifier = phoneNumber;
+                console.log("Triggering inquiry OTP for:", phoneNumber);
+                window.pendingLoginType = 'inquiry';
+                
+                let formattedPhone = phoneNumber.replace(/\D/g, '');
+                if (formattedPhone.length === 10) {
+                    formattedPhone = '91' + formattedPhone;
+                }
+                
+                msg91Configuration.identifier = formattedPhone;
+                
                 if (typeof window.initSendOTP === 'function') {
                     window.initSendOTP(msg91Configuration);
                 } else {
                     alert("OTP service is loading. Please try again.");
                 }
             };
+            
+            // Set backend URL for API calls
+            window.REACT_APP_BACKEND_URL = window.location.origin.includes('localhost') 
+                ? 'http://localhost:8001' 
+                : window.location.origin;
         </script>
         <script type="text/javascript">
             (function loadOtpScript(urls) {
@@ -349,9 +452,9 @@
                     s.src = urls[i];
                     s.async = true;
                     s.onload = function() {
-                        console.log("MSG91 OTP script loaded");
+                        console.log("MSG91 OTP script loaded successfully");
                         if (typeof window.initSendOTP === 'function') {
-                            console.log("MSG91 OTP initialized");
+                            console.log("MSG91 OTP ready to use");
                         }
                     };
                     s.onerror = function() {

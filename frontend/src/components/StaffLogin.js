@@ -24,16 +24,64 @@ export const StaffLogin = () => {
   useEffect(() => {
     const handleOtpVerified = async (event) => {
       console.log("Staff OTP Verified:", event.detail);
+      
+      // Get mobile from event detail (MSG91 returns the identifier)
+      const verifiedPhone = event.detail?.identifier || event.detail?.mobile || mobileNumber;
+      let cleanMobile = verifiedPhone.replace(/\D/g, '');
+      
+      // Remove country code if present
+      if (cleanMobile.startsWith("91") && cleanMobile.length === 12) {
+        cleanMobile = cleanMobile.slice(2);
+      }
+      
+      console.log("Verified mobile number:", cleanMobile);
+      
       setOtpVerified(true);
       setOtpLoading(false);
       
-      // Auto-login after OTP verification
-      await handleMobileOTPLogin();
+      // Auto-login after OTP verification - call API directly
+      setLoading(true);
+      setError("");
+      
+      try {
+        const res = await axios.post(`${API}/admin/login-otp`, {
+          mobile: cleanMobile
+        });
+        
+        if (res.data.success) {
+          localStorage.setItem("asrStaffAuth", "true");
+          localStorage.setItem("asrStaffData", JSON.stringify({
+            name: res.data.name,
+            email: res.data.email,
+            role: res.data.role,
+            staff_id: res.data.staff_id
+          }));
+          
+          setSuccess("Login successful! Redirecting...");
+          
+          setTimeout(() => {
+            if (res.data.role === "admin") {
+              navigate("/admin/dashboard");
+            } else {
+              navigate("/staff/portal");
+            }
+          }, 1000);
+        } else {
+          setError(res.data.message || "Mobile number not registered. Contact admin.");
+          setOtpVerified(false);
+        }
+      } catch (err) {
+        console.error("Staff OTP Login error:", err);
+        setError(err.response?.data?.detail || "Mobile number not registered for staff access.");
+        setOtpVerified(false);
+      } finally {
+        setLoading(false);
+      }
     };
     
     window.addEventListener('otpVerifiedStaffLogin', handleOtpVerified);
     return () => window.removeEventListener('otpVerifiedStaffLogin', handleOtpVerified);
-  }, [mobileNumber]);
+  }, [mobileNumber, navigate]);
 
   // Trigger MSG91 OTP for staff login
   const sendMobileOTP = () => {
@@ -51,6 +99,9 @@ export const StaffLogin = () => {
     setError("");
     
     if (typeof window.initSendOTP === 'function') {
+      // Store the mobile number for the success callback
+      const storedMobile = phoneNumber;
+      
       const loginConfig = {
         widgetId: "366367775a6a363731333933",
         tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
@@ -58,7 +109,10 @@ export const StaffLogin = () => {
         exposeMethods: true,
         success: function (data) {
           console.log("Staff OTP Verified", data);
-          window.dispatchEvent(new CustomEvent('otpVerifiedStaffLogin', { detail: data }));
+          // Include the mobile number in the event detail
+          window.dispatchEvent(new CustomEvent('otpVerifiedStaffLogin', { 
+            detail: { ...data, identifier: storedMobile, mobile: storedMobile }
+          }));
         },
         failure: function (error) {
           console.log("Staff OTP Failed", error);

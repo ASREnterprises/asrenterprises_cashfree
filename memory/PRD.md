@@ -30,18 +30,21 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Testing:** All 4 OTP buttons verified - they show "Sending..." briefly then reset to normal state
 - **Test Report:** `/app/test_reports/iteration_37.json`
 
-### OTP Login 2-Step Flow Complete Rewrite (COMPLETED)
-- **Issue:** After receiving OTP on phone, there was no input field to enter and verify the OTP
-- **Root Cause:** MSG91 widget with `exposeMethods: true` requires custom UI for OTP input - the widget doesn't show a popup
-- **Fix Applied:** Complete rewrite of AdminLogin.js and StaffLogin.js with 2-step OTP flow:
-  - **Step 1:** Enter mobile number + Click "Send OTP"
-  - **Step 2:** OTP input field appears + "Verify & Login" button + "Change Number" + "Resend" countdown
-- **Additional Fix:** MSG91 `sendOtp()` returns `undefined` on success (not a response object). Updated code to handle this.
+### OTP 2-Step Flow for All Forms (COMPLETED)
+- **Issue:** Inquiry forms (homepage, lead capture) had no OTP input field after clicking "Send OTP"
+- **Fix Applied:** Implemented 2-step OTP flow in all forms across the website:
+  - **Step 1:** Enter mobile number + "Send OTP" button
+  - **Step 2:** OTP input field + "Verify" button + "Change Number" link + "Resend in Xs" countdown
+- **Forms Updated:**
+  - Homepage Inquiry Form (`/#inquiry-form`) - WORKING ✅
+  - Admin Login (`/admin/login` Mobile OTP tab) - WORKING ✅
+  - Staff Login (`/staff/login` Mobile OTP tab) - WORKING ✅
+  - LeadCapturePage (popup, not routed) - UPDATED ✅
 - **Files Modified:**
-  - `/app/frontend/src/components/AdminLogin.js` - Complete rewrite
-  - `/app/frontend/src/components/StaffLogin.js` - Complete rewrite
-- **Testing:** All tests passed - OTP input field now appears after clicking "Send OTP"
-- **Test Report:** `/app/test_reports/iteration_38.json`
+  - `/app/frontend/src/App.js` - SolarInquiryForm, LeadCapturePage
+  - `/app/frontend/src/components/AdminLogin.js`
+  - `/app/frontend/src/components/StaffLogin.js`
+- **Test Report:** `/app/test_reports/iteration_39.json`
 
 ### Admin/Staff Login Credentials
 - **Admin Email:** asrenterprisespatna@gmail.com

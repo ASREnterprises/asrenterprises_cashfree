@@ -1,0 +1,90 @@
+{
+  "summary": "Iteration 37 - OTP Button 'Sending...' Stuck State Bug Fix Verified. All 4 OTP buttons tested (Admin Login, Staff Login, Inquiry Form, Lead Capture Page code). The 1.5s setTimeout fix correctly resets otpLoading state after MSG91 widget opens. Backend API /api/admin/login-otp working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    ".screenshots/admin_otp_button_test.png",
+    ".screenshots/admin_otp_after_click.png",
+    ".screenshots/staff_otp_button_test.png",
+    ".screenshots/staff_otp_after_click.png",
+    ".screenshots/inquiry_form_otp_test.png",
+    ".screenshots/inquiry_form_after_click.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AdminLogin.js lines 100-138: sendLoginOTP function correctly sets otpLoading=true, calls initSendOTP, then resets otpLoading=false after 1.5s setTimeout. FIX VERIFIED.",
+    "StaffLogin.js lines 98-134: sendMobileOTP function has identical fix pattern - setTimeout after 1.5s resets otpLoading. FIX VERIFIED.",
+    "App.js lines 336-363: SolarInquiryForm handleVerifyOTP has setTimeout at 1.5s to reset otpLoading. FIX VERIFIED.",
+    "App.js lines 2225-2252: LeadCapturePage handleVerifyOTP has setTimeout at 1.5s to reset otpLoading. FIX VERIFIED (code review only - /leads route not exposed)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (OTP login API working correctly)",
+    "frontend": "100% (All tested OTP buttons reset correctly after 1.5s)"
+  },
+  "test_credentials": {
+    "admin_email": "asrenterprisespatna@gmail.com",
+    "admin_password": "admin@asr123",
+    "admin_mobile": "8877896889"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "OTP button stuck state bug fix verified. All 4 OTP buttons (Admin Login, Staff Login, Inquiry Form, LeadCapturePage code) have the setTimeout(1.5s) fix to reset otpLoading state. MSG91 is third-party widget - cannot fully automate OTP flow. LeadCapturePage code has the fix but /leads route is not exposed in router.",
+  "bug_fix_verification": {
+    "issue": "OTP button stays stuck in 'Sending...' state indefinitely after clicking",
+    "fix_applied": "Added 1.5 second setTimeout to reset otpLoading state after MSG91 widget opens",
+    "verification_results": {
+      "admin_login_otp_button": {
+        "initial_state": "Send OTP (disabled until 10-digit mobile entered)",
+        "after_click_200ms": "Sending... (loading state)",
+        "after_1500ms_timeout": "Send OTP (enabled) - FIXED",
+        "status": "PASS"
+      },
+      "staff_login_otp_button": {
+        "initial_state": "Send OTP (disabled until 10-digit mobile entered)",
+        "after_click_200ms": "Sending... (loading state)",
+        "after_1500ms_timeout": "Send OTP (enabled) - FIXED",
+        "status": "PASS"
+      },
+      "inquiry_form_otp_button": {
+        "initial_state": "Verify OTP (disabled until 10-digit mobile entered)",
+        "after_click_200ms": "Sending... (loading state)",
+        "after_1500ms_timeout": "Verify OTP (enabled) - FIXED",
+        "status": "PASS"
+      },
+      "lead_capture_page_otp_button": {
+        "note": "/leads route not exposed in router. Code review verified fix exists at App.js lines 2243-2245",
+        "status": "PASS (code review)"
+      }
+    }
+  },
+  "backend_api_verification": {
+    "endpoint": "POST /api/admin/login-otp",
+    "tests": [
+      {
+        "input": {"mobile": "8877896889"},
+        "response": {"success": true, "role": "admin", "email": "asrenterprisespatna@gmail.com"},
+        "status": "PASS"
+      },
+      {
+        "input": {"mobile": "918877896889"},
+        "response": {"success": true, "role": "admin"},
+        "note": "Handles country code prefix correctly",
+        "status": "PASS"
+      },
+      {
+        "input": {"mobile": "1234567890"},
+        "response": {"detail": "Mobile number not registered for OTP login"},
+        "status": "PASS - correct error for unregistered mobile"
+      }
+    ]
+  }
+}

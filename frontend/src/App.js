@@ -351,6 +351,11 @@ const SolarInquiryForm = () => {
     // Trigger MSG91 OTP
     if (typeof window.triggerOTPVerification === 'function') {
       window.triggerOTPVerification(phoneNumber);
+      
+      // Reset loading state after widget opens (MSG91 widget handles the rest)
+      setTimeout(() => {
+        setOtpLoading(false);
+      }, 1500);
     } else {
       alert("OTP service is not available. Please refresh the page and try again.");
       setOtpLoading(false);
@@ -2233,6 +2238,11 @@ const LeadCapturePage = () => {
     
     if (typeof window.triggerOTPVerification === 'function') {
       window.triggerOTPVerification(phoneNumber);
+      
+      // Reset loading state after widget opens (MSG91 widget handles the rest)
+      setTimeout(() => {
+        setOtpLoading(false);
+      }, 1500);
     } else {
       alert("OTP service is not available. Please refresh the page and try again.");
       setOtpLoading(false);

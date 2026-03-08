@@ -125,6 +125,11 @@ export const AdminLogin = ({ onLogin }) => {
         VAR1: "OTP"
       };
       window.initSendOTP(loginConfig);
+      
+      // Reset loading state after widget opens (MSG91 widget handles the rest)
+      setTimeout(() => {
+        setOtpLoading(false);
+      }, 1500);
     } else {
       setError("OTP service is not available. Please refresh the page and try again.");
       setOtpLoading(false);

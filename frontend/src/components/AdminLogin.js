@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Lock, User, Mail, Eye, EyeOff, Send, Shield, Loader2, Phone, Key } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lock, User, Eye, EyeOff, Send, Shield, Loader2, Phone, Key, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -7,89 +7,117 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export const AdminLogin = ({ onLogin }) => {
-  const [loginMethod, setLoginMethod] = useState("otp"); // "otp" or "password"
-  const [step, setStep] = useState(1); // 1: Email/Phone, 2: OTP/Password
-  const [userId, setUserId] = useState(""); // Can be email or phone
-  const [otp, setOtp] = useState("");
+  const [loginMethod, setLoginMethod] = useState("password"); // "otp" or "password"
+  const [userId, setUserId] = useState(""); // Email for password login
+  const [mobileNumber, setMobileNumber] = useState(""); // Mobile for OTP login
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [verifiedMobile, setVerifiedMobile] = useState("");
   const navigate = useNavigate();
 
-  // Registered admin credentials
-  const registeredEmail = "asrenterprisespatna@gmail.com";
-  const registeredPhone = "9876543210"; // Admin phone number
+  // Listen for MSG91 OTP verification success
+  useEffect(() => {
+    const handleOtpVerified = async (event) => {
+      console.log("OTP Verified for Login:", event.detail);
+      setOtpVerified(true);
+      setOtpLoading(false);
+      setVerifiedMobile(mobileNumber);
+      
+      // Auto-login after OTP verification
+      await handleOTPLogin();
+    };
+    
+    window.addEventListener('otpVerifiedLogin', handleOtpVerified);
+    return () => window.removeEventListener('otpVerifiedLogin', handleOtpVerified);
+  }, [mobileNumber]);
 
-  const isValidUserId = (id) => {
-    // Check if it's a valid email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailRegex.test(id)) {
-      return id.toLowerCase() === registeredEmail;
-    }
-    // Check if it's a valid phone (10 digits)
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (phoneRegex.test(id)) {
-      return true; // Will be verified on backend
-    }
-    return false;
-  };
-
-  const sendOTP = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    if (!isValidUserId(userId)) {
-      setError("Invalid email or phone number. Please check and try again.");
-      setLoading(false);
+  // Trigger MSG91 OTP for login
+  const sendLoginOTP = () => {
+    if (!mobileNumber || mobileNumber.length < 10) {
+      setError("Please enter a valid 10-digit mobile number");
       return;
     }
-
-    try {
-      await axios.post(`${API}/admin/send-otp`, { 
-        email: userId.includes("@") ? userId : undefined,
-        phone: !userId.includes("@") ? userId : undefined
-      });
-      setSuccess("OTP sent successfully! Check your email/SMS.");
-      setStep(2);
-    } catch (err) {
-      setError("Failed to send OTP. Please try again or contact admin.");
-    } finally {
-      setLoading(false);
+    
+    // Format phone number (add 91 prefix if not present)
+    let phoneNumber = mobileNumber.replace(/\D/g, '');
+    if (phoneNumber.length === 10) {
+      phoneNumber = '91' + phoneNumber;
+    }
+    
+    setOtpLoading(true);
+    setError("");
+    
+    // Configure MSG91 for login with custom success handler
+    if (typeof window.initSendOTP === 'function') {
+      const loginConfig = {
+        widgetId: "366367775a6a363731333933",
+        tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
+        identifier: phoneNumber,
+        exposeMethods: true,
+        success: function (data) {
+          console.log("OTP Verified for Login", data);
+          window.dispatchEvent(new CustomEvent('otpVerifiedLogin', { detail: data }));
+        },
+        failure: function (error) {
+          console.log("OTP Failed", error);
+          setOtpLoading(false);
+          setError("OTP verification failed. Please try again.");
+        },
+        VAR1: "OTP"
+      };
+      window.initSendOTP(loginConfig);
+    } else {
+      setError("OTP service is not available. Please refresh the page and try again.");
+      setOtpLoading(false);
     }
   };
 
-  const verifyOTP = async (e) => {
-    e.preventDefault();
+  // Handle OTP-based login after verification
+  const handleOTPLogin = async () => {
     setLoading(true);
     setError("");
-
+    
     try {
-      const response = await axios.post(`${API}/admin/verify-otp`, { 
-        email: userId.includes("@") ? userId : undefined,
-        phone: !userId.includes("@") ? userId : undefined,
-        otp 
+      const response = await axios.post(`${API}/admin/login-otp`, { 
+        mobile: mobileNumber.replace(/\D/g, '')
       });
+      
       if (response.data.success) {
         localStorage.setItem("asrAdminAuth", "true");
-        localStorage.setItem("asrAdminEmail", userId);
+        localStorage.setItem("asrAdminEmail", response.data.email || mobileNumber);
         localStorage.setItem("asrAdminRole", response.data.role || "admin");
+        localStorage.setItem("asrAdminName", response.data.name || "Admin");
         localStorage.setItem("asrAdminLastActivity", Date.now().toString());
-        onLogin();
-        navigate("/admin/dashboard");
+        
+        setSuccess("Login successful! Redirecting...");
+        
+        setTimeout(() => {
+          onLogin();
+          // Redirect based on role
+          if (response.data.role === "staff") {
+            navigate("/staff/dashboard");
+          } else {
+            navigate("/admin/dashboard");
+          }
+        }, 1000);
       } else {
-        setError("Invalid OTP. Please try again.");
+        setError(response.data.message || "Mobile number not registered. Contact admin.");
+        setOtpVerified(false);
       }
     } catch (err) {
-      setError("Invalid OTP or OTP expired.");
+      setError(err.response?.data?.detail || "Mobile number not registered for admin/staff access.");
+      setOtpVerified(false);
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle password-based login
   const loginWithPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -104,9 +132,19 @@ export const AdminLogin = ({ onLogin }) => {
         localStorage.setItem("asrAdminAuth", "true");
         localStorage.setItem("asrAdminEmail", response.data.email || userId);
         localStorage.setItem("asrAdminRole", response.data.role || "admin");
+        localStorage.setItem("asrAdminName", response.data.name || "Admin");
         localStorage.setItem("asrAdminLastActivity", Date.now().toString());
-        onLogin();
-        navigate("/admin/dashboard");
+        
+        setSuccess("Login successful! Redirecting...");
+        
+        setTimeout(() => {
+          onLogin();
+          if (response.data.role === "staff") {
+            navigate("/staff/dashboard");
+          } else {
+            navigate("/admin/dashboard");
+          }
+        }, 1000);
       } else {
         setError(response.data.message || "Invalid credentials.");
       }
@@ -119,16 +157,14 @@ export const AdminLogin = ({ onLogin }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (loginMethod === "otp") {
-      if (step === 1) sendOTP(e);
-      else verifyOTP(e);
-    } else {
+    if (loginMethod === "password") {
       loginWithPassword(e);
     }
+    // OTP login is handled by MSG91 callback
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-sky-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F7FAFC] via-white to-[#E0F2FE] flex items-center justify-center px-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -139,89 +175,82 @@ export const AdminLogin = ({ onLogin }) => {
               className="h-16 w-auto"
             />
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-amber-500 mb-2">ASR Enterprises</h1>
-          <p className="text-gray-600">Secure Admin Panel Login</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#F5A623] mb-2 font-[Poppins]">ASR Enterprises</h1>
+          <p className="text-gray-600">Admin / Staff Login</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-sky-200">
+        <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-[#0B3C5D]/10">
           {/* Login Method Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+          <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6">
             <button
               type="button"
-              onClick={() => { setLoginMethod("otp"); setStep(1); setError(""); }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition ${
-                loginMethod === "otp" 
-                  ? "bg-white text-blue-600 shadow" 
+              onClick={() => { setLoginMethod("password"); setError(""); setSuccess(""); }}
+              className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                loginMethod === "password" 
+                  ? "bg-white text-[#0B3C5D] shadow-md" 
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              <Send className="w-4 h-4 inline mr-1" /> OTP Login
+              <Key className="w-4 h-4" /> Password
             </button>
             <button
               type="button"
-              onClick={() => { setLoginMethod("password"); setError(""); }}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition ${
-                loginMethod === "password" 
-                  ? "bg-white text-blue-600 shadow" 
+              onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); setOtpVerified(false); }}
+              className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                loginMethod === "otp" 
+                  ? "bg-white text-[#0B3C5D] shadow-md" 
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              <Key className="w-4 h-4 inline mr-1" /> Password
+              <Phone className="w-4 h-4" /> Mobile OTP
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="text-center mb-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0a355e] mb-1">
-                {loginMethod === "otp" 
-                  ? (step === 1 ? "Email/Phone Verification" : "Enter OTP")
-                  : "Password Login"
-                }
-              </h2>
-              <p className="text-gray-500 text-sm">
-                {loginMethod === "otp" 
-                  ? (step === 1 ? "Enter registered email or mobile number" : "Enter the OTP sent to you")
-                  : "Enter your credentials to login"
-                }
-              </p>
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="bg-red-50 border border-red-300 text-red-600 px-4 py-3 rounded-xl text-sm mb-4">
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div className="bg-red-50 border border-red-300 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
+          {success && (
+            <div className="bg-green-50 border border-green-300 text-green-600 px-4 py-3 rounded-xl text-sm mb-4 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-2" />
+              {success}
+            </div>
+          )}
+
+          {/* Password Login Form */}
+          {loginMethod === "password" && (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">
+                  Password Login
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Enter your email and password
+                </p>
               </div>
-            )}
 
-            {success && (
-              <div className="bg-green-50 border border-green-300 text-green-600 px-4 py-3 rounded-lg text-sm">
-                {success}
-              </div>
-            )}
-
-            {/* Step 1: User ID (Email/Phone) */}
-            {(loginMethod === "password" || step === 1) && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email or Mobile Number
+                  Email Address
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="text"
+                    type="email"
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
-                    placeholder="email@example.com or 9876543210"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400"
+                    placeholder="admin@example.com"
                     required
-                    data-testid="admin-userid"
+                    data-testid="admin-email"
                   />
                 </div>
               </div>
-            )}
 
-            {/* Password Field (for password login) */}
-            {loginMethod === "password" && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Password
@@ -232,7 +261,7 @@ export const AdminLogin = ({ onLogin }) => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                    className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400"
                     placeholder="Enter your password"
                     required
                     data-testid="admin-password"
@@ -246,77 +275,115 @@ export const AdminLogin = ({ onLogin }) => {
                   </button>
                 </div>
               </div>
-            )}
 
-            {/* OTP Field (for OTP login step 2) */}
-            {loginMethod === "otp" && step === 2 && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                data-testid="admin-password-submit"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Logging in...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-5 h-5" />
+                    <span>Login</span>
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* OTP Login Form */}
+          {loginMethod === "otp" && (
+            <div className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">
+                  Mobile OTP Login
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Enter your registered mobile number
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Enter OTP
+                  Mobile Number {otpVerified && <span className="text-green-600">(Verified ✓)</span>}
                 </label>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400 text-center tracking-widest text-lg"
-                    placeholder="Enter 6-digit OTP"
-                    maxLength={6}
-                    required
-                    data-testid="admin-otp"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { setStep(1); setOtp(""); setSuccess(""); }}
-                  className="text-blue-600 text-sm mt-2 hover:underline"
-                >
-                  ← Change email/phone
-                </button>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-lg font-bold hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 flex items-center justify-center space-x-2"
-              data-testid="admin-submit-btn"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Please wait...</span>
-                </>
-              ) : (
-                <>
-                  {loginMethod === "otp" ? (
-                    step === 1 ? <Send className="w-5 h-5" /> : <Shield className="w-5 h-5" />
-                  ) : (
-                    <Lock className="w-5 h-5" />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      value={mobileNumber}
+                      onChange={(e) => {
+                        setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                        setOtpVerified(false);
+                        setError("");
+                      }}
+                      className={`w-full pl-10 pr-4 py-3 bg-gray-50 border ${otpVerified ? 'border-green-500 bg-green-50' : 'border-gray-300'} text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400`}
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
+                      disabled={otpVerified || loading}
+                      data-testid="admin-mobile"
+                    />
+                  </div>
+                  {!otpVerified && !loading && (
+                    <button
+                      type="button"
+                      onClick={sendLoginOTP}
+                      disabled={otpLoading || mobileNumber.length < 10}
+                      className="px-5 py-3 bg-[#00C389] text-white rounded-xl font-semibold hover:bg-[#00A372] transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                      data-testid="send-login-otp"
+                    >
+                      {otpLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send className="w-5 h-5" />
+                      )}
+                      {otpLoading ? 'Sending...' : 'Send OTP'}
+                    </button>
                   )}
-                  <span>
-                    {loginMethod === "otp" 
-                      ? (step === 1 ? "Send OTP" : "Verify OTP")
-                      : "Login"
-                    }
-                  </span>
-                </>
+                  {otpVerified && (
+                    <span className="px-4 py-3 bg-green-500 text-white rounded-xl font-semibold flex items-center">
+                      <CheckCircle className="w-5 h-5" />
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-500 text-xs mt-2">
+                  OTP will be sent to your registered mobile number
+                </p>
+              </div>
+
+              {loading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#F5A623] mr-2" />
+                  <span className="text-gray-600">Verifying and logging in...</span>
+                </div>
               )}
-            </button>
-          </form>
+
+              {!otpVerified && !otpLoading && mobileNumber.length >= 10 && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl text-sm">
+                  <p>Click "Send OTP" to receive verification code on your mobile</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Staff Login Link */}
-        <div className="mt-6 text-center bg-white rounded-xl p-4 shadow-lg border border-sky-200">
+        <div className="mt-6 text-center bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-[#0B3C5D]/10">
           <p className="text-gray-600 text-sm mb-2">Are you a staff member?</p>
-          <a href="/staff/login" className="text-blue-600 font-semibold hover:text-blue-700 transition">
+          <a href="/staff/login" className="text-[#0B3C5D] font-semibold hover:text-[#F5A623] transition">
             Staff Login →
           </a>
         </div>
 
         <p className="text-center text-gray-500 text-xs mt-6">
-          © 2025 ASR Enterprises. Secure Admin Access.
+          © 2026 ASR Enterprises. Secure Admin Access.
         </p>
       </div>
     </div>

@@ -3290,6 +3290,154 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     logger.warning(f"Failed password login for {user_id} from IP: {client_ip}")
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
+# Registered admin mobile number for OTP login
+ADMIN_REGISTERED_MOBILE = "8877896889"
+
+@api_router.post("/admin/login-otp")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def admin_login_otp(request: Request, data: Dict[str, Any]):
+    """Login with mobile OTP for admin and staff (MSG91 verified)"""
+    client_ip = get_real_ip(request)
+    mobile = data.get("mobile", "").strip().replace(" ", "").replace("-", "")
+    
+    # Remove country code if present
+    if mobile.startswith("91") and len(mobile) == 12:
+        mobile = mobile[2:]
+    elif mobile.startswith("+91") and len(mobile) == 13:
+        mobile = mobile[3:]
+    
+    if not mobile or len(mobile) != 10:
+        raise HTTPException(status_code=400, detail="Invalid mobile number format")
+    
+    # Check lockout status
+    allowed, message = check_login_lockout(client_ip, mobile)
+    if not allowed:
+        security_tracker.record_failed_attempt(client_ip, "Login lockout active")
+        raise HTTPException(status_code=429, detail=message)
+    
+    # Check if it's the registered admin mobile
+    if mobile == ADMIN_REGISTERED_MOBILE:
+        reset_failed_login(client_ip, mobile)
+        logger.info(f"Successful OTP login for admin mobile from IP: {client_ip}")
+        return {
+            "success": True, 
+            "role": "admin", 
+            "email": "asrenterprisespatna@gmail.com",
+            "name": "Admin",
+            "message": "Admin login successful"
+        }
+    
+    # Check if mobile is registered for staff OTP login
+    staff = await db.crm_staff_accounts.find_one(
+        {"phone": mobile, "otp_login_enabled": True}, 
+        {"_id": 0}
+    )
+    
+    if staff:
+        reset_failed_login(client_ip, mobile)
+        logger.info(f"Successful OTP login for staff {staff.get('name')} from IP: {client_ip}")
+        return {
+            "success": True, 
+            "role": staff.get("role", "staff"), 
+            "email": staff.get("email"),
+            "name": staff.get("name"),
+            "staff_id": staff.get("staff_id"),
+            "message": "Staff login successful"
+        }
+    
+    # Check registered_otp_logins collection for additional authorized mobiles
+    otp_user = await db.registered_otp_logins.find_one(
+        {"mobile": mobile, "active": True},
+        {"_id": 0}
+    )
+    
+    if otp_user:
+        reset_failed_login(client_ip, mobile)
+        logger.info(f"Successful OTP login for {otp_user.get('name')} from IP: {client_ip}")
+        return {
+            "success": True,
+            "role": otp_user.get("role", "staff"),
+            "email": otp_user.get("email"),
+            "name": otp_user.get("name"),
+            "message": "Login successful"
+        }
+    
+    record_failed_login(client_ip, mobile)
+    logger.warning(f"Failed OTP login attempt for unregistered mobile {mobile} from IP: {client_ip}")
+    raise HTTPException(status_code=401, detail="Mobile number not registered for OTP login. Contact admin.")
+
+@api_router.post("/admin/register-otp-mobile")
+async def register_otp_mobile(data: Dict[str, Any]):
+    """Register a mobile number for OTP login (admin only)"""
+    mobile = data.get("mobile", "").strip().replace(" ", "").replace("-", "")
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip()
+    role = data.get("role", "staff")
+    
+    # Remove country code if present
+    if mobile.startswith("91") and len(mobile) == 12:
+        mobile = mobile[2:]
+    elif mobile.startswith("+91") and len(mobile) == 13:
+        mobile = mobile[3:]
+    
+    if not mobile or len(mobile) != 10:
+        raise HTTPException(status_code=400, detail="Invalid mobile number format")
+    
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is required")
+    
+    # Check if already registered
+    existing = await db.registered_otp_logins.find_one({"mobile": mobile})
+    
+    if existing:
+        # Update existing
+        await db.registered_otp_logins.update_one(
+            {"mobile": mobile},
+            {"$set": {
+                "name": name,
+                "email": email,
+                "role": role,
+                "active": True,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        return {"success": True, "message": f"OTP login updated for {mobile}"}
+    
+    # Create new
+    await db.registered_otp_logins.insert_one({
+        "mobile": mobile,
+        "name": name,
+        "email": email,
+        "role": role,
+        "active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"success": True, "message": f"OTP login registered for {mobile}"}
+
+@api_router.get("/admin/otp-logins")
+async def get_otp_logins():
+    """Get all registered OTP login mobiles (admin only)"""
+    logins = await db.registered_otp_logins.find(
+        {"active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return {"logins": logins}
+
+@api_router.delete("/admin/otp-login/{mobile}")
+async def delete_otp_login(mobile: str):
+    """Disable OTP login for a mobile number (admin only)"""
+    result = await db.registered_otp_logins.update_one(
+        {"mobile": mobile},
+        {"$set": {"active": False, "disabled_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Mobile not found")
+    
+    return {"success": True, "message": f"OTP login disabled for {mobile}"}
+
 @api_router.post("/admin/set-password")
 async def set_admin_password(data: Dict[str, Any]):
     """Set password for admin or staff (admin only)"""

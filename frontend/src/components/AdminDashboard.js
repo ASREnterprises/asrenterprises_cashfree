@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, ShoppingBag, Loader2, RefreshCw, UserCog } from "lucide-react";
+import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -18,7 +18,6 @@ export const AdminDashboard = ({ onLogout }) => {
   const [recentLeads, setRecentLeads] = useState(null);
   const [recentOrders, setRecentOrders] = useState(null);
   const [revenue, setRevenue] = useState(null);
-  const [shopStats, setShopStats] = useState(null);
   
   // Loading states for each widget
   const [countsLoading, setCountsLoading] = useState(true);
@@ -47,11 +46,6 @@ export const AdminDashboard = ({ onLogout }) => {
     axios.get(`${API}/dashboard/widget/revenue`)
       .then(res => { setRevenue(res.data); setRevenueLoading(false); })
       .catch(err => { console.error("Revenue error:", err); setRevenueLoading(false); });
-    
-    // Shop stats (separate)
-    axios.get(`${API}/shop/stats`)
-      .then(res => setShopStats(res.data))
-      .catch(err => console.error("Shop stats error:", err));
   }, []);
 
   useEffect(() => {
@@ -82,12 +76,12 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "Full CRM"
     },
     {
-      title: "Shop Management",
-      description: "Products, orders & payments",
-      icon: <ShoppingBag className="w-10 h-10" />,
-      link: "/admin/shop",
+      title: "HR Management",
+      description: "Employees, attendance & payroll",
+      icon: <UserCog className="w-10 h-10" />,
+      link: "/admin/hr",
       color: "from-amber-500 to-orange-600",
-      count: `${counts?.total_orders || shopStats?.total_orders || 0} Orders`
+      count: "Staff Portal"
     },
     {
       title: "Leads Management",
@@ -211,12 +205,7 @@ export const AdminDashboard = ({ onLogout }) => {
           </div>
           <div className="bg-white rounded-xl p-5 shadow-lg border border-amber-200">
             <div className="flex items-center justify-between mb-2">
-              <ShoppingBag className="w-8 h-8 text-amber-600" />
-              {counts?.pending_orders > 0 && (
-                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                  {counts.pending_orders} Pending
-                </span>
-              )}
+              <UserCog className="w-8 h-8 text-amber-600" />
             </div>
             {countsLoading ? (
               <div className="animate-pulse">
@@ -225,8 +214,8 @@ export const AdminDashboard = ({ onLogout }) => {
               </div>
             ) : (
               <>
-                <div className="text-3xl font-bold text-[#0a355e]">{counts?.total_orders || 0}</div>
-                <div className="text-gray-500 text-sm">Total Orders</div>
+                <div className="text-3xl font-bold text-[#0a355e]">{counts?.total_bookings || 0}</div>
+                <div className="text-gray-500 text-sm">Service Bookings</div>
               </>
             )}
           </div>

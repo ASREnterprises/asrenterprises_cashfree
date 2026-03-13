@@ -261,13 +261,13 @@ export const AboutUsPage = () => {
                 Contact Us Today
               </Link>
               <a 
-                href="/shop"
+                href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20booking%20a%20solar%20service."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center bg-white text-[#0B3C5D] px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition border-2 border-[#0B3C5D]/20 shadow-lg"
               >
                 <Zap className="w-5 h-5 mr-2" />
-                Shop Solar Products
+                Book Solar Service
               </a>
             </div>
           </div>

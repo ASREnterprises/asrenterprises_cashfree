@@ -3,6 +3,42 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
+## Latest Session (March 13, 2026) - OTP Bug Fix & Shop Removal
+
+### OTP Verification Bug Fix (COMPLETED)
+- **Issue:** Valid OTPs were being incorrectly marked as "invalid" after MSG91 verification
+- **Root Cause:** The frontend code was incorrectly treating `undefined` or `null` responses from MSG91's `verifyOtp` function as "success". The MSG91 widget can return different response formats.
+- **Fix Applied:**
+  1. Updated OTP verification in `AdminLogin.js`, `StaffLogin.js`, and `App.js` (both SolarInquiryForm and LeadCapturePage)
+  2. Now properly checks for `response.type === 'success'` before marking as verified
+  3. Added detailed console logging for debugging MSG91 responses
+  4. Checks `window.otpVerificationStatus` for callback-based verification fallback
+  5. Shows clear error messages instead of silently accepting invalid OTPs
+- **Files Modified:**
+  - `/app/frontend/src/components/AdminLogin.js` - verifyOTP function (lines 136-194)
+  - `/app/frontend/src/components/StaffLogin.js` - verifyMobileOTP function (lines 127-181)
+  - `/app/frontend/src/App.js` - handleVerifyOTP functions in SolarInquiryForm and LeadCapturePage
+
+### Shop Feature Complete Removal (COMPLETED)
+- **Previous Status:** Shop route existed but showed blank page
+- **Fix Applied:** Removed all Shop references from frontend components
+- **Files Modified:**
+  - `/app/frontend/src/components/AboutUs.js` - Changed "Shop Solar Products" button to "Book Solar Service" (WhatsApp link)
+  - `/app/frontend/src/components/Contact.js` - Changed "Explore Products" to "WhatsApp Inquiry" link
+  - `/app/frontend/src/components/AdminDashboard.js` - Removed Shop Management card, replaced with HR Management; removed `shopStats` state and API call
+  - `/app/frontend/src/components/Dashboard.js` - Replaced "Solar Shop" with "Book Service" (WhatsApp link)
+  - `/app/frontend/src/components/AnalyticsPage.js` - Changed "Shop Orders" to "Service Bookings"
+
+### Contact Information (Current Configuration)
+- **Call Inquiry:** +91 8877896889 (for all `tel:` links and phone displays)
+- **WhatsApp Sales & Support:** +91 9296389097 (for all `wa.me/` links)
+
+### Testing Results (March 13, 2026)
+- **Backend:** 91% (10/11 tests passed - /api/health returns 404 which is minor)
+- **Frontend:** 100% (All critical features verified)
+- **OTP Verification:** Bug fix confirmed working - no longer auto-verifies with undefined response
+- **Test Report:** `/app/test_reports/iteration_42.json`
+
 ## Latest Session (March 8, 2026) - MSG91 OTP Login Fix
 
 ### MSG91 OTP Login Bug Fix (COMPLETED)
@@ -773,13 +809,16 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
 ## Prioritized Backlog
 
 ### P0 (Critical)
+- ✅ ~~OTP Verification Bug Fix~~ (COMPLETED - March 13, 2026)
+- ✅ ~~Shop Feature Removal~~ (COMPLETED - March 13, 2026)
 - ✅ ~~Solar Corporate Premium UI/UX Overhaul~~ (COMPLETED)
 - ✅ ~~Holi Festival Effect~~ (COMPLETED)
-- Continue Backend Refactoring: Extract Shop/Auth routes from server.py
+- Continue Backend Refactoring: Extract Service/Shop routes from server.py into separate routers
 
 ### P1 (High Priority)
 - Advanced HR Features (AI task assignment, OCR expense reimbursement)
 - Predictive Operations Hub (AI inventory management, route optimization)
+- QR Code Payment Flow Testing (Book Solar Service feature)
 
 ### P2 (Medium Priority)
 - Hyper-Local SEO Pages (district-specific landing pages)

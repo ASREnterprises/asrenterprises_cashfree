@@ -240,12 +240,14 @@ export const ContactPage = () => {
             }}>
               <h3 className="text-2xl font-bold text-[#0B3C5D] mb-4 font-[Poppins]">Quick Actions</h3>
               <div className="space-y-3">
-                <Link
-                  to="/shop"
+                <a
+                  href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20installation."
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3 rounded-full font-bold text-center hover:shadow-lg transition shadow-md"
                 >
-                  Explore Products
-                </Link>
+                  WhatsApp Inquiry
+                </a>
                 <Link
                   to="/#inquiry-form"
                   className="block w-full bg-[#00C389] text-white py-3 rounded-full font-bold text-center hover:bg-[#00A372] transition shadow-md hover:shadow-[0_0_15px_rgba(0,195,137,0.3)]"

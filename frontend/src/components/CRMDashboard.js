@@ -242,6 +242,166 @@ const GoogleReviewsTab = memo(() => {
   );
 });
 
+// Service Price Config Component
+const ServicePriceConfig = memo(() => {
+  const [price, setPrice] = useState(2499);
+  const [loading, setLoading] = useState(false);
+  const [bookings, setBookings] = useState([]);
+
+  const fetchConfig = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/service/book-solar-config`);
+      setPrice(res.data?.price || 2499);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  const fetchBookings = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/service/bookings`);
+      setBookings(res.data?.bookings || []);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  useEffect(() => { 
+    fetchConfig(); 
+    fetchBookings();
+  }, [fetchConfig, fetchBookings]);
+
+  const updatePrice = async () => {
+    setLoading(true);
+    try {
+      await axios.put(`${API}/service/book-solar-config`, { price: parseFloat(price) });
+      alert("Price updated successfully!");
+      fetchConfig();
+    } catch (err) { alert("Error updating price"); }
+    setLoading(false);
+  };
+
+  const updateBookingStatus = async (id, status, paymentStatus) => {
+    try {
+      await axios.put(`${API}/service/bookings/${id}/status`, {
+        status: status,
+        payment_status: paymentStatus
+      });
+      alert("Booking status updated!");
+      fetchBookings();
+    } catch (err) { alert("Error updating booking"); }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Price Configuration */}
+      <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+        <div className="p-4 border-b bg-gradient-to-r from-amber-50 to-orange-50">
+          <h3 className="font-bold text-[#0a355e] flex items-center">
+            <CreditCard className="w-5 h-5 mr-2 text-amber-500" />
+            Book Solar Service - Price Configuration
+          </h3>
+          <p className="text-gray-500 text-sm mt-1">Set the price for Book Solar Service displayed on the website</p>
+        </div>
+        <div className="p-5">
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Service Price (₹)</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-xl font-bold text-[#0a355e]"
+                placeholder="Enter price"
+              />
+            </div>
+            <button
+              onClick={updatePrice}
+              disabled={loading}
+              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg font-semibold hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 flex items-center space-x-2"
+            >
+              {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+              <span>Update Price</span>
+            </button>
+          </div>
+          <p className="text-gray-500 text-sm">Current website price: <strong className="text-amber-600">₹{price}</strong></p>
+        </div>
+      </div>
+
+      {/* Service Bookings List */}
+      <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+        <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-cyan-50 flex justify-between items-center">
+          <div>
+            <h3 className="font-bold text-[#0a355e] flex items-center">
+              <ClipboardList className="w-5 h-5 mr-2 text-blue-500" />
+              Solar Service Bookings
+            </h3>
+            <p className="text-gray-500 text-sm mt-1">Manage QR payment bookings - Verify transactions and update status</p>
+          </div>
+          <button onClick={fetchBookings} className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-lg text-sm flex items-center space-x-1">
+            <RefreshCw className="w-4 h-4" /><span>Refresh</span>
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          {bookings.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No bookings yet</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Booking</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Customer</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Amount</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Transaction ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((b) => (
+                  <tr key={b.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-[#0a355e]">{b.booking_number}</div>
+                      <div className="text-xs text-gray-500">{new Date(b.created_at).toLocaleDateString()}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{b.customer_name}</div>
+                      <div className="text-xs text-gray-500">{b.customer_phone}</div>
+                    </td>
+                    <td className="px-4 py-3 font-bold text-green-600">₹{b.amount}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{b.transaction_id || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        b.payment_status === 'verified' ? 'bg-green-100 text-green-700' :
+                        b.payment_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {b.payment_status === 'pending_verification' ? 'Pending' : b.payment_status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => updateBookingStatus(b.id, 'confirmed', 'verified')}
+                          className="px-2 py-1 bg-green-100 text-green-600 rounded text-xs hover:bg-green-200"
+                          title="Verify Payment"
+                        >✓ Verify</button>
+                        <button
+                          onClick={() => updateBookingStatus(b.id, 'cancelled', 'rejected')}
+                          className="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"
+                          title="Reject Payment"
+                        >✗ Reject</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 // Backups Tab Component
 const BackupsTab = memo(() => {
   const [backups, setBackups] = useState([]);
@@ -1047,6 +1207,7 @@ export const CRMDashboard = () => {
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
+              { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
               { id: "backups", label: "Backups", icon: <Shield className="w-4 h-4" /> },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> },
               { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
@@ -1379,6 +1540,11 @@ export const CRMDashboard = () => {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Service Price Config Tab */}
+        {activeTab === "service_config" && (
+          <ServicePriceConfig />
         )}
 
         {/* Credentials Management Tab */}

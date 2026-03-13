@@ -14,7 +14,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-solar-preview.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://asr-payment-suite.preview.emergentagent.com').rstrip('/')
 
 
 class TestCRMLeadCounter:

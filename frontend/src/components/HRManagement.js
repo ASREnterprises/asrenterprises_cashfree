@@ -56,6 +56,8 @@ export const HRManagement = () => {
   const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDept, setFilterDept] = useState("");
@@ -203,6 +205,47 @@ export const HRManagement = () => {
       } catch (err) {
         alert(err.response?.data?.detail || "Error deleting employee");
       }
+    }
+  };
+
+  const handleUpdateEmployee = async () => {
+    if (!editingEmployee) return;
+    
+    try {
+      const updateData = {
+        name: editingEmployee.name,
+        email: editingEmployee.email,
+        phone: editingEmployee.phone,
+        date_of_birth: editingEmployee.date_of_birth,
+        gender: editingEmployee.gender,
+        address: editingEmployee.address,
+        city: editingEmployee.city,
+        pincode: editingEmployee.pincode,
+        department: editingEmployee.department,
+        designation: editingEmployee.designation,
+        role: editingEmployee.role,
+        employment_type: editingEmployee.employment_type,
+        base_salary: parseFloat(editingEmployee.base_salary) || 0,
+        allowances: parseFloat(editingEmployee.allowances) || 0,
+        emergency_contact_name: editingEmployee.emergency_contact_name,
+        emergency_contact_phone: editingEmployee.emergency_contact_phone,
+        emergency_contact_relation: editingEmployee.emergency_contact_relation,
+        pan_number: editingEmployee.pan_number,
+        aadhar_number: editingEmployee.aadhar_number,
+        bank_name: editingEmployee.bank_name,
+        bank_account_number: editingEmployee.bank_account_number,
+        bank_ifsc: editingEmployee.bank_ifsc,
+        status: editingEmployee.status
+      };
+      
+      await axios.put(`${API}/hr/employees/${editingEmployee.employee_id}`, updateData);
+      alert("Employee updated successfully!");
+      setShowEditForm(false);
+      setEditingEmployee(null);
+      fetchEmployees();
+      fetchDashboard();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error updating employee");
     }
   };
 
@@ -474,6 +517,17 @@ export const HRManagement = () => {
                             title="View Details"
                           >
                             <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingEmployee(emp);
+                              setShowEditForm(true);
+                            }}
+                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
+                            title="Edit Employee"
+                            data-testid={`edit-emp-${emp.employee_id}`}
+                          >
+                            <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteEmployee(emp)}
@@ -1208,6 +1262,169 @@ export const HRManagement = () => {
                     <span>Delete Employee Permanently</span>
                   </button>
                   <p className="text-xs text-gray-500 text-center mt-2">This will permanently remove all employee data</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Employee Modal */}
+        {showEditForm && editingEmployee && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-t-xl flex justify-between items-center">
+                <h2 className="text-xl font-bold">Edit Employee - {editingEmployee.employee_id}</h2>
+                <button onClick={() => { setShowEditForm(false); setEditingEmployee(null); }} className="text-white hover:text-gray-200">
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 space-y-6">
+                {/* Personal Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                    <input type="text" value={editingEmployee.name || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, name: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                    <input type="email" value={editingEmployee.email || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, email: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                    <input type="tel" value={editingEmployee.phone || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, phone: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select value={editingEmployee.status || 'active'} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, status: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                      {STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <select value={editingEmployee.department || 'sales'} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, department: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                      {DEPARTMENTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                    <input type="text" value={editingEmployee.designation || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, designation: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select value={editingEmployee.role || 'sales'} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, role: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
+                    <select value={editingEmployee.employment_type || 'full_time'} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, employment_type: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                      {EMPLOYMENT_TYPES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Base Salary (₹)</label>
+                    <input type="number" value={editingEmployee.base_salary || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, base_salary: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Allowances (₹)</label>
+                    <input type="number" value={editingEmployee.allowances || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, allowances: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                    <input type="text" value={editingEmployee.city || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, city: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input type="text" value={editingEmployee.address || ''} 
+                      onChange={(e) => setEditingEmployee({...editingEmployee, address: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                
+                {/* Bank Details */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-[#0a355e] mb-3">Bank Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                      <input type="text" value={editingEmployee.bank_name || ''} 
+                        onChange={(e) => setEditingEmployee({...editingEmployee, bank_name: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                      <input type="text" value={editingEmployee.bank_account_number || ''} 
+                        onChange={(e) => setEditingEmployee({...editingEmployee, bank_account_number: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                      <input type="text" value={editingEmployee.bank_ifsc || ''} 
+                        onChange={(e) => setEditingEmployee({...editingEmployee, bank_ifsc: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Emergency Contact */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-[#0a355e] mb-3">Emergency Contact</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                      <input type="text" value={editingEmployee.emergency_contact_name || ''} 
+                        onChange={(e) => setEditingEmployee({...editingEmployee, emergency_contact_name: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+                      <input type="text" value={editingEmployee.emergency_contact_phone || ''} 
+                        onChange={(e) => setEditingEmployee({...editingEmployee, emergency_contact_phone: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Relation</label>
+                      <input type="text" value={editingEmployee.emergency_contact_relation || ''} 
+                        onChange={(e) => setEditingEmployee({...editingEmployee, emergency_contact_relation: e.target.value})}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex space-x-3 border-t pt-4">
+                  <button onClick={() => { setShowEditForm(false); setEditingEmployee(null); }}
+                    className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition">
+                    Cancel
+                  </button>
+                  <button onClick={handleUpdateEmployee}
+                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition flex items-center justify-center space-x-2"
+                    data-testid="update-employee-btn">
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Update Employee</span>
+                  </button>
                 </div>
               </div>
             </div>

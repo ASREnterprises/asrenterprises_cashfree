@@ -151,19 +151,66 @@ export const AdminLogin = ({ onLogin }) => {
     try {
       // Try MSG91 verifyOtp method
       if (typeof window.verifyOtp === 'function') {
-        const response = await window.verifyOtp(otp);
-        console.log("MSG91 verifyOtp response:", response);
-        if (response && response.type === 'success') {
-          await handleOTPVerificationSuccess(phoneNumber);
-        } else {
-          setError(response?.message || "Invalid OTP. Please try again.");
+        try {
+          const response = await window.verifyOtp(otp);
+          
+          // Debug: Log the exact response for troubleshooting
+          console.log("MSG91 verifyOtp raw response:", JSON.stringify(response));
+          console.log("MSG91 verifyOtp response type:", typeof response);
+          console.log("MSG91 verifyOtp response.type:", response?.type);
+          console.log("MSG91 verifyOtp response.message:", response?.message);
+          
+          // MSG91 verified response handling based on documentation:
+          // Success: {type: 'success', message: '...', data: {...}}
+          // Error: {type: 'error', message: '...', errorCode: ...}
+          
+          if (response && response.type === 'success') {
+            // OTP verified successfully
+            console.log("MSG91 OTP verified successfully");
+            await handleOTPVerificationSuccess(phoneNumber);
+            return;
+          }
+          
+          if (response && response.type === 'error') {
+            // OTP verification failed with specific error
+            console.log("MSG91 OTP verification error:", response.message);
+            setError(response.message || "Invalid OTP. Please try again.");
+            setVerifyLoading(false);
+            return;
+          }
+          
+          // Handle case where response is undefined/null but no error thrown
+          // This can happen when MSG91 uses callback-based verification
+          if (!response || response === undefined || response === null) {
+            console.log("MSG91 returned undefined - checking window.otpVerificationStatus");
+            // Check if callback-based verification already handled it
+            if (window.otpVerificationStatus === 'verified') {
+              await handleOTPVerificationSuccess(phoneNumber);
+              return;
+            }
+            // Otherwise, treat undefined as needing verification via API
+            setError("OTP verification incomplete. Please try again.");
+            setVerifyLoading(false);
+            return;
+          }
+          
+          // Unrecognized response format - log and show error
+          console.log("MSG91 unrecognized response format:", response);
+          setError("Verification error. Please try again.");
+          setVerifyLoading(false);
+          
+        } catch (verifyError) {
+          // MSG91 threw an exception
+          console.error("MSG91 verifyOtp exception:", verifyError);
+          console.error("MSG91 exception message:", verifyError?.message);
+          setError(verifyError?.message || "OTP verification failed. Please try again.");
           setVerifyLoading(false);
         }
       } else {
-        // Fallback: Direct backend verification (skip MSG91 verify)
-        // Since MSG91 widget was initialized, we trust the OTP was sent
-        // and proceed with login directly
-        await handleOTPVerificationSuccess(phoneNumber);
+        // MSG91 verifyOtp not available - show error
+        console.log("MSG91 verifyOtp function not available");
+        setError("OTP service unavailable. Please refresh and try again.");
+        setVerifyLoading(false);
       }
     } catch (err) {
       console.error("Verify OTP error:", err);

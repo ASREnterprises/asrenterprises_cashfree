@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Instagram, Facebook, Image, Award, CreditCard, ShoppingBag, RefreshCw, Key
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -19,10 +19,7 @@ const GalleryPage = lazy(() => import("@/components/Gallery").then(m => ({ defau
 const ContactPage = lazy(() => import("@/components/Contact").then(m => ({ default: m.ContactPage })));
 const TestimonialsSection = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.TestimonialsSection })));
 const AboutUsPage = lazy(() => import("@/components/AboutUs").then(m => ({ default: m.AboutUsPage })));
-const ShopPage = lazy(() => import("@/components/Shop").then(m => ({ default: m.ShopPage })));
-const ProductManagementPage = lazy(() => import("@/components/ProductManagement").then(m => ({ default: m.ProductManagement })));
-const OrderTrackingPage = lazy(() => import("@/components/OrderTracking").then(m => ({ default: m.OrderTrackingPage })));
-
+// Shop removed - Book Solar Service with QR payment now available
 // Admin Panel - Lazy load (heavy components)
 const AIMarketingHub = lazy(() => import("@/components/AIMarketing").then(m => ({ default: m.AIMarketingHub })));
 const AdminLogin = lazy(() => import("@/components/AdminLogin").then(m => ({ default: m.AdminLogin })));
@@ -428,21 +425,61 @@ const SolarInquiryForm = () => {
     
     try {
       if (typeof window.verifyOtp === 'function') {
-        const response = await window.verifyOtp(otp);
-        console.log("MSG91 verifyOtp response:", response);
-        if (response && response.type === 'success') {
-          setOtpVerified(true);
-        } else if (response && response.type === 'error') {
-          setError(response?.message || "Invalid OTP. Please try again.");
-        } else {
-          setOtpVerified(true);
+        try {
+          const response = await window.verifyOtp(otp);
+          
+          // Debug: Log the exact response for troubleshooting
+          console.log("MSG91 verifyOtp raw response:", JSON.stringify(response));
+          console.log("MSG91 verifyOtp response type:", typeof response);
+          console.log("MSG91 verifyOtp response.type:", response?.type);
+          console.log("MSG91 verifyOtp response.message:", response?.message);
+          
+          // MSG91 verified response handling based on documentation
+          if (response && response.type === 'success') {
+            // OTP verified successfully
+            console.log("MSG91 OTP verified successfully");
+            setOtpVerified(true);
+            return;
+          }
+          
+          if (response && response.type === 'error') {
+            // OTP verification failed with specific error
+            console.log("MSG91 OTP verification error:", response.message);
+            setError(response.message || "Invalid OTP. Please try again.");
+            return;
+          }
+          
+          // Handle case where response is undefined/null but no error thrown
+          if (!response || response === undefined || response === null) {
+            console.log("MSG91 returned undefined - checking window.otpVerificationStatus");
+            // Check if callback-based verification already handled it
+            if (window.otpVerificationStatus === 'verified') {
+              setOtpVerified(true);
+              return;
+            }
+            // Otherwise, treat undefined as needing verification via API
+            setError("OTP verification incomplete. Please try again.");
+            return;
+          }
+          
+          // Unrecognized response format
+          console.log("MSG91 unrecognized response format:", response);
+          setError("Verification error. Please try again.");
+          
+        } catch (verifyError) {
+          // MSG91 threw an exception
+          console.error("MSG91 verifyOtp exception:", verifyError);
+          console.error("MSG91 exception message:", verifyError?.message);
+          setError(verifyError?.message || "OTP verification failed. Please try again.");
         }
       } else {
-        setOtpVerified(true);
+        // MSG91 verifyOtp not available - show error
+        console.log("MSG91 verifyOtp function not available");
+        setError("OTP service unavailable. Please refresh and try again.");
       }
     } catch (err) {
       console.error("Verify OTP error:", err);
-      setOtpVerified(true);
+      setError("OTP verification failed. Please try again.");
     } finally {
       setVerifyLoading(false);
     }
@@ -1001,99 +1038,58 @@ const HomePage = () => {
   const [servicePrice, setServicePrice] = useState(1500);
 
   useEffect(() => {
-    axios.get(`${API}/shop/book-service-config`).then(res => setServicePrice(res.data.price)).catch(() => {});
+    axios.get(`${API}/service/book-solar-config`).then(res => setServicePrice(res.data.price)).catch(() => setServicePrice(2499));
   }, []);
+
+  // QR Payment modal state
+  const [showQRPayment, setShowQRPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState('form'); // form, qr, verify
+  const [transactionId, setTransactionId] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
 
   const handleBookService = async () => {
     if (!bookingData.customer_name || !bookingData.customer_phone) {
       alert("Please fill in your name and phone number");
       return;
     }
-    setBookingLoading(true);
+    // Move to QR payment step
+    setPaymentStep('qr');
+  };
+
+  const handlePaymentVerification = async () => {
+    if (!transactionId.trim()) {
+      alert("Please enter your transaction ID/UTR number");
+      return;
+    }
+    setVerifyLoading(true);
     try {
-      // Load Razorpay SDK first
-      try {
-        await window.loadRazorpay();
-      } catch (loadErr) {
-        console.error("Failed to load Razorpay:", loadErr);
-        alert("Payment gateway could not be loaded. Please check your internet connection and try again.");
-        setBookingLoading(false);
-        return;
-      }
-      
-      // Check if Razorpay is available
-      if (!window.Razorpay) {
-        alert("Payment gateway unavailable. Please refresh the page and try again, or call 8877896889.");
-        setBookingLoading(false);
-        return;
-      }
-
-      // Step 1: Create booking record and Razorpay order
-      const res = await axios.post(`${API}/shop/book-service`, bookingData);
-      const { booking, key_id, razorpay_order_id } = res.data;
-
-      if (!key_id || !razorpay_order_id) {
-        alert("Payment configuration error. Please call 8877896889.");
-        setBookingLoading(false);
-        return;
-      }
-
-      // Step 2: Open Razorpay payment with order_id
-      const options = {
-        key: key_id,
-        amount: Math.round(booking.amount * 100),
-        currency: "INR",
-        name: "ASR Enterprises",
-        description: `Service Booking #${booking.booking_number}`,
-        image: "/asr_logo_transparent.png",
-        order_id: razorpay_order_id,
-        handler: async function(response) {
-          // Step 3: Confirm booking + send notifications
-          try {
-            const confirmRes = await axios.post(`${API}/shop/book-service/${booking.id}/confirm`, {
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature
-            });
-            setBookingSuccess({
-              booking_number: confirmRes.data.booking_number,
-              customer_whatsapp_url: confirmRes.data.customer_whatsapp_url,
-              email_sent: confirmRes.data.email_sent
-            });
-            setShowBookService(false);
-          } catch (err) {
-            console.error("Confirmation error:", err);
-            alert("Payment received but confirmation failed. Our team will contact you. Ref: " + response.razorpay_payment_id);
-          }
-          setBookingLoading(false);
-        },
-        modal: {
-          ondismiss: function() {
-            setBookingLoading(false);
-          },
-          escape: false,
-          backdropclose: false
-        },
-        prefill: {
-          name: bookingData.customer_name,
-          contact: bookingData.customer_phone,
-          email: bookingData.customer_email || ""
-        },
-        theme: { color: "#f59e0b" },
-        retry: { enabled: true, max_count: 3 }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function(response) {
-        console.error("Payment failed:", response.error);
-        setBookingLoading(false);
-        alert(`Payment failed: ${response.error?.description || "Unknown error"}. Please try again or call 8877896889.`);
+      // Create booking with QR payment details
+      const res = await axios.post(`${API}/service/book-solar`, {
+        ...bookingData,
+        amount: servicePrice,
+        payment_method: 'qr_code',
+        transaction_id: transactionId.trim()
       });
-      rzp.open();
+      
+      if (res.data.success) {
+        setBookingSuccess({
+          booking_number: res.data.booking_number,
+          customer_whatsapp_url: res.data.customer_whatsapp_url,
+          email_sent: res.data.email_sent,
+          sms_sent: res.data.sms_sent
+        });
+        setShowBookService(false);
+        setPaymentStep('form');
+        setTransactionId('');
+        setBookingData({ customer_name: "", customer_phone: "", customer_email: "" });
+      } else {
+        alert(res.data.message || "Booking failed. Please try again.");
+      }
     } catch (err) {
-      console.error(err);
-      alert("Unable to process. Please call 8877896889.");
-      setBookingLoading(false);
+      console.error("Booking error:", err);
+      alert(err.response?.data?.detail || "Unable to process booking. Please call 8877896889.");
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -1132,7 +1128,7 @@ const HomePage = () => {
       title: "Solar Solutions",
       description: "Premium rooftop solar installations with government subsidies",
       color: "bg-amber-500",
-      link: "/shop"
+      link: "/about"
     }
   ];
 
@@ -1196,10 +1192,6 @@ const HomePage = () => {
                 About Us
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
               </Link>
-              <a href="/shop" target="_blank" rel="noopener noreferrer" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
-                Shop
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
-              </a>
               <Link to="/gallery" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
                 Gallery
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
@@ -1233,7 +1225,6 @@ const HomePage = () => {
             <div className="px-4 py-2 space-y-2">
               <Link to="/" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Home</Link>
               <Link to="/about" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">About Us</Link>
-              <a href="/shop" target="_blank" rel="noopener noreferrer" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Shop</a>
               <Link to="/gallery" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Gallery</Link>
               <Link to="/contact" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Contact Us</Link>
               {localStorage.getItem("asrAdminAuth") === "true" ? (
@@ -1381,15 +1372,14 @@ const HomePage = () => {
               >
                 Request Free Consultation
               </button>
-              <a
-                href="/shop"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:border-amber-500 hover:text-amber-600 transition shadow-md"
-                data-testid="explore-shop-btn"
+              <button
+                onClick={() => setShowBookService(true)}
+                className="bg-white border-2 border-amber-500 text-amber-600 px-8 py-4 rounded-xl font-semibold hover:bg-amber-50 transition shadow-md flex items-center justify-center gap-2"
+                data-testid="book-solar-service-btn"
               >
-                Explore Products
-              </a>
+                <QrCode className="w-5 h-5" />
+                Book Solar Service
+              </button>
             </div>
 
             {/* Trust Badges - Visible on Light Theme */}
@@ -1958,14 +1948,14 @@ const HomePage = () => {
               {/* Social Media Links */}
               <div className="flex space-x-4 mt-4">
                 <a
-                  href="https://instagram.com/asr_enterprises_patna"
+                  href="https://wa.me/919296389097"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all"
-                  data-testid="instagram-link"
-                  aria-label="Instagram"
+                  className="bg-green-500 p-2 rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all"
+                  data-testid="whatsapp-link"
+                  aria-label="WhatsApp"
                 >
-                  <Instagram className="w-5 h-5" />
+                  <MessageSquare className="w-5 h-5" />
                 </a>
                 <a
                   href="https://www.facebook.com/share/1CU69hsGbJ/"
@@ -1985,7 +1975,6 @@ const HomePage = () => {
                 <div><Link to="/" className="hover:text-[#FFD166] transition">Home</Link></div>
                 <div><Link to="/about" className="hover:text-[#FFD166] transition">About Us</Link></div>
                 <div><Link to="/gallery" className="hover:text-[#FFD166] transition">Our Work</Link></div>
-                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Shop</a></div>
                 <div><Link to="/contact" className="hover:text-[#FFD166] transition">Contact Us</Link></div>
               </div>
             </div>
@@ -1993,7 +1982,6 @@ const HomePage = () => {
               <h4 className="font-bold mb-4 text-[#FFD166]">Services</h4>
               <div className="space-y-2 text-gray-400">
                 <div><Link to="/chat" className="hover:text-[#FFD166] transition">WhatsApp Support</Link></div>
-                <div><a href="/shop" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Solar Products</a></div>
                 <div><Link to="/gallery" className="hover:text-[#FFD166] transition">Our Work</Link></div>
                 <div><a href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I%20want%20a%20FREE%20quote%20for%20solar%20rooftop%20installation.%20Please%20share%20details%20about%20pricing%20and%20subsidy." target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Get Quote</a></div>
               </div>
@@ -2005,6 +1993,12 @@ const HomePage = () => {
                   <Phone className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
                     <a href="tel:8877896889" className="hover:text-[#FFD166] transition">8877896889</a>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-2">
+                  <MessageSquare className="w-4 h-4 mt-1 flex-shrink-0 text-green-500" />
+                  <div>
+                    <a href="https://wa.me/919296389097" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">9296389097 (WhatsApp)</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
@@ -2027,76 +2021,121 @@ const HomePage = () => {
                     <p>Dawarikapuri, Khagaul<br/>Patna 801105, Bihar</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 text-[#FFD166] pt-2">
-                  <Instagram className="w-4 h-4" />
-                  <span className="font-semibold">@asr_enterprises_patna</span>
-                </div>
               </div>
             </div>
           </div>
           <div className="border-t border-[#0B3C5D] mt-8 pt-8 text-center text-gray-400">
             <p className="text-sm">© 2025 ASR Enterprises. All rights reserved.</p>
             <p className="text-xs mt-2">GSTIN: 10CCFPK3447Q3ZD | Patna, Bihar</p>
-            <p className="text-xs mt-1">Powered by AI | Follow us: @asr_enterprises_patna</p>
+            <p className="text-xs mt-1">Powered by AI | WhatsApp: 9296389097</p>
           </div>
         </div>
       </footer>
 
       {/* Floating WhatsApp Button */}
       
-      {/* Book Service Modal */}
+      {/* Book Service Modal with QR Payment */}
       {showBookService && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowBookService(false)} />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="absolute inset-0 bg-black/60" onClick={() => !verifyLoading && setShowBookService(false)} />
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
               <Zap className="w-10 h-10 text-white mx-auto mb-2" />
               <h2 className="text-xl font-bold text-white">Book Solar Service</h2>
-              <p className="text-amber-100 text-sm mt-1">Professional solar maintenance by ASR Enterprises</p>
+              <p className="text-amber-100 text-sm mt-1">Professional solar service by ASR Enterprises</p>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-gray-400 text-sm mb-1 block">Full Name *</label>
-                <input type="text" placeholder="Enter your name" value={bookingData.customer_name}
-                  onChange={(e) => setBookingData({...bookingData, customer_name: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                  data-testid="booking-name" />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-1 block">Phone Number *</label>
-                <input type="tel" placeholder="Enter phone number" value={bookingData.customer_phone}
-                  onChange={(e) => setBookingData({...bookingData, customer_phone: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                  data-testid="booking-phone" />
-              </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-1 block">Email (for confirmation)</label>
-                <input type="email" placeholder="Enter email for receipt" value={bookingData.customer_email}
-                  onChange={(e) => setBookingData({...bookingData, customer_email: e.target.value})}
-                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                  data-testid="booking-email" />
-              </div>
-              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Service Amount</span>
-                  <span className="text-2xl font-bold text-amber-400">₹{servicePrice.toLocaleString()}</span>
+            
+            {paymentStep === 'form' && (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Full Name *</label>
+                  <input type="text" placeholder="Enter your name" value={bookingData.customer_name}
+                    onChange={(e) => setBookingData({...bookingData, customer_name: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="booking-name" />
                 </div>
-                <p className="text-gray-500 text-xs mt-1">Payment via Razorpay (UPI / Card / NetBanking)</p>
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Phone Number *</label>
+                  <input type="tel" placeholder="Enter phone number" value={bookingData.customer_phone}
+                    onChange={(e) => setBookingData({...bookingData, customer_phone: e.target.value.replace(/\D/g, '').slice(0, 10)})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="booking-phone" />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Email (for confirmation)</label>
+                  <input type="email" placeholder="Enter email for receipt" value={bookingData.customer_email}
+                    onChange={(e) => setBookingData({...bookingData, customer_email: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="booking-email" />
+                </div>
+                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Service Amount</span>
+                    <span className="text-2xl font-bold text-amber-400">₹{servicePrice.toLocaleString()}</span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">Pay via PhonePe / Google Pay / Paytm / UPI</p>
+                </div>
+                <button
+                  onClick={handleBookService}
+                  disabled={!bookingData.customer_name || !bookingData.customer_phone}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
+                  data-testid="booking-proceed-btn"
+                >
+                  <QrCode className="w-5 h-5" /> Proceed to Pay
+                </button>
               </div>
-              <button
-                onClick={handleBookService}
-                disabled={bookingLoading}
-                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
-                data-testid="booking-pay-btn"
-              >
-                {bookingLoading ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
-                ) : (
-                  <><CreditCard className="w-5 h-5" /> Pay Now</>
-                )}
-              </button>
-              <p className="text-gray-500 text-xs text-center">You will receive confirmation on WhatsApp & Email</p>
-            </div>
+            )}
+
+            {paymentStep === 'qr' && (
+              <div className="p-6 space-y-4">
+                <div className="text-center">
+                  <p className="text-gray-400 text-sm mb-2">Scan QR Code to Pay</p>
+                  <div className="bg-white p-4 rounded-xl inline-block mb-3">
+                    <img src="/images/phonepe-qr.jpg" alt="PhonePe QR Code" className="w-48 h-48 mx-auto" />
+                  </div>
+                  <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-3">
+                    <p className="text-amber-300 font-bold text-xl">₹{servicePrice.toLocaleString()}</p>
+                    <p className="text-amber-200 text-sm">Pay to: ASR Enterprises</p>
+                  </div>
+                  <div className="text-left bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
+                    <p className="text-gray-400 text-xs mb-2">How to pay:</p>
+                    <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
+                      <li>Open PhonePe/GPay/Paytm</li>
+                      <li>Scan the QR code above</li>
+                      <li>Pay ₹{servicePrice.toLocaleString()}</li>
+                      <li>Note down the Transaction ID/UTR</li>
+                      <li>Enter below to confirm booking</li>
+                    </ol>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Transaction ID / UTR Number *</label>
+                  <input type="text" placeholder="Enter transaction ID from payment app" value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="transaction-id" />
+                  <p className="text-gray-500 text-xs mt-1">You can find this in your UPI app's transaction details</p>
+                </div>
+                <button
+                  onClick={handlePaymentVerification}
+                  disabled={verifyLoading || !transactionId.trim()}
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
+                  data-testid="verify-payment-btn"
+                >
+                  {verifyLoading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
+                  ) : (
+                    <><CheckCircle className="w-5 h-5" /> Confirm Payment</>
+                  )}
+                </button>
+                <button
+                  onClick={() => setPaymentStep('form')}
+                  className="w-full text-gray-400 hover:text-white text-sm py-2 transition"
+                >
+                  ← Go Back
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2116,11 +2155,20 @@ const HomePage = () => {
               <p className="text-amber-400 font-bold text-xl" data-testid="booking-number">{bookingSuccess.booking_number}</p>
             </div>
             <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-3 mb-4">
-              <p className="text-green-300 text-sm">Payment Confirmed</p>
+              <p className="text-green-300 text-sm">Payment Verified - Awaiting Confirmation</p>
             </div>
-            {bookingSuccess.email_sent && (
-              <p className="text-blue-400 text-xs mb-3">Confirmation email sent!</p>
-            )}
+            <div className="space-y-2 mb-4">
+              {bookingSuccess.sms_sent && (
+                <p className="text-blue-400 text-xs flex items-center justify-center gap-1">
+                  <CheckCircle className="w-4 h-4" /> SMS confirmation sent!
+                </p>
+              )}
+              {bookingSuccess.email_sent && (
+                <p className="text-blue-400 text-xs flex items-center justify-center gap-1">
+                  <CheckCircle className="w-4 h-4" /> Email confirmation sent!
+                </p>
+              )}
+            </div>
             {bookingSuccess.customer_whatsapp_url && (
               <a href={bookingSuccess.customer_whatsapp_url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition mb-4"
@@ -2145,23 +2193,7 @@ const HomePage = () => {
 
       {/* Floating Action Buttons - Positioned above WhatsApp */}
       <div className="fixed bottom-24 right-6 z-40 flex flex-col space-y-3">
-        {/* ASR Solar Shop Button - Most prominent */}
-        <Link
-          to="/shop"
-          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-3 rounded-full shadow-xl hover:from-amber-600 hover:to-orange-600 transition-all hover:scale-110 group relative animate-pulse"
-          data-testid="shop-float-btn"
-        >
-          <ShoppingBag className="w-5 h-5" />
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-            ASR Solar Shop
-          </span>
-          {/* Badge */}
-          <span className="absolute -top-1 -left-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-            NEW
-          </span>
-        </Link>
-        
-        {/* Social Media Icons */}
+        {/* Facebook */}
         <a
           href="https://www.facebook.com/share/1CU69hsGbJ/"
           target="_blank"
@@ -2174,21 +2206,6 @@ const HomePage = () => {
           </svg>
           <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
             Facebook
-          </span>
-        </a>
-        
-        <a
-          href="https://instagram.com/asr_enterprises_patna"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-gradient-to-br from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white p-3 rounded-full shadow-xl hover:opacity-90 transition-all hover:scale-110 group relative"
-          data-testid="instagram-float-btn"
-        >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-          </svg>
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-            Instagram
           </span>
         </a>
 
@@ -2254,11 +2271,9 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutUsPage />} />
-          <Route path="/shop" element={<ShopPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/chat" element={<WhatsAppChatPage />} />
-          <Route path="/track-order" element={<OrderTrackingPage />} />
           <Route path="/become-agent" element={<AgentRegistrationPage />} />
           
           {/* Admin Login */}
@@ -2312,11 +2327,6 @@ export default function App() {
           <Route path="/admin/crm" element={
             <ProtectedRoute>
               <CRMDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/shop" element={
-            <ProtectedRoute>
-              <ProductManagementPage />
             </ProtectedRoute>
           } />
           <Route path="/crm" element={
@@ -2504,19 +2514,52 @@ const LeadCapturePage = () => {
     
     try {
       if (typeof window.verifyOtp === 'function') {
-        const response = await window.verifyOtp(otp);
-        if (response && response.type === 'success') {
-          setOtpVerified(true);
-        } else if (response && response.type === 'error') {
-          setError(response?.message || "Invalid OTP.");
-        } else {
-          setOtpVerified(true);
+        try {
+          const response = await window.verifyOtp(otp);
+          
+          // Debug: Log the exact response for troubleshooting
+          console.log("MSG91 verifyOtp raw response (LeadCapture):", JSON.stringify(response));
+          console.log("MSG91 verifyOtp response.type:", response?.type);
+          console.log("MSG91 verifyOtp response.message:", response?.message);
+          
+          if (response && response.type === 'success') {
+            console.log("MSG91 OTP verified successfully");
+            setOtpVerified(true);
+            return;
+          }
+          
+          if (response && response.type === 'error') {
+            console.log("MSG91 OTP verification error:", response.message);
+            setError(response?.message || "Invalid OTP. Please try again.");
+            return;
+          }
+          
+          // Handle undefined response
+          if (!response || response === undefined || response === null) {
+            console.log("MSG91 returned undefined - checking window.otpVerificationStatus");
+            if (window.otpVerificationStatus === 'verified') {
+              setOtpVerified(true);
+              return;
+            }
+            setError("OTP verification incomplete. Please try again.");
+            return;
+          }
+          
+          // Unrecognized response format
+          console.log("MSG91 unrecognized response format:", response);
+          setError("Verification error. Please try again.");
+          
+        } catch (verifyError) {
+          console.error("MSG91 verifyOtp exception:", verifyError);
+          setError(verifyError?.message || "OTP verification failed. Please try again.");
         }
       } else {
-        setOtpVerified(true);
+        console.log("MSG91 verifyOtp function not available");
+        setError("OTP service unavailable. Please refresh and try again.");
       }
     } catch (err) {
-      setOtpVerified(true);
+      console.error("Verify OTP error:", err);
+      setError("OTP verification failed. Please try again.");
     } finally {
       setVerifyLoading(false);
     }

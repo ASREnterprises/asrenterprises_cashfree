@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File, Form
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -31,6 +31,7 @@ from PIL import Image
 import razorpay
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from urllib.parse import quote
 
 # Import security module
 from security import (
@@ -6259,6 +6260,264 @@ _Please contact the customer within 24 hours to schedule the service!_"""
         "admin_whatsapp_url": admin_whatsapp_url,
         "email_sent": email_sent
     }
+
+# =============================================
+# BOOK SOLAR SERVICE - QR CODE PAYMENT (NEW)
+# =============================================
+
+MSG91_AUTH_KEY = os.environ.get("MSG91_AUTH_KEY", "498782Ts6ZESL8A69acbb0aP1")
+MSG91_SENDER_ID = "ASRSOL"
+
+@api_router.get("/service/book-solar-config")
+async def get_book_solar_service_config():
+    """Get Book Solar Service price (admin configurable via CRM)"""
+    config = await db.settings.find_one({"key": "book_solar_service_price"}, {"_id": 0})
+    price = config.get("value", 2499) if config else 2499
+    return {"price": price}
+
+@api_router.put("/service/book-solar-config")
+async def update_book_solar_service_config(data: Dict[str, Any]):
+    """Update Book Solar Service price (Admin CRM)"""
+    price = data.get("price", 2499)
+    await db.settings.update_one(
+        {"key": "book_solar_service_price"},
+        {"$set": {"key": "book_solar_service_price", "value": price, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    logger.info(f"Book Solar Service price updated to Rs.{price}")
+    return {"status": "success", "price": price, "message": "Price updated successfully"}
+
+@api_router.post("/service/book-solar")
+@limiter.limit(RATE_LIMIT_PAYMENT)
+async def book_solar_service(request: Request, data: Dict[str, Any]):
+    """Create a solar service booking with QR payment verification + MSG91 SMS confirmation"""
+    client_ip = get_real_ip(request)
+    
+    # Validate and sanitize input
+    data = validate_request_data(data, client_ip, "/service/book-solar")
+    
+    customer_name = sanitize_input(data.get("customer_name", ""))
+    customer_phone = sanitize_input(data.get("customer_phone", ""))
+    customer_email = sanitize_input(data.get("customer_email", ""))
+    transaction_id = sanitize_input(data.get("transaction_id", ""))
+    amount = data.get("amount", 2499)
+    payment_method = data.get("payment_method", "qr_code")
+    
+    if not customer_name or not customer_phone:
+        raise HTTPException(status_code=400, detail="Name and phone are required")
+    
+    if not transaction_id:
+        raise HTTPException(status_code=400, detail="Transaction ID is required for payment verification")
+    
+    # Validate phone format
+    if not validate_phone(customer_phone):
+        raise HTTPException(status_code=400, detail="Invalid phone number format")
+    
+    # Get service price from config
+    config = await db.settings.find_one({"key": "book_solar_service_price"}, {"_id": 0})
+    price = config.get("value", 2499) if config else 2499
+    
+    # Log payment attempt
+    log_security_event("QR_PAYMENT_SUBMITTED", client_ip, {
+        "type": "book_solar_service",
+        "phone": mask_sensitive_data(customer_phone),
+        "transaction_id": transaction_id[:4] + "***"
+    })
+    
+    booking_id = str(uuid.uuid4())
+    booking_number = f"ASR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:4].upper()}"
+    
+    # Create booking record
+    booking = {
+        "id": booking_id,
+        "booking_number": booking_number,
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "customer_email": customer_email,
+        "service": "Book Solar Service",
+        "amount": price,
+        "payment_method": payment_method,
+        "transaction_id": transaction_id,
+        "payment_status": "pending_verification",
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.solar_service_bookings.insert_one(booking)
+    booking.pop("_id", None)
+    
+    # ===== SEND SMS CONFIRMATION VIA MSG91 =====
+    sms_sent = False
+    try:
+        # Format phone number (add 91 if needed)
+        phone_for_sms = customer_phone.replace("+", "").replace(" ", "")
+        if len(phone_for_sms) == 10:
+            phone_for_sms = "91" + phone_for_sms
+        
+        sms_message = f"Dear {customer_name}, Your Solar Service booking {booking_number} is received. Amount: Rs.{price}. Our team will verify payment & call you within 24hrs. ASR Enterprises 8877896889"
+        
+        # MSG91 SMS API
+        async with httpx.AsyncClient() as client:
+            sms_response = await client.post(
+                "https://api.msg91.com/api/v5/flow/",
+                headers={
+                    "authkey": MSG91_AUTH_KEY,
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "flow_id": "default",  # Use default flow
+                    "sender": MSG91_SENDER_ID,
+                    "mobiles": phone_for_sms,
+                    "message": sms_message
+                },
+                timeout=10
+            )
+            if sms_response.status_code == 200:
+                sms_sent = True
+                logger.info(f"SMS confirmation sent to {phone_for_sms}")
+            else:
+                logger.warning(f"SMS sending returned status {sms_response.status_code}")
+    except Exception as e:
+        logger.error(f"Failed to send SMS confirmation: {e}")
+        # Try alternate simple SMS method
+        try:
+            phone_for_sms = customer_phone.replace("+", "").replace(" ", "")
+            if len(phone_for_sms) == 10:
+                phone_for_sms = "91" + phone_for_sms
+            async with httpx.AsyncClient() as client:
+                await client.get(
+                    f"https://api.msg91.com/api/sendhttp.php",
+                    params={
+                        "authkey": MSG91_AUTH_KEY,
+                        "mobiles": phone_for_sms,
+                        "message": f"Booking {booking_number} received. Rs.{price}. Team will call within 24hrs. ASR Enterprises",
+                        "sender": MSG91_SENDER_ID,
+                        "route": "4",
+                        "country": "91"
+                    },
+                    timeout=10
+                )
+                sms_sent = True
+        except Exception as e2:
+            logger.error(f"Alternate SMS method also failed: {e2}")
+    
+    # ===== SEND EMAIL CONFIRMATION =====
+    email_sent = False
+    if customer_email and RESEND_API_KEY:
+        try:
+            email_html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #f59e0b, #d97706); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">ASR Enterprises</h1>
+                    <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0;">Solar Service Booking Received</p>
+                </div>
+                <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb;">
+                    <p style="color: #333; font-size: 16px;">Dear <strong>{customer_name}</strong>,</p>
+                    <p style="color: #333; font-size: 15px;">Thank you for booking our Solar Service! Your payment is being verified.</p>
+                    
+                    <div style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                        <table style="width: 100%; font-size: 14px; color: #333;">
+                            <tr><td style="padding: 6px 0; color: #666;">Booking Number</td><td style="padding: 6px 0; font-weight: bold; text-align: right;">{booking_number}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Service</td><td style="padding: 6px 0; font-weight: bold; text-align: right;">Book Solar Service</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Amount</td><td style="padding: 6px 0; font-weight: bold; text-align: right; color: #16a34a;">₹{price:,.0f}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Transaction ID</td><td style="padding: 6px 0; text-align: right; font-size: 12px;">{transaction_id}</td></tr>
+                            <tr><td style="padding: 6px 0; color: #666;">Status</td><td style="padding: 6px 0; font-weight: bold; text-align: right; color: #f59e0b;">PENDING VERIFICATION</td></tr>
+                        </table>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                        <p style="color: #333; font-size: 14px; margin: 0 0 5px 0;"><strong>What's Next?</strong></p>
+                        <p style="color: #666; font-size: 13px; margin: 0;">Our team will verify your payment and call you at <strong>{customer_phone}</strong> within 24 hours to confirm your booking.</p>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 13px;">Need help? Call: <strong>8877896889</strong> | WhatsApp: <strong>9296389097</strong></p>
+                </div>
+                <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
+                </div>
+            </div>"""
+            
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [customer_email],
+                "subject": f"Booking Received - {booking_number} | ASR Enterprises",
+                "html": email_html
+            }
+            await asyncio.to_thread(resend.Emails.send, params)
+            email_sent = True
+            logger.info(f"Booking email sent to {customer_email}")
+        except Exception as e:
+            logger.error(f"Failed to send booking email: {e}")
+    
+    # ===== WHATSAPP URL FOR CUSTOMER =====
+    whatsapp_message = f"Hi ASR Enterprises! I just booked Solar Service.\n\nBooking: {booking_number}\nName: {customer_name}\nAmount: Rs.{price}\nTransaction ID: {transaction_id}\n\nPlease confirm my booking."
+    customer_whatsapp_url = f"https://wa.me/919296389097?text={quote(whatsapp_message)}"
+    
+    # ===== CRM NOTIFICATION =====
+    try:
+        crm_message = CRMMessage(
+            sender_id="system",
+            sender_name="Booking System",
+            sender_type="system",
+            receiver_id="admin",
+            receiver_name="Admin",
+            message=f"NEW SOLAR SERVICE BOOKING #{booking_number} - {customer_name} ({customer_phone}) - Rs.{price} - TXN: {transaction_id} - VERIFY PAYMENT"
+        )
+        msg_doc = crm_message.model_dump()
+        msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
+        await db.crm_messages.insert_one(msg_doc)
+    except Exception as e:
+        logger.error(f"Failed to create CRM notification: {e}")
+    
+    # ===== ADMIN WHATSAPP NOTIFICATION =====
+    admin_phone = "8877896889"
+    admin_message = f"🔔 NEW BOOKING\n\n#{booking_number}\n{customer_name}\n📱 {customer_phone}\n💰 Rs.{price}\n🔢 TXN: {transaction_id}\n\n⚠️ VERIFY PAYMENT"
+    admin_whatsapp_url = f"https://wa.me/91{admin_phone}?text={quote(admin_message)}"
+    
+    logger.info(f"Solar service booking created: {booking_number} by {customer_name}")
+    
+    return {
+        "success": True,
+        "booking_number": booking_number,
+        "amount": price,
+        "customer_whatsapp_url": customer_whatsapp_url,
+        "admin_whatsapp_url": admin_whatsapp_url,
+        "sms_sent": sms_sent,
+        "email_sent": email_sent,
+        "message": "Booking created successfully. Our team will verify payment and contact you."
+    }
+
+@api_router.get("/service/bookings")
+async def get_solar_service_bookings(status: str = None, limit: int = 50):
+    """Admin: Get all solar service bookings"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    bookings = await db.solar_service_bookings.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return {"bookings": bookings, "count": len(bookings)}
+
+@api_router.put("/service/bookings/{booking_id}/status")
+async def update_solar_booking_status(booking_id: str, data: Dict[str, Any]):
+    """Admin: Update booking status (confirm/reject payment)"""
+    new_status = data.get("status", "pending")
+    payment_status = data.get("payment_status", "pending_verification")
+    notes = data.get("notes", "")
+    
+    result = await db.solar_service_bookings.update_one(
+        {"id": booking_id},
+        {"$set": {
+            "status": new_status,
+            "payment_status": payment_status,
+            "admin_notes": notes,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    return {"success": True, "message": f"Booking status updated to {new_status}"}
 
 # Bihar districts list for product delivery configuration
 BIHAR_DISTRICT_LIST = [

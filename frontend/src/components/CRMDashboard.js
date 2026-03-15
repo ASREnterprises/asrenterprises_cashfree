@@ -1597,21 +1597,31 @@ export const CRMDashboard = () => {
 
             {/* Staff Credentials */}
             <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
-              <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-cyan-50 flex items-center justify-between">
+              <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-cyan-50 flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <h3 className="font-bold text-[#0a355e] flex items-center">
                     <Users className="w-5 h-5 mr-2 text-blue-500" />
                     Staff Credentials
                   </h3>
-                  <p className="text-gray-500 text-sm mt-1">Auto-synced from HR Management</p>
+                  <p className="text-gray-500 text-sm mt-1">Manage staff login access</p>
                 </div>
-                <button
-                  onClick={() => fetchAllData()}
-                  className="bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg text-sm hover:bg-blue-200 transition flex items-center space-x-1"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Refresh</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowStaffModal(true)}
+                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2"
+                    data-testid="create-staff-btn"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Staff</span>
+                  </button>
+                  <button
+                    onClick={() => fetchAllData()}
+                    className="bg-blue-100 text-blue-600 px-3 py-2 rounded-lg text-sm hover:bg-blue-200 transition flex items-center space-x-1"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Refresh</span>
+                  </button>
+                </div>
               </div>
               <div className="p-5">
                 {staffAccounts.length === 0 ? (
@@ -1623,26 +1633,34 @@ export const CRMDashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {staffAccounts.map((staff) => (
-                      <div key={staff.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {staff.name?.[0]?.toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-[#0a355e]">{staff.name}</div>
-                            <div className="text-gray-500 text-sm flex items-center space-x-2">
-                              <span className="font-mono">{staff.staff_id}</span>
-                              <span>•</span>
-                              <span className="capitalize">{staff.role}</span>
-                              <span>•</span>
-                              <span>{staff.phone}</span>
+                      <div key={staff.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 hover:bg-gray-100 transition">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+                              {staff.name?.[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-[#0a355e]">{staff.name}</div>
+                              <div className="text-gray-500 text-sm flex items-center flex-wrap gap-2">
+                                <span className="font-mono bg-gray-200 px-1.5 py-0.5 rounded text-xs">{staff.staff_id}</span>
+                                <span className="capitalize text-xs">{staff.role}</span>
+                                <span className="text-xs">{staff.phone}</span>
+                              </div>
+                              {staff.email && <div className="text-gray-400 text-xs mt-0.5">{staff.email}</div>}
                             </div>
                           </div>
+                          <div className="flex items-center flex-wrap gap-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${staff.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                              {staff.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                            <span className={`px-2 py-1 text-xs rounded-full ${staff.otp_login_enabled ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                              {staff.otp_login_enabled ? 'OTP Enabled' : 'OTP Disabled'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`px-2 py-1 text-xs rounded-full ${staff.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {staff.is_active ? 'Active' : 'Inactive'}
-                          </span>
+                        
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200">
                           <button
                             onClick={async () => {
                               const action = window.confirm(`Generate new password for ${staff.name}?`);
@@ -1656,10 +1674,10 @@ export const CRMDashboard = () => {
                                 }
                               }
                             }}
-                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition"
+                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
                           >
                             <Key className="w-3 h-3" />
-                            <span>Generate</span>
+                            <span>Generate Password</span>
                           </button>
                           <button
                             onClick={async () => {
@@ -1673,27 +1691,44 @@ export const CRMDashboard = () => {
                                 }
                               }
                             }}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition"
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
                           >
                             <Edit className="w-3 h-3" />
-                            <span>Set</span>
+                            <span>Set Password</span>
                           </button>
                           <button
                             onClick={async () => {
-                              if (window.confirm(`Remove login access for ${staff.name}? They will no longer be able to login.`)) {
+                              const enable = !staff.otp_login_enabled;
+                              try {
+                                await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-otp`, { otp_login_enabled: enable });
+                                fetchAllData();
+                                alert(`Mobile OTP login ${enable ? 'enabled' : 'disabled'} for ${staff.name}`);
+                              } catch (err) {
+                                alert('Error updating OTP settings');
+                              }
+                            }}
+                            className={`${staff.otp_login_enabled ? 'bg-gray-500 hover:bg-gray-600' : 'bg-purple-500 hover:bg-purple-600'} text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition`}
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>{staff.otp_login_enabled ? 'Disable OTP' : 'Enable OTP'}</span>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const newStatus = !staff.is_active;
+                              if (window.confirm(`${newStatus ? 'Activate' : 'Deactivate'} login access for ${staff.name}?`)) {
                                 try {
-                                  await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: false });
+                                  await axios.put(`${API}/admin/staff-accounts/${staff.staff_id}/toggle-status`, { is_active: newStatus });
                                   fetchAllData();
-                                  alert('Login access removed');
+                                  alert(`Login access ${newStatus ? 'activated' : 'deactivated'}`);
                                 } catch (err) {
-                                  alert('Error removing access');
+                                  alert('Error updating access');
                                 }
                               }
                             }}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1 transition"
+                            className={`${staff.is_active ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition`}
                           >
-                            <Trash2 className="w-3 h-3" />
-                            <span>Remove</span>
+                            {staff.is_active ? <Trash2 className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                            <span>{staff.is_active ? 'Deactivate' : 'Activate'}</span>
                           </button>
                         </div>
                       </div>

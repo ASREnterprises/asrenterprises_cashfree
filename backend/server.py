@@ -4154,6 +4154,19 @@ async def reset_staff_password(staff_id: str, data: Dict[str, Any]):
     )
     return {"success": True, "new_password": new_password}
 
+@api_router.put("/admin/staff-accounts/{staff_id}/toggle-otp")
+async def toggle_staff_otp(staff_id: str, data: Dict[str, Any]):
+    """Admin enables/disables mobile OTP login for staff"""
+    otp_enabled = data.get("otp_login_enabled", False)
+    
+    await db.crm_staff_accounts.update_one(
+        {"staff_id": staff_id},
+        {"$set": {"otp_login_enabled": otp_enabled}}
+    )
+    
+    status = "enabled" if otp_enabled else "disabled"
+    return {"success": True, "message": f"Mobile OTP login {status}"}
+
 @api_router.put("/admin/staff-accounts/{staff_id}/toggle-status")
 async def toggle_staff_status(staff_id: str, data: Dict[str, Any]):
     """Admin activates/deactivates staff account"""

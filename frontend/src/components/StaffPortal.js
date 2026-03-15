@@ -5,7 +5,7 @@ import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
   ChevronRight, FileText, TrendingUp, Bell, Plus, Edit,
-  Send, Briefcase, ListTodo, MessageCircle, Activity
+  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -13,9 +13,11 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "bg-blue-500" },
+  { id: "contacted", label: "Contacted", color: "bg-indigo-500" },
   { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },
+  { id: "interested", label: "Interested", color: "bg-orange-500" },
   { id: "survey", label: "Survey", color: "bg-purple-500" },
-  { id: "quotation", label: "Quotation", color: "bg-orange-500" },
+  { id: "quotation", label: "Quotation", color: "bg-pink-500" },
   { id: "installation", label: "Installation", color: "bg-cyan-500" },
   { id: "completed", label: "Completed", color: "bg-green-500" },
   { id: "lost", label: "Lost", color: "bg-red-500" }
@@ -50,6 +52,8 @@ export const StaffPortal = () => {
   const [activityForm, setActivityForm] = useState({ activity_type: "note", title: "", description: "" });
   const [showAddLeadModal, setShowAddLeadModal] = useState(false);
   const [newLeadForm, setNewLeadForm] = useState({ name: '', phone: '', district: '', monthly_bill: '', property_type: 'residential', notes: '' });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [updatingLeadId, setUpdatingLeadId] = useState(null);
   const navigate = useNavigate();
 
   // Auto-logout callback for staff
@@ -130,6 +134,26 @@ export const StaffPortal = () => {
     localStorage.removeItem("asrStaffAuth");
     localStorage.removeItem("asrStaffData");
     navigate("/staff/login");
+  };
+
+  // Quick status update for leads
+  const quickUpdateLeadStatus = async (leadId, newStage) => {
+    setUpdatingLeadId(leadId);
+    try {
+      await axios.put(`${API}/staff/${staffData.staff_id}/leads/${leadId}`, { stage: newStage });
+      // Add activity log
+      await axios.post(`${API}/crm/leads/${leadId}/activities`, {
+        staff_id: staffData.staff_id,
+        staff_name: staffData.name,
+        activity_type: "status_change",
+        title: `Status changed to ${newStage}`,
+        description: `Quick status update by ${staffData.name}`
+      });
+      fetchAllData();
+    } catch (err) {
+      alert("Error updating lead status");
+    }
+    setUpdatingLeadId(null);
   };
 
   const updateLead = async () => {
@@ -304,27 +328,30 @@ export const StaffPortal = () => {
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="bg-white shadow-lg border border-sky-200 border-b border-sky-200">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex space-x-1 py-2 overflow-x-auto">
+      {/* Navigation - Mobile Optimized with Sticky Position */}
+      <div className="bg-white shadow-lg border-b border-sky-200 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="flex space-x-1 py-2 overflow-x-auto scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[
-              { id: "dashboard", label: "Dashboard", icon: <TrendingUp className="w-4 h-4" /> },
-              { id: "tasks", label: "Today's Tasks", icon: <ListTodo className="w-4 h-4" /> },
-              { id: "leads", label: "My Leads", icon: <ClipboardList className="w-4 h-4" /> },
-              { id: "followups", label: "Follow-ups", icon: <Calendar className="w-4 h-4" /> },
-              { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
+              { id: "dashboard", label: "Dashboard", shortLabel: "Home", icon: <TrendingUp className="w-4 h-4" /> },
+              { id: "tasks", label: "Today's Tasks", shortLabel: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
+              { id: "leads", label: "My Leads", shortLabel: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "followups", label: "Follow-ups", shortLabel: "Follow", icon: <Calendar className="w-4 h-4" /> },
+              { id: "messages", label: "Messages", shortLabel: "Msgs", icon: <MessageCircle className="w-4 h-4" /> }
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-                  activeTab === tab.id ? "bg-blue-600 text-[#0a355e]" : "text-gray-500 hover:bg-gray-50 border border-gray-300"
+                onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false); }}
+                className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium transition whitespace-nowrap text-sm ${
+                  activeTab === tab.id ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
+                data-testid={`nav-tab-${tab.id}`}
               >
-                {tab.icon}<span>{tab.label}</span>
+                {tab.icon}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
                 {tab.id === "messages" && unreadCount > 0 && (
-                  <span className="bg-red-500 text-[#0a355e] text-xs px-1.5 rounded-full">{unreadCount}</span>
+                  <span className="bg-red-500 text-white text-xs px-1.5 rounded-full ml-1">{unreadCount}</span>
                 )}
               </button>
             ))}
@@ -332,7 +359,7 @@ export const StaffPortal = () => {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pb-20">
         {/* Dashboard */}
         {activeTab === "dashboard" && dashboard && (
           <div className="space-y-6">
@@ -481,53 +508,81 @@ export const StaffPortal = () => {
           </div>
         )}
 
-        {/* Leads Tab */}
+        {/* Leads Tab - Mobile Optimized */}
         {activeTab === "leads" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#0a355e]">My Leads</h2>
-              <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-[#0a355e] px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition" data-testid="staff-add-lead-btn">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
+              <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm" data-testid="staff-add-lead-btn">
                 <Plus className="w-4 h-4" /><span>Add Lead</span>
               </button>
             </div>
-            <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border border-gray-300">
+            
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-white shadow-lg border border-sky-200 rounded-xl overflow-x-auto">
+              <table className="w-full min-w-[600px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Lead</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Contact</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Stage</th>
-                    <th className="text-left text-gray-600 px-4 py-3 text-sm">Actions</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm font-semibold">Lead</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm font-semibold">Status</th>
+                    <th className="text-left text-gray-600 px-4 py-3 text-sm font-semibold">Quick Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {leads.map((lead) => (
-                    <tr key={lead.id} className="border-t border-sky-200 hover:bg-gray-750">
+                    <tr key={lead.id} className="border-t border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="text-[#0a355e] font-medium">{lead.name}</div>
-                        <div className="text-gray-500 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
+                        <div className="text-gray-500 text-sm">{lead.phone} • {lead.district}</div>
+                        <div className="text-gray-400 text-xs">₹{lead.monthly_bill}/mo</div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-gray-600 text-sm">{lead.phone}</div>
+                        <select
+                          value={lead.stage || 'new'}
+                          onChange={(e) => quickUpdateLeadStatus(lead.id, e.target.value)}
+                          disabled={updatingLeadId === lead.id}
+                          className={`px-2 py-1.5 rounded-lg text-xs font-medium border ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-100'} text-white cursor-pointer focus:ring-2 focus:ring-blue-300`}
+                          data-testid={`lead-status-${lead.id}`}
+                        >
+                          {PIPELINE_STAGES.map(stage => (
+                            <option key={stage.id} value={stage.id} className="text-gray-800 bg-white">{stage.label}</option>
+                          ))}
+                        </select>
+                        {updatingLeadId === lead.id && <span className="ml-2 text-xs text-blue-500">Saving...</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-1 rounded text-xs ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-600'} text-[#0a355e] capitalize`}>
-                          {lead.stage?.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex space-x-2">
-                          <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is from ASR Enterprises...`)} className="text-green-400 hover:text-green-300" title="WhatsApp">
-                            <MessageSquare className="w-4 h-4" />
-                          </button>
-                          <a href={`tel:${lead.phone}`} className="text-blue-400 hover:text-blue-300" title="Call">
-                            <Phone className="w-4 h-4" />
+                        <div className="flex items-center space-x-2">
+                          <a 
+                            href={`tel:${lead.phone}`} 
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
+                            title="Call Customer"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>Call</span>
                           </a>
-                          <button onClick={() => { setSelectedLead(lead); setShowUpdateModal(true); }} className="text-yellow-400 hover:text-yellow-300" title="Update">
-                            <Edit className="w-4 h-4" />
+                          <button 
+                            onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
+                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
+                            title="WhatsApp Customer"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            <span>WhatsApp</span>
                           </button>
-                          <button onClick={() => { setSelectedLead(lead); setShowActivityModal(true); }} className="text-purple-400 hover:text-purple-300" title="Add Note">
-                            <Activity className="w-4 h-4" />
+                          <button 
+                            onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }} 
+                            className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
+                            title="Update Lead Details"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Update</span>
+                          </button>
+                          <button 
+                            onClick={() => { setSelectedLead(lead); setShowActivityModal(true); }} 
+                            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
+                            title="Add Note"
+                          >
+                            <Activity className="w-3 h-3" />
+                            <span>Note</span>
                           </button>
                         </div>
                       </td>
@@ -535,10 +590,83 @@ export const StaffPortal = () => {
                   ))}
                 </tbody>
               </table>
-              {leads.length === 0 && (
-                <div className="text-center py-12 text-gray-500">No leads assigned yet</div>
-              )}
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {leads.map((lead) => (
+                <div key={lead.id} className="bg-white shadow-lg border border-sky-200 rounded-xl p-4" data-testid={`lead-card-${lead.id}`}>
+                  {/* Lead Info */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="text-[#0a355e] font-bold text-lg">{lead.name}</div>
+                      <div className="text-gray-500 text-sm">{lead.district}</div>
+                      <div className="text-gray-400 text-xs">₹{lead.monthly_bill}/month bill</div>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-500'} text-white`}>
+                      {PIPELINE_STAGES.find(s => s.id === lead.stage)?.label || 'New'}
+                    </span>
+                  </div>
+
+                  {/* Status Update Dropdown */}
+                  <div className="mb-3">
+                    <label className="text-xs text-gray-500 mb-1 block">Update Status:</label>
+                    <select
+                      value={lead.stage || 'new'}
+                      onChange={(e) => quickUpdateLeadStatus(lead.id, e.target.value)}
+                      disabled={updatingLeadId === lead.id}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                      data-testid={`mobile-lead-status-${lead.id}`}
+                    >
+                      {PIPELINE_STAGES.map(stage => (
+                        <option key={stage.id} value={stage.id}>{stage.label}</option>
+                      ))}
+                    </select>
+                    {updatingLeadId === lead.id && <span className="text-xs text-blue-500 mt-1">Saving...</span>}
+                  </div>
+
+                  {/* Action Buttons - Full Width for Mobile */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <a 
+                      href={`tel:${lead.phone}`} 
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Call Now</span>
+                    </a>
+                    <button 
+                      onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
+                      className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>WhatsApp</span>
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }} 
+                      className="bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-lg text-sm flex items-center justify-center space-x-2 transition"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span>Details</span>
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedLead(lead); setShowActivityModal(true); }} 
+                      className="bg-purple-500 hover:bg-purple-600 text-white py-2.5 rounded-lg text-sm flex items-center justify-center space-x-2 transition"
+                    >
+                      <Activity className="w-4 h-4" />
+                      <span>Add Note</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {leads.length === 0 && (
+              <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
+                <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No leads assigned yet</p>
+                <button onClick={() => setShowAddLeadModal(true)} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Add Your First Lead</button>
+              </div>
+            )}
           </div>
         )}
 

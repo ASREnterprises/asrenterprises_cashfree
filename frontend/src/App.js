@@ -1344,16 +1344,14 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-              <a
-                href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I%20want%20to%20book%20a%20solar%20service%20consultation."
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => setShowBookService(true)}
                 className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
                 data-testid="book-now-btn"
               >
                 <Zap className="w-5 h-5" />
-                <span>Book Solar Service</span>
-              </a>
+                <span>Book Solar Service - ₹{servicePrice || 2499}</span>
+              </button>
               <a
                 href="tel:8877896889"
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/30"
@@ -1383,6 +1381,14 @@ const HomePage = () => {
                 data-testid="free-consultation-btn"
               >
                 Request Free Consultation
+              </button>
+              <button
+                onClick={() => setShowBookService(true)}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition shadow-lg flex items-center justify-center gap-2"
+                data-testid="book-solar-service-btn"
+              >
+                <QrCode className="w-5 h-5" />
+                Book Solar Service - ₹{servicePrice || 2499}
               </button>
             </div>
 

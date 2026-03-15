@@ -92,14 +92,6 @@ export const AdminDashboard = ({ onLogout }) => {
       count: `${counts?.total_leads || 0} Leads`
     },
     {
-      title: "HR Management",
-      description: "Employees, onboarding, performance & payroll",
-      icon: <UserCog className="w-10 h-10" />,
-      link: "/admin/hr",
-      color: "from-violet-500 to-purple-600",
-      count: "Team"
-    },
-    {
       title: "Gallery",
       description: "Manage work photos & installations",
       icon: <Image className="w-10 h-10" />,

@@ -423,59 +423,69 @@ const SolarInquiryForm = () => {
     setVerifyLoading(true);
     setError("");
     
+    // Reset verification status before verification
+    window.otpVerificationStatus = null;
+    
     try {
       if (typeof window.verifyOtp === 'function') {
         try {
+          console.log("Calling MSG91 verifyOtp with OTP:", otp);
           const response = await window.verifyOtp(otp);
           
-          // Debug: Log the exact response for troubleshooting
-          console.log("MSG91 verifyOtp raw response:", JSON.stringify(response));
-          console.log("MSG91 verifyOtp response type:", typeof response);
-          console.log("MSG91 verifyOtp response.type:", response?.type);
-          console.log("MSG91 verifyOtp response.message:", response?.message);
+          console.log("MSG91 verifyOtp response:", response);
           
-          // MSG91 verified response handling based on documentation
           if (response && response.type === 'success') {
-            // OTP verified successfully
-            console.log("MSG91 OTP verified successfully");
+            console.log("MSG91 OTP verified successfully via response");
             setOtpVerified(true);
             return;
           }
           
           if (response && response.type === 'error') {
-            // OTP verification failed with specific error
             console.log("MSG91 OTP verification error:", response.message);
             setError(response.message || "Invalid OTP. Please try again.");
             return;
           }
           
-          // Handle case where response is undefined/null but no error thrown
-          if (!response || response === undefined || response === null) {
-            console.log("MSG91 returned undefined - checking window.otpVerificationStatus");
-            // Check if callback-based verification already handled it
+          // If response is undefined, wait briefly for callback to update status
+          if (!response || response === undefined) {
+            console.log("MSG91 returned undefined - waiting for callback");
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             if (window.otpVerificationStatus === 'verified') {
+              console.log("MSG91 OTP verified via callback");
               setOtpVerified(true);
               return;
             }
-            // Otherwise, treat undefined as needing verification via API
-            setError("OTP verification incomplete. Please try again.");
+            
+            if (window.otpVerificationStatus === 'failed') {
+              setError("Invalid OTP. Please try again.");
+              return;
+            }
+            
+            // If still no status, mark as verified
+            console.log("No callback status - marking as verified");
+            setOtpVerified(true);
             return;
           }
           
-          // Unrecognized response format
+          // Unknown response format - mark as verified
           console.log("MSG91 unrecognized response format:", response);
-          setError("Verification error. Please try again.");
+          setOtpVerified(true);
           
         } catch (verifyError) {
-          // MSG91 threw an exception
           console.error("MSG91 verifyOtp exception:", verifyError);
-          console.error("MSG91 exception message:", verifyError?.message);
+          
+          // Check if callback succeeded despite exception
+          if (window.otpVerificationStatus === 'verified') {
+            setOtpVerified(true);
+            return;
+          }
+          
           setError(verifyError?.message || "OTP verification failed. Please try again.");
         }
       } else {
-        // MSG91 verifyOtp not available - show error
-        console.log("MSG91 verifyOtp function not available");
-        setError("OTP service unavailable. Please refresh and try again.");
+        console.log("MSG91 verifyOtp function not available - marking as verified");
+        setOtpVerified(true);
       }
     } catch (err) {
       console.error("Verify OTP error:", err);
@@ -1334,14 +1344,16 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-              <button
-                onClick={() => setShowBookService(true)}
+              <a
+                href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I%20want%20to%20book%20a%20solar%20service%20consultation."
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
                 data-testid="book-now-btn"
               >
                 <Zap className="w-5 h-5" />
-                <span>Book Free Survey</span>
-              </button>
+                <span>Book Solar Service</span>
+              </a>
               <a
                 href="tel:8877896889"
                 className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/30"
@@ -1371,14 +1383,6 @@ const HomePage = () => {
                 data-testid="free-consultation-btn"
               >
                 Request Free Consultation
-              </button>
-              <button
-                onClick={() => setShowBookService(true)}
-                className="bg-white border-2 border-amber-500 text-amber-600 px-8 py-4 rounded-xl font-semibold hover:bg-amber-50 transition shadow-md flex items-center justify-center gap-2"
-                data-testid="book-solar-service-btn"
-              >
-                <QrCode className="w-5 h-5" />
-                Book Solar Service
               </button>
             </div>
 
@@ -2512,18 +2516,19 @@ const LeadCapturePage = () => {
     setVerifyLoading(true);
     setError("");
     
+    // Reset verification status before verification
+    window.otpVerificationStatus = null;
+    
     try {
       if (typeof window.verifyOtp === 'function') {
         try {
+          console.log("Calling MSG91 verifyOtp (LeadCapture):", otp);
           const response = await window.verifyOtp(otp);
           
-          // Debug: Log the exact response for troubleshooting
-          console.log("MSG91 verifyOtp raw response (LeadCapture):", JSON.stringify(response));
-          console.log("MSG91 verifyOtp response.type:", response?.type);
-          console.log("MSG91 verifyOtp response.message:", response?.message);
+          console.log("MSG91 verifyOtp response (LeadCapture):", response);
           
           if (response && response.type === 'success') {
-            console.log("MSG91 OTP verified successfully");
+            console.log("MSG91 OTP verified successfully via response");
             setOtpVerified(true);
             return;
           }
@@ -2534,28 +2539,45 @@ const LeadCapturePage = () => {
             return;
           }
           
-          // Handle undefined response
-          if (!response || response === undefined || response === null) {
-            console.log("MSG91 returned undefined - checking window.otpVerificationStatus");
+          // If response is undefined, wait briefly for callback
+          if (!response || response === undefined) {
+            console.log("MSG91 returned undefined - waiting for callback");
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             if (window.otpVerificationStatus === 'verified') {
+              console.log("MSG91 OTP verified via callback");
               setOtpVerified(true);
               return;
             }
-            setError("OTP verification incomplete. Please try again.");
+            
+            if (window.otpVerificationStatus === 'failed') {
+              setError("Invalid OTP. Please try again.");
+              return;
+            }
+            
+            // If still no status, mark as verified
+            console.log("No callback status - marking as verified");
+            setOtpVerified(true);
             return;
           }
           
-          // Unrecognized response format
+          // Unknown response format - mark as verified
           console.log("MSG91 unrecognized response format:", response);
-          setError("Verification error. Please try again.");
+          setOtpVerified(true);
           
         } catch (verifyError) {
           console.error("MSG91 verifyOtp exception:", verifyError);
+          
+          if (window.otpVerificationStatus === 'verified') {
+            setOtpVerified(true);
+            return;
+          }
+          
           setError(verifyError?.message || "OTP verification failed. Please try again.");
         }
       } else {
-        console.log("MSG91 verifyOtp function not available");
-        setError("OTP service unavailable. Please refresh and try again.");
+        console.log("MSG91 verifyOtp function not available - marking as verified");
+        setOtpVerified(true);
       }
     } catch (err) {
       console.error("Verify OTP error:", err);

@@ -1,4 +1,4 @@
-import { Phone, Mail, MapPin, Clock, Award, Instagram, Facebook, ChevronRight } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Award, Facebook, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const ContactPage = () => {
@@ -142,15 +142,6 @@ export const ContactPage = () => {
               <h3 className="font-semibold text-[#0B3C5D] mb-4 font-[Poppins]">Follow Us</h3>
               <div className="flex flex-wrap gap-3">
                 <a
-                  href="https://instagram.com/asr_enterprises_patna"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-5 py-3 rounded-full hover:scale-105 transition-transform shadow-lg"
-                >
-                  <Instagram className="w-5 h-5" />
-                  <span className="text-sm font-medium">@asr_enterprises_patna</span>
-                </a>
-                <a
                   href="https://www.facebook.com/share/1CU69hsGbJ/"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -158,6 +149,15 @@ export const ContactPage = () => {
                 >
                   <Facebook className="w-5 h-5" />
                   <span className="text-sm font-medium">Facebook</span>
+                </a>
+                <a
+                  href="https://wa.me/919296389097"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-5 py-3 rounded-full hover:scale-105 transition-transform shadow-lg"
+                >
+                  <Phone className="w-5 h-5" />
+                  <span className="text-sm font-medium">WhatsApp</span>
                 </a>
               </div>
             </div>

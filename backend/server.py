@@ -3283,7 +3283,10 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     }, {"_id": 0})
     
     if staff:
-        if staff.get("password") == password:
+        import hashlib
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        # Check both hashed and plain password for backwards compatibility
+        if staff.get("password_hash") == password_hash or staff.get("password") == password:
             reset_failed_login(client_ip, user_id)
             return {"success": True, "role": staff.get("role", "staff"), "email": staff.get("email"), "staff_id": staff.get("staff_id")}
     
@@ -3328,9 +3331,9 @@ async def admin_login_otp(request: Request, data: Dict[str, Any]):
             "message": "Admin login successful"
         }
     
-    # Check if mobile is registered for staff OTP login
+    # Check if mobile is registered for staff OTP login (all staff can use mobile OTP)
     staff = await db.crm_staff_accounts.find_one(
-        {"phone": mobile, "otp_login_enabled": True}, 
+        {"phone": mobile, "is_active": True}, 
         {"_id": 0}
     )
     

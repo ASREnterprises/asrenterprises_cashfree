@@ -88,7 +88,7 @@ Thank you!`)}`;
                 data-testid="hero-book-survey-btn"
               >
                 <MessageSquare className="w-5 h-5" />
-                <span>Book FREE Survey</span>
+                <span>Book Solar Service</span>
               </a>
               <a
                 href="tel:8877896889"

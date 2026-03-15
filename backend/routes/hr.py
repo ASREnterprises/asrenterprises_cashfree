@@ -214,6 +214,10 @@ async def create_hr_employee(data: Dict[str, Any]):
     await db.hr_employees.insert_one(doc)
     
     # Auto-sync with CRM staff accounts
+    import hashlib
+    default_password = "asr@123"
+    password_hash = hashlib.sha256(default_password.encode()).hexdigest()
+    
     staff_data = {
         "id": employee.id,
         "staff_id": employee.employee_id,
@@ -222,7 +226,8 @@ async def create_hr_employee(data: Dict[str, Any]):
         "phone": employee.phone,
         "role": employee.role,
         "is_active": employee.is_active,
-        "password": "asr@123",  # Default password
+        "password_hash": password_hash,  # Store hashed password for login
+        "otp_login_enabled": True,  # Enable mobile OTP login by default
         "leads_assigned": 0,
         "leads_converted": 0,
         "total_revenue": 0,

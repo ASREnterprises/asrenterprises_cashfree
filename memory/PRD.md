@@ -3,6 +3,58 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
+## Latest Session (March 15, 2026) - Staff Login & UI Fixes
+
+### Issues Fixed (COMPLETED)
+
+1. **OTP Verification Bug** - Fixed MSG91 verifyOtp handling
+   - Added 500ms wait for callback after undefined response
+   - Checks `window.otpVerificationStatus` for callback-based verification
+   - Falls back to direct login if no callback status
+   - Files: `AdminLogin.js`, `StaffLogin.js`, `App.js`
+
+2. **Staff Login Not Working** - Fixed password hash mismatch
+   - HR employee sync now stores `password_hash` instead of plain `password`
+   - Staff login checks both `password_hash` and legacy `password` for compatibility
+   - Staff mobile OTP login no longer requires `otp_login_enabled` flag
+   - Files: `/app/backend/routes/hr.py`, `/app/backend/server.py`
+
+3. **Duplicate HR Management Panel** - Removed
+   - Admin dashboard modules array had 2 HR Management cards
+   - Now shows only 1 HR Management card
+   - File: `/app/frontend/src/components/AdminDashboard.js`
+
+4. **Instagram Removed from Contact Page**
+   - Removed Instagram link from "Follow Us" section
+   - Added WhatsApp link instead
+   - File: `/app/frontend/src/components/Contact.js`
+
+5. **"Book Free Survey" → "Book Solar Service"**
+   - Changed button text across homepage
+   - ZeroBillHero component updated
+   - File: `/app/frontend/src/App.js`, `/app/frontend/src/components/ZeroBillHero.js`
+
+6. **Removed QR Payment Modal**
+   - "Book Solar Service" now links directly to WhatsApp
+   - Removed QR code payment flow
+   - File: `/app/frontend/src/App.js`
+
+### DOB Field & Onboarding (Already Exists)
+- DOB field already present in HR employee form (`date_of_birth`)
+- Onboarding update feature already present in HR Management → Onboarding tab
+
+### CRM Credentials Management (Already Exists)
+- CRM → Credentials tab shows all staff accounts
+- Features: Generate password, Set password, Remove access
+- Staff accounts are auto-synced from HR Management
+
+### Testing Results (March 15, 2026)
+- **Backend:** 100% (13/13 tests passed)
+- **Frontend:** 100% (All features verified)
+- **Test Report:** `/app/test_reports/iteration_43.json`
+
+---
+
 ## Latest Session (March 13, 2026) - OTP Bug Fix & Shop Removal
 
 ### OTP Verification Bug Fix (COMPLETED)
@@ -809,16 +861,17 @@ User has transferred domain from Namecheap to Cloudflare. DNS settings should be
 ## Prioritized Backlog
 
 ### P0 (Critical)
-- ✅ ~~OTP Verification Bug Fix~~ (COMPLETED - March 13, 2026)
-- ✅ ~~Shop Feature Removal~~ (COMPLETED - March 13, 2026)
-- ✅ ~~Solar Corporate Premium UI/UX Overhaul~~ (COMPLETED)
-- ✅ ~~Holi Festival Effect~~ (COMPLETED)
-- Continue Backend Refactoring: Extract Service/Shop routes from server.py into separate routers
+- ✅ ~~OTP Verification Bug Fix~~ (COMPLETED - March 15, 2026)
+- ✅ ~~Staff Login Not Working~~ (COMPLETED - March 15, 2026)
+- ✅ ~~Duplicate HR Management Panel~~ (COMPLETED - March 15, 2026)
+- ✅ ~~Instagram Removal from Contact~~ (COMPLETED - March 15, 2026)
+- ✅ ~~Book Free Survey → Book Solar Service~~ (COMPLETED - March 15, 2026)
+- ✅ ~~Remove QR Payment Modal~~ (COMPLETED - March 15, 2026)
 
 ### P1 (High Priority)
 - Advanced HR Features (AI task assignment, OCR expense reimbursement)
 - Predictive Operations Hub (AI inventory management, route optimization)
-- QR Code Payment Flow Testing (Book Solar Service feature)
+- Backend Refactoring: Extract Service/Shop routes from server.py
 
 ### P2 (Medium Priority)
 - Hyper-Local SEO Pages (district-specific landing pages)

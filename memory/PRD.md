@@ -3,7 +3,58 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 15, 2026) - Staff Login & UI Fixes
+## Latest Session (March 15, 2026) - Staff Features & QR Payment
+
+### New Features Implemented (COMPLETED)
+
+1. **Staff Lead Status Update**
+   - Added dropdown for quick status update in leads section
+   - Status options: New, Contacted, Follow Up, Interested, Survey, Quotation, Installation, Completed, Lost
+   - `quickUpdateLeadStatus()` function logs activity automatically
+   - Both desktop table and mobile card views have status dropdown
+
+2. **Direct Call & WhatsApp in Staff Leads**
+   - Large "Call Now" and "WhatsApp" buttons for each lead
+   - Mobile view: Full-width buttons for easy tapping
+   - Desktop view: Compact inline buttons
+   - Pre-filled WhatsApp message includes staff name
+
+3. **Mobile-Friendly Staff Dashboard**
+   - Sticky navigation bar (stays visible while scrolling)
+   - Horizontal scroll for navigation tabs
+   - Card layout for leads on mobile (replaces table)
+   - Touch-friendly buttons with adequate spacing
+   - Short labels on mobile ("Home" instead of "Dashboard")
+
+4. **CRM Staff Credentials Management**
+   - "Create Staff" button added to Credentials tab
+   - Generate Password button (auto-generates random password)
+   - Set Password button (custom password)
+   - Enable/Disable OTP toggle for mobile OTP login
+   - Activate/Deactivate staff account
+   - New endpoint: `/api/admin/staff-accounts/{staff_id}/toggle-otp`
+
+5. **QR Payment for Book Solar Service (Restored)**
+   - "Book Solar Service - ₹2499" buttons on homepage
+   - QR payment modal with form (Name, Phone, Email)
+   - Service Amount displays price from CRM config
+   - "Proceed to Pay" shows QR code
+   - Price linked to CRM Service Config for admin updates
+
+### Testing Results (March 15, 2026)
+- **Backend:** 100% (8/8 tests passed)
+- **Frontend:** 100% (All features verified)
+- **Test Report:** `/app/test_reports/iteration_44.json`
+
+### Files Modified
+- `/app/frontend/src/components/StaffPortal.js` - Mobile-friendly leads, status dropdown
+- `/app/frontend/src/components/CRMDashboard.js` - Credentials tab with Create Staff
+- `/app/frontend/src/App.js` - QR payment modal buttons restored
+- `/app/backend/server.py` - Added toggle-otp endpoint
+
+---
+
+## Previous Session (March 15, 2026) - Staff Login & UI Fixes
 
 ### Issues Fixed (COMPLETED)
 

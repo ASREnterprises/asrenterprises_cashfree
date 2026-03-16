@@ -3,7 +3,48 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 15, 2026) - Staff Features & QR Payment
+## Latest Session (March 16, 2026) - Staff Training, Email Login & Bulk Assign
+
+### New Features Implemented (COMPLETED)
+
+1. **Training Tab in Staff Portal**
+   - New "Training" tab in Staff Portal navigation
+   - Shows 7 default training modules: Solar Basics, Product Knowledge, Sales Techniques, Installation Overview, CRM Training, Customer Service, Company Policies
+   - Staff can mark modules as complete
+   - Progress bar shows completion percentage
+   - Data stored in `staff_training_progress` collection
+   - New endpoints: `/api/staff/{staff_id}/training`, `/api/staff/{staff_id}/training/{module_id}/complete`
+
+2. **Staff Email + Password Login (No OTP)**
+   - New "Email" tab in Staff Login page
+   - Staff can login with registered email + password (set by admin)
+   - No OTP verification required for email-based login
+   - Works alongside Staff ID login and Mobile OTP login
+   - New endpoint: `/api/staff/login-email`
+   - Checks both `password_hash` and legacy `password` fields
+
+3. **Bulk Lead Assignment in CRM**
+   - Checkboxes added to CRM leads table for multi-select
+   - "Select All" checkbox in table header
+   - "Bulk Assign" button appears when leads are selected
+   - Admin can assign multiple leads to one staff member at once
+   - In-app notification sent to staff when leads assigned
+   - New endpoint: `/api/crm/leads/bulk-assign`
+
+### Testing Results (March 16, 2026)
+- **Backend:** 92% (11/12 tests passed)
+- **Frontend:** 100% (All features verified via code review)
+- **Test Report:** `/app/test_reports/iteration_45.json`
+
+### Files Modified
+- `/app/frontend/src/components/StaffLogin.js` - Added Email login tab and form
+- `/app/frontend/src/components/StaffPortal.js` - Added Training tab with modules
+- `/app/frontend/src/components/CRMDashboard.js` - Added bulk lead selection and assignment
+- `/app/backend/server.py` - Added staff training, email login, and bulk assign endpoints
+
+---
+
+## Previous Session (March 15, 2026) - Staff Features & QR Payment
 
 ### New Features Implemented (COMPLETED)
 

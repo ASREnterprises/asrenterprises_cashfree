@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-const API = process.env.REACT_APP_BACKEND_URL;
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Training modules data
 const TRAINING_MODULES = [
@@ -322,7 +322,7 @@ const StaffTraining = ({ staffId, staffName, staffRole }) => {
 
     try {
       // Use the training-specific AI endpoint
-      const response = await axios.post(`${API}/api/ai/training-assistant`, {
+      const response = await axios.post(`${API}/ai/training-assistant`, {
         message: userMessage,
         staff_role: staffRole || "sales",
         context: selectedModule?.id || "general"
@@ -335,7 +335,7 @@ const StaffTraining = ({ staffId, staffName, staffRole }) => {
     } catch (error) {
       // Fallback to public chat if training endpoint doesn't exist
       try {
-        const fallbackResponse = await axios.post(`${API}/api/ai/chat/public`, {
+        const fallbackResponse = await axios.post(`${API}/ai/chat/public`, {
           message: `As a solar sales training assistant for ASR Enterprises, help with: ${userMessage}. 
           Focus on PM Surya Ghar scheme, solar installation benefits, and sales techniques.
           Provide practical tips for telecallers and sales staff.`,

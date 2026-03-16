@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { 
   ChevronRight, Sun, Target, Eye, CheckCircle, Users, Award, 
-  Shield, Zap, Phone, Mail, MapPin, Sparkles, Leaf, Building2, Home
+  Shield, Zap, Phone, Mail, MapPin, Sparkles, Leaf, Building2, Home, Instagram, Facebook, MessageSquare
 } from "lucide-react";
 
 export const AboutUsPage = () => {
@@ -268,6 +268,37 @@ export const AboutUsPage = () => {
               >
                 <Zap className="w-5 h-5 mr-2" />
                 Book Solar Service
+              </a>
+            </div>
+            
+            {/* Social Media Links */}
+            <div className="flex justify-center space-x-4 mt-8">
+              <a
+                href="https://instagram.com/asr_enterprises_patna"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-full hover:scale-110 transition-transform shadow-lg"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-6 h-6" />
+              </a>
+              <a
+                href="https://wa.me/919296389097"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-green-500 text-white p-3 rounded-full hover:scale-110 transition-transform shadow-lg"
+                aria-label="WhatsApp"
+              >
+                <MessageSquare className="w-6 h-6" />
+              </a>
+              <a
+                href="https://www.facebook.com/share/1CU69hsGbJ/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-blue-600 text-white p-3 rounded-full hover:scale-110 transition-transform shadow-lg"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-6 h-6" />
               </a>
             </div>
           </div>

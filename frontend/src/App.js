@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -1957,6 +1957,16 @@ const HomePage = () => {
               
               {/* Social Media Links */}
               <div className="flex space-x-4 mt-4">
+                <a
+                  href="https://instagram.com/asr_enterprises_patna"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all"
+                  data-testid="instagram-link"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
                 <a
                   href="https://wa.me/919296389097"
                   target="_blank"

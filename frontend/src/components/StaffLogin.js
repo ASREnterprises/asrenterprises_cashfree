@@ -12,13 +12,15 @@ const MSG91_AUTH_TOKEN = "498782Ts6ZESL8A69acbb0aP1";
 export const StaffLogin = () => {
   const [staffId, setStaffId] = useState("");
   const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
   const [emailOtp, setEmailOtp] = useState("");
   const [mobileOtp, setMobileOtp] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loginMethod, setLoginMethod] = useState("password"); // password, email_otp, or mobile_otp
+  const [loginMethod, setLoginMethod] = useState("password"); // password, email_password, email_otp, or mobile_otp
   const [otpSent, setOtpSent] = useState(false);
   const [step, setStep] = useState("credentials"); // credentials or otp_verify
   const [otpLoading, setOtpLoading] = useState(false);
@@ -339,6 +341,30 @@ export const StaffLogin = () => {
     setLoading(false);
   };
 
+  // Email + Password Login (No OTP required)
+  const handleEmailPasswordLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await axios.post(`${API}/staff/login-email`, {
+        email: email.toLowerCase().trim(),
+        password: emailPassword
+      });
+
+      if (res.data.success) {
+        localStorage.setItem("asrStaffAuth", "true");
+        localStorage.setItem("asrStaffData", JSON.stringify(res.data.staff));
+        localStorage.setItem("asrStaffToken", res.data.token);
+        navigate("/staff/portal");
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Invalid email or password");
+    }
+    setLoading(false);
+  };
+
   // Verify 2FA OTP
   const handleVerify2FA = async (e) => {
     e.preventDefault();
@@ -435,25 +461,25 @@ export const StaffLogin = () => {
           </div>
 
           {/* Login Method Toggle */}
-          <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6">
+          <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6 overflow-x-auto">
             <button
               type="button"
               onClick={() => { setLoginMethod("password"); setOtpSent(false); setError(""); setSuccess(""); setStep("credentials"); resetMobileOTPFlow(); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 ${loginMethod === "password" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "password" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
             >
-              <Lock className="w-3.5 h-3.5" />Password
+              <Lock className="w-3.5 h-3.5" />Staff ID
             </button>
             <button
               type="button"
-              onClick={() => { setLoginMethod("email_otp"); setError(""); setSuccess(""); setOtpSent(false); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 ${loginMethod === "email_otp" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+              onClick={() => { setLoginMethod("email_password"); setError(""); setSuccess(""); setOtpSent(false); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "email_password" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
             >
-              <Mail className="w-3.5 h-3.5" />Email OTP
+              <Mail className="w-3.5 h-3.5" />Email
             </button>
             <button
               type="button"
               onClick={() => { setLoginMethod("mobile_otp"); setError(""); setSuccess(""); resetMobileOTPFlow(); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 ${loginMethod === "mobile_otp" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "mobile_otp" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
             >
               <Phone className="w-3.5 h-3.5" />Mobile OTP
             </button>
@@ -552,6 +578,55 @@ export const StaffLogin = () => {
               </button>
             </form>
             )
+          )}
+
+          {/* Email + Password Login (No OTP) */}
+          {loginMethod === "email_password" && (
+            <form onSubmit={handleEmailPasswordLogin} className="space-y-5">
+              <div className="text-center mb-2">
+                <p className="text-gray-500 text-sm">
+                  Login with your registered email and password
+                </p>
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@company.com"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                <span>{loading ? "Logging in..." : "Login"}</span>
+              </button>
+            </form>
           )}
 
           {/* Email OTP Login */}

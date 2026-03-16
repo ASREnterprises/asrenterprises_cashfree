@@ -632,6 +632,12 @@ export const CRMDashboard = () => {
   const [showQuickAddModal, setShowQuickAddModal] = useState(false);
   const [quickLeadForm, setQuickLeadForm] = useState({ name: '', phone: '', district: '', source: 'manual' });
   
+  // Bulk Lead Assignment State
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+  const [bulkAssignStaffId, setBulkAssignStaffId] = useState('');
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+  
   // Multiple Photo Upload State  
   const [photoFiles, setPhotoFiles] = useState([]);
   
@@ -806,6 +812,54 @@ export const CRMDashboard = () => {
         }
       }
     } catch (err) { alert("Error assigning lead"); }
+  };
+
+  // Bulk Assign Leads to Staff
+  const bulkAssignLeads = async () => {
+    if (selectedLeadIds.length === 0) {
+      alert("Please select at least one lead");
+      return;
+    }
+    if (!bulkAssignStaffId) {
+      alert("Please select a staff member");
+      return;
+    }
+    
+    setBulkAssigning(true);
+    try {
+      await axios.post(`${API}/crm/leads/bulk-assign`, {
+        lead_ids: selectedLeadIds,
+        employee_id: bulkAssignStaffId,
+        assigned_by: "admin"
+      });
+      setSelectedLeadIds([]);
+      setShowBulkAssignModal(false);
+      setBulkAssignStaffId('');
+      fetchAllData();
+      alert(`${selectedLeadIds.length} leads assigned successfully!`);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error assigning leads");
+    }
+    setBulkAssigning(false);
+  };
+
+  // Toggle lead selection for bulk assign
+  const toggleLeadSelection = (leadId) => {
+    setSelectedLeadIds(prev => 
+      prev.includes(leadId) 
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
+  // Select/Deselect all visible leads
+  const toggleSelectAllLeads = () => {
+    const visibleLeads = leads.filter(l => !filterStage || l.stage === filterStage);
+    if (selectedLeadIds.length === visibleLeads.length) {
+      setSelectedLeadIds([]);
+    } else {
+      setSelectedLeadIds(visibleLeads.map(l => l.id));
+    }
   };
 
   // Create Manual Lead
@@ -1290,36 +1344,56 @@ export const CRMDashboard = () => {
         {activeTab === "leads" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
-              <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
-                <option value="">All Stages</option>
-                {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
-              </select>
+              <div className="flex items-center space-x-3">
+                <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
+                  <option value="">All Stages</option>
+                  {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
+                </select>
+                {selectedLeadIds.length > 0 && (
+                  <button 
+                    onClick={() => setShowBulkAssignModal(true)}
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 hover:from-indigo-600 hover:to-purple-600 transition"
+                    data-testid="bulk-assign-btn"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Bulk Assign ({selectedLeadIds.length})</span>
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setShowQuickAddModal(true)} className="bg-green-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-green-700 transition" data-testid="quick-add-btn">
+                <button onClick={() => setShowQuickAddModal(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-green-700 transition" data-testid="quick-add-btn">
                   <Plus className="w-4 h-4" /><span className="hidden sm:inline">Quick Add</span><span className="sm:hidden">+</span>
                 </button>
-                <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-blue-700 transition" data-testid="add-lead-btn">
+                <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-blue-700 transition" data-testid="add-lead-btn">
                   <UserPlus className="w-4 h-4" /><span className="hidden sm:inline">Full Form</span>
                 </button>
                 <button onClick={() => setShowSmartImportModal(true)} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-600 hover:to-purple-700 transition" data-testid="smart-import-btn">
                   <FileSpreadsheet className="w-4 h-4" /><span className="hidden sm:inline">Smart Import</span>
                 </button>
-                <button onClick={() => setShowBulkImportModal(true)} className="bg-orange-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-orange-700 transition" data-testid="bulk-import-btn">
+                <button onClick={() => setShowBulkImportModal(true)} className="bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-orange-700 transition" data-testid="bulk-import-btn">
                   <Upload className="w-4 h-4" /><span className="hidden sm:inline">CSV</span>
                 </button>
-                <button onClick={fetchSocialLeads} className="bg-gradient-to-r from-green-500 to-teal-500 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-green-600 hover:to-teal-600 transition" data-testid="fetch-social-btn">
+                <button onClick={fetchSocialLeads} className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-green-600 hover:to-teal-600 transition" data-testid="fetch-social-btn">
                   <Download className="w-4 h-4" /><span className="hidden md:inline">Fetch Social</span>
                 </button>
-                <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-[#0a355e] px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
+                <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
                   <Zap className="w-4 h-4" /><span className="hidden md:inline">AI Auto-Assign</span>
                 </button>
               </div>
             </div>
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead className="bg-gray-50 border border-gray-300">
+                <table className="w-full min-w-[900px]">
+                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
+                      <th className="text-left text-gray-600 px-3 py-3 text-sm w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.length > 0 && selectedLeadIds.length === leads.filter(l => !filterStage || l.stage === filterStage).length}
+                          onChange={toggleSelectAllLeads}
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </th>
                       <th className="text-left text-gray-600 px-4 py-3 text-sm">Lead</th>
                       <th className="text-left text-gray-600 px-4 py-3 text-sm">Contact</th>
                       <th className="text-left text-gray-600 px-4 py-3 text-sm">Source</th>
@@ -1330,7 +1404,15 @@ export const CRMDashboard = () => {
                   </thead>
                 <tbody>
                   {leads.filter(l => !filterStage || l.stage === filterStage).map((lead) => (
-                    <tr key={lead.id} className="border-t border-sky-200">
+                    <tr key={lead.id} className={`border-t border-gray-100 hover:bg-gray-50 ${selectedLeadIds.includes(lead.id) ? 'bg-blue-50' : ''}`}>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.includes(lead.id)}
+                          onChange={() => toggleLeadSelection(lead.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="text-[#0a355e] font-medium">{lead.name}</div>
                         <div className="text-gray-600 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
@@ -2430,6 +2512,59 @@ export const CRMDashboard = () => {
                 className="px-6 py-3 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Assign Modal */}
+      {showBulkAssignModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-[#0a355e] mb-4 flex items-center space-x-2">
+              <Users className="w-5 h-5 text-purple-500" />
+              <span>Bulk Assign Leads</span>
+            </h2>
+            
+            <div className="bg-purple-50 rounded-lg p-4 mb-4">
+              <p className="text-purple-700 font-medium">{selectedLeadIds.length} leads selected</p>
+              <p className="text-purple-600 text-sm">All selected leads will be assigned to the chosen staff member</p>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-gray-600 text-sm font-medium mb-2">Select Staff Member</label>
+              <select
+                value={bulkAssignStaffId}
+                onChange={(e) => setBulkAssignStaffId(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-3 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              >
+                <option value="">-- Select Staff --</option>
+                {staffAccounts.filter(s => s.is_active).map((staff) => (
+                  <option key={staff.id} value={staff.id}>
+                    {staff.name} ({staff.staff_id}) - {staff.leads_assigned || 0} leads
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => { setShowBulkAssignModal(false); setBulkAssignStaffId(''); }}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-300 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={bulkAssignLeads}
+                disabled={bulkAssigning || !bulkAssignStaffId}
+                className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-xl font-bold hover:from-purple-600 hover:to-indigo-600 transition disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {bulkAssigning ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /><span>Assigning...</span></>
+                ) : (
+                  <><CheckCircle className="w-4 h-4" /><span>Assign {selectedLeadIds.length} Leads</span></>
+                )}
               </button>
             </div>
           </div>

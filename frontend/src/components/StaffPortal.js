@@ -54,6 +54,8 @@ export const StaffPortal = () => {
   const [newLeadForm, setNewLeadForm] = useState({ name: '', phone: '', district: '', monthly_bill: '', property_type: 'residential', notes: '' });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
+  const [trainingModules, setTrainingModules] = useState([]);
+  const [trainingProgress, setTrainingProgress] = useState({});
   const navigate = useNavigate();
 
   // Auto-logout callback for staff
@@ -89,14 +91,15 @@ export const StaffPortal = () => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes, notifRes] = await Promise.all([
+      const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes, notifRes, trainingRes] = await Promise.all([
         axios.get(`${API}/staff/${staffData.staff_id}/dashboard`),
         axios.get(`${API}/staff/${staffData.staff_id}/leads`),
         axios.get(`${API}/staff/${staffData.staff_id}/followups`),
         axios.get(`${API}/staff/${staffData.staff_id}/tasks/today`).catch(() => ({ data: [] })),
         axios.get(`${API}/staff/${staffData.staff_id}/messages`).catch(() => ({ data: [] })),
         axios.get(`${API}/staff/${staffData.staff_id}/messages/unread`).catch(() => ({ data: { count: 0 } })),
-        axios.get(`${API}/staff/${staffData.staff_id}/notifications`).catch(() => ({ data: { notifications: [], unread_count: 0 } }))
+        axios.get(`${API}/staff/${staffData.staff_id}/notifications`).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
+        axios.get(`${API}/staff/${staffData.staff_id}/training`).catch(() => ({ data: { modules: [], progress: {} } }))
       ]);
       setDashboard(dashRes.data);
       setLeads(leadsRes.data);
@@ -106,6 +109,8 @@ export const StaffPortal = () => {
       setUnreadCount(unreadRes.data?.count || 0);
       setNotifications(notifRes.data?.notifications || []);
       setNotifUnread(notifRes.data?.unread_count || 0);
+      setTrainingModules(trainingRes.data?.modules || []);
+      setTrainingProgress(trainingRes.data?.progress || {});
     } catch (err) {
       console.error("Error:", err);
     }
@@ -337,6 +342,7 @@ export const StaffPortal = () => {
               { id: "tasks", label: "Today's Tasks", shortLabel: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "leads", label: "My Leads", shortLabel: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "followups", label: "Follow-ups", shortLabel: "Follow", icon: <Calendar className="w-4 h-4" /> },
+              { id: "training", label: "Training", shortLabel: "Train", icon: <Briefcase className="w-4 h-4" /> },
               { id: "messages", label: "Messages", shortLabel: "Msgs", icon: <MessageCircle className="w-4 h-4" /> }
             ].map((tab) => (
               <button
@@ -703,6 +709,101 @@ export const StaffPortal = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* Training Tab */}
+        {activeTab === "training" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-lg sm:text-xl font-bold text-[#0a355e]">My Training</h2>
+              <div className="text-sm text-gray-500">
+                {Object.values(trainingProgress).filter(v => v).length} / {trainingModules.length} completed
+              </div>
+            </div>
+
+            {trainingModules.length === 0 ? (
+              <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
+                <Briefcase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No training modules assigned yet</p>
+                <p className="text-gray-400 text-sm mt-1">Check back later for your training content</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {trainingModules.map((module) => (
+                  <div 
+                    key={module.id} 
+                    className={`bg-white shadow-lg border rounded-xl p-4 ${trainingProgress[module.id] ? 'border-green-200 bg-green-50/50' : 'border-sky-200'}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className={`w-3 h-3 rounded-full ${trainingProgress[module.id] ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+                          <h3 className="font-bold text-[#0a355e]">{module.title}</h3>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-2">{module.description}</p>
+                        <div className="flex items-center flex-wrap gap-2 text-xs text-gray-500">
+                          <span className="bg-gray-100 px-2 py-1 rounded">{module.duration || '15 mins'}</span>
+                          <span className="bg-gray-100 px-2 py-1 rounded capitalize">{module.type || 'video'}</span>
+                          {module.is_mandatory && <span className="bg-red-100 text-red-600 px-2 py-1 rounded">Required</span>}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end space-y-2">
+                        {trainingProgress[module.id] ? (
+                          <span className="bg-green-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1">
+                            <CheckCircle className="w-3 h-3" />
+                            <span>Completed</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await axios.post(`${API}/staff/${staffData.staff_id}/training/${module.id}/complete`);
+                                setTrainingProgress(prev => ({ ...prev, [module.id]: true }));
+                              } catch (err) {
+                                alert('Error marking as complete');
+                              }
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition"
+                          >
+                            Mark Complete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {module.content_url && (
+                      <a 
+                        href={module.content_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        View Training Material
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Training Progress Summary */}
+            {trainingModules.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
+                <h4 className="font-semibold text-[#0a355e] mb-2">Training Progress</h4>
+                <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${(Object.values(trainingProgress).filter(v => v).length / trainingModules.length) * 100}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {Object.values(trainingProgress).filter(v => v).length === trainingModules.length 
+                    ? "Congratulations! You've completed all training modules." 
+                    : `${trainingModules.length - Object.values(trainingProgress).filter(v => v).length} modules remaining`}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

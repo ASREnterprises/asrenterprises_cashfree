@@ -3823,6 +3823,47 @@ async def staff_login(request: Request, data: Dict[str, Any]):
         "staff_id": staff_id
     }
 
+@api_router.post("/staff/login-email")
+async def staff_login_email(request: Request, data: Dict[str, Any]):
+    """Staff login with email + password (No OTP required)"""
+    import hashlib
+    import secrets
+    
+    client_ip = get_client_ip(request)
+    if not check_login_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
+    
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    # Find staff by email with hashed password
+    staff = await db.crm_staff_accounts.find_one(
+        {"email": email, "password_hash": password_hash, "is_active": True},
+        {"_id": 0, "password_hash": 0}
+    )
+    
+    # Also try with plain password for backwards compatibility
+    if not staff:
+        staff = await db.crm_staff_accounts.find_one(
+            {"email": email, "password": password, "is_active": True},
+            {"_id": 0, "password": 0}
+        )
+    
+    if not staff:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    reset_failed_login(client_ip, email)
+    
+    # Generate token
+    token = secrets.token_urlsafe(32)
+    
+    return {
+        "success": True,
+        "staff": staff,
+        "token": token
+    }
+
 @api_router.post("/staff/verify-2fa")
 async def staff_verify_2fa(request: Request, data: Dict[str, Any]):
     """Verify 2FA OTP after password login"""
@@ -4133,6 +4174,48 @@ async def get_staff_dashboard(staff_id: str):
         "todays_followups": todays_followups,
         "recent_leads": recent_leads
     }
+
+@api_router.get("/staff/{staff_id}/training")
+async def get_staff_training(staff_id: str):
+    """Get training modules and progress for a staff member"""
+    # Get employee record to check onboarding status
+    employee = await db.hr_employees.find_one({"employee_id": staff_id}, {"_id": 0})
+    
+    # Default training modules for all staff
+    modules = [
+        {"id": "solar_basics", "title": "Solar Energy Basics", "description": "Learn fundamentals of solar power systems", "duration": "30 mins", "type": "video", "is_mandatory": True},
+        {"id": "product_knowledge", "title": "Product Knowledge", "description": "ASR Enterprises product lineup and specifications", "duration": "45 mins", "type": "presentation", "is_mandatory": True},
+        {"id": "sales_techniques", "title": "Sales Techniques", "description": "Effective solar sales strategies and customer handling", "duration": "1 hour", "type": "video", "is_mandatory": True},
+        {"id": "installation_basics", "title": "Installation Overview", "description": "Understanding installation process and requirements", "duration": "45 mins", "type": "video", "is_mandatory": False},
+        {"id": "crm_training", "title": "CRM System Training", "description": "How to use the ASR CRM effectively", "duration": "20 mins", "type": "interactive", "is_mandatory": True},
+        {"id": "customer_service", "title": "Customer Service Excellence", "description": "Best practices for customer support", "duration": "30 mins", "type": "video", "is_mandatory": False},
+        {"id": "company_policies", "title": "Company Policies", "description": "HR policies, leave management, and guidelines", "duration": "15 mins", "type": "document", "is_mandatory": True}
+    ]
+    
+    # Get progress for this staff
+    progress_records = await db.staff_training_progress.find(
+        {"staff_id": staff_id},
+        {"_id": 0}
+    ).to_list(50)
+    
+    progress = {record.get("module_id"): record.get("completed", False) for record in progress_records}
+    
+    return {"modules": modules, "progress": progress}
+
+@api_router.post("/staff/{staff_id}/training/{module_id}/complete")
+async def complete_staff_training(staff_id: str, module_id: str):
+    """Mark a training module as complete"""
+    await db.staff_training_progress.update_one(
+        {"staff_id": staff_id, "module_id": module_id},
+        {"$set": {
+            "staff_id": staff_id,
+            "module_id": module_id,
+            "completed": True,
+            "completed_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    return {"success": True, "message": "Training marked as complete"}
 
 # Admin - Get all staff accounts
 @api_router.get("/admin/staff-accounts")
@@ -4669,6 +4752,50 @@ _From ASR Enterprises Admin_"""
     whatsapp_url = get_whatsapp_url(staff.get("phone", ""), whatsapp_message) if staff.get("phone") else None
     
     return {"success": True, "whatsapp_notification_url": whatsapp_url}
+
+@api_router.post("/crm/leads/bulk-assign")
+async def bulk_assign_leads(data: Dict[str, Any]):
+    """Bulk assign multiple leads to a staff member"""
+    lead_ids = data.get("lead_ids", [])
+    employee_id = data.get("employee_id")
+    assigned_by = data.get("assigned_by", "admin")
+    
+    if not lead_ids:
+        raise HTTPException(status_code=400, detail="No leads selected")
+    if not employee_id:
+        raise HTTPException(status_code=400, detail="Staff not selected")
+    
+    # Get staff details
+    staff = await db.crm_staff_accounts.find_one({"id": employee_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    # Update all leads
+    result = await db.crm_leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$set": {"assigned_to": employee_id, "assigned_by": assigned_by}}
+    )
+    
+    # Update employee stats
+    await db.crm_staff_accounts.update_one(
+        {"id": employee_id},
+        {"$inc": {"leads_assigned": result.modified_count}}
+    )
+    
+    # Send in-app notification to staff
+    add_notification(
+        staff.get("staff_id"),
+        "bulk_lead_assigned",
+        f"🎯 {result.modified_count} New Leads Assigned!",
+        f"Admin has assigned {result.modified_count} leads to you. Check your leads tab.",
+        None
+    )
+    
+    return {
+        "success": True, 
+        "assigned_count": result.modified_count,
+        "message": f"{result.modified_count} leads assigned to {staff.get('name')}"
+    }
 
 # AI Auto Lead Assignment
 @api_router.post("/crm/leads/{lead_id}/auto-assign")

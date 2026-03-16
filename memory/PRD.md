@@ -3,7 +3,38 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 16, 2026) - Training Feature Enhancement
+## Latest Session (March 16, 2026) - Instagram Restored
+
+### Instagram Links Added Back (COMPLETED)
+
+1. **Homepage Footer**
+   - Instagram icon with purple/pink gradient
+   - Link: https://instagram.com/asr_enterprises_patna
+   - data-testid="instagram-link"
+   - Opens in new tab
+
+2. **Contact Page - Follow Us Section**
+   - Instagram button with @asr_enterprises_patna text
+   - Purple/pink gradient styling
+   - First in the social media row
+
+3. **About Us Page - Social Media Section**
+   - Instagram icon in CTA area
+   - Same styling as other pages
+   - Part of social media icon row
+
+### Social Media Links (Current)
+- **Instagram**: https://instagram.com/asr_enterprises_patna
+- **Facebook**: https://www.facebook.com/share/1CU69hsGbJ/
+- **WhatsApp**: https://wa.me/919296389097
+
+### Testing Results
+- **Frontend:** 100% (5/5 features verified)
+- **Test Report:** `/app/test_reports/iteration_47.json`
+
+---
+
+## Previous Session (March 16, 2026) - Training Feature Enhancement
 
 ### Training System Complete (COMPLETED)
 

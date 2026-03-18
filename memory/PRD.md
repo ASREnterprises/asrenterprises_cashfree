@@ -3,7 +3,60 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 16, 2026) - Instagram Restored
+## Latest Session (March 18, 2026) - Lead Management Enhancements
+
+### Features Completed (COMPLETED)
+
+1. **"Not Interested" Lead Workflow** ✅
+   - New endpoint: `POST /api/staff/{staff_id}/leads/{lead_id}/not-interested`
+   - When staff marks a lead as "Not Interested":
+     - Lead is unassigned from staff (assigned_to = null)
+     - Lead stage changed to "contacted"
+     - Status history updated with action details
+     - Staff's leads_assigned count decremented
+     - Lead returns to main CRM pool for reassignment
+   - Frontend button integrated in StaffPortal.js
+
+2. **Robust Bulk Lead Upload from Excel** ✅
+   - Updated `POST /api/crm/leads/bulk-import` endpoint
+   - Now supports both CSV and Excel files (.xlsx, .xls)
+   - **Only phone number is required** - name auto-generated as "Lead-XXXX"
+   - Handles 1000+ leads efficiently with batch processing (100 at a time)
+   - Validates Indian mobile numbers (starts with 6,7,8,9)
+   - Detects and reports duplicates
+   - Max file size: 10MB
+   - Returns detailed import results with imported/duplicates/errors counts
+
+3. **Backend Refactoring - Staff Router** ✅
+   - Created `/app/backend/routes/staff.py` with modular staff endpoints
+   - Endpoints moved to router:
+     - `/api/staff/login`
+     - `/api/staff/login-email`
+     - `/api/staff/{staff_id}/dashboard`
+     - `/api/staff/{staff_id}/leads` (GET, PUT, POST)
+     - `/api/staff/{staff_id}/leads/{lead_id}/not-interested` (POST)
+     - `/api/staff/{staff_id}/followups` (GET, POST, PUT)
+     - `/api/staff/{staff_id}/tasks` (GET)
+     - `/api/staff/{staff_id}/notifications` (GET, PUT)
+     - `/api/staff/{staff_id}/training` (GET)
+     - `/api/staff/{staff_id}/training/{module_id}/complete` (POST)
+     - `/api/staff/profile/{staff_id}` (GET)
+   - Router properly initialized with database and utilities
+
+4. **Frontend Bulk Import UI Update** ✅
+   - Updated modal to accept .csv, .xlsx, .xls files
+   - Clear messaging: "Only phone number is required!"
+   - Shows duplicate count in results
+   - Improved visual styling and feedback
+
+### Testing Results (March 18, 2026)
+- **Backend:** 100% (14/14 tests passed)
+- **Frontend:** 100% (All features verified)
+- **Test Report:** `/app/test_reports/iteration_48.json`
+
+---
+
+## Previous Session (March 16, 2026) - Instagram Restored
 
 ### Instagram Links Added Back (COMPLETED)
 

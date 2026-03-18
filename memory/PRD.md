@@ -3,7 +3,42 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 18, 2026) - Lead Management Enhancements
+## Latest Session (March 18, 2026) - Bulk Import Enhancements
+
+### Features Completed (COMPLETED)
+
+1. **Manual Paste Phone Numbers** ✅
+   - New endpoint: `POST /api/crm/leads/bulk-import-manual`
+   - Accepts phone numbers in multiple formats:
+     - Newline-separated
+     - Comma-separated
+     - Space-separated
+     - Mixed formats (+91, dashes, spaces handled)
+   - Frontend: New "Paste Numbers" tab in bulk import modal
+   - Live count display shows number of pasted phones
+   - Creates leads with `source='manual_bulk'` for calling purposes
+
+2. **Fixed Excel Bulk Import (1000+ leads)** ✅
+   - Fixed phone number detection from Excel files
+   - Now reads Excel with `dtype=str` to preserve phone formats
+   - Auto-detects phone column from various names: phone, mobile, contact, number
+   - Handles scientific notation from Excel
+   - Handles files without headers (uses first column)
+   - Shows which column was used for phone detection
+
+3. **Bulk Import for Calling Purposes** ✅
+   - Imported leads set with `lead_score=30` and `ai_priority='low'`
+   - Follow-up notes indicate "for calling"
+   - Only phone number required - name auto-generated as "Lead-XXXX"
+
+### Testing Results (March 18, 2026)
+- **Backend:** 100% (20/20 tests passed)
+- **Frontend:** 100% (All features verified)
+- **Test Report:** `/app/test_reports/iteration_49.json`
+
+---
+
+## Previous Session (March 18, 2026) - Lead Management Enhancements
 
 ### Features Completed (COMPLETED)
 

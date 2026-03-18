@@ -616,6 +616,8 @@ export const CRMDashboard = () => {
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkImportResult, setBulkImportResult] = useState(null);
   const bulkFileInputRef = useRef(null);
+  const [bulkImportMode, setBulkImportMode] = useState('file'); // 'file' or 'paste'
+  const [bulkPasteText, setBulkPasteText] = useState('');
   
   // Smart Import State
   const [showSmartImportModal, setShowSmartImportModal] = useState(false);
@@ -906,20 +908,36 @@ export const CRMDashboard = () => {
 
   // Bulk Import Leads
   const handleBulkImport = async () => {
-    if (!bulkImportFile) { alert("Please select a CSV file"); return; }
-    setBulkImporting(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', bulkImportFile);
-      const res = await axios.post(`${API}/crm/leads/bulk-import`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setBulkImportResult(res.data);
-      fetchAllData();
-    } catch (err) {
-      alert(err.response?.data?.detail || "Import failed");
+    if (bulkImportMode === 'file') {
+      if (!bulkImportFile) { alert("Please select a CSV or Excel file"); return; }
+      setBulkImporting(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', bulkImportFile);
+        const res = await axios.post(`${API}/crm/leads/bulk-import`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setBulkImportResult(res.data);
+        fetchAllData();
+      } catch (err) {
+        alert(err.response?.data?.detail || "Import failed");
+      }
+      setBulkImporting(false);
+    } else {
+      // Manual paste mode
+      if (!bulkPasteText.trim()) { alert("Please paste phone numbers"); return; }
+      setBulkImporting(true);
+      try {
+        const res = await axios.post(`${API}/crm/leads/bulk-import-manual`, {
+          phones: bulkPasteText
+        });
+        setBulkImportResult(res.data);
+        fetchAllData();
+      } catch (err) {
+        alert(err.response?.data?.detail || "Import failed");
+      }
+      setBulkImporting(false);
     }
-    setBulkImporting(false);
   };
 
   // Smart Import Handlers
@@ -2574,58 +2592,104 @@ export const CRMDashboard = () => {
       {/* Bulk Import Modal */}
       {showBulkImportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 max-w-lg w-full">
+          <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold text-[#0a355e] mb-4 flex items-center space-x-2">
               <Upload className="w-5 h-5 text-orange-400" />
-              <span>Bulk Import Leads</span>
+              <span>Bulk Import Leads (For Calling)</span>
             </h2>
             
             {!bulkImportResult ? (
               <div className="space-y-4">
-                <div className="border-2 border-dashed border-sky-200 rounded-lg p-6 text-center">
-                  <input 
-                    type="file" 
-                    ref={bulkFileInputRef}
-                    accept=".csv,.xlsx,.xls"
-                    onChange={(e) => setBulkImportFile(e.target.files[0])}
-                    className="hidden" 
-                  />
-                  <FileSpreadsheet className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                {/* Mode Tabs */}
+                <div className="flex border-b border-gray-200">
                   <button 
-                    onClick={() => bulkFileInputRef.current?.click()} 
-                    className="bg-orange-600 text-white px-6 py-2 rounded-lg font-medium mb-2 hover:bg-orange-700"
+                    onClick={() => setBulkImportMode('file')}
+                    className={`flex-1 py-2 text-sm font-medium border-b-2 transition ${bulkImportMode === 'file' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                   >
-                    Select CSV or Excel File
+                    <FileSpreadsheet className="w-4 h-4 inline mr-1" />
+                    Upload File
                   </button>
-                  {bulkImportFile && (
-                    <p className="text-green-600 text-sm mt-2 font-medium">{bulkImportFile.name}</p>
-                  )}
-                  <div className="text-gray-500 text-xs mt-3 space-y-1">
-                    <p className="font-semibold text-gray-700">Only phone number is required!</p>
-                    <p>Supports: CSV, Excel (.xlsx, .xls) - up to 1000+ leads</p>
-                    <p>Optional: name, email, district, address, monthly_bill, etc.</p>
-                  </div>
+                  <button 
+                    onClick={() => setBulkImportMode('paste')}
+                    className={`flex-1 py-2 text-sm font-medium border-b-2 transition ${bulkImportMode === 'paste' ? 'border-orange-500 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  >
+                    <ClipboardList className="w-4 h-4 inline mr-1" />
+                    Paste Numbers
+                  </button>
                 </div>
-                
-                <button 
-                  onClick={downloadCSVTemplate} 
-                  className="w-full bg-gray-50 border border-gray-300 text-gray-600 py-2 rounded-lg text-sm flex items-center justify-center space-x-2 hover:bg-gray-100"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download CSV Template</span>
-                </button>
+
+                {bulkImportMode === 'file' ? (
+                  <>
+                    <div className="border-2 border-dashed border-sky-200 rounded-lg p-6 text-center">
+                      <input 
+                        type="file" 
+                        ref={bulkFileInputRef}
+                        accept=".csv,.xlsx,.xls"
+                        onChange={(e) => setBulkImportFile(e.target.files[0])}
+                        className="hidden" 
+                      />
+                      <FileSpreadsheet className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <button 
+                        onClick={() => bulkFileInputRef.current?.click()} 
+                        className="bg-orange-600 text-white px-6 py-2 rounded-lg font-medium mb-2 hover:bg-orange-700"
+                      >
+                        Select CSV or Excel File
+                      </button>
+                      {bulkImportFile && (
+                        <p className="text-green-600 text-sm mt-2 font-medium">{bulkImportFile.name}</p>
+                      )}
+                      <div className="text-gray-500 text-xs mt-3 space-y-1">
+                        <p className="font-semibold text-green-600">Only phone number column required!</p>
+                        <p>Supports: CSV, Excel (.xlsx, .xls)</p>
+                        <p>Column names: phone, mobile, contact, number</p>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={downloadCSVTemplate} 
+                      className="w-full bg-gray-50 border border-gray-300 text-gray-600 py-2 rounded-lg text-sm flex items-center justify-center space-x-2 hover:bg-gray-100"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download CSV Template</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+                      <p className="font-semibold mb-1">Paste phone numbers below:</p>
+                      <p>• One number per line, OR</p>
+                      <p>• Comma-separated, OR</p>
+                      <p>• Space-separated</p>
+                    </div>
+                    <textarea
+                      value={bulkPasteText}
+                      onChange={(e) => setBulkPasteText(e.target.value)}
+                      placeholder="9876543210&#10;9123456789&#10;8765432109&#10;&#10;Or paste comma-separated:&#10;9876543210, 9123456789, 8765432109"
+                      className="w-full h-48 border border-gray-300 rounded-lg p-3 text-sm font-mono resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Count: {bulkPasteText.split(/[\n,;\s]+/).filter(p => p.trim()).length} numbers</span>
+                      <button 
+                        onClick={() => setBulkPasteText('')}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex space-x-3 mt-4">
                   <button 
                     onClick={handleBulkImport} 
-                    disabled={!bulkImportFile || bulkImporting}
+                    disabled={(bulkImportMode === 'file' ? !bulkImportFile : !bulkPasteText.trim()) || bulkImporting}
                     className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center space-x-2 hover:bg-orange-700"
                   >
                     {bulkImporting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                     <span>{bulkImporting ? "Importing..." : "Import Leads"}</span>
                   </button>
                   <button 
-                    onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); }} 
+                    onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); setBulkPasteText(''); setBulkImportMode('file'); }} 
                     className="px-6 py-3 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg hover:bg-gray-100"
                   >
                     Cancel
@@ -2641,34 +2705,42 @@ export const CRMDashboard = () => {
                     {bulkImportResult.duplicate_count > 0 && (
                       <span className="text-yellow-600 font-medium">Duplicates: {bulkImportResult.duplicate_count}</span>
                     )}
-                    <span className="text-red-600 font-medium">Errors: {bulkImportResult.error_count}</span>
+                    {bulkImportResult.error_count > 0 && (
+                      <span className="text-red-600 font-medium">Errors: {bulkImportResult.error_count}</span>
+                    )}
                   </div>
+                  {bulkImportResult.phone_column_used && (
+                    <p className="text-xs text-gray-500 mt-2">Phone column detected: {bulkImportResult.phone_column_used}</p>
+                  )}
                 </div>
                 
                 {bulkImportResult.duplicates?.length > 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 max-h-32 overflow-y-auto">
-                    <p className="text-yellow-700 text-sm font-semibold mb-2">Skipped Duplicates:</p>
+                    <p className="text-yellow-700 text-sm font-semibold mb-2">Skipped Duplicates ({bulkImportResult.duplicate_count}):</p>
                     {bulkImportResult.duplicates.slice(0, 5).map((dup, i) => (
-                      <p key={i} className="text-gray-600 text-xs">Row {dup.row}: {dup.phone}</p>
+                      <p key={i} className="text-gray-600 text-xs">#{dup.row}: {dup.phone}</p>
                     ))}
                     {bulkImportResult.duplicates.length > 5 && (
-                      <p className="text-gray-500 text-xs mt-1">... and {bulkImportResult.duplicates.length - 5} more</p>
+                      <p className="text-gray-500 text-xs mt-1">... and {bulkImportResult.duplicate_count - 5} more</p>
                     )}
                   </div>
                 )}
                 
                 {bulkImportResult.errors?.length > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-32 overflow-y-auto">
-                    <p className="text-red-600 text-sm font-semibold mb-2">Errors:</p>
+                    <p className="text-red-600 text-sm font-semibold mb-2">Errors ({bulkImportResult.error_count}):</p>
                     {bulkImportResult.errors.slice(0, 10).map((err, i) => (
-                      <p key={i} className="text-gray-600 text-xs">Row {err.row}: {err.error}</p>
+                      <p key={i} className="text-gray-600 text-xs">#{err.row}: {err.error || err.input}</p>
                     ))}
+                    {bulkImportResult.error_count > 10 && (
+                      <p className="text-gray-500 text-xs mt-1">... and {bulkImportResult.error_count - 10} more</p>
+                    )}
                   </div>
                 )}
 
                 <button 
-                  onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); }} 
-                  className="w-full bg-blue-600 text-[#0a355e] py-3 rounded-lg font-semibold"
+                  onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); setBulkPasteText(''); setBulkImportMode('file'); }} 
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
                 >
                   Done
                 </button>

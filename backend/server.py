@@ -7595,7 +7595,8 @@ async def bulk_import_leads(file: UploadFile = File(...)):
     """
     Import leads from CSV/Excel file.
     ONLY mobile number is required - name is optional (will be set to 'Lead-{phone}' if missing).
-    Handles large files (1000+ rows) efficiently with batch processing.
+    Handles large files efficiently with batch processing.
+    These leads are for calling purposes only.
     """
     try:
         content = await file.read()
@@ -7606,6 +7607,7 @@ async def bulk_import_leads(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="File too large. Maximum 10MB allowed.")
         
         rows = []
+        column_names = []
         
         # Parse based on file type
         if filename.endswith('.csv'):
@@ -7613,17 +7615,55 @@ async def bulk_import_leads(file: UploadFile = File(...)):
             decoded = content.decode('utf-8-sig')  # Handle BOM
             reader = csv.DictReader(io.StringIO(decoded))
             rows = list(reader)
+            if rows:
+                column_names = list(rows[0].keys())
         elif filename.endswith('.xlsx') or filename.endswith('.xls'):
             # Parse Excel
             import pandas as pd
-            df = pd.read_excel(io.BytesIO(content))
-            # Convert to list of dicts
-            rows = df.fillna('').to_dict('records')
+            df = pd.read_excel(io.BytesIO(content), dtype=str)  # Read all as string to preserve phone numbers
+            df = df.fillna('')
+            column_names = list(df.columns)
+            rows = df.to_dict('records')
         else:
             raise HTTPException(status_code=400, detail="Only CSV and Excel (.xlsx, .xls) files are supported")
         
         if not rows:
             raise HTTPException(status_code=400, detail="File is empty or has no data rows")
+        
+        logger.info(f"Bulk import: Processing {len(rows)} rows with columns: {column_names}")
+        
+        # Find phone column - check common names
+        phone_column = None
+        phone_column_names = ['phone', 'Phone', 'PHONE', 'mobile', 'Mobile', 'MOBILE', 
+                             'contact', 'Contact', 'CONTACT', 'number', 'Number', 'NUMBER',
+                             'phone_number', 'Phone Number', 'mobile_number', 'Mobile Number',
+                             'cell', 'Cell', 'CELL', 'telephone', 'Telephone', 'tel', 'Tel']
+        
+        for col in column_names:
+            col_lower = str(col).lower().strip()
+            if any(pn.lower() == col_lower for pn in phone_column_names):
+                phone_column = col
+                break
+            # Also check if column contains 'phone' or 'mobile'
+            if 'phone' in col_lower or 'mobile' in col_lower or 'contact' in col_lower:
+                phone_column = col
+                break
+        
+        # If no phone column found, check if first column contains phone numbers
+        if not phone_column and column_names:
+            first_col = column_names[0]
+            # Check if first few values look like phone numbers
+            sample_values = [str(rows[i].get(first_col, '')) for i in range(min(5, len(rows)))]
+            if any(len(re.sub(r'[^\d]', '', v)) >= 10 for v in sample_values):
+                phone_column = first_col
+                logger.info(f"Using first column '{first_col}' as phone column (detected numeric values)")
+        
+        if not phone_column:
+            # Last resort: use first column
+            phone_column = column_names[0] if column_names else None
+            logger.warning(f"No phone column detected, using first column: {phone_column}")
+        
+        logger.info(f"Using phone column: {phone_column}")
         
         imported = []
         errors = []
@@ -7633,13 +7673,29 @@ async def bulk_import_leads(file: UploadFile = File(...)):
         BATCH_SIZE = 100
         batch_leads = []
         
+        # Extract phone numbers first
+        def extract_phone(value):
+            """Extract and clean phone number from various formats"""
+            val = str(value).strip()
+            # Remove common prefixes and formatting
+            val = val.replace('+91', '').replace('+', '').replace('-', '').replace(' ', '')
+            val = val.replace('(', '').replace(')', '').replace('.', '')
+            # Handle scientific notation (Excel sometimes does this)
+            if 'e' in val.lower() or 'E' in val:
+                try:
+                    val = str(int(float(val)))
+                except:
+                    pass
+            # Extract only digits
+            digits = re.sub(r'[^\d]', '', val)
+            return digits
+        
         # Get existing phone numbers to check duplicates efficiently
         all_phones_in_file = []
         for row in rows:
-            phone = str(row.get('phone', row.get('Phone', row.get('mobile', row.get('Mobile', row.get('contact', row.get('Contact', ''))))))).strip()
-            phone = re.sub(r'[^\d]', '', phone)
+            phone = extract_phone(row.get(phone_column, ''))
             if len(phone) >= 10:
-                phone = phone[-10:]  # Take last 10 digits
+                phone = phone[-10:]
                 all_phones_in_file.append(f"91{phone}")
         
         # Batch check for existing phones
@@ -7651,97 +7707,71 @@ async def bulk_import_leads(file: UploadFile = File(...)):
             ).to_list(len(all_phones_in_file))
             existing_phones = {lead["phone"] for lead in existing_leads}
         
+        processed_phones = set()  # Track phones within this import
+        
         for row_num, row in enumerate(rows, start=2):
             try:
-                # Phone is the only required field
-                phone = str(row.get('phone', row.get('Phone', row.get('mobile', row.get('Mobile', row.get('contact', row.get('Contact', ''))))))).strip()
-                
-                # Clean phone number - extract digits only
-                phone = re.sub(r'[^\d]', '', phone)
+                # Extract phone from the detected column
+                raw_phone = row.get(phone_column, '')
+                phone = extract_phone(raw_phone)
                 
                 # Skip if no phone number
                 if not phone or len(phone) < 10:
-                    errors.append({"row": row_num, "error": "Valid phone number (10+ digits) is required"})
+                    errors.append({"row": row_num, "error": f"Valid phone number required (got: '{raw_phone}')"})
                     continue
                 
                 # Take last 10 digits and add country code
                 phone = phone[-10:]
-                if not phone[0] in ['6', '7', '8', '9']:
-                    errors.append({"row": row_num, "error": f"Invalid Indian mobile number: {phone}"})
+                if phone[0] not in ['6', '7', '8', '9']:
+                    errors.append({"row": row_num, "error": f"Invalid Indian mobile: {phone} (must start with 6-9)"})
                     continue
                 phone = f"91{phone}"
                 
                 # Check for duplicate (already in DB)
                 if phone in existing_phones:
-                    duplicates.append({"row": row_num, "phone": phone})
+                    duplicates.append({"row": row_num, "phone": phone[-10:]})
                     continue
                 
                 # Check for duplicate within this file
-                if any(l.get("phone") == phone for l in batch_leads + imported):
-                    duplicates.append({"row": row_num, "phone": phone, "reason": "duplicate in file"})
+                if phone in processed_phones:
+                    duplicates.append({"row": row_num, "phone": phone[-10:], "reason": "duplicate in file"})
                     continue
                 
+                processed_phones.add(phone)
+                
                 # Name is optional - generate from phone if not provided
-                name = str(row.get('name', row.get('Name', row.get('customer_name', row.get('Customer Name', ''))))).strip()
-                if not name:
-                    name = f"Lead-{phone[-4:]}"  # Use last 4 digits as identifier
+                name = str(row.get('name', row.get('Name', row.get('NAME', row.get('customer_name', row.get('Customer Name', '')))))).strip()
+                if not name or name == 'nan':
+                    name = f"Lead-{phone[-4:]}"
                 
-                # Parse optional fields
-                email = str(row.get('email', row.get('Email', ''))).strip()
-                district = str(row.get('district', row.get('District', row.get('city', row.get('City', row.get('location', row.get('Location', ''))))))).strip()
-                address = str(row.get('address', row.get('Address', ''))).strip()
-                property_type = str(row.get('property_type', row.get('Property Type', 'residential'))).strip().lower()
-                
-                monthly_bill_str = str(row.get('monthly_bill', row.get('Monthly Bill', row.get('bill', row.get('Bill', ''))))).strip()
-                monthly_bill = None
-                if monthly_bill_str:
-                    try:
-                        monthly_bill = float(re.sub(r'[^\d.]', '', monthly_bill_str))
-                    except:
-                        pass
-                
-                roof_area_str = str(row.get('roof_area', row.get('Roof Area', row.get('area', row.get('Area', ''))))).strip()
-                roof_area = None
-                if roof_area_str:
-                    try:
-                        roof_area = float(re.sub(r'[^\d.]', '', roof_area_str))
-                    except:
-                        pass
-                
-                source = str(row.get('source', row.get('Source', 'bulk_import'))).strip().lower()
-                notes = str(row.get('notes', row.get('Notes', row.get('remarks', row.get('Remarks', ''))))).strip()
-                
-                # Calculate lead score
-                lead_score = min(100, 40 + int((monthly_bill or 0) / 100))
-                ai_priority = "high" if lead_score >= 80 else "medium" if lead_score >= 60 else "low"
-                
-                # Create lead
+                # Create lead (minimal for calling purposes)
                 lead_id = str(uuid.uuid4())
                 lead = {
                     "id": lead_id,
                     "name": sanitize_input(name),
-                    "email": email,
+                    "email": "",
                     "phone": phone,
-                    "district": district,
-                    "address": sanitize_input(address),
-                    "property_type": property_type if property_type in ['residential', 'commercial', 'industrial', 'agricultural'] else 'residential',
-                    "monthly_bill": monthly_bill,
-                    "roof_area": roof_area,
-                    "source": source if source else "bulk_import",
+                    "district": "",
+                    "address": "",
+                    "property_type": "residential",
+                    "monthly_bill": None,
+                    "roof_area": None,
+                    "source": "bulk_import",
                     "stage": "new",
                     "assigned_to": None,
                     "assigned_by": None,
                     "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
-                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Bulk imported. {notes}" if notes else "",
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Bulk imported for calling",
                     "quoted_amount": None,
                     "system_size": None,
                     "advance_paid": 0.0,
                     "total_amount": 0.0,
                     "pending_amount": 0.0,
-                    "lead_score": lead_score,
-                    "ai_priority": ai_priority,
+                    "lead_score": 30,
+                    "ai_priority": "low",
                     "ai_suggestions": None,
-                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Bulk imported"}],
+                    "call_status": None,
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Bulk imported for calling"}],
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 
@@ -7750,7 +7780,7 @@ async def bulk_import_leads(file: UploadFile = File(...)):
                 # Insert in batches for efficiency
                 if len(batch_leads) >= BATCH_SIZE:
                     await db.crm_leads.insert_many(batch_leads)
-                    imported.extend([{"name": l["name"], "phone": l["phone"], "id": l["id"]} for l in batch_leads])
+                    imported.extend([{"name": l["name"], "phone": l["phone"][-10:], "id": l["id"]} for l in batch_leads])
                     batch_leads = []
                 
             except Exception as e:
@@ -7759,7 +7789,7 @@ async def bulk_import_leads(file: UploadFile = File(...)):
         # Insert remaining batch
         if batch_leads:
             await db.crm_leads.insert_many(batch_leads)
-            imported.extend([{"name": l["name"], "phone": l["phone"], "id": l["id"]} for l in batch_leads])
+            imported.extend([{"name": l["name"], "phone": l["phone"][-10:], "id": l["id"]} for l in batch_leads])
         
         logger.info(f"Bulk import: {len(imported)} leads imported, {len(duplicates)} duplicates skipped, {len(errors)} errors")
         
@@ -7769,9 +7799,10 @@ async def bulk_import_leads(file: UploadFile = File(...)):
             "duplicate_count": len(duplicates),
             "error_count": len(errors),
             "total_rows": len(rows),
-            "imported_leads": imported[:20],  # Return first 20 only
-            "duplicates": duplicates[:20],  # Return first 20 duplicates
-            "errors": errors[:20],  # Return first 20 errors
+            "phone_column_used": phone_column,
+            "imported_leads": imported[:20],
+            "duplicates": duplicates[:20],
+            "errors": errors[:20],
             "message": f"Successfully imported {len(imported)} leads" + 
                       (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
                       (f", {len(errors)} errors" if errors else "")
@@ -7781,6 +7812,152 @@ async def bulk_import_leads(file: UploadFile = File(...)):
         raise
     except Exception as e:
         logger.error(f"Bulk import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
+
+
+@api_router.post("/crm/leads/bulk-import-manual")
+async def bulk_import_leads_manual(data: dict):
+    """
+    Import leads from manually pasted phone numbers.
+    Accepts a text with phone numbers (one per line or comma-separated).
+    These leads are for calling purposes only.
+    """
+    try:
+        text = data.get("phones", "").strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="No phone numbers provided")
+        
+        # Split by newline, comma, semicolon, or space
+        raw_phones = re.split(r'[\n,;\s]+', text)
+        raw_phones = [p.strip() for p in raw_phones if p.strip()]
+        
+        if not raw_phones:
+            raise HTTPException(status_code=400, detail="No valid phone numbers found in input")
+        
+        logger.info(f"Manual bulk import: Processing {len(raw_phones)} phone numbers")
+        
+        imported = []
+        errors = []
+        duplicates = []
+        
+        # Extract and validate phones
+        def extract_phone(value):
+            val = str(value).strip()
+            val = val.replace('+91', '').replace('+', '').replace('-', '').replace(' ', '')
+            val = val.replace('(', '').replace(')', '').replace('.', '')
+            digits = re.sub(r'[^\d]', '', val)
+            return digits
+        
+        # Get all potential phones for duplicate check
+        valid_phones = []
+        for raw in raw_phones:
+            phone = extract_phone(raw)
+            if len(phone) >= 10:
+                phone = phone[-10:]
+                valid_phones.append(f"91{phone}")
+        
+        # Batch check for existing phones
+        existing_phones = set()
+        if valid_phones:
+            existing_leads = await db.crm_leads.find(
+                {"phone": {"$in": valid_phones}},
+                {"phone": 1}
+            ).to_list(len(valid_phones))
+            existing_phones = {lead["phone"] for lead in existing_leads}
+        
+        batch_leads = []
+        processed_phones = set()
+        BATCH_SIZE = 100
+        
+        for idx, raw_phone in enumerate(raw_phones, start=1):
+            try:
+                phone = extract_phone(raw_phone)
+                
+                if not phone or len(phone) < 10:
+                    errors.append({"row": idx, "input": raw_phone, "error": "Invalid phone number"})
+                    continue
+                
+                phone = phone[-10:]
+                if phone[0] not in ['6', '7', '8', '9']:
+                    errors.append({"row": idx, "input": raw_phone, "error": "Must start with 6-9"})
+                    continue
+                
+                phone = f"91{phone}"
+                
+                if phone in existing_phones:
+                    duplicates.append({"row": idx, "phone": phone[-10:]})
+                    continue
+                
+                if phone in processed_phones:
+                    duplicates.append({"row": idx, "phone": phone[-10:], "reason": "duplicate in input"})
+                    continue
+                
+                processed_phones.add(phone)
+                
+                lead_id = str(uuid.uuid4())
+                lead = {
+                    "id": lead_id,
+                    "name": f"Lead-{phone[-4:]}",
+                    "email": "",
+                    "phone": phone,
+                    "district": "",
+                    "address": "",
+                    "property_type": "residential",
+                    "monthly_bill": None,
+                    "roof_area": None,
+                    "source": "manual_bulk",
+                    "stage": "new",
+                    "assigned_to": None,
+                    "assigned_by": None,
+                    "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Manual bulk entry for calling",
+                    "quoted_amount": None,
+                    "system_size": None,
+                    "advance_paid": 0.0,
+                    "total_amount": 0.0,
+                    "pending_amount": 0.0,
+                    "lead_score": 30,
+                    "ai_priority": "low",
+                    "ai_suggestions": None,
+                    "call_status": None,
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Manual bulk entry for calling"}],
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                
+                batch_leads.append(lead)
+                
+                if len(batch_leads) >= BATCH_SIZE:
+                    await db.crm_leads.insert_many(batch_leads)
+                    imported.extend([{"name": l["name"], "phone": l["phone"][-10:], "id": l["id"]} for l in batch_leads])
+                    batch_leads = []
+                
+            except Exception as e:
+                errors.append({"row": idx, "input": raw_phone, "error": str(e)})
+        
+        if batch_leads:
+            await db.crm_leads.insert_many(batch_leads)
+            imported.extend([{"name": l["name"], "phone": l["phone"][-10:], "id": l["id"]} for l in batch_leads])
+        
+        logger.info(f"Manual bulk import: {len(imported)} leads imported, {len(duplicates)} duplicates, {len(errors)} errors")
+        
+        return {
+            "success": True,
+            "imported_count": len(imported),
+            "duplicate_count": len(duplicates),
+            "error_count": len(errors),
+            "total_input": len(raw_phones),
+            "imported_leads": imported[:20],
+            "duplicates": duplicates[:20],
+            "errors": errors[:20],
+            "message": f"Successfully imported {len(imported)} leads" + 
+                      (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
+                      (f", {len(errors)} errors" if errors else "")
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Manual bulk import error: {e}")
         raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 @api_router.get("/crm/leads/import-template")
@@ -8243,25 +8420,6 @@ async def bulk_delete_leads(data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"Bulk delete error: {e}")
         raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
-        
-        return {
-            "success": True,
-            "imported_count": len(imported),
-            "duplicate_count": len(duplicates),
-            "error_count": len(errors),
-            "imported_leads": imported[:20],
-            "duplicates": duplicates[:10],
-            "errors": errors[:10],
-            "message": f"Successfully imported {len(imported)} leads" + 
-                      (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
-                      (f", {len(errors)} errors" if errors else "")
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Confirm import error: {e}")
-        raise HTTPException(status_code=500, detail=f"Import failed: {str(e)}")
 
 
 def extract_lead_from_row(row: dict) -> dict:

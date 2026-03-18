@@ -1,0 +1,101 @@
+{
+  "summary": "Tested bulk lead import features - both file upload (CSV/Excel) and manual paste phone numbers. All 20 backend tests pass. Frontend bulk import modal verified with 'Upload File' and 'Paste Numbers' tabs working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_bulk_import_iter49.py",
+    "/app/test_reports/pytest/pytest_iter49.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_bulk_import_iter49.py"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20 tests passed)",
+    "frontend": "100% (bulk import modal verified)"
+  },
+  "test_credentials": {
+    "admin_email": "asrenterprisespatna@gmail.com",
+    "admin_password": "admin@asr123"
+  },
+  "seed_data_creation": "Created test leads via bulk import endpoints - some may already be duplicates from previous tests",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Bulk import endpoints working. Use phone numbers starting with 6-9 followed by 9 more digits. Admin login via email/password works with admin@asr123.",
+  "features_verified": {
+    "POST_bulk_import_manual": {
+      "endpoint": "/api/crm/leads/bulk-import-manual",
+      "status": "PASS",
+      "description": "Import leads from manually pasted phone numbers",
+      "tests": [
+        "Accepts newline-separated phone numbers",
+        "Accepts comma-separated phone numbers",
+        "Accepts space-separated phone numbers",
+        "Handles mixed formats (+91, spaces, dashes)",
+        "Rejects empty input with 400",
+        "Reports errors for invalid phones",
+        "Sets source='manual_bulk' on leads",
+        "Sets ai_priority='low' (for calling)",
+        "Sets lead_score=30 (low priority)"
+      ]
+    },
+    "POST_bulk_import_file": {
+      "endpoint": "/api/crm/leads/bulk-import",
+      "status": "PASS",
+      "description": "Import leads from CSV/Excel files with improved phone detection",
+      "tests": [
+        "Accepts CSV with phone-only column",
+        "Accepts CSV with name+phone columns",
+        "Auto-detects 'Mobile', 'Phone', 'Contact' column names",
+        "Detects duplicates in DB",
+        "Detects duplicates within file",
+        "Sets source='bulk_import' on leads",
+        "Handles scientific notation from Excel",
+        "Rejects invalid file types (.txt)",
+        "Handles empty CSV correctly",
+        "Excel .xlsx import works",
+        "Excel preserves phone numbers (dtype=str)"
+      ]
+    },
+    "GET_import_template": {
+      "endpoint": "/api/crm/leads/import-template",
+      "status": "PASS",
+      "response": {
+        "required": ["phone"],
+        "optional": ["name", "email", "district", "address", "property_type", "monthly_bill", "roof_area", "source", "notes"]
+      }
+    },
+    "frontend_bulk_import_modal": {
+      "status": "PASS",
+      "modal_title": "Bulk Import Leads (For Calling)",
+      "tabs_present": ["Upload File", "Paste Numbers"],
+      "upload_file_tab": {
+        "button_text": "Select CSV or Excel File",
+        "message": "Only phone number column required!",
+        "supported_formats": "CSV, Excel (.xlsx, .xls)",
+        "column_names_hint": "phone, mobile, contact, number",
+        "template_download": true
+      },
+      "paste_numbers_tab": {
+        "instructions": "Paste phone numbers below",
+        "formats_supported": ["One number per line", "Comma-separated", "Space-separated"],
+        "placeholder_examples": true,
+        "live_count_display": "Count: X numbers",
+        "clear_button": true
+      }
+    },
+    "leads_table_sources": {
+      "status": "VERIFIED",
+      "sources_displayed": ["BULK_IMPORT", "MANUAL_BULK"],
+      "auto_generated_names": "Lead-XXXX format working"
+    }
+  }
+}

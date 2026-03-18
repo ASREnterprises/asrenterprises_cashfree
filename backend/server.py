@@ -4677,14 +4677,52 @@ async def delete_crm_employee(employee_id: str):
 
 # CRM Lead Management with Pipeline
 @api_router.get("/crm/leads")
-async def get_crm_leads(stage: Optional[str] = None, assigned_to: Optional[str] = None):
+async def get_crm_leads(
+    stage: Optional[str] = None, 
+    assigned_to: Optional[str] = None,
+    page: int = 1,
+    limit: int = 250,
+    search: Optional[str] = None
+):
+    """
+    Get CRM leads with pagination.
+    - page: Page number (1-indexed)
+    - limit: Leads per page (default 250, max 500)
+    - search: Search by name or phone
+    """
     query = {}
     if stage:
         query["stage"] = stage
     if assigned_to:
         query["assigned_to"] = assigned_to
-    leads = await db.crm_leads.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
-    return leads
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search}}
+        ]
+    
+    # Ensure limit doesn't exceed 500
+    limit = min(limit, 500)
+    skip = (page - 1) * limit
+    
+    # Get total count for pagination
+    total_count = await db.crm_leads.count_documents(query)
+    total_pages = (total_count + limit - 1) // limit  # Ceiling division
+    
+    # Fetch leads with pagination
+    leads = await db.crm_leads.find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "pagination": {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_count": total_count,
+            "per_page": limit,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
 
 @api_router.post("/crm/leads")
 async def create_crm_lead(data: Dict[str, Any]):
@@ -7594,7 +7632,7 @@ async def get_all_reviews_summary():
 async def bulk_import_leads(file: UploadFile = File(...)):
     """
     Import leads from CSV/Excel file.
-    ONLY mobile number is required - name is optional (will be set to 'Lead-{phone}' if missing).
+    PRIORITY: First extract 10-digit mobile numbers from ANY column, then read other data.
     Handles large files efficiently with batch processing.
     These leads are for calling purposes only.
     """
@@ -7632,38 +7670,63 @@ async def bulk_import_leads(file: UploadFile = File(...)):
         
         logger.info(f"Bulk import: Processing {len(rows)} rows with columns: {column_names}")
         
-        # Find phone column - check common names
-        phone_column = None
-        phone_column_names = ['phone', 'Phone', 'PHONE', 'mobile', 'Mobile', 'MOBILE', 
-                             'contact', 'Contact', 'CONTACT', 'number', 'Number', 'NUMBER',
-                             'phone_number', 'Phone Number', 'mobile_number', 'Mobile Number',
-                             'cell', 'Cell', 'CELL', 'telephone', 'Telephone', 'tel', 'Tel']
+        def extract_10_digit_phone(value):
+            """
+            Extract exactly 10-digit Indian mobile number from any value.
+            Returns the 10-digit number or None if not found.
+            """
+            val = str(value).strip()
+            if not val or val.lower() == 'nan':
+                return None
+            
+            # Remove common prefixes and formatting
+            val = val.replace('+91', '').replace('+', '').replace('-', '').replace(' ', '')
+            val = val.replace('(', '').replace(')', '').replace('.', '')
+            
+            # Handle scientific notation (Excel sometimes does this)
+            if 'e' in val.lower():
+                try:
+                    val = str(int(float(val)))
+                except:
+                    pass
+            
+            # Extract only digits
+            digits = re.sub(r'[^\d]', '', val)
+            
+            # Look for valid 10-digit Indian mobile (starts with 6,7,8,9)
+            if len(digits) >= 10:
+                # Take last 10 digits
+                phone_10 = digits[-10:]
+                if phone_10[0] in ['6', '7', '8', '9']:
+                    return phone_10
+            
+            return None
         
-        for col in column_names:
-            col_lower = str(col).lower().strip()
-            if any(pn.lower() == col_lower for pn in phone_column_names):
-                phone_column = col
-                break
-            # Also check if column contains 'phone' or 'mobile'
-            if 'phone' in col_lower or 'mobile' in col_lower or 'contact' in col_lower:
-                phone_column = col
-                break
-        
-        # If no phone column found, check if first column contains phone numbers
-        if not phone_column and column_names:
-            first_col = column_names[0]
-            # Check if first few values look like phone numbers
-            sample_values = [str(rows[i].get(first_col, '')) for i in range(min(5, len(rows)))]
-            if any(len(re.sub(r'[^\d]', '', v)) >= 10 for v in sample_values):
-                phone_column = first_col
-                logger.info(f"Using first column '{first_col}' as phone column (detected numeric values)")
-        
-        if not phone_column:
-            # Last resort: use first column
-            phone_column = column_names[0] if column_names else None
-            logger.warning(f"No phone column detected, using first column: {phone_column}")
-        
-        logger.info(f"Using phone column: {phone_column}")
+        def find_phone_in_row(row):
+            """
+            PRIORITY: Scan ALL columns in a row to find a valid 10-digit mobile number.
+            Returns (phone_10_digits, column_name) or (None, None)
+            """
+            # Priority columns to check first
+            priority_cols = ['phone', 'Phone', 'PHONE', 'mobile', 'Mobile', 'MOBILE', 
+                           'contact', 'Contact', 'CONTACT', 'number', 'Number', 'NUMBER',
+                           'phone_number', 'Phone Number', 'mobile_number', 'Mobile Number',
+                           'cell', 'Cell', 'telephone', 'tel']
+            
+            # Check priority columns first
+            for col in priority_cols:
+                if col in row:
+                    phone = extract_10_digit_phone(row[col])
+                    if phone:
+                        return phone, col
+            
+            # Then check all other columns
+            for col, val in row.items():
+                phone = extract_10_digit_phone(val)
+                if phone:
+                    return phone, col
+            
+            return None, None
         
         imported = []
         errors = []
@@ -7673,32 +7736,14 @@ async def bulk_import_leads(file: UploadFile = File(...)):
         BATCH_SIZE = 100
         batch_leads = []
         
-        # Extract phone numbers first
-        def extract_phone(value):
-            """Extract and clean phone number from various formats"""
-            val = str(value).strip()
-            # Remove common prefixes and formatting
-            val = val.replace('+91', '').replace('+', '').replace('-', '').replace(' ', '')
-            val = val.replace('(', '').replace(')', '').replace('.', '')
-            # Handle scientific notation (Excel sometimes does this)
-            if 'e' in val.lower() or 'E' in val:
-                try:
-                    val = str(int(float(val)))
-                except:
-                    pass
-            # Extract only digits
-            digits = re.sub(r'[^\d]', '', val)
-            return digits
-        
-        # Get existing phone numbers to check duplicates efficiently
+        # First pass: extract all valid phones for duplicate check
         all_phones_in_file = []
         for row in rows:
-            phone = extract_phone(row.get(phone_column, ''))
-            if len(phone) >= 10:
-                phone = phone[-10:]
+            phone, _ = find_phone_in_row(row)
+            if phone:
                 all_phones_in_file.append(f"91{phone}")
         
-        # Batch check for existing phones
+        # Batch check for existing phones in DB
         existing_phones = set()
         if all_phones_in_file:
             existing_leads = await db.crm_leads.find(
@@ -7708,40 +7753,39 @@ async def bulk_import_leads(file: UploadFile = File(...)):
             existing_phones = {lead["phone"] for lead in existing_leads}
         
         processed_phones = set()  # Track phones within this import
+        phone_columns_used = set()
         
         for row_num, row in enumerate(rows, start=2):
             try:
-                # Extract phone from the detected column
-                raw_phone = row.get(phone_column, '')
-                phone = extract_phone(raw_phone)
+                # PRIORITY: First find 10-digit phone from any column
+                phone, found_in_col = find_phone_in_row(row)
                 
-                # Skip if no phone number
-                if not phone or len(phone) < 10:
-                    errors.append({"row": row_num, "error": f"Valid phone number required (got: '{raw_phone}')"})
+                if not phone:
+                    # Show what values were in the row for debugging
+                    sample_vals = list(row.values())[:3]
+                    errors.append({"row": row_num, "error": f"No valid 10-digit mobile found (sample: {sample_vals})"})
                     continue
                 
-                # Take last 10 digits and add country code
-                phone = phone[-10:]
-                if phone[0] not in ['6', '7', '8', '9']:
-                    errors.append({"row": row_num, "error": f"Invalid Indian mobile: {phone} (must start with 6-9)"})
-                    continue
-                phone = f"91{phone}"
+                if found_in_col:
+                    phone_columns_used.add(found_in_col)
+                
+                phone_full = f"91{phone}"
                 
                 # Check for duplicate (already in DB)
-                if phone in existing_phones:
-                    duplicates.append({"row": row_num, "phone": phone[-10:]})
+                if phone_full in existing_phones:
+                    duplicates.append({"row": row_num, "phone": phone})
                     continue
                 
                 # Check for duplicate within this file
-                if phone in processed_phones:
-                    duplicates.append({"row": row_num, "phone": phone[-10:], "reason": "duplicate in file"})
+                if phone_full in processed_phones:
+                    duplicates.append({"row": row_num, "phone": phone, "reason": "duplicate in file"})
                     continue
                 
-                processed_phones.add(phone)
+                processed_phones.add(phone_full)
                 
-                # Name is optional - generate from phone if not provided
+                # AFTER phone is validated, read other data
                 name = str(row.get('name', row.get('Name', row.get('NAME', row.get('customer_name', row.get('Customer Name', '')))))).strip()
-                if not name or name == 'nan':
+                if not name or name.lower() == 'nan':
                     name = f"Lead-{phone[-4:]}"
                 
                 # Create lead (minimal for calling purposes)
@@ -7750,7 +7794,7 @@ async def bulk_import_leads(file: UploadFile = File(...)):
                     "id": lead_id,
                     "name": sanitize_input(name),
                     "email": "",
-                    "phone": phone,
+                    "phone": phone_full,
                     "district": "",
                     "address": "",
                     "property_type": "residential",
@@ -7799,7 +7843,7 @@ async def bulk_import_leads(file: UploadFile = File(...)):
             "duplicate_count": len(duplicates),
             "error_count": len(errors),
             "total_rows": len(rows),
-            "phone_column_used": phone_column,
+            "phone_columns_used": list(phone_columns_used),
             "imported_leads": imported[:20],
             "duplicates": duplicates[:20],
             "errors": errors[:20],

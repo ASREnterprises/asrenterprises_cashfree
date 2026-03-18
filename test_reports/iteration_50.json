@@ -1,0 +1,121 @@
+{
+  "summary": "Tested pagination for GET /api/crm/leads and enhanced bulk import phone extraction. All 21 backend tests pass. Frontend verified with pagination info and import buttons visible.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Leads Tab",
+        "issues": ["Pagination buttons (First/Prev/Next/Last) only appear when total_pages > 1. With 69 leads and default limit of 250, all leads fit on one page so buttons don't appear. This is correct behavior."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_pagination_bulk_import_iter50.py",
+    "/app/test_reports/pytest/pytest_iter50.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Pagination implementation is correct - uses page and limit query params",
+    "Default limit is 250, max is 500 (enforced server-side)",
+    "Bulk import scans ALL columns to find 10-digit mobile numbers starting with 6,7,8,9",
+    "Frontend handles both old (array) and new (object with pagination) response formats for backward compatibility"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pagination_bulk_import_iter50.py"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 tests passed)",
+    "frontend": "100% (pagination info and import buttons verified)"
+  },
+  "test_credentials": {
+    "admin_mobile": "8877896889",
+    "admin_otp_fallback": "131993",
+    "admin_email": "asrenterprisespatna@gmail.com"
+  },
+  "seed_data_creation": "Tests created some test leads via bulk import - handled as duplicates",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Pagination working correctly. Use limit=10 to test pagination with current 69 leads. Frontend shows 'Showing X of Y leads' text and pagination buttons appear when total_pages > 1.",
+  "features_verified": {
+    "GET_crm_leads_pagination": {
+      "endpoint": "/api/crm/leads",
+      "status": "PASS",
+      "parameters": {
+        "page": "Page number (1-indexed), default: 1",
+        "limit": "Leads per page, default: 250, max: 500",
+        "search": "Search by name or phone",
+        "stage": "Filter by pipeline stage"
+      },
+      "response_structure": {
+        "leads": "Array of lead objects",
+        "pagination": {
+          "current_page": "Current page number",
+          "total_pages": "Total number of pages",
+          "total_count": "Total leads matching query",
+          "per_page": "Leads per page",
+          "has_next": "Boolean - more pages after",
+          "has_prev": "Boolean - pages before"
+        }
+      },
+      "tests_passed": [
+        "Default pagination returns pagination object",
+        "Page parameter works correctly",
+        "Limit capped at 500",
+        "Default limit is 250",
+        "has_next and has_prev flags accurate",
+        "Search works with pagination",
+        "Stage filter works with pagination"
+      ]
+    },
+    "POST_bulk_import_phone_extraction": {
+      "endpoint": "/api/crm/leads/bulk-import",
+      "status": "PASS",
+      "phone_extraction_logic": {
+        "priority_columns": ["phone", "Phone", "PHONE", "mobile", "Mobile", "contact", "Contact", "number", "cell", "telephone"],
+        "fallback": "Scans ALL columns in each row if priority columns don't have valid phone",
+        "validation": "10-digit Indian mobile starting with 6,7,8,9",
+        "format_handling": ["Removes +91", "Removes spaces/dashes", "Handles scientific notation from Excel"]
+      },
+      "tests_passed": [
+        "Phone in standard column",
+        "Phone in random column",
+        "Phone mixed with text",
+        "Phone with +91 prefix",
+        "Phone with dashes/spaces",
+        "Validates Indian mobile (6,7,8,9 start)",
+        "Empty file rejected",
+        "Invalid file type rejected",
+        "Duplicate detection",
+        "Returns columns_used in response"
+      ]
+    },
+    "frontend_pagination_ui": {
+      "status": "PASS",
+      "elements_verified": {
+        "showing_text": "'Showing 69 of 69 leads' displayed correctly",
+        "import_buttons": "Quick Add, Full Form, Smart Import, Import, Fetch Social, AI Auto-Assign all visible",
+        "pagination_controls": "Controls conditionally appear when total_pages > 1"
+      },
+      "location_in_code": {
+        "top_pagination": "CRMDashboard.js lines 1437-1486",
+        "bottom_pagination": "CRMDashboard.js lines 1578-1619"
+      }
+    }
+  },
+  "api_verification_example": {
+    "request": "GET /api/crm/leads?page=1&limit=10",
+    "response_pagination": {
+      "current_page": 1,
+      "total_pages": 7,
+      "total_count": 69,
+      "per_page": 10,
+      "has_next": true,
+      "has_prev": false
+    }
+  }
+}

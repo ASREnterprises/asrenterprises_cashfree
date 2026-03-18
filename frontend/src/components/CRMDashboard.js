@@ -565,6 +565,15 @@ export const CRMDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardData, setDashboardData] = useState(null);
   const [leads, setLeads] = useState([]);
+  const [leadsPagination, setLeadsPagination] = useState({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 250,
+    has_next: false,
+    has_prev: false
+  });
+  const [leadsSearch, setLeadsSearch] = useState('');
   const [staffAccounts, setStaffAccounts] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -705,10 +714,22 @@ export const CRMDashboard = () => {
     setLoading(false);
   };
   
-  const fetchLeads = async () => {
+  const fetchLeads = async (page = 1, search = '') => {
     try {
-      const res = await axios.get(`${API}/crm/leads`);
-      setLeads(res.data);
+      const params = new URLSearchParams({ page, limit: 250 });
+      if (filterStage) params.append('stage', filterStage);
+      if (search) params.append('search', search);
+      
+      const res = await axios.get(`${API}/crm/leads?${params}`);
+      
+      // Handle both old (array) and new (object with pagination) response formats
+      if (Array.isArray(res.data)) {
+        setLeads(res.data);
+        setLeadsPagination({ current_page: 1, total_pages: 1, total_count: res.data.length, per_page: 250, has_next: false, has_prev: false });
+      } else {
+        setLeads(res.data.leads || []);
+        setLeadsPagination(res.data.pagination || { current_page: 1, total_pages: 1, total_count: 0, per_page: 250, has_next: false, has_prev: false });
+      }
     } catch (err) { console.error("Leads error:", err); }
   };
   
@@ -854,13 +875,12 @@ export const CRMDashboard = () => {
     );
   };
 
-  // Select/Deselect all visible leads
+  // Select/Deselect all visible leads on current page
   const toggleSelectAllLeads = () => {
-    const visibleLeads = leads.filter(l => !filterStage || l.stage === filterStage);
-    if (selectedLeadIds.length === visibleLeads.length) {
+    if (selectedLeadIds.length === leads.length) {
       setSelectedLeadIds([]);
     } else {
-      setSelectedLeadIds(visibleLeads.map(l => l.id));
+      setSelectedLeadIds(leads.map(l => l.id));
     }
   };
 
@@ -1363,10 +1383,24 @@ export const CRMDashboard = () => {
           <div className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
               <div className="flex items-center space-x-3">
-                <select value={filterStage} onChange={(e) => setFilterStage(e.target.value)} className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
+                <select value={filterStage} onChange={(e) => { setFilterStage(e.target.value); fetchLeads(1, leadsSearch); }} className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
                   <option value="">All Stages</option>
                   {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
                 </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search name/phone..."
+                    value={leadsSearch}
+                    onChange={(e) => setLeadsSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchLeads(1, leadsSearch)}
+                    className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg pl-9 w-48"
+                  />
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                </div>
+                <button onClick={() => fetchLeads(1, leadsSearch)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200">
+                  <RefreshCw className="w-4 h-4" />
+                </button>
                 {selectedLeadIds.length > 0 && (
                   <button 
                     onClick={() => setShowBulkAssignModal(true)}
@@ -1399,6 +1433,58 @@ export const CRMDashboard = () => {
                 </button>
               </div>
             </div>
+
+            {/* Pagination Info & Controls - Top */}
+            <div className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-lg">
+              <div className="text-sm text-gray-600">
+                Showing <span className="font-semibold">{leads.length}</span> of <span className="font-semibold">{leadsPagination.total_count}</span> leads
+                {leadsPagination.total_pages > 1 && (
+                  <span className="ml-2">(Page {leadsPagination.current_page} of {leadsPagination.total_pages})</span>
+                )}
+              </div>
+              {leadsPagination.total_pages > 1 && (
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => fetchLeads(leadsPagination.current_page - 1, leadsSearch)}
+                    disabled={!leadsPagination.has_prev}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    ← Prev
+                  </button>
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, leadsPagination.total_pages) }, (_, i) => {
+                      let pageNum;
+                      if (leadsPagination.total_pages <= 5) {
+                        pageNum = i + 1;
+                      } else if (leadsPagination.current_page <= 3) {
+                        pageNum = i + 1;
+                      } else if (leadsPagination.current_page >= leadsPagination.total_pages - 2) {
+                        pageNum = leadsPagination.total_pages - 4 + i;
+                      } else {
+                        pageNum = leadsPagination.current_page - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => fetchLeads(pageNum, leadsSearch)}
+                          className={`px-3 py-1 rounded-lg text-sm ${leadsPagination.current_page === pageNum ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-100'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button 
+                    onClick={() => fetchLeads(leadsPagination.current_page + 1, leadsSearch)}
+                    disabled={!leadsPagination.has_next}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[900px]">
@@ -1407,7 +1493,7 @@ export const CRMDashboard = () => {
                       <th className="text-left text-gray-600 px-3 py-3 text-sm w-10">
                         <input
                           type="checkbox"
-                          checked={selectedLeadIds.length > 0 && selectedLeadIds.length === leads.filter(l => !filterStage || l.stage === filterStage).length}
+                          checked={selectedLeadIds.length > 0 && selectedLeadIds.length === leads.length}
                           onChange={toggleSelectAllLeads}
                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
@@ -1421,7 +1507,7 @@ export const CRMDashboard = () => {
                     </tr>
                   </thead>
                 <tbody>
-                  {leads.filter(l => !filterStage || l.stage === filterStage).map((lead) => (
+                  {leads.map((lead) => (
                     <tr key={lead.id} className={`border-t border-gray-100 hover:bg-gray-50 ${selectedLeadIds.includes(lead.id) ? 'bg-blue-50' : ''}`}>
                       <td className="px-3 py-3">
                         <input
@@ -1488,6 +1574,49 @@ export const CRMDashboard = () => {
                 </table>
               </div>
             </div>
+
+            {/* Pagination Controls - Bottom */}
+            {leadsPagination.total_pages > 1 && (
+              <div className="flex justify-between items-center bg-gray-50 px-4 py-3 rounded-lg">
+                <div className="text-sm text-gray-600">
+                  Page <span className="font-semibold">{leadsPagination.current_page}</span> of <span className="font-semibold">{leadsPagination.total_pages}</span>
+                  <span className="ml-2 text-gray-500">({leadsPagination.total_count} total leads)</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button 
+                    onClick={() => fetchLeads(1, leadsSearch)}
+                    disabled={leadsPagination.current_page === 1}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    First
+                  </button>
+                  <button 
+                    onClick={() => fetchLeads(leadsPagination.current_page - 1, leadsSearch)}
+                    disabled={!leadsPagination.has_prev}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-semibold">
+                    {leadsPagination.current_page}
+                  </span>
+                  <button 
+                    onClick={() => fetchLeads(leadsPagination.current_page + 1, leadsSearch)}
+                    disabled={!leadsPagination.has_next}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Next →
+                  </button>
+                  <button 
+                    onClick={() => fetchLeads(leadsPagination.total_pages, leadsSearch)}
+                    disabled={leadsPagination.current_page === leadsPagination.total_pages}
+                    className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  >
+                    Last
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

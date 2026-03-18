@@ -1371,7 +1371,7 @@ export const CRMDashboard = () => {
                   <FileSpreadsheet className="w-4 h-4" /><span className="hidden sm:inline">Smart Import</span>
                 </button>
                 <button onClick={() => setShowBulkImportModal(true)} className="bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-orange-700 transition" data-testid="bulk-import-btn">
-                  <Upload className="w-4 h-4" /><span className="hidden sm:inline">CSV</span>
+                  <Upload className="w-4 h-4" /><span className="hidden sm:inline">Import</span>
                 </button>
                 <button onClick={fetchSocialLeads} className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-green-600 hover:to-teal-600 transition" data-testid="fetch-social-btn">
                   <Download className="w-4 h-4" /><span className="hidden md:inline">Fetch Social</span>
@@ -2586,26 +2586,30 @@ export const CRMDashboard = () => {
                   <input 
                     type="file" 
                     ref={bulkFileInputRef}
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={(e) => setBulkImportFile(e.target.files[0])}
                     className="hidden" 
                   />
                   <FileSpreadsheet className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                   <button 
                     onClick={() => bulkFileInputRef.current?.click()} 
-                    className="bg-orange-600 text-[#0a355e] px-6 py-2 rounded-lg font-medium mb-2"
+                    className="bg-orange-600 text-white px-6 py-2 rounded-lg font-medium mb-2 hover:bg-orange-700"
                   >
-                    Select CSV File
+                    Select CSV or Excel File
                   </button>
                   {bulkImportFile && (
-                    <p className="text-green-400 text-sm mt-2">{bulkImportFile.name}</p>
+                    <p className="text-green-600 text-sm mt-2 font-medium">{bulkImportFile.name}</p>
                   )}
-                  <p className="text-gray-600 text-xs mt-2">CSV file with columns: name, phone, email, district, etc.</p>
+                  <div className="text-gray-500 text-xs mt-3 space-y-1">
+                    <p className="font-semibold text-gray-700">Only phone number is required!</p>
+                    <p>Supports: CSV, Excel (.xlsx, .xls) - up to 1000+ leads</p>
+                    <p>Optional: name, email, district, address, monthly_bill, etc.</p>
+                  </div>
                 </div>
                 
                 <button 
                   onClick={downloadCSVTemplate} 
-                  className="w-full bg-gray-50 border border-gray-300 text-gray-600 py-2 rounded-lg text-sm flex items-center justify-center space-x-2"
+                  className="w-full bg-gray-50 border border-gray-300 text-gray-600 py-2 rounded-lg text-sm flex items-center justify-center space-x-2 hover:bg-gray-100"
                 >
                   <Download className="w-4 h-4" />
                   <span>Download CSV Template</span>
@@ -2615,14 +2619,14 @@ export const CRMDashboard = () => {
                   <button 
                     onClick={handleBulkImport} 
                     disabled={!bulkImportFile || bulkImporting}
-                    className="flex-1 bg-orange-600 text-[#0a355e] py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
+                    className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50 flex items-center justify-center space-x-2 hover:bg-orange-700"
                   >
                     {bulkImporting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
                     <span>{bulkImporting ? "Importing..." : "Import Leads"}</span>
                   </button>
                   <button 
                     onClick={() => { setShowBulkImportModal(false); setBulkImportFile(null); setBulkImportResult(null); }} 
-                    className="px-6 py-3 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg"
+                    className="px-6 py-3 bg-gray-50 border border-gray-300 text-[#0a355e] rounded-lg hover:bg-gray-100"
                   >
                     Cancel
                   </button>
@@ -2630,17 +2634,32 @@ export const CRMDashboard = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className={`p-4 rounded-lg ${bulkImportResult.imported_count > 0 ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                <div className={`p-4 rounded-lg ${bulkImportResult.imported_count > 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                   <p className="text-lg font-semibold text-[#0a355e] mb-2">{bulkImportResult.message}</p>
-                  <div className="flex space-x-4 text-sm">
-                    <span className="text-green-400">Imported: {bulkImportResult.imported_count}</span>
-                    <span className="text-red-400">Errors: {bulkImportResult.error_count}</span>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span className="text-green-600 font-medium">Imported: {bulkImportResult.imported_count}</span>
+                    {bulkImportResult.duplicate_count > 0 && (
+                      <span className="text-yellow-600 font-medium">Duplicates: {bulkImportResult.duplicate_count}</span>
+                    )}
+                    <span className="text-red-600 font-medium">Errors: {bulkImportResult.error_count}</span>
                   </div>
                 </div>
                 
+                {bulkImportResult.duplicates?.length > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <p className="text-yellow-700 text-sm font-semibold mb-2">Skipped Duplicates:</p>
+                    {bulkImportResult.duplicates.slice(0, 5).map((dup, i) => (
+                      <p key={i} className="text-gray-600 text-xs">Row {dup.row}: {dup.phone}</p>
+                    ))}
+                    {bulkImportResult.duplicates.length > 5 && (
+                      <p className="text-gray-500 text-xs mt-1">... and {bulkImportResult.duplicates.length - 5} more</p>
+                    )}
+                  </div>
+                )}
+                
                 {bulkImportResult.errors?.length > 0 && (
-                  <div className="bg-gray-50 border border-gray-300 rounded-lg p-3 max-h-40 overflow-y-auto">
-                    <p className="text-red-400 text-sm font-semibold mb-2">Errors:</p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 max-h-32 overflow-y-auto">
+                    <p className="text-red-600 text-sm font-semibold mb-2">Errors:</p>
                     {bulkImportResult.errors.slice(0, 10).map((err, i) => (
                       <p key={i} className="text-gray-600 text-xs">Row {err.row}: {err.error}</p>
                     ))}

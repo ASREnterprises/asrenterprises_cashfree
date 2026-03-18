@@ -71,6 +71,7 @@ from cache import (
 # Import HR routes module
 from routes.hr import router as hr_router, init_router as init_hr_router
 from routes.crm import router as crm_router, init_router as init_crm_router
+from routes.staff import router as staff_router, init_router as init_staff_router
 from routers.meta_webhook import router as meta_router, set_database as set_meta_db
 
 ROOT_DIR = Path(__file__).parent
@@ -486,6 +487,9 @@ async def startup_event():
     
     # Initialize CRM router with database connection and utilities
     init_crm_router(db, sanitize_input, cache_get, cache_set)
+    
+    # Initialize Staff router with database connection and utilities
+    init_staff_router(db, sanitize_input)
     
     # Initialize Meta Webhook router with database connection
     set_meta_db(db)
@@ -4084,6 +4088,52 @@ async def staff_update_lead(staff_id: str, lead_id: str, data: Dict[str, Any]):
     
     return {"success": True}
 
+@api_router.post("/staff/{staff_id}/leads/{lead_id}/not-interested")
+async def staff_mark_lead_not_interested(staff_id: str, lead_id: str):
+    """
+    Mark a lead as not interested and transfer back to CRM pool.
+    This unassigns the lead from the staff and sets stage to 'contacted'.
+    """
+    # Verify staff owns this lead
+    staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    lead = await db.crm_leads.find_one({"id": lead_id, "assigned_to": staff.get("id")}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=403, detail="Not authorized to update this lead or lead not found")
+    
+    # Track stage change in history
+    history_entry = {
+        "stage": "contacted",
+        "updated_by": staff_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "notes": f"Marked as not interested by {staff.get('name', staff_id)}. Returned to CRM pool."
+    }
+    status_history = lead.get("status_history", [])
+    status_history.append(history_entry)
+    
+    # Update lead: unassign and set stage to contacted
+    update_fields = {
+        "assigned_to": None,
+        "assigned_by": None,
+        "stage": "contacted",
+        "status_history": status_history,
+        "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Not Interested - Returned to CRM pool by {staff.get('name', staff_id)}. " + (lead.get("follow_up_notes") or "")
+    }
+    
+    await db.crm_leads.update_one({"id": lead_id}, {"$set": update_fields})
+    
+    # Decrement staff's leads_assigned count
+    await db.crm_staff_accounts.update_one(
+        {"staff_id": staff_id},
+        {"$inc": {"leads_assigned": -1}}
+    )
+    
+    logger.info(f"Lead {lead_id} marked as not interested by staff {staff_id}, returned to CRM pool")
+    
+    return {"success": True, "message": "Lead marked as not interested and returned to CRM pool"}
+
 @api_router.get("/staff/{staff_id}/followups")
 async def get_staff_followups(staff_id: str):
     """Get follow-up reminders for staff"""
@@ -7542,51 +7592,107 @@ async def get_all_reviews_summary():
 
 @api_router.post("/crm/leads/bulk-import")
 async def bulk_import_leads(file: UploadFile = File(...)):
-    """Import leads from CSV file"""
+    """
+    Import leads from CSV/Excel file.
+    ONLY mobile number is required - name is optional (will be set to 'Lead-{phone}' if missing).
+    Handles large files (1000+ rows) efficiently with batch processing.
+    """
     try:
         content = await file.read()
+        filename = file.filename.lower()
         
-        # Validate file type
-        if not file.filename.endswith('.csv'):
-            raise HTTPException(status_code=400, detail="Only CSV files are supported")
+        # Check file size (max 10MB)
+        if len(content) > 10 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum 10MB allowed.")
         
-        # Parse CSV
-        decoded = content.decode('utf-8-sig')  # Handle BOM
-        reader = csv.DictReader(io.StringIO(decoded))
+        rows = []
+        
+        # Parse based on file type
+        if filename.endswith('.csv'):
+            # Parse CSV
+            decoded = content.decode('utf-8-sig')  # Handle BOM
+            reader = csv.DictReader(io.StringIO(decoded))
+            rows = list(reader)
+        elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+            # Parse Excel
+            import pandas as pd
+            df = pd.read_excel(io.BytesIO(content))
+            # Convert to list of dicts
+            rows = df.fillna('').to_dict('records')
+        else:
+            raise HTTPException(status_code=400, detail="Only CSV and Excel (.xlsx, .xls) files are supported")
+        
+        if not rows:
+            raise HTTPException(status_code=400, detail="File is empty or has no data rows")
         
         imported = []
         errors = []
-        row_num = 1
+        duplicates = []
         
-        for row in reader:
-            row_num += 1
+        # Batch size for efficient processing
+        BATCH_SIZE = 100
+        batch_leads = []
+        
+        # Get existing phone numbers to check duplicates efficiently
+        all_phones_in_file = []
+        for row in rows:
+            phone = str(row.get('phone', row.get('Phone', row.get('mobile', row.get('Mobile', row.get('contact', row.get('Contact', ''))))))).strip()
+            phone = re.sub(r'[^\d]', '', phone)
+            if len(phone) >= 10:
+                phone = phone[-10:]  # Take last 10 digits
+                all_phones_in_file.append(f"91{phone}")
+        
+        # Batch check for existing phones
+        existing_phones = set()
+        if all_phones_in_file:
+            existing_leads = await db.crm_leads.find(
+                {"phone": {"$in": all_phones_in_file}},
+                {"phone": 1}
+            ).to_list(len(all_phones_in_file))
+            existing_phones = {lead["phone"] for lead in existing_leads}
+        
+        for row_num, row in enumerate(rows, start=2):
             try:
-                # Required field validation
-                name = row.get('name', row.get('Name', row.get('customer_name', ''))).strip()
-                phone = row.get('phone', row.get('Phone', row.get('mobile', row.get('Mobile', '')))).strip()
+                # Phone is the only required field
+                phone = str(row.get('phone', row.get('Phone', row.get('mobile', row.get('Mobile', row.get('contact', row.get('Contact', ''))))))).strip()
                 
-                if not name or not phone:
-                    errors.append({"row": row_num, "error": "Name and Phone are required"})
-                    continue
-                
-                # Clean phone number
+                # Clean phone number - extract digits only
                 phone = re.sub(r'[^\d]', '', phone)
-                if len(phone) == 10:
-                    phone = f"91{phone}"
                 
-                # Check for duplicate
-                existing = await db.crm_leads.find_one({"phone": phone}, {"_id": 0})
-                if existing:
-                    errors.append({"row": row_num, "error": f"Lead with phone {phone} already exists"})
+                # Skip if no phone number
+                if not phone or len(phone) < 10:
+                    errors.append({"row": row_num, "error": "Valid phone number (10+ digits) is required"})
                     continue
+                
+                # Take last 10 digits and add country code
+                phone = phone[-10:]
+                if not phone[0] in ['6', '7', '8', '9']:
+                    errors.append({"row": row_num, "error": f"Invalid Indian mobile number: {phone}"})
+                    continue
+                phone = f"91{phone}"
+                
+                # Check for duplicate (already in DB)
+                if phone in existing_phones:
+                    duplicates.append({"row": row_num, "phone": phone})
+                    continue
+                
+                # Check for duplicate within this file
+                if any(l.get("phone") == phone for l in batch_leads + imported):
+                    duplicates.append({"row": row_num, "phone": phone, "reason": "duplicate in file"})
+                    continue
+                
+                # Name is optional - generate from phone if not provided
+                name = str(row.get('name', row.get('Name', row.get('customer_name', row.get('Customer Name', ''))))).strip()
+                if not name:
+                    name = f"Lead-{phone[-4:]}"  # Use last 4 digits as identifier
                 
                 # Parse optional fields
-                email = row.get('email', row.get('Email', '')).strip()
-                district = row.get('district', row.get('District', row.get('city', row.get('City', '')))).strip()
-                address = row.get('address', row.get('Address', '')).strip()
-                property_type = row.get('property_type', row.get('Property Type', 'residential')).strip().lower()
+                email = str(row.get('email', row.get('Email', ''))).strip()
+                district = str(row.get('district', row.get('District', row.get('city', row.get('City', row.get('location', row.get('Location', ''))))))).strip()
+                address = str(row.get('address', row.get('Address', ''))).strip()
+                property_type = str(row.get('property_type', row.get('Property Type', 'residential'))).strip().lower()
                 
-                monthly_bill_str = row.get('monthly_bill', row.get('Monthly Bill', row.get('bill', ''))).strip()
+                monthly_bill_str = str(row.get('monthly_bill', row.get('Monthly Bill', row.get('bill', row.get('Bill', ''))))).strip()
                 monthly_bill = None
                 if monthly_bill_str:
                     try:
@@ -7594,7 +7700,7 @@ async def bulk_import_leads(file: UploadFile = File(...)):
                     except:
                         pass
                 
-                roof_area_str = row.get('roof_area', row.get('Roof Area', row.get('area', ''))).strip()
+                roof_area_str = str(row.get('roof_area', row.get('Roof Area', row.get('area', row.get('Area', ''))))).strip()
                 roof_area = None
                 if roof_area_str:
                     try:
@@ -7602,8 +7708,8 @@ async def bulk_import_leads(file: UploadFile = File(...)):
                     except:
                         pass
                 
-                source = row.get('source', row.get('Source', 'csv_import')).strip().lower()
-                notes = row.get('notes', row.get('Notes', row.get('remarks', row.get('Remarks', '')))).strip()
+                source = str(row.get('source', row.get('Source', 'bulk_import'))).strip().lower()
+                notes = str(row.get('notes', row.get('Notes', row.get('remarks', row.get('Remarks', ''))))).strip()
                 
                 # Calculate lead score
                 lead_score = min(100, 40 + int((monthly_bill or 0) / 100))
@@ -7621,12 +7727,12 @@ async def bulk_import_leads(file: UploadFile = File(...)):
                     "property_type": property_type if property_type in ['residential', 'commercial', 'industrial', 'agricultural'] else 'residential',
                     "monthly_bill": monthly_bill,
                     "roof_area": roof_area,
-                    "source": source if source else "csv_import",
+                    "source": source if source else "bulk_import",
                     "stage": "new",
                     "assigned_to": None,
                     "assigned_by": None,
                     "next_follow_up": (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
-                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Imported from CSV. {notes}" if notes else "",
+                    "follow_up_notes": f"[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] Bulk imported. {notes}" if notes else "",
                     "quoted_amount": None,
                     "system_size": None,
                     "advance_paid": 0.0,
@@ -7635,25 +7741,40 @@ async def bulk_import_leads(file: UploadFile = File(...)):
                     "lead_score": lead_score,
                     "ai_priority": ai_priority,
                     "ai_suggestions": None,
-                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Imported from CSV"}],
+                    "status_history": [{"stage": "new", "timestamp": datetime.now(timezone.utc).isoformat(), "notes": "Bulk imported"}],
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 
-                await db.crm_leads.insert_one(lead)
-                imported.append({"name": name, "phone": phone, "id": lead_id})
+                batch_leads.append(lead)
+                
+                # Insert in batches for efficiency
+                if len(batch_leads) >= BATCH_SIZE:
+                    await db.crm_leads.insert_many(batch_leads)
+                    imported.extend([{"name": l["name"], "phone": l["phone"], "id": l["id"]} for l in batch_leads])
+                    batch_leads = []
                 
             except Exception as e:
                 errors.append({"row": row_num, "error": str(e)})
         
-        logger.info(f"Bulk import: {len(imported)} leads imported, {len(errors)} errors")
+        # Insert remaining batch
+        if batch_leads:
+            await db.crm_leads.insert_many(batch_leads)
+            imported.extend([{"name": l["name"], "phone": l["phone"], "id": l["id"]} for l in batch_leads])
+        
+        logger.info(f"Bulk import: {len(imported)} leads imported, {len(duplicates)} duplicates skipped, {len(errors)} errors")
         
         return {
             "success": True,
             "imported_count": len(imported),
+            "duplicate_count": len(duplicates),
             "error_count": len(errors),
-            "imported_leads": imported[:10],  # Return first 10 only
+            "total_rows": len(rows),
+            "imported_leads": imported[:20],  # Return first 20 only
+            "duplicates": duplicates[:20],  # Return first 20 duplicates
             "errors": errors[:20],  # Return first 20 errors
-            "message": f"Successfully imported {len(imported)} leads" + (f" with {len(errors)} errors" if errors else "")
+            "message": f"Successfully imported {len(imported)} leads" + 
+                      (f", {len(duplicates)} duplicates skipped" if duplicates else "") +
+                      (f", {len(errors)} errors" if errors else "")
         }
         
     except HTTPException:
@@ -7664,13 +7785,15 @@ async def bulk_import_leads(file: UploadFile = File(...)):
 
 @api_router.get("/crm/leads/import-template")
 async def get_import_template():
-    """Get CSV template for bulk import"""
+    """Get CSV template for bulk import - only phone is required"""
     return {
-        "columns": ["name", "phone", "email", "district", "address", "property_type", "monthly_bill", "roof_area", "source", "notes"],
-        "required": ["name", "phone"],
+        "columns": ["phone", "name", "email", "district", "address", "property_type", "monthly_bill", "roof_area", "source", "notes"],
+        "required": ["phone"],
+        "optional": ["name", "email", "district", "address", "property_type", "monthly_bill", "roof_area", "source", "notes"],
+        "notes": "Only phone number is required. Name will be auto-generated if not provided. Supports both CSV and Excel files.",
         "example": {
-            "name": "Ramesh Kumar",
             "phone": "9876543210",
+            "name": "Ramesh Kumar",
             "email": "ramesh@example.com",
             "district": "Patna",
             "address": "123 Main Road",
@@ -7679,6 +7802,9 @@ async def get_import_template():
             "roof_area": "500",
             "source": "referral",
             "notes": "Interested in 5kW system"
+        },
+        "minimal_example": {
+            "phone": "9876543210"
         },
         "property_types": ["residential", "commercial", "industrial", "agricultural"],
         "sources": ["website", "referral", "walk_in", "phone_call", "whatsapp", "facebook", "exhibition", "csv_import"]
@@ -10881,6 +11007,9 @@ api_router.include_router(hr_router)
 
 # Include CRM router under /api prefix
 api_router.include_router(crm_router)
+
+# Include Staff router under /api prefix
+api_router.include_router(staff_router)
 
 # Include Meta Webhook router (Facebook, Instagram, WhatsApp)
 app.include_router(meta_router)

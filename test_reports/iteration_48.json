@@ -1,0 +1,89 @@
+{
+  "summary": "Tested lead management enhancements for Staff Portal: Not Interested workflow, bulk lead import (CSV/Excel), and staff router integration. All backend tests pass (14/14). Frontend verified bulk import modal accepts .csv, .xlsx, .xls files with 'Only phone number is required' message.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_staff_leads_bulk_import.py",
+    "/app/test_reports/pytest/pytest_iter48.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_staff_leads_bulk_import.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+  "test_credentials": {
+    "admin_mobile": "8877896889",
+    "admin_otp_fallback": "131993"
+  },
+  "seed_data_creation": "Created test leads for bulk import testing, automatically cleaned on duplicate checks",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Staff accounts ASR1003 is deactivated (is_active: false), use ASR1002 or create new staff for testing. Bulk import supports CSV and Excel (.xlsx, .xls) - only phone is required.",
+  "features_verified": {
+    "POST_staff_leads_not_interested": {
+      "endpoint": "/api/staff/{staff_id}/leads/{lead_id}/not-interested",
+      "status": "PASS",
+      "tests": [
+        "Endpoint exists and responds appropriately",
+        "Unassigns lead from staff",
+        "Sets lead stage to 'contacted'",
+        "Adds to status_history",
+        "Decrements staff leads_assigned count"
+      ]
+    },
+    "POST_bulk_import": {
+      "endpoint": "/api/crm/leads/bulk-import",
+      "status": "PASS",
+      "tests": [
+        "Accepts CSV files",
+        "Accepts Excel files (.xlsx, .xls)",
+        "Only phone number is required",
+        "Auto-generates name if missing (Lead-XXXX format)",
+        "Validates Indian mobile numbers (6-9 prefix)",
+        "Detects duplicates",
+        "Handles 1000+ rows"
+      ]
+    },
+    "GET_import_template": {
+      "endpoint": "/api/crm/leads/import-template",
+      "status": "PASS",
+      "response": {
+        "required": ["phone"],
+        "optional": ["name", "email", "district", "address", "property_type", "monthly_bill", "roof_area", "source", "notes"]
+      }
+    },
+    "staff_router_integration": {
+      "status": "PASS",
+      "endpoints_verified": [
+        "/api/staff/login",
+        "/api/staff/login-email",
+        "/api/staff/{staff_id}/dashboard",
+        "/api/staff/{staff_id}/leads",
+        "/api/staff/{staff_id}/training",
+        "/api/staff/profile/{staff_id}"
+      ]
+    },
+    "frontend_bulk_import_modal": {
+      "status": "PASS",
+      "file_input_accept": ".csv,.xlsx,.xls",
+      "text_displayed": "Only phone number is required!",
+      "supports_message": "Supports: CSV, Excel (.xlsx, .xls) - up to 1000+ leads"
+    },
+    "frontend_not_interested_button": {
+      "status": "PASS",
+      "location": "StaffPortal.js line 774-779",
+      "action": "quickUpdateLeadStatus(lead.id, 'not_interested')"
+    }
+  }
+}

@@ -17,6 +17,7 @@ const PIPELINE_STAGES = [
   { id: "contacted", label: "Contacted", color: "bg-indigo-500" },
   { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },
   { id: "interested", label: "Interested", color: "bg-orange-500" },
+  { id: "not_interested", label: "Not Interested", color: "bg-gray-500" },
   { id: "survey", label: "Survey", color: "bg-purple-500" },
   { id: "quotation", label: "Quotation", color: "bg-pink-500" },
   { id: "installation", label: "Installation", color: "bg-cyan-500" },
@@ -55,6 +56,8 @@ export const StaffPortal = () => {
   const [newLeadForm, setNewLeadForm] = useState({ name: '', phone: '', district: '', monthly_bill: '', property_type: 'residential', notes: '' });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
+  const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
+  const [callFilter, setCallFilter] = useState('all'); // all, called, uncalled
   const navigate = useNavigate();
 
   // Auto-logout callback for staff
@@ -141,21 +144,83 @@ export const StaffPortal = () => {
   const quickUpdateLeadStatus = async (leadId, newStage) => {
     setUpdatingLeadId(leadId);
     try {
-      await axios.put(`${API}/staff/${staffData.staff_id}/leads/${leadId}`, { stage: newStage });
-      // Add activity log
-      await axios.post(`${API}/crm/leads/${leadId}/activities`, {
-        staff_id: staffData.staff_id,
-        staff_name: staffData.name,
-        activity_type: "status_change",
-        title: `Status changed to ${newStage}`,
-        description: `Quick status update by ${staffData.name}`
-      });
+      // If marking as "not_interested", transfer lead back to CRM as "contacted" and remove from staff
+      if (newStage === 'not_interested') {
+        await axios.post(`${API}/staff/${staffData.staff_id}/leads/${leadId}/not-interested`);
+        // Add activity log
+        await axios.post(`${API}/crm/leads/${leadId}/activities`, {
+          staff_id: staffData.staff_id,
+          staff_name: staffData.name,
+          activity_type: "not_interested",
+          title: "Customer Not Interested",
+          description: `Lead marked as not interested by ${staffData.name}. Transferred back to CRM.`
+        });
+      } else {
+        await axios.put(`${API}/staff/${staffData.staff_id}/leads/${leadId}`, { stage: newStage });
+        // Add activity log
+        await axios.post(`${API}/crm/leads/${leadId}/activities`, {
+          staff_id: staffData.staff_id,
+          staff_name: staffData.name,
+          activity_type: "status_change",
+          title: `Status changed to ${newStage}`,
+          description: `Quick status update by ${staffData.name}`
+        });
+      }
       fetchAllData();
     } catch (err) {
       alert("Error updating lead status");
     }
     setUpdatingLeadId(null);
   };
+
+  // Mark lead as called and open Superfone app
+  const handleCallLead = async (lead, useSuperfone = false) => {
+    // Mark as called locally
+    setCalledLeads(prev => new Set([...prev, lead.id]));
+    
+    // Save to localStorage for persistence
+    const storedCalled = JSON.parse(localStorage.getItem(`calledLeads_${staffData.staff_id}`) || '[]');
+    if (!storedCalled.includes(lead.id)) {
+      storedCalled.push(lead.id);
+      localStorage.setItem(`calledLeads_${staffData.staff_id}`, JSON.stringify(storedCalled));
+    }
+    
+    // Log call activity
+    try {
+      await axios.post(`${API}/crm/leads/${lead.id}/activities`, {
+        staff_id: staffData.staff_id,
+        staff_name: staffData.name,
+        activity_type: "call",
+        title: "Call Initiated",
+        description: `${staffData.name} called ${lead.name} at ${lead.phone}`
+      });
+      
+      // Update lead stage to contacted if still new
+      if (lead.stage === 'new') {
+        await axios.put(`${API}/staff/${staffData.staff_id}/leads/${lead.id}`, { stage: 'contacted' });
+      }
+    } catch (err) {
+      console.error("Error logging call:", err);
+    }
+    
+    // Open phone app
+    const phoneNumber = lead.phone.replace(/\D/g, '');
+    if (useSuperfone) {
+      // Superfone deep link
+      window.location.href = `superfone://call/${phoneNumber}`;
+    } else {
+      // Regular tel link
+      window.location.href = `tel:${lead.phone}`;
+    }
+  };
+
+  // Load called leads from localStorage on mount
+  useEffect(() => {
+    if (staffData?.staff_id) {
+      const storedCalled = JSON.parse(localStorage.getItem(`calledLeads_${staffData.staff_id}`) || '[]');
+      setCalledLeads(new Set(storedCalled));
+    }
+  }, [staffData?.staff_id]);
 
   const updateLead = async () => {
     if (!selectedLead) return;
@@ -515,28 +580,70 @@ export const StaffPortal = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-lg sm:text-xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
-              <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm" data-testid="staff-add-lead-btn">
-                <Plus className="w-4 h-4" /><span>Add Lead</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Call Status Filter */}
+                <select
+                  value={callFilter}
+                  onChange={(e) => setCallFilter(e.target.value)}
+                  className="bg-gray-50 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm"
+                >
+                  <option value="all">All Leads ({leads.length})</option>
+                  <option value="uncalled">Uncalled ({leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length})</option>
+                  <option value="called">Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length})</option>
+                </select>
+                <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm" data-testid="staff-add-lead-btn">
+                  <Plus className="w-4 h-4" /><span>Add Lead</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-blue-600">{leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length}</div>
+                <div className="text-xs text-blue-700">Uncalled</div>
+              </div>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-green-600">{leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length}</div>
+                <div className="text-xs text-green-700">Called</div>
+              </div>
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                <div className="text-2xl font-bold text-orange-600">{leads.filter(l => l.stage === 'interested').length}</div>
+                <div className="text-xs text-orange-700">Interested</div>
+              </div>
             </div>
             
             {/* Desktop Table View */}
             <div className="hidden md:block bg-white shadow-lg border border-sky-200 rounded-xl overflow-x-auto">
-              <table className="w-full min-w-[600px]">
+              <table className="w-full min-w-[700px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="text-left text-gray-600 px-3 py-3 text-sm font-semibold w-8">📞</th>
                     <th className="text-left text-gray-600 px-4 py-3 text-sm font-semibold">Lead</th>
                     <th className="text-left text-gray-600 px-4 py-3 text-sm font-semibold">Status</th>
                     <th className="text-left text-gray-600 px-4 py-3 text-sm font-semibold">Quick Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {leads.map((lead) => (
-                    <tr key={lead.id} className="border-t border-gray-100 hover:bg-gray-50">
+                  {leads
+                    .filter(lead => {
+                      if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
+                      if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && !lead.call_status;
+                      return true;
+                    })
+                    .map((lead) => (
+                    <tr key={lead.id} className={`border-t border-gray-100 hover:bg-gray-50 ${calledLeads.has(lead.id) ? 'bg-green-50/50' : ''}`}>
+                      <td className="px-3 py-3">
+                        {calledLeads.has(lead.id) || lead.call_status === 'called' ? (
+                          <span className="text-green-500 text-lg" title="Called">✓</span>
+                        ) : (
+                          <span className="text-gray-300 text-lg" title="Not Called">○</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
-                        <div className="text-[#0a355e] font-medium">{lead.name}</div>
-                        <div className="text-gray-500 text-sm">{lead.phone} • {lead.district}</div>
-                        <div className="text-gray-400 text-xs">₹{lead.monthly_bill}/mo</div>
+                        <div className="text-[#0a355e] font-medium">{lead.name || 'Unknown'}</div>
+                        <div className="text-gray-500 text-sm font-mono">{lead.phone}</div>
+                        <div className="text-gray-400 text-xs">{lead.district} • ₹{lead.monthly_bill}/mo</div>
                       </td>
                       <td className="px-4 py-3">
                         <select
@@ -554,16 +661,24 @@ export const StaffPortal = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center space-x-2">
-                          <a 
-                            href={`tel:${lead.phone}`} 
+                          <button 
+                            onClick={() => handleCallLead(lead, true)}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition shadow-md"
+                            title="Call via Superfone"
+                          >
+                            <Phone className="w-3 h-3" />
+                            <span>Superfone</span>
+                          </button>
+                          <button 
+                            onClick={() => handleCallLead(lead, false)}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
-                            title="Call Customer"
+                            title="Regular Call"
                           >
                             <Phone className="w-3 h-3" />
                             <span>Call</span>
-                          </a>
+                          </button>
                           <button 
-                            onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
+                            onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
                             className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
                             title="WhatsApp Customer"
                           >
@@ -578,14 +693,6 @@ export const StaffPortal = () => {
                             <Edit className="w-3 h-3" />
                             <span>Update</span>
                           </button>
-                          <button 
-                            onClick={() => { setSelectedLead(lead); setShowActivityModal(true); }} 
-                            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
-                            title="Add Note"
-                          >
-                            <Activity className="w-3 h-3" />
-                            <span>Note</span>
-                          </button>
                         </div>
                       </td>
                     </tr>
@@ -596,12 +703,25 @@ export const StaffPortal = () => {
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
-              {leads.map((lead) => (
-                <div key={lead.id} className="bg-white shadow-lg border border-sky-200 rounded-xl p-4" data-testid={`lead-card-${lead.id}`}>
+              {leads
+                .filter(lead => {
+                  if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
+                  if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && !lead.call_status;
+                  return true;
+                })
+                .map((lead) => (
+                <div key={lead.id} className={`bg-white shadow-lg border rounded-xl p-4 ${calledLeads.has(lead.id) ? 'border-green-300 bg-green-50/30' : 'border-sky-200'}`} data-testid={`lead-card-${lead.id}`}>
+                  {/* Called Badge */}
+                  {calledLeads.has(lead.id) && (
+                    <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full inline-flex items-center mb-2">
+                      <CheckCircle className="w-3 h-3 mr-1" /> Called
+                    </div>
+                  )}
                   {/* Lead Info */}
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <div className="text-[#0a355e] font-bold text-lg">{lead.name}</div>
+                      <div className="text-[#0a355e] font-bold text-lg">{lead.name || 'Unknown'}</div>
+                      <div className="text-gray-700 font-mono text-base">{lead.phone}</div>
                       <div className="text-gray-500 text-sm">{lead.district}</div>
                       <div className="text-gray-400 text-xs">₹{lead.monthly_bill}/month bill</div>
                     </div>
@@ -629,44 +749,51 @@ export const StaffPortal = () => {
 
                   {/* Action Buttons - Full Width for Mobile */}
                   <div className="grid grid-cols-2 gap-2">
-                    <a 
-                      href={`tel:${lead.phone}`} 
+                    <button 
+                      onClick={() => handleCallLead(lead, true)}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium shadow-md"
+                    >
+                      <Phone className="w-4 h-4" />
+                      <span>Superfone Call</span>
+                    </button>
+                    <button 
+                      onClick={() => handleCallLead(lead, false)}
                       className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium"
                     >
                       <Phone className="w-4 h-4" />
-                      <span>Call Now</span>
-                    </a>
+                      <span>Regular Call</span>
+                    </button>
                     <button 
-                      onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
+                      onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
                       className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium"
                     >
                       <MessageSquare className="w-4 h-4" />
                       <span>WhatsApp</span>
                     </button>
                     <button 
-                      onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }} 
-                      className="bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-lg text-sm flex items-center justify-center space-x-2 transition"
+                      onClick={() => quickUpdateLeadStatus(lead.id, 'not_interested')}
+                      disabled={updatingLeadId === lead.id}
+                      className="bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium disabled:opacity-50"
                     >
-                      <Edit className="w-4 h-4" />
-                      <span>Details</span>
-                    </button>
-                    <button 
-                      onClick={() => { setSelectedLead(lead); setShowActivityModal(true); }} 
-                      className="bg-purple-500 hover:bg-purple-600 text-white py-2.5 rounded-lg text-sm flex items-center justify-center space-x-2 transition"
-                    >
-                      <Activity className="w-4 h-4" />
-                      <span>Add Note</span>
+                      <X className="w-4 h-4" />
+                      <span>Not Interested</span>
                     </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            {leads.length === 0 && (
+            {leads.filter(lead => {
+              if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
+              if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && !lead.call_status;
+              return true;
+            }).length === 0 && (
               <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
                 <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No leads assigned yet</p>
-                <button onClick={() => setShowAddLeadModal(true)} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Add Your First Lead</button>
+                <p className="text-gray-500">{callFilter === 'all' ? 'No leads assigned yet' : `No ${callFilter} leads`}</p>
+                {callFilter !== 'all' && (
+                  <button onClick={() => setCallFilter('all')} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
+                )}
               </div>
             )}
           </div>

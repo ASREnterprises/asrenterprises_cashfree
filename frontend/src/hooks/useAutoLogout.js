@@ -1,12 +1,17 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+// Admin timeout: 15 minutes, Staff timeout: 1 hour (for field work flexibility)
+const ADMIN_INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+const STAFF_INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 1 hour for staff
 
 export const useAutoLogout = (isAuthenticated, logoutCallback, userType = 'admin') => {
   const navigate = useNavigate();
   const timeoutRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+  
+  // Use different timeout based on user type
+  const INACTIVITY_TIMEOUT = userType === 'staff' ? STAFF_INACTIVITY_TIMEOUT : ADMIN_INACTIVITY_TIMEOUT;
 
   const handleLogout = useCallback(() => {
     // Clear all auth data

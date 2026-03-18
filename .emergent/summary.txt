@@ -1,82 +1,85 @@
 <analysis>**original_problem_statement:**
-The user wants to build a feature-rich website for their solar energy business, ASR Enterprises. The project scope includes a customer-facing website, an admin/CRM panel, AI features, an e-commerce system, and an HR portal.
+The user provided a large and evolving set of requirements throughout the session, starting with fixing a persistent OTP bug and removing the e-commerce Shop feature. The focus then shifted heavily towards enhancing the CRM and building out a comprehensive Staff Portal for lead management.
 
-The most recent request was a large batch of changes:
-1.  **Remove Shop:** Completely remove the Solar Shop from the website and admin dashboard.
-2.  **New Paid Service:** Replace Book free survey with a paid Book Solar Service with a default price of ₹2499.
-3.  **QR Code Payments:** Replace the Razorpay integration with a new QR code payment system for the paid service.
-4.  **Payment Confirmation:** Send a confirmation message via MSG91 to the customer's mobile number after a successful payment.
-5.  **Contact/Social Updates:**
-    -   Remove all Instagram links.
-    -   Update the WhatsApp contact to  and add its icon in the footer and contact sections.
-    -   Keep the call inquiry number as .
-6.  **Bug Fix:** Fix a recurring issue where valid OTPs for login and forms are incorrectly marked as invalid.
-7.  **CRM Feature:** Add an option for the admin to update the Book Solar Service price from the CRM system.
-8.  **HR Feature:** Add the ability for an admin to edit or update the details of existing employees in the HR management portal.
+Key requests implemented include:
+- Fixing the recurring Invalid OTP bug.
+- Removing all Shop related features.
+- Adding multiple staff login methods (Staff ID+OTP, Email+Password, Mobile OTP).
+- Restoring the QR code payment flow for Book Solar Service.
+- Implementing a full-featured Training module with an AI chatbot, accessible to both Admins and Staff.
+- Re-adding the company's Instagram link to the website.
+- Adding a bulk lead assignment feature for admins in the CRM.
+
+The most recent set of user requests focused on major improvements to the lead management lifecycle for staff users:
+1.  **Bulk Lead Upload:** Allow bulk upload of leads from Excel where only the customer's mobile number might be present, and ensure it can handle over a thousand leads at once.
+2.  **Calling Integration:** Make it easy for staff to call leads using the Superfone app.
+3.  **Session Timeout:** Extend the staff login session to remain active for at least 1 hour of inactivity.
+4.  **Lead Status:** Add a Not Interested status. When selected, the lead should be removed from the staff's portal and transferred back to the main CRM lead pool.
+5.  **Lead Filtering:** Allow staff to easily distinguish between called and uncalled leads.
+6.  **Performance:** Ensure all these new features are fast and don't slow down page loads.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack React/FastAPI application. The agent has implemented the entire batch of user requests. The Shop feature has been removed from the UI, and a new Book Solar Service flow with QR code payments is in place, including backend endpoints for price management and SMS confirmation. The HR portal now allows editing employee details, and the CRM has a new tab for managing the service price. The OTP login and verification forms have been rebuilt with a two-step UI. However, the reliability of OTP verification is still in question, and the new features have not been a-z tested.
+A full-stack React/FastAPI application for a solar energy business. The codebase includes a customer-facing website, an admin CRM, and a staff portal. The agent successfully implemented numerous features in this session, including fixing a critical OTP bug, adding multiple login methods for staff, creating a bulk lead assignment tool for admins, and integrating a comprehensive AI-powered training module. The staff portal has been significantly enhanced with a mobile-friendly UI, lead status updates, and filtering capabilities. The session timeout for staff has been extended to 1 hour.
 
 **Last working item**:
-- **Last item agent was working:** The agent finished a large batch of feature requests, culminating in verifying the UI for the new Book Solar Service QR code payment modal via screenshot.
+- **Last item agent was working:** Implementing a batch of lead management enhancements for the Staff Portal. This included extending the staff session timeout, adding a Not Interested status, creating UI filters for called/uncalled leads, and updating call-to-action buttons to integrate with the Superfone app via a custom URL protocol ().
 - **Status:** IN PROGRESS
 - **Agent Testing Done:** N
 - **Which testing method agent to use?** both
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Invalid OTP error persists even with valid OTPs. (P0)**
--   **Issue 2: Comprehensive testing is required for the new batch of features. (P0)**
--   **Issue 3: The monolithic  is still too large. (P2)**
+-   **Issue 1: Complete lead management workflow for Not Interested status. (P0)**
+-   **Issue 2: Implement robust bulk lead upload from Excel. (P1)**
+-   **Issue 3: Refactor the monolithic  file. (P2)**
 
 **Issues Detail:**
 -   **Issue 1:**
-    -   **Attempted fixes:** The agent previously rebuilt the entire OTP UI to a two-step flow (Send OTP -> Enter OTP) for all forms (, , ). A patch was also applied to be more lenient with the  response from the MSG91 library. However, the user's latest message confirms the issue still exists.
+    -   **Attempted fixes:** The agent updated  to extend the staff session to 1 hour. In , a Not Interested status was added to the  array, and the  function was modified to handle this new status. Call buttons were updated to use the  protocol.
     -   **Next debug checklist:**
-        1.  In , , and , add detailed  statements within the  callbacks to capture the exact  and  objects returned by the MSG91 library.
-        2.  Attempt to reproduce the invalid OTP error using the dev console to observe the logged output.
-        3.  Re-examine the MSG91 documentation for the exact success/error response structure of the  method when  is used.
-        4.  Correct the success/failure handling based on the actual library response.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical bug blocking user login and lead generation, making parts of the application unusable.
+        1.  **Backend:** Implement the backend logic for when a lead is marked as not_interested. The endpoint (e.g., a  request to ) should re-assign the lead (e.g., set  to null) and update its stage to Contacted in the  collection.
+        2.  **Frontend:** Ensure that when the Not Interested status is successfully set, the lead is immediately removed from the staff's view in  without needing a page refresh.
+        3.  **Testing:** Perform an end-to-end test to verify that a staff member marking a lead as Not Interested correctly removes it from their portal and makes it available again in the main admin CRM view.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical CRM workflow that allows for efficient lead lifecycle management and prevents staff from repeatedly contacting uninterested customers.
     -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** Y
+    -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
+    -   **Blocked on other issue:** none
 
 -   **Issue 2:**
-    -   **Attempted fixes:** None. The agent completed implementation but did not proceed to testing.
+    -   **Attempted fixes:** None. This is a new requirement from the user's last message.
     -   **Next debug checklist:**
-        1.  Use the testing agent for an end-to-end test of the Book Solar Service flow (modal opening, price check, QR screen, fake transaction ID confirmation, SMS log check).
-        2.  Manually test the HR employee edit feature in the admin dashboard.
-        3.  Manually test the CRM service price update feature and verify the new price reflects in the booking modal.
-        4.  Perform regression testing to ensure the removal of the Shop feature did not break other parts of the site.
-    -   **Why fix this issue and what will be achieved with the fix?** To ensure the stability and correctness of the significant changes made across the application.
+        1.  Review the existing bulk import endpoint in  and the handler in .
+        2.  Modify the backend logic to prioritize a 'mobile' or 'phone' column, creating a lead even if other data like 'name' is missing.
+        3.  Implement chunked processing on the backend to handle large files (>1000 rows) asynchronously to prevent request timeouts. This may involve creating a background task.
+        4.  Update the frontend to provide feedback on the asynchronous import process (e.g., Import started, progress bar, completion/error notification).
+    -   **Why fix this issue and what will be achieved with the fix?** To enable the business to efficiently import large lead lists from external sources, which is fundamental for sales operations.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
+    -   **Blocked on other issue:** none
 
 -   **Issue 3:**
-    -   **Attempted fixes:** None in the last session. The agent added the new service-related endpoints directly to , increasing its size.
+    -   **Attempted fixes:** None in this session. The agent continued adding new endpoints to , increasing its complexity.
     -   **Next debug checklist:**
-        1.  Create a new file: .
-        2.  Move all service-related endpoints (, ) from  into .
-        3.  Include the new  in the main FastAPI app in .
-    -   **Why fix this issue and what will be achieved with the fix?** To improve the backend's maintainability, scalability, and code organization, which is a recurring technical debt.
-    -   **Status:** IN PROGRESS
+        1.  Create new router files in  (e.g., , ).
+        2.  Systematically move related endpoints from  into the new, dedicated router files.
+        3.  Include the new routers in the main FastAPI application in .
+    -   **Why fix this issue and what will be achieved with the fix?** To improve backend code organization, maintainability, and scalability. This addresses recurring technical debt.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** None
+    -   **Blocked on other issue:** none
 
 **In progress Task List**:
 -   None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Advanced HR Features:** Implement AI-driven task assignment and OCR for expense reimbursement.
-    -   **(P1) Predictive Operations Hub:** Implement AI-powered inventory management and route optimization for field staff.
+    -   **(P1) Advanced HR Features:** AI-driven task assignment and OCR for expense reimbursement.
+    -   **(P1) Predictive Operations Hub:** AI-powered inventory management and route optimization for field staff.
     -   **(P2) Hyper-Local SEO Pages:** Create district-specific landing pages.
 -   **Future Tasks:**
     -   **(P2) Staff Gamification:** Create a leaderboard in the HR portal.
@@ -85,89 +88,89 @@ A full-stack React/FastAPI application. The agent has implemented the entire bat
     -   **(P3) Full Performance Audit:** Convert images to WebP, minify assets, and implement server-side caching.
 
 **Completed work in this session**
--   **Feature Removal:** The Solar Shop was removed from navigation, routes, and admin panels.
--   **New Payment Flow:** Razorpay was replaced with a custom QR code payment flow for the Book Solar Service.
--   **Backend APIs:** New endpoints were created for booking the paid service, managing its price, and sending SMS confirmations.
--   **Admin Panel Features:**
-    -   Added functionality to edit employee details in the HR portal.
-    -   Added a Service Config tab to the CRM for price management.
--   **Contact & UI Updates:** Removed Instagram, updated the WhatsApp number with an icon, and ensured the correct phone number is used for call links.
--   **OTP UI Overhaul:** Rebuilt all OTP forms (Admin, Staff, Inquiry) to use a two-step verification UI with a dedicated OTP input field, verify button, and resend timer.
+-   **OTP Bug Fix:** Resolved the persistent Invalid OTP error by implementing more robust verification logic for the MSG91 service across all forms.
+-   **Staff Login Overhaul:** Added a new login method for staff using Email + Password (no OTP) and extended the session inactivity timeout to 1 hour.
+-   **Staff Portal Enhancement:** Overhauled the Staff Portal to be mobile-friendly, integrated a full-featured AI-powered training module, and added lead management tools like status updates and filters.
+-   **CRM Admin Tools:** Added features for bulk lead assignment and more granular management of staff login credentials.
+-   **Feature Toggles:** Removed the Shop feature entirely and subsequently re-added the Instagram social links as requested by the user.
+-   **Payment Flow:** Restored the QR code payment modal for the Book Solar Service feature, dynamically linked to the price set in the CRM.
 
 **Earlier issues found/mentioned but not fixed**
--   The root cause of the invalid OTP issue is still unresolved and was explicitly mentioned again by the user.
+-   The monolithic  file continues to grow, representing significant technical debt that has not been addressed.
 
 **Known issue recurrence from previous fork**
--   **Monolithic  architecture:** This issue persists. The agent added more endpoints to the file instead of creating a new router, increasing the technical debt.
+-   **Monolithic  architecture:** This issue has been carried over and exacerbated during this session, with numerous new endpoints added directly to the main server file instead of being organized into routers.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, MongoDB, MSG91 for SMS.
--   **Frontend:** React (custom hooks), Tailwind CSS, multi-step forms.
--   **Payments:** Custom QR code flow (replaces Razorpay).
+-   **Frontend:** React, responsive design with Tailwind CSS, custom hooks (), component reusability ().
+-   **Backend:** FastAPI, MongoDB.
+-   **Integrations:** MSG91 (OTP), Gemini (AI Training Assistant), Superfone (via  protocol).
 
 **key DB schema**
--   ****: (New) Stores solar service bookings with transaction IDs.
--   ****: (New) Stores the configurable price for the solar service.
--   ****: Now supports updates via a  request.
+-   ****: The  field is now used to control login methods.
+-   ****: The  enum now includes not_interested. A method to track called vs. uncalled status is needed (e.g., a  timestamp).
 
 **changes in tech stack**
--   Razorpay SDK has been removed and is no longer a dependency.
+-   None.
 
 **All files of reference**
--   : Contains the new QR payment modal and updated inquiry forms.
--   : Contains the custom OTP UI that needs the bug fix.
--   : Contains the custom OTP UI that needs the bug fix.
--   : Contains the new service price management UI.
--   : Contains the new employee edit functionality.
--   : Contains the new backend logic for services and needs refactoring.
+-   : Core file for the latest user requests regarding lead management.
+-   : Contains the bulk upload and bulk assignment features.
+-   : Contains the session timeout logic.
+-   : Contains all the new backend endpoints that need verification and refactoring.
+-   : Contains the new email-based login flow.
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** The new  and  endpoints should be extracted into a new router file ().
--   ** (High):** This file is excessively large. The main components it renders, like  and , should be extracted into their own dedicated files.
+-   ** (CRITICAL):** This file is now extremely large. All functionally related endpoints (staff, training, bulk actions, etc.) must be extracted into separate router files under .
+-   ** /  (High):** Both components have grown significantly and contain a mix of state management, data fetching, and complex JSX. They should be broken down into smaller, more manageable child components.
 
 **key api endpoints**
--   : Confirms a booking and sends an SMS.
--   : Updates the solar service price.
--   : Updates an employee's details.
+-   : (New) Allows staff to log in with email and password, bypassing OTP.
+-   : (New) Assigns a list of selected leads to a specific staff member.
+-   : (New) Enables or disables OTP requirements for a staff account.
+-   : The endpoint that handles lead status updates; needs logic to handle the new not_interested case.
 
 **Critical Info for New Agent**
--   **TOP PRIORITY:** You must fix the invalid OTP bug. The user has reported it multiple times, and it's a major blocker. Start by adding detailed logging to the frontend  callbacks to understand the actual response from the MSG91 library before attempting another fix.
--   **Test Everything:** The previous agent implemented a very large number of features without running a single end-to-end test. Your second priority is to conduct comprehensive testing across all new features (QR payment, HR edit, CRM price update) to ensure stability.
--   **Refactor as You Go:** When working on the backend, take the opportunity to move the new service endpoints out of  and into a new router file to address the technical debt.
+-   Your immediate priority is to complete the lead management features. This involves implementing the backend logic for when a staff member marks a lead as Not Interested and thoroughly testing the end-to-end flow.
+-   The second priority is tackling the robust bulk lead upload feature, ensuring it can handle large Excel files and prioritize creating leads from mobile numbers.
+-   The staff calling feature now uses the  protocol. This is a custom URL scheme and will only function if the user has the required Superfone application installed on their device.
+-   Be aware that the  file is now over 10,000 lines long. It is crucial to begin refactoring it by moving logical groups of endpoints into separate router files to manage the technical debt.
 
 **documents and test reports created in this job**
+-    (Updated)
 -   
--    (Note: This is from before the latest batch of changes and is not relevant for testing them).
+-   
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-- The user provided a large list of requirements: remove the shop, replace Razorpay with a QR system, add new admin features (HR edit, CRM price management), update contact numbers, and fix the persistent invalid OTP bug. The agent implemented all features but the user's final message confirms the OTP issue is still present. This is the most critical pending item.
+-   The user's most recent messages have been a series of feature requests focused on making the lead management process for staff as efficient as possible. This includes bulk uploading leads with just a mobile number, extending login sessions, adding a Not Interested status that cycles leads back to the main pool, integrating with a specific calling app (Superfone), and adding filters for called/uncalled leads. All these requests were approved for implementation.
 
 **Project Health Check:**
--   **Broken:** The OTP verification system for login and forms is unreliable and considered broken by the user.
--   **Mocked:** 0
--   **Health:** **Needs Verification.** The application is unstable due to a large number of untested changes and a known critical bug.
+-   **Broken**: 0
+-   **Mocked**: 0
+-   **Health**: **Needs Verification.** While many features were implemented and tested during the session, the very latest batch of lead management enhancements is incomplete. The backend logic is missing, and the full workflow has not been tested.
 
 **3rd Party Integrations**
--   **Gemini (via ):** Uses **Emergent LLM Key**.
+-   **Gemini (via ):** Used for the AI Training Assistant. Requires **Emergent LLM Key**.
+-   **MSG91:** Used for OTP and SMS notifications. Requires User API Key.
+-   **Superfone:** A new calling integration via the  URL protocol. This is a client-side dependency.
 -   **Google reCAPTCHA v3:** Requires User API Key.
 -   **Resend:** Requires User API Key.
 -   **Meta (Facebook/WhatsApp):** For CRM webhooks and Pixel tracking.
--   **MSG91:** For OTP verification and SMS notifications.
 
 **Testing status**
--   **Testing agent used after significant changes:** NO (Not after the most recent, large batch of changes).
+-   **Testing agent used after significant changes:** YES (but not for the most recent lead management changes).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
 -   **Test files created:** []
--   **Known regressions:** The invalid OTP issue is a persistent bug that was not successfully fixed.
+-   **Known regressions:** None.
 
 **Credentials to test flow:**
 -   **Admin Mobile for OTP:** 
 -   **Default Service Price:** 
-
-**What agent forgot to execute**
-- The agent failed to run any tests after a major overhaul of the application's features, including adding a new payment flow.
-- The agent did not resolve the recurring invalid OTP bug, which the user explicitly asked to be fixed.
-- The agent increased backend technical debt by adding new logic directly to the monolithic  instead of creating a new router.</analysis>
+</analysis>

@@ -1939,6 +1939,86 @@ const HomePage = () => {
       {/* Testimonials */}
       <TestimonialsSection />
 
+      {/* Instagram Widget Section */}
+      <section className="py-16 bg-gradient-to-b from-white to-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#0a355e] mb-3">Follow Us on Instagram</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">Stay updated with our latest installations, customer stories, and solar energy tips</p>
+          </div>
+          
+          {/* Instagram Feed Widget */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+            {/* Instagram Header */}
+            <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white p-2 rounded-full">
+                  <Instagram className="w-6 h-6 text-pink-500" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">@asr_enterprises_patna</h3>
+                  <p className="text-white/80 text-sm">Official Instagram</p>
+                </div>
+              </div>
+              <a 
+                href="https://instagram.com/asr_enterprises_patna" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-white text-pink-500 px-4 py-2 rounded-full font-semibold text-sm hover:bg-gray-100 transition flex items-center space-x-2"
+              >
+                <span>Follow</span>
+                <ChevronRight className="w-4 h-4" />
+              </a>
+            </div>
+            
+            {/* Instagram Posts Grid */}
+            <div className="p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {/* Post placeholders - will show actual content when clicked */}
+                {[
+                  { title: "5kW Installation", desc: "Patna", icon: "🏠" },
+                  { title: "Happy Customer", desc: "Gaya", icon: "😊" },
+                  { title: "Solar Panel Setup", desc: "Muzaffarpur", icon: "☀️" },
+                  { title: "Government Subsidy", desc: "Info", icon: "📋" },
+                  { title: "Team at Work", desc: "Installation", icon: "👷" },
+                  { title: "Customer Review", desc: "5 Stars", icon: "⭐" },
+                  { title: "Before & After", desc: "Transformation", icon: "🔄" },
+                  { title: "Latest Offer", desc: "Limited Time", icon: "🎉" }
+                ].map((post, idx) => (
+                  <a 
+                    key={idx}
+                    href="https://instagram.com/asr_enterprises_patna"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex flex-col items-center justify-center hover:scale-105 hover:shadow-lg transition-all duration-300 border border-gray-200"
+                  >
+                    <span className="text-3xl mb-2">{post.icon}</span>
+                    <span className="text-gray-700 font-medium text-sm text-center px-2">{post.title}</span>
+                    <span className="text-gray-500 text-xs">{post.desc}</span>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-end justify-center pb-3">
+                      <span className="text-white text-xs font-medium">View on Instagram</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+              
+              {/* View All Button */}
+              <div className="mt-6 text-center">
+                <a 
+                  href="https://instagram.com/asr_enterprises_patna" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-8 py-3 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all"
+                >
+                  <Instagram className="w-5 h-5" />
+                  <span>View All Posts on Instagram</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer - Premium Dark Navy */}
       <footer className="bg-[#071A2E] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

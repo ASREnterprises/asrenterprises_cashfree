@@ -139,12 +139,15 @@ async def get_crm_stats_widget():
 
 @router.get("/widget/pipeline")
 async def get_crm_pipeline_widget():
-    """Get lead pipeline stages"""
+    """Get lead pipeline stages - optimized with parallel queries"""
     stages = ["new", "contacted", "site_visit", "quotation", "negotiation", "converted", "completed", "lost"]
-    pipeline = {}
-    for stage in stages:
-        count = await db.crm_leads.count_documents({"stage": stage})
-        pipeline[stage] = count
+    
+    # Run all count queries in parallel for faster response
+    counts = await asyncio.gather(*[
+        db.crm_leads.count_documents({"stage": stage}) for stage in stages
+    ])
+    
+    pipeline = {stage: count for stage, count in zip(stages, counts)}
     return {"pipeline": pipeline}
 
 
@@ -183,42 +186,40 @@ async def get_crm_recent_activity():
 
 @router.get("/dashboard")
 async def get_crm_dashboard():
-    """Get comprehensive CRM dashboard data"""
-    # Get all leads with stages
-    all_leads = await db.crm_leads.find({}, {"_id": 0}).to_list(1000)
-    
-    # Pipeline stats
-    pipeline_stats = {}
+    """Get comprehensive CRM dashboard data - optimized for speed"""
+    # Run all queries in parallel for faster response
     stages = ["new", "contacted", "site_visit", "quotation", "negotiation", "converted", "completed", "lost"]
-    for stage in stages:
-        pipeline_stats[stage] = sum(1 for l in all_leads if l.get("stage") == stage)
-    
-    # Source breakdown
-    source_stats = {}
-    for lead in all_leads:
-        source = lead.get("source", "manual")
-        source_stats[source] = source_stats.get(source, 0) + 1
-    
-    # Today's follow-ups
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    todays_followups = await db.crm_followups.find({"scheduled_date": today}, {"_id": 0}).to_list(100)
     
-    # Staff performance
-    staff_list = await db.crm_staff_accounts.find({"is_active": True}, {"_id": 0}).to_list(50)
+    # Parallel queries for all dashboard data
+    results = await asyncio.gather(
+        db.crm_leads.count_documents({}),  # 0: total
+        *[db.crm_leads.count_documents({"stage": stage}) for stage in stages],  # 1-8: pipeline counts
+        db.crm_followups.count_documents({"scheduled_date": today}),  # 9: today's followups
+        db.crm_staff_accounts.count_documents({"is_active": True}),  # 10: active staff
+        db.crm_leads.find({}, {"_id": 0, "name": 1, "phone": 1, "stage": 1, "source": 1, "district": 1, "timestamp": 1}).sort("timestamp", -1).limit(10).to_list(10),  # 11: recent leads
+        db.crm_leads.aggregate([
+            {"$group": {"_id": "$source", "count": {"$sum": 1}}}
+        ]).to_list(20),  # 12: source breakdown
+    )
     
-    # Recent activities
-    recent_leads = await db.crm_leads.find({}, {"_id": 0}).sort("timestamp", -1).limit(10).to_list(10)
+    total_leads = results[0]
+    pipeline_stats = {stage: results[i+1] for i, stage in enumerate(stages)}
+    todays_followups = results[9]
+    active_staff = results[10]
+    recent_leads = results[11]
+    source_breakdown = {item["_id"]: item["count"] for item in results[12] if item["_id"]}
     
     converted_count = pipeline_stats.get("converted", 0) + pipeline_stats.get("completed", 0)
     
     return {
-        "total_leads": len(all_leads),
+        "total_leads": total_leads,
         "pipeline_stats": pipeline_stats,
-        "source_stats": source_stats,
-        "todays_followups": len(todays_followups),
-        "active_staff": len(staff_list),
+        "source_stats": source_breakdown,
+        "todays_followups": todays_followups,
+        "active_staff": active_staff,
         "recent_leads": recent_leads,
-        "conversion_rate": round(converted_count / max(len(all_leads), 1) * 100, 1)
+        "conversion_rate": round(converted_count / max(total_leads, 1) * 100, 1)
     }
 
 

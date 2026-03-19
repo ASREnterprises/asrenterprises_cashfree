@@ -173,8 +173,8 @@ export const StaffPortal = () => {
     setUpdatingLeadId(null);
   };
 
-  // Mark lead as called and open Superfone app
-  const handleCallLead = async (lead, useSuperfone = false) => {
+  // Mark lead as called and open phone app
+  const handleCallLead = async (lead) => {
     // Mark as called locally
     setCalledLeads(prev => new Set([...prev, lead.id]));
     
@@ -204,14 +204,7 @@ export const StaffPortal = () => {
     }
     
     // Open phone app
-    const phoneNumber = lead.phone.replace(/\D/g, '');
-    if (useSuperfone) {
-      // Superfone deep link
-      window.location.href = `superfone://call/${phoneNumber}`;
-    } else {
-      // Regular tel link
-      window.location.href = `tel:${lead.phone}`;
-    }
+    window.location.href = `tel:${lead.phone}`;
   };
 
   // Load called leads from localStorage on mount
@@ -578,38 +571,51 @@ export const StaffPortal = () => {
         {/* Leads Tab - Mobile Optimized */}
         {activeTab === "leads" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="text-lg sm:text-xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Call Status Filter */}
-                <select
-                  value={callFilter}
-                  onChange={(e) => setCallFilter(e.target.value)}
-                  className="bg-gray-50 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm"
-                >
-                  <option value="all">All Leads ({leads.length})</option>
-                  <option value="uncalled">Uncalled ({leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length})</option>
-                  <option value="called">Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length})</option>
-                </select>
-                <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition text-sm" data-testid="staff-add-lead-btn">
-                  <Plus className="w-4 h-4" /><span>Add Lead</span>
+            {/* Header - Mobile Friendly */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl flex items-center space-x-2 hover:bg-blue-700 active:bg-blue-800 transition text-sm font-medium shadow-md" data-testid="staff-add-lead-btn">
+                  <Plus className="w-5 h-5" /><span>Add Lead</span>
                 </button>
               </div>
             </div>
+            
+            {/* Filter Buttons - Large Touch Targets for Mobile */}
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => setCallFilter('all')}
+                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                All ({leads.length})
+              </button>
+              <button
+                onClick={() => setCallFilter('uncalled')}
+                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'uncalled' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Uncalled ({leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length})
+              </button>
+              <button
+                onClick={() => setCallFilter('called')}
+                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'called' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length})
+              </button>
+            </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-blue-600">{leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length}</div>
-                <div className="text-xs text-blue-700">Uncalled</div>
+            {/* Quick Stats - Larger for Mobile */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center">
+                <div className="text-3xl font-bold text-blue-600">{leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length}</div>
+                <div className="text-sm text-blue-700 font-medium">To Call</div>
               </div>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-green-600">{leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length}</div>
-                <div className="text-xs text-green-700">Called</div>
+              <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 text-center">
+                <div className="text-3xl font-bold text-green-600">{leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length}</div>
+                <div className="text-sm text-green-700 font-medium">Called</div>
               </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-orange-600">{leads.filter(l => l.stage === 'interested').length}</div>
-                <div className="text-xs text-orange-700">Interested</div>
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center">
+                <div className="text-3xl font-bold text-orange-600">{leads.filter(l => l.stage === 'interested').length}</div>
+                <div className="text-sm text-orange-700 font-medium">Interested</div>
               </div>
             </div>
             
@@ -662,17 +668,9 @@ export const StaffPortal = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center space-x-2">
                           <button 
-                            onClick={() => handleCallLead(lead, true)}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition shadow-md"
-                            title="Call via Superfone"
-                          >
-                            <Phone className="w-3 h-3" />
-                            <span>Superfone</span>
-                          </button>
-                          <button 
-                            onClick={() => handleCallLead(lead, false)}
+                            onClick={() => handleCallLead(lead)}
                             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
-                            title="Regular Call"
+                            title="Call Customer"
                           >
                             <Phone className="w-3 h-3" />
                             <span>Call</span>
@@ -710,72 +708,72 @@ export const StaffPortal = () => {
                   return true;
                 })
                 .map((lead) => (
-                <div key={lead.id} className={`bg-white shadow-lg border rounded-xl p-4 ${calledLeads.has(lead.id) ? 'border-green-300 bg-green-50/30' : 'border-sky-200'}`} data-testid={`lead-card-${lead.id}`}>
+                <div key={lead.id} className={`bg-white shadow-lg border-2 rounded-2xl p-5 ${calledLeads.has(lead.id) ? 'border-green-400 bg-green-50/50' : 'border-sky-200'}`} data-testid={`lead-card-${lead.id}`}>
                   {/* Called Badge */}
                   {calledLeads.has(lead.id) && (
-                    <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full inline-flex items-center mb-2">
-                      <CheckCircle className="w-3 h-3 mr-1" /> Called
+                    <div className="bg-green-100 text-green-700 text-sm px-3 py-1.5 rounded-full inline-flex items-center mb-3 font-medium">
+                      <CheckCircle className="w-4 h-4 mr-1.5" /> Called
                     </div>
                   )}
-                  {/* Lead Info */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <div className="text-[#0a355e] font-bold text-lg">{lead.name || 'Unknown'}</div>
-                      <div className="text-gray-700 font-mono text-base">{lead.phone}</div>
-                      <div className="text-gray-500 text-sm">{lead.district}</div>
-                      <div className="text-gray-400 text-xs">₹{lead.monthly_bill}/month bill</div>
+                  {/* Lead Info - Larger Touch Friendly */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="text-[#0a355e] font-bold text-xl mb-1">{lead.name || 'Unknown'}</div>
+                      <a href={`tel:${lead.phone}`} className="text-blue-600 font-mono text-lg block mb-1 underline">{lead.phone}</a>
+                      {lead.district && <div className="text-gray-600 text-base">{lead.district}</div>}
+                      {lead.monthly_bill && <div className="text-gray-500 text-sm mt-1">₹{lead.monthly_bill}/month bill</div>}
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-500'} text-white`}>
+                    <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-500'} text-white`}>
                       {PIPELINE_STAGES.find(s => s.id === lead.stage)?.label || 'New'}
                     </span>
                   </div>
 
-                  {/* Status Update Dropdown */}
-                  <div className="mb-3">
-                    <label className="text-xs text-gray-500 mb-1 block">Update Status:</label>
+                  {/* Status Update Dropdown - Larger */}
+                  <div className="mb-4">
+                    <label className="text-sm text-gray-600 mb-2 block font-medium">Update Status:</label>
                     <select
                       value={lead.stage || 'new'}
                       onChange={(e) => quickUpdateLeadStatus(lead.id, e.target.value)}
                       disabled={updatingLeadId === lead.id}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base focus:ring-2 focus:ring-blue-400 focus:border-blue-400 font-medium"
                       data-testid={`mobile-lead-status-${lead.id}`}
                     >
                       {PIPELINE_STAGES.map(stage => (
                         <option key={stage.id} value={stage.id}>{stage.label}</option>
                       ))}
                     </select>
-                    {updatingLeadId === lead.id && <span className="text-xs text-blue-500 mt-1">Saving...</span>}
+                    {updatingLeadId === lead.id && <span className="text-sm text-blue-500 mt-2 block">Saving...</span>}
                   </div>
 
-                  {/* Action Buttons - Full Width for Mobile */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Action Buttons - Full Width for Mobile - Easy Touch Targets */}
+                  <div className="grid grid-cols-2 gap-3 mt-3">
                     <button 
-                      onClick={() => handleCallLead(lead, true)}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium shadow-md"
+                      onClick={() => handleCallLead(lead)}
+                      className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-lg"
                     >
-                      <Phone className="w-4 h-4" />
-                      <span>Superfone Call</span>
-                    </button>
-                    <button 
-                      onClick={() => handleCallLead(lead, false)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium"
-                    >
-                      <Phone className="w-4 h-4" />
-                      <span>Regular Call</span>
+                      <Phone className="w-5 h-5" />
+                      <span>Call Now</span>
                     </button>
                     <button 
                       onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
-                      className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium"
+                      className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-lg"
                     >
-                      <MessageSquare className="w-4 h-4" />
+                      <MessageSquare className="w-5 h-5" />
                       <span>WhatsApp</span>
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }}
+                      className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-lg"
+                    >
+                      <Edit className="w-5 h-5" />
+                      <span>Update</span>
                     </button>
                     <button 
                       onClick={() => quickUpdateLeadStatus(lead.id, 'not_interested')}
                       disabled={updatingLeadId === lead.id}
-                      className="bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg text-sm flex items-center justify-center space-x-2 transition font-medium disabled:opacity-50"
+                      className="bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold disabled:opacity-50 shadow-lg"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-5 h-5" />
                       <span>Not Interested</span>
                     </button>
                   </div>

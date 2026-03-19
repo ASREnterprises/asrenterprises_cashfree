@@ -271,28 +271,35 @@ async def staff_create_lead(staff_id: str, data: Dict[str, Any]):
 
 @router.get("/{staff_id}/dashboard")
 async def get_staff_dashboard(staff_id: str):
-    """Staff dashboard with their stats"""
+    """Staff dashboard with their stats - optimized for speed"""
+    import asyncio
+    
     staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0, "password_hash": 0})
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
     internal_id = staff.get("id")
-    
-    pipeline_stats = await db.crm_leads.aggregate([
-        {"$match": {"assigned_to": internal_id}},
-        {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
-    ]).to_list(20)
-    
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    todays_followups = await db.crm_followups.find(
-        {"employee_id": internal_id, "reminder_date": today, "status": "pending"},
-        {"_id": 0}
-    ).to_list(20)
     
-    recent_leads = await db.crm_leads.find(
-        {"assigned_to": internal_id},
-        {"_id": 0}
-    ).sort("timestamp", -1).limit(5).to_list(5)
+    # Run all queries in parallel for faster response
+    results = await asyncio.gather(
+        db.crm_leads.aggregate([
+            {"$match": {"assigned_to": internal_id}},
+            {"$group": {"_id": "$stage", "count": {"$sum": 1}}}
+        ]).to_list(20),
+        db.crm_followups.find(
+            {"employee_id": internal_id, "reminder_date": today, "status": "pending"},
+            {"_id": 0}
+        ).to_list(20),
+        db.crm_leads.find(
+            {"assigned_to": internal_id},
+            {"_id": 0, "name": 1, "phone": 1, "stage": 1, "district": 1, "timestamp": 1}
+        ).sort("timestamp", -1).limit(5).to_list(5)
+    )
+    
+    pipeline_stats = results[0]
+    todays_followups = results[1]
+    recent_leads = results[2]
     
     return {
         "staff": staff,

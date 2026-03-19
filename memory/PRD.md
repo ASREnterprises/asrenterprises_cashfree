@@ -3,7 +3,44 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 18, 2026) - Pagination & Bulk Import Fix
+## Latest Session (March 18, 2026) - Staff Portal & Performance Optimization
+
+### Features Completed (COMPLETED)
+
+1. **Removed Superfone from Staff Portal** ✅
+   - Removed all Superfone buttons and references
+   - `handleCallLead` now uses only `tel:` protocol
+   - Single "Call Now" button for easy calling
+
+2. **Mobile-Optimized Staff Portal** ✅
+   - Larger touch targets (py-4 buttons with rounded-xl)
+   - Filter buttons: All/Uncalled/Called (3-column grid)
+   - Bigger lead cards with clearer info display
+   - Phone numbers are clickable links
+   - Active states for buttons (active:bg-*)
+   - Larger status dropdown for easy selection
+
+3. **Instagram Widget on Homepage** ✅
+   - Added below Testimonials section
+   - Shows @asr_enterprises_patna profile
+   - 8 placeholder post tiles with hover effects
+   - "Follow" button and "View All Posts" CTA
+   - Gradient header with Instagram branding
+
+4. **Performance Optimization** ✅
+   - CRM Dashboard: Parallel queries with asyncio.gather (~0.3s response)
+   - Staff Dashboard: Parallel queries for stats, followups, leads
+   - Pipeline Widget: Parallel count queries
+   - Reduced sequential database calls significantly
+
+### Testing Results (March 18, 2026)
+- **Backend:** 100% (15/15 tests passed)
+- **Frontend:** 100% (All features verified)
+- **Test Report:** `/app/test_reports/iteration_51.json`
+
+---
+
+## Previous Session (March 18, 2026) - Pagination & Bulk Import Fix
 
 ### Features Completed (COMPLETED)
 

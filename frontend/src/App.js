@@ -1097,7 +1097,7 @@ const HomePage = () => {
       // Create booking with QR payment details
       const res = await axios.post(`${API}/service/book-solar`, {
         ...bookingData,
-        amount: servicePrice,
+        amount: 2999,
         payment_method: 'qr_code',
         transaction_id: transactionId.trim()
       });
@@ -1394,6 +1394,14 @@ const HomePage = () => {
                 data-testid="free-consultation-btn"
               >
                 Request Free Consultation
+              </button>
+              <button
+                onClick={() => setShowBookService(true)}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-full font-bold hover:from-amber-600 hover:to-orange-600 transition shadow-lg flex items-center justify-center gap-2"
+                data-testid="book-solar-service-btn"
+              >
+                <QrCode className="w-5 h-5" />
+                Book Solar Service - ₹2999
               </button>
             </div>
 
@@ -2120,19 +2128,152 @@ const HomePage = () => {
             Email Us
           </span>
         </a>
+
+        {/* Scroll to Top Button - Below Email */}
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="bg-[#0a355e] text-white p-3 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all hover:scale-110 group relative border border-white/30"
+            data-testid="scroll-to-top-btn"
+            aria-label="Scroll to top"
+          >
+            <ChevronUp className="w-5 h-5" />
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+              Back to Top
+            </span>
+          </button>
+        )}
       </div>
 
-      {/* Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-8 left-8 z-[9999] bg-[#0a355e] text-white p-4 rounded-full shadow-2xl hover:bg-[#0B3C5D] transition-all duration-300 hover:scale-110 border-2 border-white/30"
-          data-testid="scroll-to-top-btn"
-          aria-label="Scroll to top"
-          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
-        >
-          <ChevronUp className="w-6 h-6" />
-        </button>
+      {/* Book Service Modal with QR Payment */}
+      {showBookService && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowBookService(false)} />
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
+              <Zap className="w-10 h-10 text-white mx-auto mb-2" />
+              <h2 className="text-xl font-bold text-white">Book Solar Service</h2>
+              <p className="text-amber-100 text-sm mt-1">Professional solar service by ASR Enterprises</p>
+            </div>
+            
+            {paymentStep === 'form' && (
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Full Name *</label>
+                  <input type="text" placeholder="Enter your name" value={bookingData.customer_name}
+                    onChange={(e) => setBookingData({...bookingData, customer_name: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="booking-name" />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Phone Number *</label>
+                  <input type="tel" placeholder="Enter phone number" value={bookingData.customer_phone}
+                    onChange={(e) => setBookingData({...bookingData, customer_phone: e.target.value.replace(/\D/g, '').slice(0, 10)})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="booking-phone" />
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Email (for confirmation)</label>
+                  <input type="email" placeholder="Enter email for receipt" value={bookingData.customer_email}
+                    onChange={(e) => setBookingData({...bookingData, customer_email: e.target.value})}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="booking-email" />
+                </div>
+                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Service Amount</span>
+                    <span className="text-2xl font-bold text-amber-400">₹2,999</span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">Pay via Paytm / PhonePe / Google Pay / UPI</p>
+                </div>
+                <button
+                  onClick={handleBookService}
+                  disabled={!bookingData.customer_name || !bookingData.customer_phone}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
+                  data-testid="booking-proceed-btn"
+                >
+                  <QrCode className="w-5 h-5" /> Proceed to Pay
+                </button>
+              </div>
+            )}
+
+            {paymentStep === 'qr' && (
+              <div className="p-6 space-y-4">
+                <div className="text-center">
+                  <p className="text-gray-400 text-sm mb-2">Scan QR Code to Pay</p>
+                  <div className="bg-white p-4 rounded-xl inline-block mb-3">
+                    <img src="https://customer-assets.emergentagent.com/job_b700bab2-c38d-4ea1-a31b-e9f9d5c6fcd7/artifacts/no4n7n76_5404.jpg" alt="Paytm QR Code" className="w-48 h-48 mx-auto object-contain" />
+                  </div>
+                  <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-3">
+                    <p className="text-amber-300 font-bold text-xl">₹2,999</p>
+                    <p className="text-amber-200 text-sm">Pay to: ASR Enterprises</p>
+                  </div>
+                  <div className="text-left bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
+                    <p className="text-gray-400 text-xs mb-2">How to pay:</p>
+                    <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
+                      <li>Open Paytm/PhonePe/GPay</li>
+                      <li>Scan the QR code above</li>
+                      <li>Pay ₹2,999</li>
+                      <li>Note down the Transaction ID/UTR</li>
+                      <li>Enter below to confirm booking</li>
+                    </ol>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm mb-1 block">Transaction ID / UTR Number *</label>
+                  <input type="text" placeholder="Enter transaction ID from payment app" value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
+                    data-testid="transaction-id" />
+                  <p className="text-gray-500 text-xs mt-1">You can find this in your UPI app's transaction details</p>
+                </div>
+                <button
+                  onClick={handlePaymentVerification}
+                  disabled={verifyLoading || !transactionId.trim()}
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
+                  data-testid="verify-payment-btn"
+                >
+                  {verifyLoading ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
+                  ) : (
+                    <><CheckCircle className="w-5 h-5" /> Confirm Payment</>
+                  )}
+                </button>
+                <button
+                  onClick={() => setPaymentStep('form')}
+                  className="w-full text-gray-400 hover:text-white text-sm py-2 transition"
+                >
+                  ← Go Back
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Booking Success Modal */}
+      {bookingSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
+            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-12 h-12 text-green-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Booking Confirmed!</h2>
+            <p className="text-gray-400 mb-4">Your solar service has been booked successfully</p>
+            <div className="bg-gray-800/50 rounded-xl p-4 mb-4 border border-gray-700">
+              <p className="text-gray-400 text-sm">Booking Number</p>
+              <p className="text-amber-400 font-bold text-xl" data-testid="booking-number">{bookingSuccess.booking_number}</p>
+            </div>
+            <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-3 mb-4">
+              <p className="text-green-300 text-sm">Payment Verified - Awaiting Confirmation</p>
+            </div>
+            <p className="text-gray-400 text-sm mb-4">Our team will call you within 24 hours to schedule your service.</p>
+            <button onClick={() => setBookingSuccess(null)}
+              className="w-full bg-gray-700 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition"
+            >Close</button>
+          </div>
+        </div>
       )}
 
       {/* AI Chat Widget - Solar Expert */}

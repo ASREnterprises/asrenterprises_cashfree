@@ -2202,7 +2202,7 @@ const HomePage = () => {
                 <div className="text-center">
                   <p className="text-gray-400 text-sm mb-2">Scan QR Code to Pay</p>
                   <div className="bg-white p-4 rounded-xl inline-block mb-3">
-                    <img src="https://customer-assets.emergentagent.com/job_b700bab2-c38d-4ea1-a31b-e9f9d5c6fcd7/artifacts/no4n7n76_5404.jpg" alt="Paytm QR Code" className="w-48 h-48 mx-auto object-contain" />
+                    <img src="https://customer-assets.emergentagent.com/job_b700bab2-c38d-4ea1-a31b-e9f9d5c6fcd7/artifacts/c9hd4gjy_5423.jpg" alt="Paytm QR Code - ₹2999" className="w-56 h-auto mx-auto object-contain" />
                   </div>
                   <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-3">
                     <p className="text-amber-300 font-bold text-xl">₹2,999</p>

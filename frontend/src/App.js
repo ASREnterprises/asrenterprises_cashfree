@@ -1051,9 +1051,15 @@ const HomePage = () => {
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
+      // Show button when scrolled down more than 300px
+      const scrolled = window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollTop(scrolled > 300);
     };
-    window.addEventListener('scroll', handleScroll);
+    
+    // Check initial scroll position
+    handleScroll();
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -2120,9 +2126,10 @@ const HomePage = () => {
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 left-6 z-40 bg-[#0a355e] text-white p-4 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all duration-300 hover:scale-110 hover:shadow-2xl"
+          className="fixed bottom-8 left-8 z-[9999] bg-[#0a355e] text-white p-4 rounded-full shadow-2xl hover:bg-[#0B3C5D] transition-all duration-300 hover:scale-110 border-2 border-white/30"
           data-testid="scroll-to-top-btn"
           aria-label="Scroll to top"
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}
         >
           <ChevronUp className="w-6 h-6" />
         </button>

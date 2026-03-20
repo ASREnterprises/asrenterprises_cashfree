@@ -58,13 +58,6 @@ export const GalleryPage = () => {
   // Static gallery items (original photos)
   const staticGalleryItems = [
     {
-      type: "video",
-      url: "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/6t8numer_VID-20260130-WA0022.mp4",
-      thumbnail: "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/xgz3s4do_IMG-20250826-WA0065.jpg",
-      title: "Solar Installation Process",
-      location: "Bihar, India"
-    },
-    {
       type: "image",
       url: "https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/xgz3s4do_IMG-20250826-WA0065.jpg",
       title: "Rooftop Solar Installation - Vaishali",

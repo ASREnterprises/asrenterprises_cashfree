@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react
 import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
-  Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight,
+  Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight, ChevronUp,
   Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -1046,6 +1046,21 @@ const HomePage = () => {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [servicePrice, setServicePrice] = useState(1500);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // Handle scroll to show/hide scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     axios.get(`${API}/service/book-solar-config`).then(res => setServicePrice(res.data.price)).catch(() => setServicePrice(2499));
@@ -2008,7 +2023,7 @@ const HomePage = () => {
                 <div className="flex items-start space-x-2">
                   <Mail className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
-                    <a href="mailto:asrenterprisespatna@gmail.com" className="hover:text-[#FFD166] transition break-all">asrenterprisespatna@gmail.com</a>
+                    <a href="mailto:support@asrenterprises.in" className="hover:text-[#FFD166] transition break-all">support@asrenterprises.in</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
@@ -2090,7 +2105,7 @@ const HomePage = () => {
         
         {/* Email Icon */}
         <a
-          href="mailto:asrenterprisespatna@gmail.com?subject=Solar Inquiry&body=Hi ASR Enterprises, I'm interested in solar rooftop installation."
+          href="mailto:support@asrenterprises.in?subject=Solar Inquiry&body=Hi ASR Enterprises, I'm interested in solar rooftop installation."
           className="bg-red-500 text-white p-3 rounded-full shadow-xl hover:bg-red-600 transition-all hover:scale-110 group relative"
           data-testid="email-float-btn"
         >
@@ -2100,6 +2115,18 @@ const HomePage = () => {
           </span>
         </a>
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 left-6 z-40 bg-[#0a355e] text-white p-4 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all duration-300 hover:scale-110 hover:shadow-2xl"
+          data-testid="scroll-to-top-btn"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </button>
+      )}
 
       {/* AI Chat Widget - Solar Expert */}
       <Suspense fallback={null}>

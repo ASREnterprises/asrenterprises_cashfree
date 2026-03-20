@@ -1344,17 +1344,9 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-              <button
-                onClick={() => setShowBookService(true)}
-                className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
-                data-testid="book-now-btn"
-              >
-                <Zap className="w-5 h-5" />
-                <span>Book Solar Service - ₹{servicePrice || 2499}</span>
-              </button>
               <a
                 href="tel:8877896889"
-                className="bg-white/10 backdrop-blur-sm text-white px-8 py-4 rounded-full font-semibold hover:bg-white/20 transition flex items-center justify-center space-x-2 border border-white/30"
+                className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
                 data-testid="call-now-btn"
                 onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Hero Section' }); }}
               >
@@ -1381,14 +1373,6 @@ const HomePage = () => {
                 data-testid="free-consultation-btn"
               >
                 Request Free Consultation
-              </button>
-              <button
-                onClick={() => setShowBookService(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 transition shadow-lg flex items-center justify-center gap-2"
-                data-testid="book-solar-service-btn"
-              >
-                <QrCode className="w-5 h-5" />
-                Book Solar Service - ₹{servicePrice || 2499}
               </button>
             </div>
 
@@ -1939,86 +1923,6 @@ const HomePage = () => {
       {/* Testimonials */}
       <TestimonialsSection />
 
-      {/* Instagram Widget Section */}
-      <section className="py-16 bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#0a355e] mb-3">Follow Us on Instagram</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">Stay updated with our latest installations, customer stories, and solar energy tips</p>
-          </div>
-          
-          {/* Instagram Feed Widget */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-            {/* Instagram Header */}
-            <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 p-4 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="bg-white p-2 rounded-full">
-                  <Instagram className="w-6 h-6 text-pink-500" />
-                </div>
-                <div>
-                  <h3 className="text-white font-bold text-lg">@asr_enterprises_patna</h3>
-                  <p className="text-white/80 text-sm">Official Instagram</p>
-                </div>
-              </div>
-              <a 
-                href="https://instagram.com/asr_enterprises_patna" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-white text-pink-500 px-4 py-2 rounded-full font-semibold text-sm hover:bg-gray-100 transition flex items-center space-x-2"
-              >
-                <span>Follow</span>
-                <ChevronRight className="w-4 h-4" />
-              </a>
-            </div>
-            
-            {/* Instagram Posts Grid */}
-            <div className="p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {/* Post placeholders - will show actual content when clicked */}
-                {[
-                  { title: "5kW Installation", desc: "Patna", icon: "🏠" },
-                  { title: "Happy Customer", desc: "Gaya", icon: "😊" },
-                  { title: "Solar Panel Setup", desc: "Muzaffarpur", icon: "☀️" },
-                  { title: "Government Subsidy", desc: "Info", icon: "📋" },
-                  { title: "Team at Work", desc: "Installation", icon: "👷" },
-                  { title: "Customer Review", desc: "5 Stars", icon: "⭐" },
-                  { title: "Before & After", desc: "Transformation", icon: "🔄" },
-                  { title: "Latest Offer", desc: "Limited Time", icon: "🎉" }
-                ].map((post, idx) => (
-                  <a 
-                    key={idx}
-                    href="https://instagram.com/asr_enterprises_patna"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex flex-col items-center justify-center hover:scale-105 hover:shadow-lg transition-all duration-300 border border-gray-200"
-                  >
-                    <span className="text-3xl mb-2">{post.icon}</span>
-                    <span className="text-gray-700 font-medium text-sm text-center px-2">{post.title}</span>
-                    <span className="text-gray-500 text-xs">{post.desc}</span>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-end justify-center pb-3">
-                      <span className="text-white text-xs font-medium">View on Instagram</span>
-                    </div>
-                  </a>
-                ))}
-              </div>
-              
-              {/* View All Button */}
-              <div className="mt-6 text-center">
-                <a 
-                  href="https://instagram.com/asr_enterprises_patna" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 text-white px-8 py-3 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all"
-                >
-                  <Instagram className="w-5 h-5" />
-                  <span>View All Posts on Instagram</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Footer - Premium Dark Navy */}
       <footer className="bg-[#071A2E] text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -2134,158 +2038,6 @@ const HomePage = () => {
 
       {/* Floating WhatsApp Button */}
       
-      {/* Book Service Modal with QR Payment */}
-      {showBookService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => !verifyLoading && setShowBookService(false)} />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
-              <Zap className="w-10 h-10 text-white mx-auto mb-2" />
-              <h2 className="text-xl font-bold text-white">Book Solar Service</h2>
-              <p className="text-amber-100 text-sm mt-1">Professional solar service by ASR Enterprises</p>
-            </div>
-            
-            {paymentStep === 'form' && (
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="text-gray-400 text-sm mb-1 block">Full Name *</label>
-                  <input type="text" placeholder="Enter your name" value={bookingData.customer_name}
-                    onChange={(e) => setBookingData({...bookingData, customer_name: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                    data-testid="booking-name" />
-                </div>
-                <div>
-                  <label className="text-gray-400 text-sm mb-1 block">Phone Number *</label>
-                  <input type="tel" placeholder="Enter phone number" value={bookingData.customer_phone}
-                    onChange={(e) => setBookingData({...bookingData, customer_phone: e.target.value.replace(/\D/g, '').slice(0, 10)})}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                    data-testid="booking-phone" />
-                </div>
-                <div>
-                  <label className="text-gray-400 text-sm mb-1 block">Email (for confirmation)</label>
-                  <input type="email" placeholder="Enter email for receipt" value={bookingData.customer_email}
-                    onChange={(e) => setBookingData({...bookingData, customer_email: e.target.value})}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                    data-testid="booking-email" />
-                </div>
-                <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Service Amount</span>
-                    <span className="text-2xl font-bold text-amber-400">₹{servicePrice.toLocaleString()}</span>
-                  </div>
-                  <p className="text-gray-500 text-xs mt-1">Pay via PhonePe / Google Pay / Paytm / UPI</p>
-                </div>
-                <button
-                  onClick={handleBookService}
-                  disabled={!bookingData.customer_name || !bookingData.customer_phone}
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
-                  data-testid="booking-proceed-btn"
-                >
-                  <QrCode className="w-5 h-5" /> Proceed to Pay
-                </button>
-              </div>
-            )}
-
-            {paymentStep === 'qr' && (
-              <div className="p-6 space-y-4">
-                <div className="text-center">
-                  <p className="text-gray-400 text-sm mb-2">Scan QR Code to Pay</p>
-                  <div className="bg-white p-4 rounded-xl inline-block mb-3">
-                    <img src="/images/phonepe-qr.jpg" alt="PhonePe QR Code" className="w-48 h-48 mx-auto" />
-                  </div>
-                  <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-3">
-                    <p className="text-amber-300 font-bold text-xl">₹{servicePrice.toLocaleString()}</p>
-                    <p className="text-amber-200 text-sm">Pay to: ASR Enterprises</p>
-                  </div>
-                  <div className="text-left bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
-                    <p className="text-gray-400 text-xs mb-2">How to pay:</p>
-                    <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
-                      <li>Open PhonePe/GPay/Paytm</li>
-                      <li>Scan the QR code above</li>
-                      <li>Pay ₹{servicePrice.toLocaleString()}</li>
-                      <li>Note down the Transaction ID/UTR</li>
-                      <li>Enter below to confirm booking</li>
-                    </ol>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-gray-400 text-sm mb-1 block">Transaction ID / UTR Number *</label>
-                  <input type="text" placeholder="Enter transaction ID from payment app" value={transactionId}
-                    onChange={(e) => setTransactionId(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                    data-testid="transaction-id" />
-                  <p className="text-gray-500 text-xs mt-1">You can find this in your UPI app's transaction details</p>
-                </div>
-                <button
-                  onClick={handlePaymentVerification}
-                  disabled={verifyLoading || !transactionId.trim()}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
-                  data-testid="verify-payment-btn"
-                >
-                  {verifyLoading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
-                  ) : (
-                    <><CheckCircle className="w-5 h-5" /> Confirm Payment</>
-                  )}
-                </button>
-                <button
-                  onClick={() => setPaymentStep('form')}
-                  className="w-full text-gray-400 hover:text-white text-sm py-2 transition"
-                >
-                  ← Go Back
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Booking Success Modal */}
-      {bookingSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
-            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-12 h-12 text-green-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">Booking Confirmed!</h2>
-            <p className="text-gray-400 mb-4">Your solar service has been booked successfully</p>
-            <div className="bg-gray-800/50 rounded-xl p-4 mb-4 border border-gray-700">
-              <p className="text-gray-400 text-sm">Booking Number</p>
-              <p className="text-amber-400 font-bold text-xl" data-testid="booking-number">{bookingSuccess.booking_number}</p>
-            </div>
-            <div className="bg-green-900/30 border border-green-700/50 rounded-xl p-3 mb-4">
-              <p className="text-green-300 text-sm">Payment Verified - Awaiting Confirmation</p>
-            </div>
-            <div className="space-y-2 mb-4">
-              {bookingSuccess.sms_sent && (
-                <p className="text-blue-400 text-xs flex items-center justify-center gap-1">
-                  <CheckCircle className="w-4 h-4" /> SMS confirmation sent!
-                </p>
-              )}
-              {bookingSuccess.email_sent && (
-                <p className="text-blue-400 text-xs flex items-center justify-center gap-1">
-                  <CheckCircle className="w-4 h-4" /> Email confirmation sent!
-                </p>
-              )}
-            </div>
-            {bookingSuccess.customer_whatsapp_url && (
-              <a href={bookingSuccess.customer_whatsapp_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition mb-4"
-                data-testid="booking-whatsapp-btn"
-              >
-                <MessageSquare className="w-5 h-5" />
-                Get Confirmation on WhatsApp
-              </a>
-            )}
-            <p className="text-gray-400 text-sm mb-4">Our team will call you within 24 hours to schedule your service.</p>
-            <button onClick={() => setBookingSuccess(null)}
-              className="w-full bg-gray-700 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition"
-            >Close</button>
-          </div>
-        </div>
-      )}
-
       {/* NEW: Smart WhatsApp Button - Context-aware messaging */}
       <Suspense fallback={null}>
         <SmartWhatsAppButton variant="floating" />
@@ -2306,6 +2058,20 @@ const HomePage = () => {
           </svg>
           <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
             Facebook
+          </span>
+        </a>
+
+        {/* Instagram */}
+        <a
+          href="https://instagram.com/asr_enterprises_patna"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white p-3 rounded-full shadow-xl hover:scale-110 transition-all group relative"
+          data-testid="instagram-float-btn"
+        >
+          <Instagram className="w-5 h-5" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+            Instagram
           </span>
         </a>
 

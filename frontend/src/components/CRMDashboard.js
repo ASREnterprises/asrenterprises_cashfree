@@ -7,7 +7,8 @@ import {
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
-  Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2
+  Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2,
+  User, X
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
@@ -594,6 +595,14 @@ export const CRMDashboard = () => {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
+  // WhatsApp Inbox state
+  const [waConversations, setWaConversations] = useState([]);
+  const [waSelectedChat, setWaSelectedChat] = useState(null);
+  const [waChatMessages, setWaChatMessages] = useState([]);
+  const [waNewMessage, setWaNewMessage] = useState('');
+  const [waSending, setWaSending] = useState(false);
+  const [waLoading, setWaLoading] = useState(false);
+  
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
@@ -705,6 +714,7 @@ export const CRMDashboard = () => {
     if (activeTab === "tasks") fetchTasks();
     if (activeTab === "team") fetchStaff();
     if (activeTab === "messages") fetchMessages();
+    if (activeTab === "whatsapp") fetchWaConversations();
   }, [activeTab]);
   
   const fetchDashboardData = async () => {
@@ -831,6 +841,55 @@ export const CRMDashboard = () => {
       const res = await axios.get(`${API}/districts`);
       setDistricts(res.data.districts || []);
     } catch (err) { console.error("Error fetching districts", err); }
+  };
+  
+  // WhatsApp Functions
+  const fetchWaConversations = async () => {
+    setWaLoading(true);
+    try {
+      const res = await axios.get(`${API}/meta/whatsapp/conversations`);
+      setWaConversations(res.data.conversations || []);
+    } catch (err) { 
+      console.error("Error fetching WhatsApp conversations:", err); 
+    }
+    setWaLoading(false);
+  };
+  
+  const fetchWaChat = async (phone) => {
+    try {
+      const res = await axios.get(`${API}/meta/whatsapp/chat/${phone}`);
+      setWaChatMessages(res.data.messages || []);
+    } catch (err) { 
+      console.error("Error fetching WhatsApp chat:", err); 
+    }
+  };
+  
+  const sendWaMessage = async () => {
+    if (!waNewMessage.trim() || !waSelectedChat) return;
+    
+    setWaSending(true);
+    try {
+      const res = await axios.post(`${API}/meta/whatsapp/chat/${waSelectedChat}/send`, {
+        message: waNewMessage
+      });
+      
+      if (res.data.success) {
+        setWaNewMessage('');
+        // Refresh chat
+        await fetchWaChat(waSelectedChat);
+        await fetchWaConversations();
+      } else {
+        alert(res.data.error || "Failed to send message");
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error sending message");
+    }
+    setWaSending(false);
+  };
+  
+  const selectWaChat = async (phone) => {
+    setWaSelectedChat(phone);
+    await fetchWaChat(phone);
   };
   
   const fetchAllData = async () => {
@@ -1341,6 +1400,7 @@ export const CRMDashboard = () => {
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
@@ -2069,6 +2129,169 @@ export const CRMDashboard = () => {
         {activeTab === "backups" && (
           <div className="space-y-6">
             <BackupsTab />
+          </div>
+        )}
+
+        {/* WhatsApp Inbox Tab */}
+        {activeTab === "whatsapp" && (
+          <div className="space-y-4">
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[#0a355e] font-bold flex items-center space-x-2" data-testid="whatsapp-header">
+                  <MessageSquare className="w-5 h-5 text-green-500" />
+                  <span>WhatsApp Business Inbox</span>
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-green-500 text-xs bg-green-50 px-2 py-1 rounded-full flex items-center space-x-1">
+                    <Phone className="w-3 h-3" />
+                    <span>+91 8877896889</span>
+                  </span>
+                  <button 
+                    onClick={fetchWaConversations} 
+                    className="text-gray-500 hover:text-[#0a355e] p-1"
+                    title="Refresh"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${waLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-3 gap-4">
+                {/* Conversations List */}
+                <div className="space-y-2 border-r border-sky-200 pr-4 max-h-[500px] overflow-y-auto" data-testid="wa-conversations-list">
+                  {waLoading && waConversations.length === 0 && (
+                    <div className="text-center py-8">
+                      <RefreshCw className="w-8 h-8 text-green-500 mx-auto animate-spin" />
+                      <p className="text-gray-500 text-sm mt-2">Loading conversations...</p>
+                    </div>
+                  )}
+                  
+                  {!waLoading && waConversations.length === 0 && (
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">No conversations yet</p>
+                      <p className="text-gray-400 text-xs mt-1">Messages will appear here when customers contact you on WhatsApp</p>
+                    </div>
+                  )}
+                  
+                  {waConversations.map((conv) => (
+                    <div 
+                      key={conv.phone}
+                      className={`p-3 rounded-lg cursor-pointer transition ${waSelectedChat === conv.phone ? 'bg-green-100 border-2 border-green-500' : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'}`}
+                      onClick={() => selectWaChat(conv.phone)}
+                      data-testid={`wa-chat-${conv.phone}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[#0a355e] font-medium text-sm">{conv.name || 'Unknown'}</span>
+                        {conv.unread_count > 0 && (
+                          <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{conv.unread_count}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-1 text-gray-500 text-xs mb-1">
+                        <Phone className="w-3 h-3" />
+                        <span>+{conv.phone}</span>
+                      </div>
+                      <p className="text-gray-600 text-xs truncate">{conv.last_message}</p>
+                      {conv.last_timestamp && (
+                        <p className="text-gray-400 text-xs mt-1">{new Date(conv.last_timestamp).toLocaleString()}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Chat Area */}
+                <div className="md:col-span-2">
+                  {!waSelectedChat ? (
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-12 text-center">
+                      <MessageSquare className="w-16 h-16 mx-auto mb-3 text-green-300" />
+                      <p className="text-lg font-medium text-gray-600">Select a conversation</p>
+                      <p className="text-sm text-gray-400 mt-1">Choose a customer from the list to view and reply to messages</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col h-[500px]">
+                      {/* Chat Header */}
+                      <div className="bg-green-500 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-medium">+{waSelectedChat}</span>
+                            <p className="text-xs text-green-100">WhatsApp Chat</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => { setWaSelectedChat(null); setWaChatMessages([]); }}
+                          className="text-white/80 hover:text-white"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      {/* Messages */}
+                      <div className="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-3" data-testid="wa-chat-messages">
+                        {waChatMessages.length === 0 && (
+                          <div className="text-center py-8">
+                            <p className="text-gray-400 text-sm">No messages in this conversation</p>
+                          </div>
+                        )}
+                        
+                        {waChatMessages.map((msg, idx) => (
+                          <div 
+                            key={msg.id || idx}
+                            className={`max-w-[80%] ${msg.direction === 'outgoing' ? 'ml-auto' : 'mr-auto'}`}
+                          >
+                            <div className={`p-3 rounded-lg ${msg.direction === 'outgoing' ? 'bg-green-500 text-white rounded-br-none' : 'bg-white border border-gray-200 rounded-bl-none'}`}>
+                              <p className="text-sm">{msg.content}</p>
+                              <p className={`text-xs mt-1 ${msg.direction === 'outgoing' ? 'text-green-100' : 'text-gray-400'}`}>
+                                {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
+                                {msg.direction === 'outgoing' && msg.status && (
+                                  <span className="ml-2">
+                                    {msg.status === 'sent' && '✓'}
+                                    {msg.status === 'delivered' && '✓✓'}
+                                    {msg.status === 'read' && <span className="text-blue-200">✓✓</span>}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Message Input */}
+                      <div className="p-3 bg-white border-t border-gray-200 rounded-b-lg">
+                        <div className="flex space-x-2">
+                          <input
+                            type="text"
+                            value={waNewMessage}
+                            onChange={(e) => setWaNewMessage(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendWaMessage()}
+                            placeholder="Type a message..."
+                            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-green-500"
+                            data-testid="wa-message-input"
+                          />
+                          <button
+                            onClick={sendWaMessage}
+                            disabled={waSending || !waNewMessage.trim()}
+                            className="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                            data-testid="wa-send-btn"
+                          >
+                            {waSending ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Send className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2 text-center">
+                          Messages sent within 24 hours of customer's last message. Template messages required otherwise.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

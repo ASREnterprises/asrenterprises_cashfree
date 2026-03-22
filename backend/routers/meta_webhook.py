@@ -441,13 +441,259 @@ async def webhook_status():
     """Check webhook configuration status"""
     verify_token = get_verify_token()
     app_secret = get_app_secret()
+    phone_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "")
+    access_token = os.environ.get("WHATSAPP_ACCESS_TOKEN", "")
     return {
         "status": "ready",
         "verify_token_configured": bool(verify_token),
         "app_secret_configured": bool(app_secret),
+        "whatsapp_configured": bool(phone_id and access_token),
         "database_connected": db is not None,
         "endpoints": {
             "verification": "GET /api/meta/webhook",
-            "messages": "POST /api/meta/webhook"
+            "messages": "POST /api/meta/webhook",
+            "send_message": "POST /api/meta/whatsapp/send"
         }
     }
+
+
+# ==================== WHATSAPP SEND MESSAGE API ====================
+
+import httpx
+
+def get_whatsapp_config():
+    """Get WhatsApp API configuration"""
+    return {
+        "phone_number_id": os.environ.get("WHATSAPP_PHONE_NUMBER_ID", ""),
+        "access_token": os.environ.get("WHATSAPP_ACCESS_TOKEN", ""),
+        "api_version": "v21.0"
+    }
+
+
+class SendMessageRequest(BaseModel):
+    """Request model for sending WhatsApp message"""
+    recipient_phone: str
+    message_text: str
+    message_type: str = "text"  # text, template
+
+
+class SendMessageResponse(BaseModel):
+    """Response model for send message"""
+    success: bool
+    message_id: Optional[str] = None
+    error: Optional[str] = None
+
+
+@router.post("/whatsapp/send", response_model=SendMessageResponse)
+async def send_whatsapp_message(request: SendMessageRequest):
+    """
+    Send a WhatsApp message to a customer
+    
+    - recipient_phone: Phone number with country code (e.g., 919876543210)
+    - message_text: Text message content
+    - message_type: 'text' for regular messages
+    """
+    config = get_whatsapp_config()
+    
+    if not config["phone_number_id"] or not config["access_token"]:
+        raise HTTPException(
+            status_code=500, 
+            detail="WhatsApp API not configured. Please set WHATSAPP_PHONE_NUMBER_ID and WHATSAPP_ACCESS_TOKEN"
+        )
+    
+    # Clean phone number - remove + and spaces
+    recipient = request.recipient_phone.replace("+", "").replace(" ", "").replace("-", "")
+    
+    # Add India country code if not present
+    if len(recipient) == 10:
+        recipient = "91" + recipient
+    
+    url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}/messages"
+    
+    headers = {
+        "Authorization": f"Bearer {config['access_token']}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": recipient,
+        "type": "text",
+        "text": {
+            "preview_url": True,
+            "body": request.message_text
+        }
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers=headers,
+                json=payload,
+                timeout=30.0
+            )
+            
+            result = response.json()
+            logger.info(f"WhatsApp API response: {result}")
+            
+            if response.status_code == 200 and "messages" in result:
+                message_id = result["messages"][0]["id"]
+                
+                # Save outgoing message to database
+                if db is not None:
+                    outgoing_msg = {
+                        "id": f"wa_out_{message_id}",
+                        "platform": "whatsapp",
+                        "direction": "outgoing",
+                        "sender_id": config["phone_number_id"],
+                        "sender_name": "ASR Enterprises",
+                        "recipient_phone": recipient,
+                        "message_type": "text",
+                        "content": request.message_text,
+                        "wa_message_id": message_id,
+                        "timestamp": datetime.now(timezone.utc),
+                        "status": "sent"
+                    }
+                    await db.meta_messages.insert_one(outgoing_msg)
+                
+                return SendMessageResponse(
+                    success=True,
+                    message_id=message_id
+                )
+            else:
+                error_msg = result.get("error", {}).get("message", "Unknown error")
+                logger.error(f"WhatsApp API error: {error_msg}")
+                return SendMessageResponse(
+                    success=False,
+                    error=error_msg
+                )
+                
+    except httpx.HTTPError as e:
+        logger.error(f"HTTP error sending WhatsApp message: {str(e)}")
+        return SendMessageResponse(
+            success=False,
+            error=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error sending WhatsApp message: {str(e)}")
+        return SendMessageResponse(
+            success=False,
+            error=str(e)
+        )
+
+
+@router.get("/whatsapp/conversations")
+async def get_whatsapp_conversations():
+    """
+    Get all WhatsApp conversations grouped by phone number
+    Returns conversations with last message and unread count
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    # Aggregate messages by sender phone
+    pipeline = [
+        {"$match": {"platform": "whatsapp"}},
+        {"$sort": {"timestamp": -1}},
+        {"$group": {
+            "_id": {"$cond": [
+                {"$eq": ["$direction", "outgoing"]},
+                "$recipient_phone",
+                "$sender_phone"
+            ]},
+            "last_message": {"$first": "$content"},
+            "last_timestamp": {"$first": "$timestamp"},
+            "sender_name": {"$first": "$sender_name"},
+            "unread_count": {
+                "$sum": {"$cond": [
+                    {"$and": [
+                        {"$eq": ["$status", "unread"]},
+                        {"$ne": ["$direction", "outgoing"]}
+                    ]},
+                    1, 0
+                ]}
+            },
+            "total_messages": {"$sum": 1}
+        }},
+        {"$sort": {"last_timestamp": -1}},
+        {"$limit": 50}
+    ]
+    
+    conversations = await db.meta_messages.aggregate(pipeline).to_list(50)
+    
+    # Format response
+    formatted = []
+    for conv in conversations:
+        if conv["_id"]:
+            formatted.append({
+                "phone": conv["_id"],
+                "name": conv.get("sender_name", "Unknown"),
+                "last_message": conv.get("last_message", ""),
+                "last_timestamp": conv.get("last_timestamp").isoformat() if conv.get("last_timestamp") else None,
+                "unread_count": conv.get("unread_count", 0),
+                "total_messages": conv.get("total_messages", 0)
+            })
+    
+    return {"conversations": formatted}
+
+
+@router.get("/whatsapp/chat/{phone}")
+async def get_whatsapp_chat(phone: str, limit: int = 50):
+    """
+    Get chat history with a specific phone number
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+    
+    # Clean phone number
+    clean_phone = phone.replace("+", "").replace(" ", "").replace("-", "")
+    
+    # Find messages to/from this phone
+    messages = await db.meta_messages.find(
+        {
+            "platform": "whatsapp",
+            "$or": [
+                {"sender_phone": {"$regex": clean_phone}},
+                {"recipient_phone": {"$regex": clean_phone}},
+                {"sender_id": {"$regex": clean_phone}}
+            ]
+        },
+        {"_id": 0}
+    ).sort("timestamp", 1).limit(limit).to_list(limit)
+    
+    # Mark messages as read
+    await db.meta_messages.update_many(
+        {
+            "platform": "whatsapp",
+            "status": "unread",
+            "$or": [
+                {"sender_phone": {"$regex": clean_phone}},
+                {"sender_id": {"$regex": clean_phone}}
+            ]
+        },
+        {"$set": {"status": "read", "read_at": datetime.now(timezone.utc)}}
+    )
+    
+    await update_unread_count()
+    
+    return {"messages": messages, "phone": phone}
+
+
+@router.post("/whatsapp/chat/{phone}/send")
+async def send_chat_message(phone: str, data: Dict[str, Any]):
+    """
+    Send a message in a chat conversation
+    """
+    message_text = data.get("message", "")
+    if not message_text:
+        raise HTTPException(status_code=400, detail="Message text is required")
+    
+    # Use the send_whatsapp_message function
+    request = SendMessageRequest(
+        recipient_phone=phone,
+        message_text=message_text
+    )
+    
+    return await send_whatsapp_message(request)

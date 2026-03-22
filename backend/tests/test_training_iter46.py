@@ -13,7 +13,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-portal-hub.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://bulk-lead-crm.preview.emergentagent.com')
 
 class TestTrainingModulesAPI:
     """Tests for /api/training/modules endpoint"""

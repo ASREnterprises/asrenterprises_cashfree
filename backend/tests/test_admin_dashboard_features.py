@@ -8,7 +8,7 @@ import os
 import json
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://crm-portal-hub.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://bulk-lead-crm.preview.emergentagent.com').rstrip('/')
 
 class TestDashboardWidgets:
     """Test Dashboard Widget APIs - these load stats for Admin Dashboard"""

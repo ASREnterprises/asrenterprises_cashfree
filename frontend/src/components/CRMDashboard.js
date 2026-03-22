@@ -7,7 +7,7 @@ import {
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
-  Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield
+  Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
@@ -591,6 +591,8 @@ export const CRMDashboard = () => {
   
   // Scroll to top state
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
   
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
@@ -605,6 +607,22 @@ export const CRMDashboard = () => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Auto-sync leads every 30 seconds when enabled
+  useEffect(() => {
+    if (!autoSyncEnabled) return;
+    
+    const syncInterval = setInterval(() => {
+      if (activeTab === "leads") {
+        fetchLeads(leadsPagination.current_page, leadsSearch);
+      } else if (activeTab === "dashboard") {
+        fetchDashboard();
+      }
+      setLastSyncTime(new Date());
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(syncInterval);
+  }, [autoSyncEnabled, activeTab, leadsPagination.current_page, leadsSearch]);
   const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState(null);
@@ -867,20 +885,29 @@ export const CRMDashboard = () => {
     
     setBulkAssigning(true);
     try {
-      await axios.post(`${API}/crm/leads/bulk-assign`, {
+      const response = await axios.post(`${API}/crm/leads/bulk-assign`, {
         lead_ids: selectedLeadIds,
         employee_id: bulkAssignStaffId,
         assigned_by: "admin"
       });
+      
+      const assignedCount = selectedLeadIds.length;
+      
+      // Reset state BEFORE fetchAllData to prevent issues
       setSelectedLeadIds([]);
-      setShowBulkAssignModal(false);
       setBulkAssignStaffId('');
-      fetchAllData();
-      alert(`${selectedLeadIds.length} leads assigned successfully!`);
+      setShowBulkAssignModal(false);
+      
+      // Refresh data
+      await fetchAllData();
+      
+      alert(`✅ ${assignedCount} leads assigned successfully!`);
     } catch (err) {
-      alert(err.response?.data?.detail || "Error assigning leads");
+      console.error("Bulk assign error:", err);
+      alert(err.response?.data?.detail || "Error assigning leads. Please try again.");
+    } finally {
+      setBulkAssigning(false);
     }
-    setBulkAssigning(false);
   };
 
   // Toggle lead selection for bulk assign
@@ -1415,8 +1442,17 @@ export const CRMDashboard = () => {
                   />
                   <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                 </div>
-                <button onClick={() => fetchLeads(1, leadsSearch)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200">
+                <button onClick={() => fetchLeads(1, leadsSearch)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200" title="Refresh leads">
                   <RefreshCw className="w-4 h-4" />
+                </button>
+                {/* Auto-Sync Toggle */}
+                <button 
+                  onClick={() => setAutoSyncEnabled(!autoSyncEnabled)} 
+                  className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition ${autoSyncEnabled ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}
+                  title={autoSyncEnabled ? 'Auto-sync ON (every 30s)' : 'Auto-sync OFF'}
+                >
+                  <RefreshCw className={`w-4 h-4 ${autoSyncEnabled ? 'animate-spin' : ''}`} style={autoSyncEnabled ? { animationDuration: '3s' } : {}} />
+                  <span className="hidden sm:inline">{autoSyncEnabled ? 'Sync ON' : 'Sync OFF'}</span>
                 </button>
                 {selectedLeadIds.length > 0 && (
                   <button 

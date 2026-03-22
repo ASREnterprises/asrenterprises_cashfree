@@ -59,6 +59,8 @@ export const StaffPortal = () => {
   const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
   const [callFilter, setCallFilter] = useState('all'); // all, called, uncalled
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
   const navigate = useNavigate();
 
   // Handle scroll to show/hide scroll-to-top button
@@ -104,6 +106,18 @@ export const StaffPortal = () => {
   useEffect(() => {
     if (staffData?.staff_id) fetchAllData();
   }, [staffData]);
+
+  // Auto-sync leads and data every 30 seconds when enabled
+  useEffect(() => {
+    if (!autoSyncEnabled || !staffData?.staff_id) return;
+    
+    const syncInterval = setInterval(() => {
+      fetchAllData();
+      setLastSyncTime(new Date());
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(syncInterval);
+  }, [autoSyncEnabled, staffData?.staff_id, activeTab]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -394,6 +408,15 @@ export const StaffPortal = () => {
                 <span className="bg-red-500 text-[#0a355e] text-xs px-2 py-1 rounded-full">{unreadCount} msg</span>
               )}
               <button onClick={fetchAllData} className="text-gray-500 hover:text-[#0a355e]"><RefreshCw className="w-5 h-5" /></button>
+              <button
+                onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}
+                className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 transition ${autoSyncEnabled ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}
+                title={autoSyncEnabled ? 'Auto-sync ON (every 30s)' : 'Auto-sync OFF'}
+                data-testid="auto-sync-toggle"
+              >
+                <RefreshCw className={`w-3 h-3 ${autoSyncEnabled ? 'animate-spin' : ''}`} style={autoSyncEnabled ? { animationDuration: '3s' } : {}} />
+                <span className="hidden sm:inline">{autoSyncEnabled ? 'Sync' : 'Off'}</span>
+              </button>
               <button onClick={handleLogout} className="bg-red-600 text-[#0a355e] px-3 py-1.5 rounded-lg text-sm flex items-center space-x-1">
                 <LogOut className="w-4 h-4" /><span>Logout</span>
               </button>

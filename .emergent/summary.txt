@@ -1,176 +1,147 @@
 <analysis>**original_problem_statement:**
-The user provided a large and evolving set of requirements throughout the session, starting with fixing a persistent OTP bug and removing the e-commerce Shop feature. The focus then shifted heavily towards enhancing the CRM and building out a comprehensive Staff Portal for lead management.
-
-Key requests implemented include:
-- Fixing the recurring Invalid OTP bug.
-- Removing all Shop related features.
-- Adding multiple staff login methods (Staff ID+OTP, Email+Password, Mobile OTP).
-- Restoring the QR code payment flow for Book Solar Service.
-- Implementing a full-featured Training module with an AI chatbot, accessible to both Admins and Staff.
-- Re-adding the company's Instagram link to the website.
-- Adding a bulk lead assignment feature for admins in the CRM.
-
-The most recent set of user requests focused on major improvements to the lead management lifecycle for staff users:
-1.  **Bulk Lead Upload:** Allow bulk upload of leads from Excel where only the customer's mobile number might be present, and ensure it can handle over a thousand leads at once.
-2.  **Calling Integration:** Make it easy for staff to call leads using the Superfone app.
-3.  **Session Timeout:** Extend the staff login session to remain active for at least 1 hour of inactivity.
-4.  **Lead Status:** Add a Not Interested status. When selected, the lead should be removed from the staff's portal and transferred back to the main CRM lead pool.
-5.  **Lead Filtering:** Allow staff to easily distinguish between called and uncalled leads.
-6.  **Performance:** Ensure all these new features are fast and don't slow down page loads.
+The user's requirements evolved significantly during the session, focusing primarily on robust bulk lead management, pagination, CRM/Staff portal optimization, and public UI adjustments. Key explicit requests included:
+1. Allowing manual copy-paste of phone numbers for bulk lead creation.
+2. Prioritizing 10-digit mobile number extraction from bulk Excel uploads and ensuring it handles 2000+ leads without timing out.
+3. Implementing pagination (250 leads per page) in the admin CRM.
+4. Improving backend query performance for dashboards to resolve slow load times.
+5. Making the Staff Portal highly mobile-friendly and removing Superfone deep links.
+6. Public website UI tweaks: adding a scroll-to-top button, restoring the Book Solar Service modal (priced at ₹2999) with a specific Paytm QR code, making the tagline solid green, and updating the support email.
+7. Fixing a bug where the screen goes blank when bulk-assigning leads to staff.
+8. Implementing a real-time auto-sync feature for leads in both the CRM Dashboard and Staff Portal.
 
 **User's preferred language**: English
 
-**what currently exists?**
-A full-stack React/FastAPI application for a solar energy business. The codebase includes a customer-facing website, an admin CRM, and a staff portal. The agent successfully implemented numerous features in this session, including fixing a critical OTP bug, adding multiple login methods for staff, creating a bulk lead assignment tool for admins, and integrating a comprehensive AI-powered training module. The staff portal has been significantly enhanced with a mobile-friendly UI, lead status updates, and filtering capabilities. The session timeout for staff has been extended to 1 hour.
+**what currently exists?** 
+A full-stack React/FastAPI application for a solar energy business. The app now features a highly capable bulk lead import system (handles CSV/Excel and manual copy-paste, extracting 10-digit numbers accurately), paginated lead viewing, optimized backend routes for faster dashboard loading, a mobile-optimized staff portal, and a restored ₹2999 QR-code booking flow on the public website. The application structure was slightly improved by extracting staff-related API endpoints into a dedicated router.
 
 **Last working item**:
-- **Last item agent was working:** Implementing a batch of lead management enhancements for the Staff Portal. This included extending the staff session timeout, adding a Not Interested status, creating UI filters for called/uncalled leads, and updating call-to-action buttons to integrate with the Superfone app via a custom URL protocol ().
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** both
-- **User Testing Done:** N
+- **Last item agent was working**: Fixing a React crash (blank screen) in the CRM Dashboard during Bulk Assign operations, and implementing an auto-sync () feature for fetching leads. 
+- **Status**: IN PROGRESS. The agent identified that the crash was caused by a missing  icon import when the  state was triggered. The agent edited  to fix the import and add auto-sync, but the context window cut off exactly after the file edit. The auto-sync feature has not yet been added to .
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: Frontend testing agent / screenshot tool
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Complete lead management workflow for Not Interested status. (P0)**
--   **Issue 2: Implement robust bulk lead upload from Excel. (P1)**
--   **Issue 3: Refactor the monolithic  file. (P2)**
+  - **Issue 1: UI Crash on Bulk Assign & Missing Auto-Sync Implementation (P0)**: 
+     - **Attempted fixes**: Agent added  to the lucide-react imports in  and added a  interval for auto-syncing leads. Context ended before completion.
+     - **Next debug checklist**: 
+        1. Verify  is correctly imported in .
+        2. Verify the  auto-sync logic is correctly implemented in  without causing infinite re-renders.
+        3. Implement the exact same auto-sync logic in .
+        4. Test the Bulk Assign feature to ensure the modal transitions correctly without white-screening the app.
+     - **Why fix this issue and what will be achieved with the fix?**: User explicitly reported the application crashing during a core workflow (assigning leads). Auto-sync ensures admins and staff see new leads immediately without manual page refreshes.
+     - **Status**: IN PROGRESS
+     - **Is recurring issue?**: N
+     - **Should Test frontend/backend/both after fix?**: frontend
+     - **Blocked on other issue**: None
 
-**Issues Detail:**
--   **Issue 1:**
-    -   **Attempted fixes:** The agent updated  to extend the staff session to 1 hour. In , a Not Interested status was added to the  array, and the  function was modified to handle this new status. Call buttons were updated to use the  protocol.
-    -   **Next debug checklist:**
-        1.  **Backend:** Implement the backend logic for when a lead is marked as not_interested. The endpoint (e.g., a  request to ) should re-assign the lead (e.g., set  to null) and update its stage to Contacted in the  collection.
-        2.  **Frontend:** Ensure that when the Not Interested status is successfully set, the lead is immediately removed from the staff's view in  without needing a page refresh.
-        3.  **Testing:** Perform an end-to-end test to verify that a staff member marking a lead as Not Interested correctly removes it from their portal and makes it available again in the main admin CRM view.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical CRM workflow that allows for efficient lead lifecycle management and prevents staff from repeatedly contacting uninterested customers.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** none
-
--   **Issue 2:**
-    -   **Attempted fixes:** None. This is a new requirement from the user's last message.
-    -   **Next debug checklist:**
-        1.  Review the existing bulk import endpoint in  and the handler in .
-        2.  Modify the backend logic to prioritize a 'mobile' or 'phone' column, creating a lead even if other data like 'name' is missing.
-        3.  Implement chunked processing on the backend to handle large files (>1000 rows) asynchronously to prevent request timeouts. This may involve creating a background task.
-        4.  Update the frontend to provide feedback on the asynchronous import process (e.g., Import started, progress bar, completion/error notification).
-    -   **Why fix this issue and what will be achieved with the fix?** To enable the business to efficiently import large lead lists from external sources, which is fundamental for sales operations.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** none
-
--   **Issue 3:**
-    -   **Attempted fixes:** None in this session. The agent continued adding new endpoints to , increasing its complexity.
-    -   **Next debug checklist:**
-        1.  Create new router files in  (e.g., , ).
-        2.  Systematically move related endpoints from  into the new, dedicated router files.
-        3.  Include the new routers in the main FastAPI application in .
-    -   **Why fix this issue and what will be achieved with the fix?** To improve backend code organization, maintainability, and scalability. This addresses recurring technical debt.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** backend
-    -   **Blocked on other issue:** none
+  - **Issue 2: Vague Cleanup Request (P2)**: 
+     - **Attempted fixes**: None. User requested to remove all previous settings, contents which is not important for current website. Agent did not action this before context cutoff.
+     - **Next debug checklist**: Use  to clarify exactly which settings or content blocks the user considers unimportant before deleting code.
+     - **Why fix this issue and what will be achieved with the fix?**: Fulfills user request to declutter the application.
+     - **Status**: NOT STARTED
+     - **Is recurring issue?**: N
+     - **Should Test frontend/backend/both after fix?**: frontend
 
 **In progress Task List**:
--   None
+*None distinct from Issue 1.*
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **(P1) Advanced HR Features:** AI-driven task assignment and OCR for expense reimbursement.
-    -   **(P1) Predictive Operations Hub:** AI-powered inventory management and route optimization for field staff.
-    -   **(P2) Hyper-Local SEO Pages:** Create district-specific landing pages.
--   **Future Tasks:**
-    -   **(P2) Staff Gamification:** Create a leaderboard in the HR portal.
-    -   **(P2) Advanced Visual ROI Engine:** Implement a 3D roof preview for users.
-    -   **(P3) Integrate Official WhatsApp Business API.**
-    -   **(P3) Full Performance Audit:** Convert images to WebP, minify assets, and implement server-side caching.
+    Upcoming Tasks:
+    - (P1) Advanced HR Features: AI-driven task assignment and OCR for expense reimbursement.
+    - (P1) Predictive Operations Hub: AI-powered inventory management and route optimization for field staff.
+    Future Tasks:
+    - (P2) Hyper-Local SEO Pages: Create district-specific landing pages.
+    - (P3) Integrate Official WhatsApp Business API.
 
 **Completed work in this session**
--   **OTP Bug Fix:** Resolved the persistent Invalid OTP error by implementing more robust verification logic for the MSG91 service across all forms.
--   **Staff Login Overhaul:** Added a new login method for staff using Email + Password (no OTP) and extended the session inactivity timeout to 1 hour.
--   **Staff Portal Enhancement:** Overhauled the Staff Portal to be mobile-friendly, integrated a full-featured AI-powered training module, and added lead management tools like status updates and filters.
--   **CRM Admin Tools:** Added features for bulk lead assignment and more granular management of staff login credentials.
--   **Feature Toggles:** Removed the Shop feature entirely and subsequently re-added the Instagram social links as requested by the user.
--   **Payment Flow:** Restored the QR code payment modal for the Book Solar Service feature, dynamically linked to the price set in the CRM.
+- Extracted staff-related endpoints to .
+- Added Not Interested lead workflow () returning leads to the unassigned pool.
+- Enhanced Bulk Import: Added manual paste support, priority 10-digit extraction, and duplicate detection.
+- Added pagination (250 items/page) to CRM leads.
+- Optimized dashboard endpoints with  for parallel database queries.
+- UI Updates: Removed Superfone deep link, added Scroll-to-Top buttons across the app, updated support email, restored Book Solar Service (₹2999) with Paytm QR, made Tagline green, and added an Instagram icon to floating actions.
 
 **Earlier issues found/mentioned but not fixed**
--   The monolithic  file continues to grow, representing significant technical debt that has not been addressed.
+   - **Issue 1: Massive  file**:
+     - **Debug checklist**: Continue extracting functional areas (like Training, Webhooks) from  into dedicated routers in .
+     - **Why to solve this issue and what will be achieved with this?**: The file is over 11,000 lines long, making it difficult to maintain and increasing the risk of hallucination/search_replace failures.
+     - **Should Test frontend/backend/both after fix**: backend
+     - **Is recurring issue?**: Y
 
 **Known issue recurrence from previous fork**
--   **Monolithic  architecture:** This issue has been carried over and exacerbated during this session, with numerous new endpoints added directly to the main server file instead of being organized into routers.
+  - **Issue recurrence in previous fork**: Monolithic backend file ().
+  - **Recurrence count**: 4
+  - **Status**: IN PROGRESS (Agent successfully extracted staff routes in this session, but more work remains).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend:** React, responsive design with Tailwind CSS, custom hooks (), component reusability ().
--   **Backend:** FastAPI, MongoDB.
--   **Integrations:** MSG91 (OTP), Gemini (AI Training Assistant), Superfone (via  protocol).
+- **Frontend**: React, Tailwind CSS, component lazy-loading, chunked API fetching.
+- **Backend**: FastAPI, MongoDB (Motor), Asyncio (Parallel queries).
+- **Architecture**: Modular routing (partially implemented).
 
 **key DB schema**
--   ****: The  field is now used to control login methods.
--   ****: The  enum now includes not_interested. A method to track called vs. uncalled status is needed (e.g., a  timestamp).
+  - : {id, phone, stage, assigned_to, source}
+  - : {staff_id, name, leads_assigned}
 
 **changes in tech stack**
--   None.
+  - None
 
-**All files of reference**
--   : Core file for the latest user requests regarding lead management.
--   : Contains the bulk upload and bulk assignment features.
--   : Contains the session timeout logic.
--   : Contains all the new backend endpoints that need verification and refactoring.
--   : Contains the new email-based login flow.
+**All files of reference** 
+1.  (Actively being edited for auto-sync and missing Loader2 import)
+2.  (Requires auto-sync implementation to mirror CRM)
+3.  (New router created in this session)
+4.  (Contains updated QR code logic and scroll-to-top implementation)
 
-**Areas that need refactoring**:
--   ** (CRITICAL):** This file is now extremely large. All functionally related endpoints (staff, training, bulk actions, etc.) must be extracted into separate router files under .
--   ** /  (High):** Both components have grown significantly and contain a mix of state management, data fetching, and complex JSX. They should be broken down into smaller, more manageable child components.
+**Areas that need refactoring**: 
+ needs further decomposition into smaller router modules.
 
 **key api endpoints**
--   : (New) Allows staff to log in with email and password, bypassing OTP.
--   : (New) Assigns a list of selected leads to a specific staff member.
--   : (New) Enables or disables OTP requirements for a staff account.
--   : The endpoint that handles lead status updates; needs logic to handle the new not_interested case.
+- : Marks lead as contacted and unassigns it.
+- : Handles copy-pasted phone lists.
+- : Fetches paginated leads.
+- : Assigns array of lead IDs to a specific staff member.
 
 **Critical Info for New Agent**
--   Your immediate priority is to complete the lead management features. This involves implementing the backend logic for when a staff member marks a lead as Not Interested and thoroughly testing the end-to-end flow.
--   The second priority is tackling the robust bulk lead upload feature, ensuring it can handle large Excel files and prioritize creating leads from mobile numbers.
--   The staff calling feature now uses the  protocol. This is a custom URL scheme and will only function if the user has the required Superfone application installed on their device.
--   Be aware that the  file is now over 10,000 lines long. It is crucial to begin refactoring it by moving logical groups of endpoints into separate router files to manage the technical debt.
+The previous agent's context cut off exactly as it was applying a fix for a React UI crash. The user reported that clicking Bulk Assign causes a white screen. The agent diagnosed this as a missing  import in . **Your immediate priority** is to verify that  is imported in . Furthermore, the user requested an **auto-sync** feature for leads; the previous agent started adding a  in  but completely missed adding it to . Finish these two frontend fixes immediately and verify with the screenshot tool or testing subagent.
 
 **documents and test reports created in this job**
--    (Updated)
--   
--   
--   
--   
--   
--   
+  - /app/memory/PRD.md
+  - /app/test_reports/iteration_48.json
+  - /app/test_reports/iteration_49.json
+  - /app/test_reports/iteration_50.json
+  - /app/test_reports/iteration_51.json
 
-**Last 10 User Messages and any pending HUMAN messages**
--   The user's most recent messages have been a series of feature requests focused on making the lead management process for staff as efficient as possible. This includes bulk uploading leads with just a mobile number, extending login sessions, adding a Not Interested status that cycles leads back to the main pool, integrating with a specific calling app (Superfone), and adding filters for called/uncalled leads. All these requests were approved for implementation.
+**Last 10 User Messages and any pending HUMAN messages** 
+1. (Latest) User asked to fix blank screen on bulk assign and add auto-sync to CRM and Staff portals. *(Implementation cut off halfway)*
+2. User asked to change tagline color to green, add scroll-to-top to CRM/Staff, and remove unnecessary contents. *(Done, except unnecessary contents requires human clarification)*
+3. User asked to use asrenterprises.in as primary domain. *(Agent clarified this is DNS-level, no code needed)*
+4. User provided correct QR code image. *(Done)*
+5. User asked to restore Book Solar Service with QR code, update price to ₹2999, and move scroll-to-top to right. *(Done)*
+6. User reported scroll-to-top wasn't working. *(Fixed)*
+7. User requested scroll-to-top, support email update, and video removal from gallery. *(Done)*
+8. User requested removal of Instagram widget below reviews, addition of IG icon to floating buttons, and removal of Book Solar Service button. *(Done)*
+9. User asked to remove Superfone, improve Staff Portal mobile UI, add IG widget, and fix slow loading. *(Done)*
+10. User requested 250-item pagination and fixing phone extraction to prioritize 10-digit numbers on bulk upload. *(Done)*
 
 **Project Health Check:**
--   **Broken**: 0
--   **Mocked**: 0
--   **Health**: **Needs Verification.** While many features were implemented and tested during the session, the very latest batch of lead management enhancements is incomplete. The backend logic is missing, and the full workflow has not been tested.
+- Broken: 1 (Potential React import error in  causing white-screen on bulk assign).
+- Mocked: 0
 
 **3rd Party Integrations**
--   **Gemini (via ):** Used for the AI Training Assistant. Requires **Emergent LLM Key**.
--   **MSG91:** Used for OTP and SMS notifications. Requires User API Key.
--   **Superfone:** A new calling integration via the  URL protocol. This is a client-side dependency.
--   **Google reCAPTCHA v3:** Requires User API Key.
--   **Resend:** Requires User API Key.
--   **Meta (Facebook/WhatsApp):** For CRM webhooks and Pixel tracking.
+  • Gemini (AI Training) — uses Emergent LLM Key
+  • MSG91 (OTP/SMS) — requires User API Key
 
 **Testing status**
--   **Testing agent used after significant changes:** YES (but not for the most recent lead management changes).
--   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** []
--   **Known regressions:** None.
+  - Testing agent used after significant changes: YES (Tested bulk uploads, pagination, mobile UI)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created:  through 
+  - Known regressions: Bulk assignment modal crashes the UI.
 
 **Credentials to test flow:**
--   **Admin Mobile for OTP:** 
--   **Default Service Price:** 
-</analysis>
+- Admin Mobile for OTP: 
+
+**What agent forgot to execute**
+The agent completely forgot to apply the lead auto-sync feature to the  component before the context window expired. It also did not ask for clarification regarding the user's vague request to remove all previous settings, contents which is not important.</analysis>

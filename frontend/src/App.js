@@ -1338,7 +1338,7 @@ const HomePage = () => {
             </div>
 
             {/* Corporate Tagline */}
-            <p className="text-lg md:text-xl text-[#FFD166] italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
+            <p className="text-lg md:text-xl text-green-400 italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
               "Powering Bihar's Future with Clean, Affordable Solar Energy"
             </p>
             

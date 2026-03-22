@@ -6,7 +6,7 @@ import {
   Phone, Mail, MapPin, DollarSign, CheckCircle, Clock, 
   AlertCircle, Sparkles, RefreshCw, Plus, Search, Filter,
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
-  Send, ChevronRight, Edit, Trash2, Eye, MessageSquare, Key, Copy,
+  Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
@@ -588,6 +588,23 @@ export const CRMDashboard = () => {
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  
+  // Scroll to top state
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  // Handle scroll to show/hide scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.pageYOffset > 300);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [editStaffForm, setEditStaffForm] = useState(null);
@@ -3158,6 +3175,18 @@ export const CRMDashboard = () => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 bg-[#0a355e] text-white p-4 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all hover:scale-110 border border-white/30"
+          data-testid="crm-scroll-to-top"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </button>
       )}
     </div>
   );

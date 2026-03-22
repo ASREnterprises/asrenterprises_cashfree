@@ -4,7 +4,7 @@ import axios from "axios";
 import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
-  ChevronRight, FileText, TrendingUp, Bell, Plus, Edit,
+  ChevronRight, ChevronUp, FileText, TrendingUp, Bell, Plus, Edit,
   Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
@@ -58,7 +58,22 @@ export const StaffPortal = () => {
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
   const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
   const [callFilter, setCallFilter] = useState('all'); // all, called, uncalled
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const navigate = useNavigate();
+
+  // Handle scroll to show/hide scroll-to-top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.pageYOffset > 300);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Auto-logout callback for staff
   const handleStaffLogout = () => {
@@ -991,6 +1006,18 @@ export const StaffPortal = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 bg-[#0a355e] text-white p-4 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all hover:scale-110 border border-white/30"
+          data-testid="staff-scroll-to-top"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-6 h-6" />
+        </button>
       )}
     </div>
   );

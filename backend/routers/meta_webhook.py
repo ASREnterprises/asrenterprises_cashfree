@@ -98,7 +98,8 @@ async def receive_webhook(request: Request):
     
     # Verify signature if app secret is configured
     signature = request.headers.get("X-Hub-Signature-256", "")
-    if META_APP_SECRET and not verify_webhook_signature(body, signature):
+    app_secret = get_app_secret()
+    if app_secret and not verify_webhook_signature(body, signature):
         logger.warning("Invalid webhook signature")
         raise HTTPException(status_code=403, detail="Invalid signature")
     
@@ -438,10 +439,12 @@ async def delete_message(message_id: str):
 @router.get("/webhook/status")
 async def webhook_status():
     """Check webhook configuration status"""
+    verify_token = get_verify_token()
+    app_secret = get_app_secret()
     return {
         "status": "ready",
-        "verify_token_configured": bool(META_VERIFY_TOKEN),
-        "app_secret_configured": bool(META_APP_SECRET),
+        "verify_token_configured": bool(verify_token),
+        "app_secret_configured": bool(app_secret),
         "database_connected": db is not None,
         "endpoints": {
             "verification": "GET /api/meta/webhook",

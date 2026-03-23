@@ -602,6 +602,17 @@ export const CRMDashboard = () => {
   const [waNewMessage, setWaNewMessage] = useState('');
   const [waSending, setWaSending] = useState(false);
   const [waLoading, setWaLoading] = useState(false);
+  const [waMediaUpload, setWaMediaUpload] = useState(null);
+  const [waShowTemplates, setWaShowTemplates] = useState(false);
+  const [waTemplates, setWaTemplates] = useState([]);
+  
+  // HR Dashboard state
+  const [hrDashboard, setHrDashboard] = useState(null);
+  const [hrExpenses, setHrExpenses] = useState([]);
+  const [hrLeaves, setHrLeaves] = useState([]);
+  const [hrAttendance, setHrAttendance] = useState(null);
+  const [hrTeamPerformance, setHrTeamPerformance] = useState(null);
+  const [hrLoading, setHrLoading] = useState(false);
   
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
@@ -714,7 +725,8 @@ export const CRMDashboard = () => {
     if (activeTab === "tasks") fetchTasks();
     if (activeTab === "team") fetchStaff();
     if (activeTab === "messages") fetchMessages();
-    if (activeTab === "whatsapp") fetchWaConversations();
+    if (activeTab === "whatsapp") { fetchWaConversations(); fetchWaTemplates(); }
+    if (activeTab === "hr") fetchHrDashboard();
   }, [activeTab]);
   
   const fetchDashboardData = async () => {
@@ -890,6 +902,125 @@ export const CRMDashboard = () => {
   const selectWaChat = async (phone) => {
     setWaSelectedChat(phone);
     await fetchWaChat(phone);
+  };
+  
+  // WhatsApp Media/Template Functions
+  const sendWaMedia = async (mediaUrl, mediaType, caption = '') => {
+    if (!waSelectedChat) return;
+    
+    setWaSending(true);
+    try {
+      const res = await axios.post(`${API}/meta/whatsapp/send-media`, {
+        recipient_phone: waSelectedChat,
+        media_type: mediaType,
+        media_url: mediaUrl,
+        caption: caption
+      });
+      
+      if (res.data.success) {
+        await fetchWaChat(waSelectedChat);
+        await fetchWaConversations();
+        setWaMediaUpload(null);
+      } else {
+        alert(res.data.error || "Failed to send media");
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error sending media");
+    }
+    setWaSending(false);
+  };
+  
+  const sendWaTemplate = async (templateName, params = []) => {
+    if (!waSelectedChat) return;
+    
+    setWaSending(true);
+    try {
+      const res = await axios.post(`${API}/meta/whatsapp/send-template`, {
+        recipient_phone: waSelectedChat,
+        template_name: templateName,
+        language_code: "en",
+        components: params.length > 0 ? [{ type: "body", parameters: params.map(p => ({ type: "text", text: p })) }] : []
+      });
+      
+      if (res.data.success) {
+        await fetchWaChat(waSelectedChat);
+        await fetchWaConversations();
+        setWaShowTemplates(false);
+      } else {
+        alert(res.data.error || "Failed to send template");
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error sending template");
+    }
+    setWaSending(false);
+  };
+  
+  const fetchWaTemplates = async () => {
+    try {
+      const res = await axios.get(`${API}/meta/whatsapp/templates`);
+      setWaTemplates(res.data.templates || []);
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+    }
+  };
+  
+  // HR Functions
+  const fetchHrDashboard = async () => {
+    setHrLoading(true);
+    try {
+      const [dashRes, expRes, leaveRes, attRes, perfRes] = await Promise.all([
+        axios.get(`${API}/hr/dashboard`),
+        axios.get(`${API}/hr/expenses?status=pending`),
+        axios.get(`${API}/hr/leave/requests?status=pending`),
+        axios.get(`${API}/hr/attendance/today`),
+        axios.get(`${API}/hr/performance/team?period=month`)
+      ]);
+      
+      setHrDashboard(dashRes.data);
+      setHrExpenses(expRes.data.expenses || []);
+      setHrLeaves(leaveRes.data.requests || []);
+      setHrAttendance(attRes.data);
+      setHrTeamPerformance(perfRes.data);
+    } catch (err) {
+      console.error("Error fetching HR data:", err);
+    }
+    setHrLoading(false);
+  };
+  
+  const reviewExpense = async (expenseId, action) => {
+    try {
+      await axios.post(`${API}/hr/expense/${expenseId}/review`, { action, reviewer: "admin" });
+      fetchHrDashboard();
+      alert(`Expense ${action}d successfully`);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error reviewing expense");
+    }
+  };
+  
+  const reviewLeave = async (leaveId, action) => {
+    try {
+      await axios.post(`${API}/hr/leave/${leaveId}/review`, { action, reviewer: "admin" });
+      fetchHrDashboard();
+      alert(`Leave ${action}d successfully`);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error reviewing leave");
+    }
+  };
+  
+  const aiAssignLeads = async () => {
+    if (selectedLeadIds.length === 0) {
+      alert("Please select leads to assign");
+      return;
+    }
+    
+    try {
+      const res = await axios.post(`${API}/hr/bulk-ai-assign`, { lead_ids: selectedLeadIds });
+      alert(`AI Assignment Complete: ${res.data.assigned}/${res.data.total} leads assigned`);
+      fetchLeads();
+      setSelectedLeadIds([]);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error in AI assignment");
+    }
   };
   
   const fetchAllData = async () => {
@@ -1401,6 +1532,7 @@ export const CRMDashboard = () => {
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
+              { id: "hr", label: "HR", icon: <Users className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
@@ -2258,9 +2390,64 @@ export const CRMDashboard = () => {
                         ))}
                       </div>
                       
+                      {/* Template Messages Panel */}
+                      {waShowTemplates && (
+                        <div className="p-3 bg-blue-50 border-t border-blue-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-blue-800">Quick Templates</p>
+                            <button onClick={() => setWaShowTemplates(false)} className="text-blue-500 hover:text-blue-700">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {waTemplates.map((tpl) => (
+                              <button
+                                key={tpl.name}
+                                onClick={() => sendWaTemplate(tpl.name)}
+                                className={`text-left p-2 rounded border text-sm ${tpl.status === 'APPROVED' ? 'bg-white border-green-300 hover:bg-green-50' : 'bg-gray-100 border-gray-300 opacity-50 cursor-not-allowed'}`}
+                                disabled={tpl.status !== 'APPROVED'}
+                              >
+                                <p className="font-medium text-[#0a355e]">{tpl.name.replace(/_/g, ' ')}</p>
+                                <p className="text-xs text-gray-500">{tpl.status}</p>
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-blue-600 mt-2">
+                            Only APPROVED templates can be sent. Create templates in Meta Business Suite.
+                          </p>
+                        </div>
+                      )}
+                      
                       {/* Message Input */}
                       <div className="p-3 bg-white border-t border-gray-200 rounded-b-lg">
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-2 items-center">
+                          {/* Media Upload Button */}
+                          <button
+                            onClick={() => setWaShowTemplates(!waShowTemplates)}
+                            className="text-gray-500 hover:text-blue-500 p-2"
+                            title="Templates"
+                          >
+                            <FileText className="w-5 h-5" />
+                          </button>
+                          <label className="text-gray-500 hover:text-green-500 p-2 cursor-pointer" title="Send Image">
+                            <Image className="w-5 h-5" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  // For demo, use a prompt for URL. In production, upload to storage first.
+                                  const url = prompt("Enter public image URL to send (or upload to cloud storage first):");
+                                  if (url) {
+                                    const caption = prompt("Add caption (optional):");
+                                    sendWaMedia(url, 'image', caption || '');
+                                  }
+                                }
+                              }}
+                            />
+                          </label>
                           <input
                             type="text"
                             value={waNewMessage}
@@ -2284,7 +2471,7 @@ export const CRMDashboard = () => {
                           </button>
                         </div>
                         <p className="text-xs text-gray-400 mt-2 text-center">
-                          Messages sent within 24 hours of customer's last message. Template messages required otherwise.
+                          Text within 24hrs | Click template icon for pre-approved messages | Image icon for media
                         </p>
                       </div>
                     </div>
@@ -2292,6 +2479,208 @@ export const CRMDashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* HR Dashboard Tab */}
+        {activeTab === "hr" && (
+          <div className="space-y-4">
+            {hrLoading ? (
+              <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
+                <RefreshCw className="w-8 h-8 text-blue-500 mx-auto animate-spin" />
+                <p className="text-gray-500 mt-2">Loading HR Dashboard...</p>
+              </div>
+            ) : (
+              <>
+                {/* HR Stats Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm">Today's Attendance</p>
+                        <p className="text-2xl font-bold text-[#0a355e]">
+                          {hrAttendance?.total_checked_in || 0}/{hrDashboard?.staff?.total_active || 0}
+                        </p>
+                      </div>
+                      <Calendar className="w-8 h-8 text-green-500" />
+                    </div>
+                  </div>
+                  <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm">Pending Expenses</p>
+                        <p className="text-2xl font-bold text-orange-600">
+                          ₹{hrDashboard?.expenses?.pending_amount?.toLocaleString() || 0}
+                        </p>
+                      </div>
+                      <DollarSign className="w-8 h-8 text-orange-500" />
+                    </div>
+                  </div>
+                  <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm">Leave Requests</p>
+                        <p className="text-2xl font-bold text-purple-600">{hrDashboard?.leaves?.pending_requests || 0}</p>
+                      </div>
+                      <Clock className="w-8 h-8 text-purple-500" />
+                    </div>
+                  </div>
+                  <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-500 text-sm">Team Avg Score</p>
+                        <p className="text-2xl font-bold text-blue-600">{hrTeamPerformance?.team_average_score || 0}%</p>
+                      </div>
+                      <TrendingUp className="w-8 h-8 text-blue-500" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Lead Assignment */}
+                <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[#0a355e] font-bold flex items-center space-x-2">
+                      <Sparkles className="w-5 h-5 text-yellow-500" />
+                      <span>AI Lead Assignment</span>
+                    </h3>
+                    <button 
+                      onClick={aiAssignLeads}
+                      disabled={selectedLeadIds.length === 0}
+                      className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      <Zap className="w-4 h-4 inline mr-1" />
+                      AI Auto-Assign ({selectedLeadIds.length} selected)
+                    </button>
+                  </div>
+                  <p className="text-gray-600 text-sm">
+                    Select leads from the Leads tab, then click AI Auto-Assign. Our AI will automatically assign leads based on staff workload, location, skills, and performance.
+                  </p>
+                </div>
+
+                {/* Pending Expenses */}
+                <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                  <h3 className="text-[#0a355e] font-bold mb-4 flex items-center space-x-2">
+                    <DollarSign className="w-5 h-5 text-orange-500" />
+                    <span>Pending Expense Approvals</span>
+                  </h3>
+                  {hrExpenses.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No pending expenses</p>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {hrExpenses.map((exp) => (
+                        <div key={exp.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          <div>
+                            <p className="font-medium text-[#0a355e]">₹{exp.amount?.toLocaleString()}</p>
+                            <p className="text-sm text-gray-600">{exp.category} - {exp.vendor || 'Unknown vendor'}</p>
+                            <p className="text-xs text-gray-400">Staff: {exp.staff_id}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => reviewExpense(exp.id, 'approve')}
+                              className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => reviewExpense(exp.id, 'reject')}
+                              className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pending Leave Requests */}
+                <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                  <h3 className="text-[#0a355e] font-bold mb-4 flex items-center space-x-2">
+                    <Calendar className="w-5 h-5 text-purple-500" />
+                    <span>Pending Leave Requests</span>
+                  </h3>
+                  {hrLeaves.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No pending leave requests</p>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {hrLeaves.map((leave) => (
+                        <div key={leave.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          <div>
+                            <p className="font-medium text-[#0a355e]">{leave.leave_type} Leave ({leave.days} days)</p>
+                            <p className="text-sm text-gray-600">{leave.start_date} to {leave.end_date}</p>
+                            <p className="text-xs text-gray-400">Staff: {leave.staff_id} - {leave.reason}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => reviewLeave(leave.id, 'approve')}
+                              className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600"
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => reviewLeave(leave.id, 'reject')}
+                              className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Team Performance Leaderboard */}
+                <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
+                  <h3 className="text-[#0a355e] font-bold mb-4 flex items-center space-x-2">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    <span>Team Performance Leaderboard</span>
+                  </h3>
+                  {!hrTeamPerformance?.leaderboard || hrTeamPerformance.leaderboard.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No performance data available</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-2 text-gray-600">Rank</th>
+                            <th className="text-left py-2 text-gray-600">Staff</th>
+                            <th className="text-left py-2 text-gray-600">Score</th>
+                            <th className="text-left py-2 text-gray-600">Leads</th>
+                            <th className="text-left py-2 text-gray-600">Converted</th>
+                            <th className="text-left py-2 text-gray-600">Rating</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {hrTeamPerformance.leaderboard.slice(0, 10).map((staff, idx) => (
+                            <tr key={staff.staff_id} className="border-b border-gray-100">
+                              <td className="py-2">
+                                {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                              </td>
+                              <td className="py-2 font-medium text-[#0a355e]">{staff.name}</td>
+                              <td className="py-2">{staff.score}%</td>
+                              <td className="py-2">{staff.metrics?.leads_assigned || 0}</td>
+                              <td className="py-2">{staff.metrics?.leads_converted || 0}</td>
+                              <td className="py-2">
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  staff.rating === 'Excellent' ? 'bg-green-100 text-green-700' :
+                                  staff.rating === 'Good' ? 'bg-blue-100 text-blue-700' :
+                                  staff.rating === 'Average' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {staff.rating}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 

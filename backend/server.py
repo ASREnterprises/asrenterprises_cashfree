@@ -73,6 +73,7 @@ from routes.hr import router as hr_router, init_router as init_hr_router
 from routes.crm import router as crm_router, init_router as init_crm_router
 from routes.staff import router as staff_router, init_router as init_staff_router
 from routers.meta_webhook import router as meta_router, set_database as set_meta_db
+from routers.hr import router as hr_router, set_database as set_hr_db
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -494,11 +495,22 @@ async def startup_event():
     # Initialize Meta Webhook router with database connection
     set_meta_db(db)
     
+    # Initialize HR router with database connection
+    set_hr_db(db)
+    
     # Create index for meta_messages collection
     await db.meta_messages.create_index("id", unique=True)
     await db.meta_messages.create_index("platform")
     await db.meta_messages.create_index("status")
     await db.meta_messages.create_index("received_at")
+    
+    # Create indexes for HR collections
+    await db.hr_expenses.create_index("id", unique=True)
+    await db.hr_expenses.create_index("staff_id")
+    await db.hr_expenses.create_index("status")
+    await db.hr_attendance.create_index([("staff_id", 1), ("date", 1)])
+    await db.hr_leaves.create_index("id", unique=True)
+    await db.hr_leaves.create_index("staff_id")
     
     # Start automated cleanup scheduler
     cleanup_task = asyncio.create_task(cleanup_scheduler())
@@ -11215,6 +11227,9 @@ api_router.include_router(staff_router)
 
 # Include Meta Webhook router (Facebook, Instagram, WhatsApp)
 app.include_router(meta_router)
+
+# Include HR Features router
+app.include_router(hr_router)
 
 app.include_router(api_router)
 

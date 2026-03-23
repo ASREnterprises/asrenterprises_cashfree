@@ -697,3 +697,405 @@ async def send_chat_message(phone: str, data: Dict[str, Any]):
     )
     
     return await send_whatsapp_message(request)
+
+
+# ==================== WHATSAPP TEMPLATE MESSAGES ====================
+
+class TemplateComponent(BaseModel):
+    """Component for template message"""
+    type: str  # header, body, button
+    parameters: List[Dict[str, Any]] = []
+
+
+class SendTemplateRequest(BaseModel):
+    """Request model for sending template message"""
+    recipient_phone: str
+    template_name: str
+    language_code: str = "en"
+    components: List[TemplateComponent] = []
+
+
+@router.post("/whatsapp/send-template")
+async def send_template_message(request: SendTemplateRequest):
+    """
+    Send a WhatsApp template message (for messages outside 24-hour window)
+    """
+    config = get_whatsapp_config()
+    
+    if not config["phone_number_id"] or not config["access_token"]:
+        raise HTTPException(status_code=500, detail="WhatsApp API not configured")
+    
+    recipient = request.recipient_phone.replace("+", "").replace(" ", "").replace("-", "")
+    if len(recipient) == 10:
+        recipient = "91" + recipient
+    
+    url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}/messages"
+    
+    headers = {
+        "Authorization": f"Bearer {config['access_token']}",
+        "Content-Type": "application/json"
+    }
+    
+    # Build template payload
+    template_payload = {
+        "name": request.template_name,
+        "language": {"code": request.language_code}
+    }
+    
+    if request.components:
+        template_payload["components"] = [
+            {"type": c.type, "parameters": c.parameters} for c in request.components
+        ]
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": recipient,
+        "type": "template",
+        "template": template_payload
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload, timeout=30.0)
+            result = response.json()
+            logger.info(f"Template API response: {result}")
+            
+            if response.status_code == 200 and "messages" in result:
+                message_id = result["messages"][0]["id"]
+                
+                if db is not None:
+                    outgoing_msg = {
+                        "id": f"wa_tpl_{message_id}",
+                        "platform": "whatsapp",
+                        "direction": "outgoing",
+                        "sender_id": config["phone_number_id"],
+                        "sender_name": "ASR Enterprises",
+                        "recipient_phone": recipient,
+                        "message_type": "template",
+                        "content": f"[Template: {request.template_name}]",
+                        "template_name": request.template_name,
+                        "wa_message_id": message_id,
+                        "timestamp": datetime.now(timezone.utc),
+                        "status": "sent"
+                    }
+                    await db.meta_messages.insert_one(outgoing_msg)
+                
+                return {"success": True, "message_id": message_id}
+            else:
+                error_msg = result.get("error", {}).get("message", "Unknown error")
+                return {"success": False, "error": error_msg}
+                
+    except Exception as e:
+        logger.error(f"Error sending template: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/whatsapp/templates")
+async def get_whatsapp_templates():
+    """
+    Get list of available WhatsApp message templates from Meta
+    """
+    config = get_whatsapp_config()
+    
+    if not config["phone_number_id"] or not config["access_token"]:
+        raise HTTPException(status_code=500, detail="WhatsApp API not configured")
+    
+    # Get WABA ID from phone number
+    url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}"
+    
+    headers = {
+        "Authorization": f"Bearer {config['access_token']}"
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # First get the WABA ID
+            phone_response = await client.get(
+                f"{url}?fields=verified_name,display_phone_number",
+                headers=headers,
+                timeout=30.0
+            )
+            phone_data = phone_response.json()
+            
+            # Get templates from the business account
+            # Note: Templates are associated with the WhatsApp Business Account, not the phone number
+            # We need to get the WABA ID first
+            waba_url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}/whatsapp_business_profile"
+            
+            # For now, return common pre-defined templates that can be created
+            common_templates = [
+                {
+                    "name": "hello_world",
+                    "language": "en",
+                    "category": "UTILITY",
+                    "status": "APPROVED",
+                    "description": "Default hello world template",
+                    "components": [
+                        {"type": "BODY", "text": "Hello World!"}
+                    ]
+                },
+                {
+                    "name": "order_confirmation",
+                    "language": "en",
+                    "category": "UTILITY",
+                    "status": "PENDING",
+                    "description": "Order confirmation template",
+                    "components": [
+                        {"type": "BODY", "text": "Your order {{1}} has been confirmed. Thank you for choosing ASR Enterprises!"}
+                    ]
+                },
+                {
+                    "name": "appointment_reminder",
+                    "language": "en",
+                    "category": "UTILITY",
+                    "status": "PENDING",
+                    "description": "Appointment reminder template",
+                    "components": [
+                        {"type": "BODY", "text": "Reminder: Your solar consultation is scheduled for {{1}} at {{2}}. Reply YES to confirm."}
+                    ]
+                },
+                {
+                    "name": "service_update",
+                    "language": "en",
+                    "category": "UTILITY",
+                    "status": "PENDING",
+                    "description": "Service status update",
+                    "components": [
+                        {"type": "BODY", "text": "Service Update: {{1}}. For queries, call us at 8877896889."}
+                    ]
+                }
+            ]
+            
+            return {
+                "success": True,
+                "phone_info": phone_data,
+                "templates": common_templates,
+                "note": "Create these templates in Meta Business Suite for approval"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching templates: {str(e)}")
+        return {"success": False, "error": str(e), "templates": []}
+
+
+# ==================== WHATSAPP MEDIA MESSAGES ====================
+
+class SendMediaRequest(BaseModel):
+    """Request model for sending media message"""
+    recipient_phone: str
+    media_type: str  # image, document, audio, video
+    media_url: str  # Public URL of the media
+    caption: Optional[str] = None
+    filename: Optional[str] = None
+
+
+@router.post("/whatsapp/send-media")
+async def send_media_message(request: SendMediaRequest):
+    """
+    Send a WhatsApp media message (image, document, audio, video)
+    """
+    config = get_whatsapp_config()
+    
+    if not config["phone_number_id"] or not config["access_token"]:
+        raise HTTPException(status_code=500, detail="WhatsApp API not configured")
+    
+    recipient = request.recipient_phone.replace("+", "").replace(" ", "").replace("-", "")
+    if len(recipient) == 10:
+        recipient = "91" + recipient
+    
+    url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}/messages"
+    
+    headers = {
+        "Authorization": f"Bearer {config['access_token']}",
+        "Content-Type": "application/json"
+    }
+    
+    # Build media payload based on type
+    media_object = {"link": request.media_url}
+    
+    if request.media_type == "image" and request.caption:
+        media_object["caption"] = request.caption
+    elif request.media_type == "document":
+        if request.filename:
+            media_object["filename"] = request.filename
+        if request.caption:
+            media_object["caption"] = request.caption
+    elif request.media_type == "video" and request.caption:
+        media_object["caption"] = request.caption
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": recipient,
+        "type": request.media_type,
+        request.media_type: media_object
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload, timeout=30.0)
+            result = response.json()
+            logger.info(f"Media API response: {result}")
+            
+            if response.status_code == 200 and "messages" in result:
+                message_id = result["messages"][0]["id"]
+                
+                if db is not None:
+                    outgoing_msg = {
+                        "id": f"wa_media_{message_id}",
+                        "platform": "whatsapp",
+                        "direction": "outgoing",
+                        "sender_id": config["phone_number_id"],
+                        "sender_name": "ASR Enterprises",
+                        "recipient_phone": recipient,
+                        "message_type": request.media_type,
+                        "content": request.caption or f"[{request.media_type.upper()}]",
+                        "media_url": request.media_url,
+                        "filename": request.filename,
+                        "wa_message_id": message_id,
+                        "timestamp": datetime.now(timezone.utc),
+                        "status": "sent"
+                    }
+                    await db.meta_messages.insert_one(outgoing_msg)
+                
+                return {"success": True, "message_id": message_id}
+            else:
+                error_msg = result.get("error", {}).get("message", "Unknown error")
+                return {"success": False, "error": error_msg}
+                
+    except Exception as e:
+        logger.error(f"Error sending media: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/whatsapp/upload-media")
+async def upload_media_to_whatsapp(request: Request):
+    """
+    Upload media to WhatsApp servers and get a media ID
+    Accepts multipart form data with 'file' field
+    """
+    config = get_whatsapp_config()
+    
+    if not config["phone_number_id"] or not config["access_token"]:
+        raise HTTPException(status_code=500, detail="WhatsApp API not configured")
+    
+    form = await request.form()
+    file = form.get("file")
+    
+    if not file:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    # Read file content
+    content = await file.read()
+    content_type = file.content_type or "application/octet-stream"
+    
+    url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}/media"
+    
+    headers = {
+        "Authorization": f"Bearer {config['access_token']}"
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            files = {
+                "file": (file.filename, content, content_type),
+                "messaging_product": (None, "whatsapp"),
+                "type": (None, content_type)
+            }
+            
+            response = await client.post(url, headers=headers, files=files, timeout=60.0)
+            result = response.json()
+            
+            if response.status_code == 200 and "id" in result:
+                return {
+                    "success": True,
+                    "media_id": result["id"],
+                    "filename": file.filename
+                }
+            else:
+                error_msg = result.get("error", {}).get("message", "Upload failed")
+                return {"success": False, "error": error_msg}
+                
+    except Exception as e:
+        logger.error(f"Error uploading media: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/whatsapp/send-media-by-id")
+async def send_media_by_id(data: Dict[str, Any]):
+    """
+    Send media using WhatsApp media ID (for uploaded media)
+    """
+    config = get_whatsapp_config()
+    
+    if not config["phone_number_id"] or not config["access_token"]:
+        raise HTTPException(status_code=500, detail="WhatsApp API not configured")
+    
+    recipient = data.get("recipient_phone", "").replace("+", "").replace(" ", "").replace("-", "")
+    if len(recipient) == 10:
+        recipient = "91" + recipient
+    
+    media_type = data.get("media_type", "image")
+    media_id = data.get("media_id")
+    caption = data.get("caption", "")
+    filename = data.get("filename", "")
+    
+    if not media_id:
+        raise HTTPException(status_code=400, detail="media_id is required")
+    
+    url = f"https://graph.facebook.com/{config['api_version']}/{config['phone_number_id']}/messages"
+    
+    headers = {
+        "Authorization": f"Bearer {config['access_token']}",
+        "Content-Type": "application/json"
+    }
+    
+    media_object = {"id": media_id}
+    if caption:
+        media_object["caption"] = caption
+    if media_type == "document" and filename:
+        media_object["filename"] = filename
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": recipient,
+        "type": media_type,
+        media_type: media_object
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload, timeout=30.0)
+            result = response.json()
+            
+            if response.status_code == 200 and "messages" in result:
+                message_id = result["messages"][0]["id"]
+                
+                if db is not None:
+                    outgoing_msg = {
+                        "id": f"wa_media_{message_id}",
+                        "platform": "whatsapp",
+                        "direction": "outgoing",
+                        "sender_id": config["phone_number_id"],
+                        "sender_name": "ASR Enterprises",
+                        "recipient_phone": recipient,
+                        "message_type": media_type,
+                        "content": caption or f"[{media_type.upper()}]",
+                        "media_id": media_id,
+                        "filename": filename,
+                        "wa_message_id": message_id,
+                        "timestamp": datetime.now(timezone.utc),
+                        "status": "sent"
+                    }
+                    await db.meta_messages.insert_one(outgoing_msg)
+                
+                return {"success": True, "message_id": message_id}
+            else:
+                error_msg = result.get("error", {}).get("message", "Unknown error")
+                return {"success": False, "error": error_msg}
+                
+    except Exception as e:
+        logger.error(f"Error sending media: {str(e)}")
+        return {"success": False, "error": str(e)}

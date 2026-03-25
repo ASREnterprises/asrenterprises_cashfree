@@ -62,14 +62,6 @@ export const StaffPortal = () => {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
-  // WhatsApp Inbox state
-  const [waConversations, setWaConversations] = useState([]);
-  const [waSelectedChat, setWaSelectedChat] = useState(null);
-  const [waChatMessages, setWaChatMessages] = useState([]);
-  const [waNewMessage, setWaNewMessage] = useState('');
-  const [waSending, setWaSending] = useState(false);
-  const [waLoading, setWaLoading] = useState(false);
-  
   const navigate = useNavigate();
 
   // Handle scroll to show/hide scroll-to-top button
@@ -128,13 +120,6 @@ export const StaffPortal = () => {
     return () => clearInterval(syncInterval);
   }, [autoSyncEnabled, staffData?.staff_id, activeTab]);
 
-  // Fetch WhatsApp data when tab is active
-  useEffect(() => {
-    if (activeTab === "whatsapp") {
-      fetchWaConversations();
-    }
-  }, [activeTab]);
-
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -183,55 +168,6 @@ export const StaffPortal = () => {
     localStorage.removeItem("asrStaffAuth");
     localStorage.removeItem("asrStaffData");
     navigate("/staff/login");
-  };
-
-  // WhatsApp Functions
-  const fetchWaConversations = async () => {
-    setWaLoading(true);
-    try {
-      const res = await axios.get(`${API}/meta/whatsapp/conversations`);
-      setWaConversations(res.data.conversations || []);
-    } catch (err) { 
-      console.error("Error fetching WhatsApp conversations:", err); 
-    }
-    setWaLoading(false);
-  };
-  
-  const fetchWaChat = async (phone) => {
-    try {
-      const res = await axios.get(`${API}/meta/whatsapp/chat/${phone}`);
-      setWaChatMessages(res.data.messages || []);
-    } catch (err) { 
-      console.error("Error fetching WhatsApp chat:", err); 
-    }
-  };
-  
-  const sendWaMessage = async () => {
-    if (!waNewMessage.trim() || !waSelectedChat) return;
-    
-    setWaSending(true);
-    try {
-      const res = await axios.post(`${API}/meta/whatsapp/chat/${waSelectedChat}/send`, {
-        message: waNewMessage
-      });
-      
-      if (res.data.success) {
-        setWaNewMessage('');
-        // Refresh chat
-        await fetchWaChat(waSelectedChat);
-        await fetchWaConversations();
-      } else {
-        alert(res.data.error || "Failed to send message");
-      }
-    } catch (err) {
-      alert(err.response?.data?.detail || "Error sending message");
-    }
-    setWaSending(false);
-  };
-  
-  const selectWaChat = async (phone) => {
-    setWaSelectedChat(phone);
-    await fetchWaChat(phone);
   };
 
   // Quick status update for leads
@@ -498,7 +434,6 @@ export const StaffPortal = () => {
               { id: "dashboard", label: "Dashboard", shortLabel: "Home", icon: <TrendingUp className="w-4 h-4" /> },
               { id: "tasks", label: "Today's Tasks", shortLabel: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "leads", label: "My Leads", shortLabel: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
-              { id: "whatsapp", label: "WhatsApp", shortLabel: "WA", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "followups", label: "Follow-ups", shortLabel: "Follow", icon: <Calendar className="w-4 h-4" /> },
               { id: "training", label: "Training", shortLabel: "Train", icon: <GraduationCap className="w-4 h-4" /> },
               { id: "messages", label: "Messages", shortLabel: "Msgs", icon: <MessageCircle className="w-4 h-4" /> }
@@ -901,148 +836,6 @@ export const StaffPortal = () => {
           </div>
         )}
 
-        {/* WhatsApp Inbox Tab */}
-        {activeTab === "whatsapp" && (
-          <div className="space-y-4">
-            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[#0a355e] font-bold flex items-center space-x-2" data-testid="staff-whatsapp-header">
-                  <MessageSquare className="w-5 h-5 text-green-500" />
-                  <span>WhatsApp Business Inbox</span>
-                </h3>
-                <div className="flex items-center space-x-2">
-                  <span className="text-green-500 text-xs bg-green-50 px-2 py-1 rounded-full flex items-center space-x-1">
-                    <Phone className="w-3 h-3" />
-                    <span>+91 8877896889</span>
-                  </span>
-                  <button 
-                    onClick={fetchWaConversations} 
-                    className="text-gray-500 hover:text-[#0a355e] p-1"
-                    title="Refresh"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${waLoading ? 'animate-spin' : ''}`} />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="grid md:grid-cols-3 gap-4">
-                {/* Conversations List */}
-                <div className="space-y-2 border-r border-sky-200 pr-4 max-h-[400px] overflow-y-auto" data-testid="staff-wa-conversations">
-                  {waLoading && waConversations.length === 0 && (
-                    <div className="text-center py-8">
-                      <RefreshCw className="w-8 h-8 text-green-500 mx-auto animate-spin" />
-                      <p className="text-gray-500 text-sm mt-2">Loading conversations...</p>
-                    </div>
-                  )}
-                  
-                  {!waLoading && waConversations.length === 0 && (
-                    <div className="text-center py-8">
-                      <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">No conversations yet</p>
-                      <p className="text-gray-400 text-xs mt-1">Messages will appear here</p>
-                    </div>
-                  )}
-                  
-                  {waConversations.map((conv) => (
-                    <div 
-                      key={conv.phone}
-                      className={`p-3 rounded-lg cursor-pointer transition ${waSelectedChat === conv.phone ? 'bg-green-100 border-2 border-green-500' : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'}`}
-                      onClick={() => selectWaChat(conv.phone)}
-                      data-testid={`staff-wa-chat-${conv.phone}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[#0a355e] font-medium text-sm">{conv.name || 'Unknown'}</span>
-                        {conv.unread_count > 0 && (
-                          <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{conv.unread_count}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-1 text-gray-500 text-xs mb-1">
-                        <Phone className="w-3 h-3" />
-                        <span>+{conv.phone}</span>
-                      </div>
-                      <p className="text-gray-600 text-xs truncate">{conv.last_message}</p>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Chat Area */}
-                <div className="md:col-span-2">
-                  {!waSelectedChat ? (
-                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-3 text-green-300" />
-                      <p className="text-gray-600 font-medium">Select a conversation</p>
-                      <p className="text-sm text-gray-400 mt-1">Choose a customer to view and reply</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col h-[400px]">
-                      {/* Chat Header */}
-                      <div className="bg-green-500 text-white px-4 py-2 rounded-t-lg flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                            <User className="w-4 h-4" />
-                          </div>
-                          <span className="font-medium text-sm">+{waSelectedChat}</span>
-                        </div>
-                        <button 
-                          onClick={() => { setWaSelectedChat(null); setWaChatMessages([]); }}
-                          className="text-white/80 hover:text-white"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      
-                      {/* Messages */}
-                      <div className="flex-1 p-3 overflow-y-auto bg-gray-50 space-y-2" data-testid="staff-wa-messages">
-                        {waChatMessages.length === 0 && (
-                          <div className="text-center py-4">
-                            <p className="text-gray-400 text-sm">No messages yet</p>
-                          </div>
-                        )}
-                        
-                        {waChatMessages.map((msg, idx) => (
-                          <div 
-                            key={msg.id || idx}
-                            className={`max-w-[80%] ${msg.direction === 'outgoing' ? 'ml-auto' : 'mr-auto'}`}
-                          >
-                            <div className={`p-2 rounded-lg text-sm ${msg.direction === 'outgoing' ? 'bg-green-500 text-white rounded-br-none' : 'bg-white border border-gray-200 rounded-bl-none'}`}>
-                              <p>{msg.content}</p>
-                              <p className={`text-xs mt-1 ${msg.direction === 'outgoing' ? 'text-green-100' : 'text-gray-400'}`}>
-                                {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : ''}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Message Input */}
-                      <div className="p-2 bg-white border-t border-gray-200 rounded-b-lg">
-                        <div className="flex space-x-2">
-                          <input
-                            type="text"
-                            value={waNewMessage}
-                            onChange={(e) => setWaNewMessage(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && sendWaMessage()}
-                            placeholder="Type a message..."
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-3 py-2 text-sm focus:outline-none focus:border-green-500"
-                            data-testid="staff-wa-input"
-                          />
-                          <button
-                            onClick={sendWaMessage}
-                            disabled={waSending || !waNewMessage.trim()}
-                            className="bg-green-500 text-white px-3 py-2 rounded-full hover:bg-green-600 transition disabled:opacity-50"
-                            data-testid="staff-wa-send"
-                          >
-                            {waSending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Follow-ups Tab */}
         {activeTab === "followups" && (

@@ -797,9 +797,6 @@ const ServiceRegistration = () => {
     property_type: "residential", roof_type: "rcc", monthly_bill: "", roof_area: "", notes: ""
   });
 
-  // Razorpay Payment Link
-  const RAZORPAY_PAYMENT_LINK = "https://razorpay.me/@asrenterprises9465";
-
   useEffect(() => {
     // Fetch current registration fee
     axios.get(`${API}/registration/fee`).then(res => {

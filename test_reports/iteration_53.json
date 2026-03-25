@@ -1,0 +1,110 @@
+{
+  "summary": "Tested CRM Dashboard lead management functionality. Backend APIs working correctly (69 leads with pagination). Frontend loads and displays leads properly. Found pipeline stage ID mismatch between frontend and backend causing Dashboard Pipeline Overview to show zeros.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Dashboard Pipeline Overview",
+        "issue": "Pipeline stage IDs mismatch between frontend PIPELINE_STAGES and backend API response. Frontend uses: new, follow_up, telecall, quotation, installation, completed, lost. Backend returns: new, contacted, site_visit, quotation, negotiation, converted, completed, lost. This causes Pipeline Overview to show all zeros except for matching stages.",
+        "affected_selectors": ["Pipeline Overview section on Dashboard tab"],
+        "priority": "MEDIUM"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_53.json"
+  ],
+  "action_items": [
+    "Align PIPELINE_STAGES in CRMDashboard.js (line 536-544) with backend API stage IDs. Either update frontend to use: new, contacted, site_visit, quotation, negotiation, converted, completed, lost OR update backend to use: new, follow_up, telecall, quotation, installation, completed, lost"
+  ],
+  "critical_code_review_comments": [
+    "PIPELINE_STAGES at CRMDashboard.js line 536-544 uses different stage IDs than backend API at routes/crm.py line 191-192",
+    "Backend /api/crm/dashboard returns pipeline_stats with stages: new, contacted, site_visit, quotation, negotiation, converted, completed, lost",
+    "Frontend expects stages: new, follow_up, telecall, quotation, installation, completed, lost",
+    "Only 'new', 'quotation', 'completed', 'lost' match between frontend and backend"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% - All APIs working correctly",
+    "frontend": "90% - Leads display works, Pipeline Overview has data mismatch"
+  },
+  "test_credentials": {
+    "admin_mobile": "8877896889",
+    "test_otp": "131993",
+    "note": "MSG91 CAPTCHA blocks automated OTP login - used localStorage auth bypass for testing"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "CRM Dashboard loads correctly after setting localStorage auth. Leads tab shows 69 leads with search, filter, and pagination working. Dashboard Pipeline Overview shows zeros due to stage ID mismatch between frontend and backend. MSG91 OTP login has CAPTCHA that blocks automated testing.",
+  "features_verified": {
+    "crm_dashboard_loads": {
+      "status": "PASS",
+      "details": "CRM Dashboard route (/crm) loads correctly when authenticated via localStorage"
+    },
+    "leads_tab_displays_leads": {
+      "status": "PASS",
+      "details": "Shows 'Showing 69 of 69 leads' with lead names, contacts, sources, stages, and action buttons"
+    },
+    "lead_search_functionality": {
+      "status": "PASS",
+      "details": "Search for 'Test' returns 43 matching leads"
+    },
+    "lead_stage_filter": {
+      "status": "PASS",
+      "details": "Filter by 'New Lead' stage shows 63 leads"
+    },
+    "lead_pagination": {
+      "status": "PASS",
+      "details": "Pagination shows 'Showing X of X leads'. With 250 per page limit and 69 total leads, all fit on one page"
+    },
+    "dashboard_total_leads": {
+      "status": "PASS",
+      "details": "Dashboard shows '69 Total Leads' correctly"
+    },
+    "dashboard_pipeline_overview": {
+      "status": "FAIL",
+      "details": "Shows all zeros due to stage ID mismatch between frontend PIPELINE_STAGES and backend API response"
+    },
+    "backend_leads_api": {
+      "status": "PASS",
+      "details": "GET /api/crm/leads returns 69 leads with correct pagination"
+    },
+    "backend_dashboard_api": {
+      "status": "PASS",
+      "details": "GET /api/crm/dashboard returns correct pipeline_stats (new: 63, contacted: 2, etc.)"
+    }
+  },
+  "api_test_results": {
+    "GET /api/crm/leads": {
+      "status": 200,
+      "response": "Returns 69 leads with pagination info"
+    },
+    "GET /api/crm/leads?stage=new": {
+      "status": 200,
+      "response": "Returns 63 new leads"
+    },
+    "GET /api/crm/dashboard": {
+      "status": 200,
+      "response": "Returns total_leads: 69, pipeline_stats with correct counts"
+    }
+  },
+  "root_cause_analysis": {
+    "issue": "Dashboard Pipeline Overview shows all zeros",
+    "root_cause": "Stage ID mismatch between frontend and backend",
+    "frontend_stages": ["new", "follow_up", "telecall", "quotation", "installation", "completed", "lost"],
+    "backend_stages": ["new", "contacted", "site_visit", "quotation", "negotiation", "converted", "completed", "lost"],
+    "matching_stages": ["new", "quotation", "completed", "lost"],
+    "mismatched_stages": {
+      "frontend_follow_up": "backend_contacted",
+      "frontend_telecall": "no_backend_equivalent",
+      "frontend_installation": "backend_negotiation"
+    },
+    "fix_location": "CRMDashboard.js line 536-544 PIPELINE_STAGES constant OR routes/crm.py line 191-192 stages list"
+  }
+}

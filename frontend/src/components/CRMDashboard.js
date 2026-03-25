@@ -617,7 +617,7 @@ export const CRMDashboard = () => {
       if (activeTab === "leads") {
         fetchLeads(leadsPagination.current_page, leadsSearch);
       } else if (activeTab === "dashboard") {
-        fetchDashboard();
+        fetchDashboardData();
       }
       setLastSyncTime(new Date());
     }, 30000); // 30 seconds
@@ -694,8 +694,9 @@ export const CRMDashboard = () => {
   const [registrations, setRegistrations] = useState([]);
 
   useEffect(() => { 
-    // Load only essential data first (dashboard stats)
+    // Load essential data on mount
     fetchDashboardData();
+    fetchLeads(); // Also load leads for dashboard stats
     fetchDistricts(); 
     fetchGalleryPhotos(); // Load gallery photos for admin
   }, []);

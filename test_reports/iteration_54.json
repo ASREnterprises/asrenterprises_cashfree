@@ -1,0 +1,95 @@
+{
+  "summary": "Comprehensive testing of CRM Dashboard, Staff Portal, and Website. Backend APIs working well (72% pass rate). Found critical pipeline stage mismatch between frontend and backend.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "Pipeline Stages",
+        "issue": "Frontend has stages: new, contacted, site_visit, quotation, negotiation, converted, completed, lost. Backend has: new, follow_up, survey, quotation, installation, completed, lost. This causes dashboard stats mismatch.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/gallery",
+        "issue": "Returns 404 - endpoint not found. Gallery upload exists at /api/gallery/upload but no GET endpoint for listing"
+      },
+      {
+        "endpoint": "/api/leads",
+        "issue": "Contact form requires 'district' field which may not be provided by website form"
+      },
+      {
+        "endpoint": "/api/crm/leads pagination",
+        "issue": "Pagination returns same lead on different pages - possible ordering issue"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Pipeline Stage Display",
+        "issue": "Dashboard shows 0 for all pipeline stages because frontend stages don't match backend stages. Leads with 'follow_up' stage are not counted.",
+        "affected_selectors": ["Pipeline Overview section"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_crm_staff_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Align pipeline stages between frontend and backend. Either update frontend PIPELINE_STAGES to match backend (new, follow_up, survey, quotation, installation, completed, lost) OR update backend Lead model to match frontend (new, contacted, site_visit, quotation, negotiation, converted, completed, lost)",
+    "Add GET /api/gallery endpoint to list gallery photos",
+    "Make 'district' field optional in /api/leads endpoint for website contact form",
+    "Fix pagination ordering in /api/crm/leads"
+  ],
+  "critical_code_review_comments": [
+    "Pipeline stage mismatch is causing dashboard stats to show 0 for most stages",
+    "Backend Lead model (line 1285) defines stages as: new, follow_up, survey, quotation, installation, completed, lost",
+    "Frontend CRMDashboard.js (line 536) defines stages as: new, contacted, site_visit, quotation, negotiation, converted, completed, lost",
+    "4 leads have 'follow_up' stage which is not recognized by frontend"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_crm_staff_api.py"
+  ],
+  "success_rate": {
+    "backend": "72% (13/18 tests passed)",
+    "frontend": "90% (CRM Dashboard, Staff Portal, Website all loading correctly)"
+  },
+  "test_credentials": {
+    "admin_mobile": "8877896889",
+    "admin_otp": "131993",
+    "staff_id": "ASR1002",
+    "staff_password": "asr@123"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Pipeline stages mismatch is the main issue. Frontend and backend use different stage names. Backend has 'follow_up', 'survey', 'installation' while frontend has 'contacted', 'site_visit', 'negotiation', 'converted'. This causes dashboard pipeline stats to show 0 for most stages.",
+  "features_tested": {
+    "crm_dashboard": {
+      "login_with_otp": "PASS - Admin login with mobile OTP works",
+      "leads_tab_loads": "PASS - Shows 69 leads with pagination",
+      "search_leads": "PASS - Search functionality works",
+      "filter_by_stage": "PASS - Stage filter dropdown works",
+      "pagination": "PARTIAL - Works but may have ordering issues",
+      "assign_lead_to_staff": "PASS - Lead assignment API works",
+      "dashboard_stats": "PARTIAL - Total leads correct but pipeline stats show 0 due to stage mismatch",
+      "team_tab": "PASS - Shows staff list with stats"
+    },
+    "staff_portal": {
+      "staff_login": "PASS - Login initiates OTP flow",
+      "assigned_leads": "PASS - Staff can see assigned leads",
+      "update_lead_status": "PASS - Staff can update lead stage",
+      "mark_not_interested": "PASS - API works correctly"
+    },
+    "website": {
+      "homepage_loads": "PASS - All sections visible",
+      "contact_form": "PARTIAL - Works but requires district field",
+      "services_section": "PASS - Displays correctly",
+      "gallery": "FAIL - No GET endpoint for gallery listing"
+    }
+  },
+  "rca_of_issue": "The pipeline stage mismatch was introduced when frontend was updated with new stage names (contacted, site_visit, negotiation, converted) but backend Lead model was not updated to match. Backend still uses old stages (follow_up, survey, installation). This causes: 1) Dashboard pipeline stats to show 0 for most stages, 2) Leads with 'follow_up' stage not being displayed correctly in frontend filters."
+}

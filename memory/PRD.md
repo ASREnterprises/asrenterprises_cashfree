@@ -3,7 +3,51 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 25, 2026) - Lead Management Fix
+## Latest Session (March 25, 2026) - Staff Panel & Lead Management Fix
+
+### Issues Fixed
+
+#### 1. Staff Panel White Screen After Call ✅
+- **Problem**: When staff made a call using the phone app and returned, the leads section went blank/white
+- **Root Cause**: `window.location.href = tel:` caused full page navigation and React state loss
+- **Fix**: 
+  - Changed to `window.open(tel:, '_self')` which preserves app state better
+  - Added localStorage caching of leads data BEFORE initiating call
+  - On return, leads are restored from cache if fetch is pending
+  - Cache validity: 5 minutes
+
+#### 2. Lead Management in Admin Panel Not Working ✅
+- **Problem**: Leads section sometimes showed blank or pipeline stats showed 0
+- **Root Cause**: `fetchDashboardData` was using `/crm/widget/stats` which doesn't include `pipeline_stats`
+- **Fix**: Changed to use `/crm/dashboard` endpoint directly which returns full stats
+- **Also Fixed**: Added loading indicator when leads table is empty during fetch
+
+#### 3. Staff Mobile-Friendly Lead Access ✅
+- **Enhancement**: Completely redesigned mobile lead cards for better touch interaction
+- **Features Added**:
+  - Large "Call Now" button (full width, prominent gradient styling)
+  - Grid layout for WhatsApp and Update buttons
+  - Inline status dropdown with X button for "Not Interested"
+  - Quick stats cards at top (To Call, Called, In Progress)
+  - Filter buttons with touch-friendly sizing
+  - Refresh button added to header
+  - Phone numbers displayed larger and tappable
+
+#### 4. Pipeline Overview Stats Fixed ✅
+- Dashboard now correctly shows:
+  - New Lead: 61
+  - Contacted: 3
+  - Site Visit: 1
+  - And all other stages
+
+### Test Results
+- Backend API: 100% pass rate (16/16 tests)
+- Frontend: All features working correctly
+- Mobile: Touch-friendly cards verified working
+
+---
+
+## Previous Session (March 25, 2026 - Earlier) - Lead Management Fix
 
 ### Issues Fixed
 
@@ -16,11 +60,6 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 - **Old stages**: new, follow_up, telecall, quotation, installation, completed, lost
 - **New stages**: new, contacted, site_visit, quotation, negotiation, converted, completed, lost
 - Updated both CRMDashboard.js and StaffPortal.js
-
-### Test Results
-- Backend API: 69 leads with correct pagination ✅
-- Dashboard API: Pipeline stats showing correctly ✅
-- Frontend: Leads display, search, filter, pagination all working ✅
 
 ---
 

@@ -698,6 +698,7 @@ export const CRMDashboard = () => {
     // Load essential data on mount
     fetchDashboardData();
     fetchLeads(); // Also load leads for dashboard stats
+    fetchStaff(); // Load staff for assignment dropdowns
     fetchDistricts(); 
     fetchGalleryPhotos(); // Load gallery photos for admin
   }, []);
@@ -762,19 +763,22 @@ export const CRMDashboard = () => {
       
       // Handle both old (array) and new (object with pagination) response formats
       if (Array.isArray(res.data)) {
-        setLeads(res.data);
+        // Only update if we got valid data
+        if (res.data.length > 0 || leads.length === 0) {
+          setLeads(res.data);
+        }
         setLeadsPagination({ current_page: 1, total_pages: 1, total_count: res.data.length, per_page: 250, has_next: false, has_prev: false });
       } else {
-        setLeads(res.data.leads || []);
-        setLeadsPagination(res.data.pagination || { current_page: 1, total_pages: 1, total_count: 0, per_page: 250, has_next: false, has_prev: false });
+        const newLeads = res.data.leads || [];
+        // Only update if we got valid data
+        if (newLeads.length > 0 || leads.length === 0) {
+          setLeads(newLeads);
+        }
+        setLeadsPagination(res.data.pagination || { current_page: 1, total_pages: 1, total_count: newLeads.length, per_page: 250, has_next: false, has_prev: false });
       }
     } catch (err) { 
       console.error("Leads error:", err);
       // Don't clear leads on error - keep existing data
-      // Only set empty if this is the first load and leads is already empty
-      if (leads.length === 0) {
-        setLeadsPagination({ current_page: 1, total_pages: 1, total_count: 0, per_page: 250, has_next: false, has_prev: false });
-      }
     }
   };
   
@@ -1570,7 +1574,22 @@ export const CRMDashboard = () => {
                     </tr>
                   </thead>
                 <tbody>
-                  {leads.map((lead) => (
+                  {leads.length === 0 && loading ? (
+                    <tr>
+                      <td colSpan="7" className="px-4 py-12 text-center">
+                        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+                        <p className="text-gray-500">Loading leads...</p>
+                      </td>
+                    </tr>
+                  ) : leads.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-4 py-12 text-center">
+                        <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 font-medium">No leads found</p>
+                        <p className="text-gray-400 text-sm mt-1">Add new leads using the buttons above</p>
+                      </td>
+                    </tr>
+                  ) : leads.map((lead) => (
                     <tr key={lead.id} className={`border-t border-gray-100 hover:bg-gray-50 ${selectedLeadIds.includes(lead.id) ? 'bg-blue-50' : ''}`}>
                       <td className="px-3 py-3">
                         <input

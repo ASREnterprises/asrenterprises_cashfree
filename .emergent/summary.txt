@@ -1,147 +1,193 @@
 <analysis>**original_problem_statement:**
-The user's requirements evolved significantly during the session, focusing primarily on robust bulk lead management, pagination, CRM/Staff portal optimization, and public UI adjustments. Key explicit requests included:
-1. Allowing manual copy-paste of phone numbers for bulk lead creation.
-2. Prioritizing 10-digit mobile number extraction from bulk Excel uploads and ensuring it handles 2000+ leads without timing out.
-3. Implementing pagination (250 leads per page) in the admin CRM.
-4. Improving backend query performance for dashboards to resolve slow load times.
-5. Making the Staff Portal highly mobile-friendly and removing Superfone deep links.
-6. Public website UI tweaks: adding a scroll-to-top button, restoring the Book Solar Service modal (priced at ₹2999) with a specific Paytm QR code, making the tagline solid green, and updating the support email.
-7. Fixing a bug where the screen goes blank when bulk-assigning leads to staff.
-8. Implementing a real-time auto-sync feature for leads in both the CRM Dashboard and Staff Portal.
+The user initially requested to add several advanced features: WhatsApp Template Messages, Media Message support, and an Advanced HR module. However, the user then reversed course and requested a major cleanup and bug-fixing effort. The core requirements became:
+1.  Fix the lead management system, which the user reported as not working properly and sometimes showing blank sections in the admin dashboard.
+2.  Fix an issue where staff members are not getting leads correctly in the staff panel after a call.
+3.  Completely remove the recently integrated WhatsApp API and all its settings.
+4.  Completely remove the Razorpay integration and all its settings.
+5.  Clean up any unused content or code that could be slowing down the website.
+6.  Perform a thorough test of the admin dashboard, staff panel, and public website to ensure all features are working correctly and fix any identified issues.
 
 **User's preferred language**: English
 
-**what currently exists?** 
-A full-stack React/FastAPI application for a solar energy business. The app now features a highly capable bulk lead import system (handles CSV/Excel and manual copy-paste, extracting 10-digit numbers accurately), paginated lead viewing, optimized backend routes for faster dashboard loading, a mobile-optimized staff portal, and a restored ₹2999 QR-code booking flow on the public website. The application structure was slightly improved by extracting staff-related API endpoints into a dedicated router.
+**what currently exists?**
+The application is a full-stack React/FastAPI CRM for a solar business. A significant cleanup has just been performed. All code related to the recently added WhatsApp Business API integration (including UI tabs, backend routes in , and environment variables) has been removed. Similarly, all code and configuration for the Razorpay payment gateway have been stripped from the backend and frontend. The backend  file has been cleaned of the related routers and endpoints. The lead management system's backend and frontend stages have been synchronized to fix a data mismatch bug.
 
 **Last working item**:
-- **Last item agent was working**: Fixing a React crash (blank screen) in the CRM Dashboard during Bulk Assign operations, and implementing an auto-sync () feature for fetching leads. 
-- **Status**: IN PROGRESS. The agent identified that the crash was caused by a missing  icon import when the  state was triggered. The agent edited  to fix the import and add auto-sync, but the context window cut off exactly after the file edit. The auto-sync feature has not yet been added to .
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: Frontend testing agent / screenshot tool
+- **Last item agent was working**: The agent was performing a comprehensive investigation and fix for the user's report that Lead management not working and Staff faces issues getting leads.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: Y (API and component level, plus one testing agent run)
+- **Which testing method agent to use?**: both
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  - **Issue 1: UI Crash on Bulk Assign & Missing Auto-Sync Implementation (P0)**: 
-     - **Attempted fixes**: Agent added  to the lucide-react imports in  and added a  interval for auto-syncing leads. Context ended before completion.
-     - **Next debug checklist**: 
-        1. Verify  is correctly imported in .
-        2. Verify the  auto-sync logic is correctly implemented in  without causing infinite re-renders.
-        3. Implement the exact same auto-sync logic in .
-        4. Test the Bulk Assign feature to ensure the modal transitions correctly without white-screening the app.
-     - **Why fix this issue and what will be achieved with the fix?**: User explicitly reported the application crashing during a core workflow (assigning leads). Auto-sync ensures admins and staff see new leads immediately without manual page refreshes.
-     - **Status**: IN PROGRESS
-     - **Is recurring issue?**: N
-     - **Should Test frontend/backend/both after fix?**: frontend
-     - **Blocked on other issue**: None
+- **Issue 1: Lead Management & Staff Portal Functionality (P0)**: The user reports that lead management is broken and staff are not receiving leads correctly. The agent found and fixed a critical bug where pipeline stages were mismatched between the frontend and backend. It also identified data integrity issues, such as leads being assigned to a non-existent staff ID. While the agent created a test staff account and successfully assigned leads via API, a full end-to-end verification (Admin assigns -> Staff logs in -> Staff sees leads -> Staff updates lead) was blocked by 2FA/rate-limiting on automated tools. The core user complaint may still be present.
+- **Issue 2: Vague Cleanup & Performance Request (P2)**: The user requested to remove and clean that content which is not used in current website management and clean anything that slow down the website. While integrations were removed, a full audit for unused code/components and performance bottlenecks has not been completed.
+- **Issue 3: Monolithic  (P2)**: The main backend file, , is still extremely large despite the recent cleanup, which poses a risk for maintenance and future development.
 
-  - **Issue 2: Vague Cleanup Request (P2)**: 
-     - **Attempted fixes**: None. User requested to remove all previous settings, contents which is not important for current website. Agent did not action this before context cutoff.
-     - **Next debug checklist**: Use  to clarify exactly which settings or content blocks the user considers unimportant before deleting code.
-     - **Why fix this issue and what will be achieved with the fix?**: Fulfills user request to declutter the application.
-     - **Status**: NOT STARTED
-     - **Is recurring issue?**: N
-     - **Should Test frontend/backend/both after fix?**: frontend
+**Issues Detail**:
+- **Issue 1: Lead Management & Staff Portal Functionality (P0)**
+    - **Attempted fixes**:
+        - Synchronized  constant in  and  to match the backend stages ().
+        - Updated all queries in  (, ) to use the new, correct stage names.
+        - Identified that staff accounts in the DB had no passwords set, making login impossible. Created a new test staff account (/) for debugging.
+        - Successfully assigned unassigned leads to the new test staff account via API.
+    - **Next debug checklist**:
+        1.  Verify that an admin can successfully log in and see the main dashboard with correct pipeline stats.
+        2.  Verify an admin can assign leads to an active staff member through the UI.
+        3.  Manually test the staff login flow for the newly created staff member ( / ), including the 2FA step (using the test OTP ).
+        4.  Confirm the staff member can see the assigned leads in their Staff Portal.
+        5.  Confirm the staff member can update the stage of a lead (e.g., to 'contacted').
+        6.  Confirm the 'Not Interested' feature correctly moves the lead back to the unassigned pool with the 'lost' stage.
+    - **Why fix this issue and what will be achieved with the fix?**: This is the core functionality of the CRM. Fixing it is critical for the application to be usable.
+    - **Status**: IN PROGRESS
+    - **Is recurring issue?**: Y
+    - **Should Test frontend/backend/both after fix?**: both
+    - **Blocked on other issue**: None
+
+- **Issue 2: Vague Cleanup & Performance Request (P2)**
+    - **Attempted fixes**: Removed WhatsApp and Razorpay integrations.
+    - **Next debug checklist**:
+        1.  Use  to search for other potentially unused components or functions mentioned in older PRDs.
+        2.  Ask the user for specific examples of content which is not used.
+        3.  Analyze backend query performance, especially in  and , for potential optimizations beyond .
+    - **Why fix this issue and what will be achieved with the fix?**: Fulfills user request and improves application performance and maintainability.
+    - **Status**: IN PROGRESS
+    - **Is recurring issue?**: Y
+    - **Should Test frontend/backend/both after fix?**: both
+    - **Blocked on other issue**: None
+
+- **Issue 3: Monolithic  (P2)**
+    - **Attempted fixes**: The agent removed the  and  routers, slightly reducing the file's responsibilities, but the core issue remains.
+    - **Next debug checklist**: Plan to extract another logical unit from , such as shop or training endpoints, into a new file in .
+    - **Why fix this issue and what will be achieved with the fix?**: Improves code maintainability, reduces complexity, and minimizes the risk of merge conflicts and agent errors.
+    - **Status**: NOT STARTED
+    - **Is recurring issue?**: Y
+    - **Should Test frontend/backend/both after fix?**: backend
+    - **Blocked on other issue**: None
 
 **In progress Task List**:
-*None distinct from Issue 1.*
+- **Task 1: Full E2E Test of Lead Management (P0)**
+    - **Where to resume**: Start by manually testing the login for the staff user  and verifying if the leads assigned in the previous session are visible.
+    - **What will be achieved with this?**: This will confirm if the primary user-reported issue is resolved.
+    - **Status**: IN PROGRESS
+    - **Should Test frontend/backend/both after fix?**: both
+    - **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - (P1) Advanced HR Features: AI-driven task assignment and OCR for expense reimbursement.
-    - (P1) Predictive Operations Hub: AI-powered inventory management and route optimization for field staff.
+    - (P1) Advanced HR Features: AI-driven task assignment and OCR for expense reimbursement. (User rejected and then re-requested this before the cleanup, status is unclear. Needs confirmation).
     Future Tasks:
     - (P2) Hyper-Local SEO Pages: Create district-specific landing pages.
-    - (P3) Integrate Official WhatsApp Business API.
 
 **Completed work in this session**
-- Extracted staff-related endpoints to .
-- Added Not Interested lead workflow () returning leads to the unassigned pool.
-- Enhanced Bulk Import: Added manual paste support, priority 10-digit extraction, and duplicate detection.
-- Added pagination (250 items/page) to CRM leads.
-- Optimized dashboard endpoints with  for parallel database queries.
-- UI Updates: Removed Superfone deep link, added Scroll-to-Top buttons across the app, updated support email, restored Book Solar Service (₹2999) with Paytm QR, made Tagline green, and added an Instagram icon to floating actions.
+- **Feature Removal**: Completely removed the WhatsApp Business API integration from the frontend (, ) and backend (, deleted , ).
+- **Feature Removal**: Completely removed the Razorpay integration from the frontend (, ) and backend (, ).
+- **Bug Fix**: Resolved a critical data mismatch by synchronizing  between the frontend (, ) and backend (, ).
+- **Bug Fix**: Corrected a typo in the  auto-sync feature, changing a call from  to .
+- **Bug Fix**: Corrected the initial data fetch logic in  to include  on component mount, ensuring leads are displayed without needing a tab switch.
+- **Cleanup**: Removed the unused  router and its configurations from .
+- **Refactoring**: Updated the Book Solar Service endpoint to remove Razorpay dependency and function as a manual QR-code based booking.
+- **Debugging**: Investigated staff login issues, identified that no passwords were set, and created a test staff account () to facilitate testing.
 
 **Earlier issues found/mentioned but not fixed**
-   - **Issue 1: Massive  file**:
-     - **Debug checklist**: Continue extracting functional areas (like Training, Webhooks) from  into dedicated routers in .
-     - **Why to solve this issue and what will be achieved with this?**: The file is over 11,000 lines long, making it difficult to maintain and increasing the risk of hallucination/search_replace failures.
-     - **Should Test frontend/backend/both after fix**: backend
-     - **Is recurring issue?**: Y
+- **Issue 1: Orphaned Lead Assignments**: Leads were found assigned to a staff uid=0(root) gid=0(root) groups=0(root) that no longer exists in the  collection. A data cleanup script might be needed.
+    - **Debug checklist**:
+        - Write a script to find all leads where  does not correspond to an existing staff uid=0(root) gid=0(root) groups=0(root).
+        - Decide on a strategy: either un-assign these leads (set  to ) or re-assign them to a default admin/staff account.
+    - **Why to solve this issue and what will be achieved with this?**: Fixes data integrity and ensures all leads are visible and manageable.
+    - **Should Test frontend/backend/both after fix**: backend
+    - **Is recurring issue?**: N
 
 **Known issue recurrence from previous fork**
-  - **Issue recurrence in previous fork**: Monolithic backend file ().
-  - **Recurrence count**: 4
-  - **Status**: IN PROGRESS (Agent successfully extracted staff routes in this session, but more work remains).
+- **Issue recurrence in previous fork**: Monolithic backend file ().
+- **Recurrence count**: 5
+- **Status**: IN PROGRESS (Some code was removed, but the core problem persists).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Frontend**: React, Tailwind CSS, component lazy-loading, chunked API fetching.
-- **Backend**: FastAPI, MongoDB (Motor), Asyncio (Parallel queries).
-- **Architecture**: Modular routing (partially implemented).
+- **Frontend**: React, Tailwind CSS.
+- **Backend**: FastAPI, MongoDB (Motor), Asyncio.
+- **Architecture**: Modular routing (partially implemented). The agent has now removed two modules (, ) after a user request.
 
 **key DB schema**
-  - : {id, phone, stage, assigned_to, source}
-  - : {staff_id, name, leads_assigned}
+- : {id, phone, stage, assigned_to, source, ...} (Note:  is a staff UUID uid=0(root) gid=0(root) groups=0(root), not )
+- : {id, staff_id, name, password_hash, ...}
+- : {id, booking_number, status, ...} (Now uses manual payment confirmation)
 
 **changes in tech stack**
-  - None
+- **REMOVED**: WhatsApp Business API Integration.
+- **REMOVED**: Razorpay Payment Gateway Integration.
 
-**All files of reference** 
-1.  (Actively being edited for auto-sync and missing Loader2 import)
-2.  (Requires auto-sync implementation to mirror CRM)
-3.  (New router created in this session)
-4.  (Contains updated QR code logic and scroll-to-top implementation)
+**All files of reference**
+- : Main admin interface. Was heavily edited to remove integrations and fix lead loading logic.
+- : Main staff interface. Was edited to remove integrations and align pipeline stages.
+- : The monolithic backend file. Was heavily edited to remove all traces of WhatsApp and Razorpay integrations.
+- : Contains dashboard logic.
+- : Contains staff-specific logic, including lead fetching.
+- : Environment file was cleaned of old keys.
 
-**Areas that need refactoring**: 
- needs further decomposition into smaller router modules.
+**Areas that need refactoring**:
+-  is the top priority for refactoring. It still contains thousands of lines of code covering disparate features like shop, AI summaries, and user management.
+- The  function in  has a hardcoded  API call which should be refactored into a more generic stage update mechanism or kept separate with clearer logic.
 
 **key api endpoints**
-- : Marks lead as contacted and unassigns it.
-- : Handles copy-pasted phone lists.
-- : Fetches paginated leads.
-- : Assigns array of lead IDs to a specific staff member.
+- : Fetches paginated leads for the admin dashboard.
+- : Fetches leads assigned to a specific staff member.
+- : Moves a lead back to the unassigned pool.
+- : Assigns leads to a staff member (expects staff internal UUID uid=0(root) gid=0(root) groups=0(root)).
+- : Retrieves a list of all staff members.
 
 **Critical Info for New Agent**
-The previous agent's context cut off exactly as it was applying a fix for a React UI crash. The user reported that clicking Bulk Assign causes a white screen. The agent diagnosed this as a missing  import in . **Your immediate priority** is to verify that  is imported in . Furthermore, the user requested an **auto-sync** feature for leads; the previous agent started adding a  in  but completely missed adding it to . Finish these two frontend fixes immediately and verify with the screenshot tool or testing subagent.
+The user is frustrated with lead management being unreliable. You are picking up after a massive cleanup operation where the recently added WhatsApp and Razorpay integrations were completely removed at the user's request.
+
+**Your absolute top priority (P0) is to stabilize and verify the entire lead management lifecycle.**
+
+The previous agent fixed a critical bug where  were mismatched between the frontend and backend. However, other data integrity issues were found (orphaned leads, staff with no passwords). The testing agent confirmed the API works, but a full UI test was blocked. You must manually verify the end-to-end flow:
+1.  **Admin**: Log in, see correct dashboard stats, assign leads.
+2.  **Staff**: Log in (use test user /), see assigned leads, update a lead's status.
+3.  **Verify**: The change is reflected back in the Admin dashboard.
+
+Do not add any new features until this core functionality is confirmed to be 100% working and stable.
 
 **documents and test reports created in this job**
-  - /app/memory/PRD.md
-  - /app/test_reports/iteration_48.json
-  - /app/test_reports/iteration_49.json
-  - /app/test_reports/iteration_50.json
-  - /app/test_reports/iteration_51.json
+- /app/memory/PRD.md
+- /app/test_reports/iteration_52.json
+- /app/test_reports/iteration_53.json
+- /app/test_reports/iteration_54.json
 
-**Last 10 User Messages and any pending HUMAN messages** 
-1. (Latest) User asked to fix blank screen on bulk assign and add auto-sync to CRM and Staff portals. *(Implementation cut off halfway)*
-2. User asked to change tagline color to green, add scroll-to-top to CRM/Staff, and remove unnecessary contents. *(Done, except unnecessary contents requires human clarification)*
-3. User asked to use asrenterprises.in as primary domain. *(Agent clarified this is DNS-level, no code needed)*
-4. User provided correct QR code image. *(Done)*
-5. User asked to restore Book Solar Service with QR code, update price to ₹2999, and move scroll-to-top to right. *(Done)*
-6. User reported scroll-to-top wasn't working. *(Fixed)*
-7. User requested scroll-to-top, support email update, and video removal from gallery. *(Done)*
-8. User requested removal of Instagram widget below reviews, addition of IG icon to floating buttons, and removal of Book Solar Service button. *(Done)*
-9. User asked to remove Superfone, improve Staff Portal mobile UI, add IG widget, and fix slow loading. *(Done)*
-10. User requested 250-item pagination and fixing phone extraction to prioritize 10-digit numbers on bulk upload. *(Done)*
+**Last 10 User Messages and any pending HUMAN messages**
+1.  (Latest) User re-iterates that lead management isn't working in admin, staff have issues, and requests a full system test and fix.
+2.  User asks to fix lead management not working properly.
+3.  User requests a massive cleanup: remove WhatsApp API, Razorpay, and any unused content to improve speed.
+4.  User tries to use a production URL for a webhook, indicating a disconnect between preview and production environments.
+5.  User asks for help with deployment.
+6.  User reports the WhatsApp message sending feature is not working, providing a screenshot from their production domain.
+7.  User confirms they want to proceed with adding WhatsApp Templates, Media Messages, and Advanced HR features.
+8.  User is asked to provide specific WhatsApp templates or allow the agent to add them.
+9.  User is asked if they want to prioritize WhatsApp features or Advanced HR.
+10. User requests to add WhatsApp template messages, media support, and the advanced HR feature.
 
 **Project Health Check:**
-- Broken: 1 (Potential React import error in  causing white-screen on bulk assign).
+- Broken: The lead management lifecycle is in an unverified state. The staff login flow and lead visibility in the staff portal are the primary suspects.
 - Mocked: 0
 
 **3rd Party Integrations**
-  • Gemini (AI Training) — uses Emergent LLM Key
-  • MSG91 (OTP/SMS) — requires User API Key
+- Gemini (AI Training) — uses Emergent LLM Key
+- MSG91 (OTP/SMS) — requires User API Key
+- **REMOVED**: WhatsApp Business API
+- **REMOVED**: Razorpay
 
 **Testing status**
-  - Testing agent used after significant changes: YES (Tested bulk uploads, pagination, mobile UI)
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created:  through 
-  - Known regressions: Bulk assignment modal crashes the UI.
+- Testing agent used after significant changes: YES. Last run () identified the pipeline stage mismatch but also noted API pass rates and other issues.
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: , , .
+- Known regressions: None explicitly, but the core lead management feature is unstable.
 
 **Credentials to test flow:**
-- Admin Mobile for OTP: 
+- Admin Mobile for OTP:  (Fallback OTP  might work)
+- Staff Test Login:  /  (Requires 2FA, use fallback OTP )
 
 **What agent forgot to execute**
-The agent completely forgot to apply the lead auto-sync feature to the  component before the context window expired. It also did not ask for clarification regarding the user's vague request to remove all previous settings, contents which is not important.</analysis>
+The agent was in the middle of a deep debugging session for the lead management flow. Due to automated testing limitations (2FA/rate-limiting), it couldn't perform a final, comprehensive E2E test of the user's reported problem. The next logical step is to manually perform this test from both an admin and staff perspective.</analysis>

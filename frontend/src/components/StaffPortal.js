@@ -119,7 +119,10 @@ export const StaffPortal = () => {
   }, [autoSyncEnabled, staffData?.staff_id, activeTab]);
 
   const fetchAllData = async () => {
-    setLoading(true);
+    // Don't show loading spinner if we already have data (prevents flash/white screen)
+    if (!dashboard && !leads.length) {
+      setLoading(true);
+    }
     try {
       const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes, notifRes] = await Promise.all([
         axios.get(`${API}/staff/${staffData.staff_id}/dashboard`),
@@ -130,8 +133,18 @@ export const StaffPortal = () => {
         axios.get(`${API}/staff/${staffData.staff_id}/messages/unread`).catch(() => ({ data: { count: 0 } })),
         axios.get(`${API}/staff/${staffData.staff_id}/notifications`).catch(() => ({ data: { notifications: [], unread_count: 0 } }))
       ]);
+      
       setDashboard(dashRes.data);
-      setLeads(leadsRes.data);
+      
+      // Only update leads if we got valid data
+      const newLeads = leadsRes.data || [];
+      if (newLeads.length > 0 || leads.length === 0) {
+        setLeads(newLeads);
+        // Update cache with fresh data
+        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(newLeads));
+        localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
+      }
+      
       setFollowups(followupsRes.data);
       setTasks(tasksRes.data || []);
       setMessages(msgRes.data || []);
@@ -139,7 +152,8 @@ export const StaffPortal = () => {
       setNotifications(notifRes.data?.notifications || []);
       setNotifUnread(notifRes.data?.unread_count || 0);
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error fetching data:", err);
+      // Don't clear existing data on error - keeps the UI stable
     }
     setLoading(false);
   };
@@ -203,43 +217,67 @@ export const StaffPortal = () => {
 
   // Mark lead as called and open phone app
   const handleCallLead = async (lead) => {
-    // Mark as called locally
+    // Mark as called locally FIRST to ensure UI updates
     setCalledLeads(prev => new Set([...prev, lead.id]));
     
-    // Save to localStorage for persistence
+    // Save to localStorage for persistence (important for when user returns from call)
     const storedCalled = JSON.parse(localStorage.getItem(`calledLeads_${staffData.staff_id}`) || '[]');
     if (!storedCalled.includes(lead.id)) {
       storedCalled.push(lead.id);
       localStorage.setItem(`calledLeads_${staffData.staff_id}`, JSON.stringify(storedCalled));
     }
     
-    // Log call activity
-    try {
-      await axios.post(`${API}/crm/leads/${lead.id}/activities`, {
-        staff_id: staffData.staff_id,
-        staff_name: staffData.name,
-        activity_type: "call",
-        title: "Call Initiated",
-        description: `${staffData.name} called ${lead.name} at ${lead.phone}`
-      });
-      
-      // Update lead stage to contacted if still new
-      if (lead.stage === 'new') {
-        await axios.put(`${API}/staff/${staffData.staff_id}/leads/${lead.id}`, { stage: 'contacted' });
-      }
-    } catch (err) {
-      console.error("Error logging call:", err);
+    // Save current leads data to localStorage before navigating away (prevents white screen on return)
+    localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leads));
+    localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
+    
+    // Log call activity in background (don't wait for it)
+    axios.post(`${API}/crm/leads/${lead.id}/activities`, {
+      staff_id: staffData.staff_id,
+      staff_name: staffData.name,
+      activity_type: "call",
+      title: "Call Initiated",
+      description: `${staffData.name} called ${lead.name} at ${lead.phone}`
+    }).catch(err => console.error("Error logging call:", err));
+    
+    // Update lead stage to contacted if still new (in background)
+    if (lead.stage === 'new') {
+      axios.put(`${API}/staff/${staffData.staff_id}/leads/${lead.id}`, { stage: 'contacted' })
+        .catch(err => console.error("Error updating stage:", err));
     }
     
-    // Open phone app
-    window.location.href = `tel:${lead.phone}`;
+    // Open phone app using window.open instead of location.href to preserve app state better
+    // Use a small timeout to ensure state is saved before navigating
+    setTimeout(() => {
+      window.open(`tel:${lead.phone}`, '_self');
+    }, 100);
   };
 
-  // Load called leads from localStorage on mount
+  // Load called leads and cached leads data from localStorage on mount
   useEffect(() => {
     if (staffData?.staff_id) {
+      // Load called leads tracking
       const storedCalled = JSON.parse(localStorage.getItem(`calledLeads_${staffData.staff_id}`) || '[]');
       setCalledLeads(new Set(storedCalled));
+      
+      // Check if we have cached leads data (from before a call)
+      const cachedLeads = localStorage.getItem(`staffLeadsCache_${staffData.staff_id}`);
+      const cacheTime = localStorage.getItem(`staffLeadsCacheTime_${staffData.staff_id}`);
+      
+      // Use cached data if it's less than 5 minutes old and leads array is empty
+      if (cachedLeads && cacheTime && leads.length === 0) {
+        const cacheAge = Date.now() - parseInt(cacheTime);
+        if (cacheAge < 5 * 60 * 1000) { // 5 minutes
+          try {
+            const parsedLeads = JSON.parse(cachedLeads);
+            if (parsedLeads.length > 0) {
+              setLeads(parsedLeads);
+            }
+          } catch (e) {
+            console.error("Error parsing cached leads:", e);
+          }
+        }
+      }
     }
   }, [staffData?.staff_id]);
 
@@ -612,6 +650,9 @@ export const StaffPortal = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-xl sm:text-2xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
               <div className="flex items-center gap-2">
+                <button onClick={fetchAllData} className="bg-gray-100 text-gray-600 p-2.5 rounded-xl hover:bg-gray-200 active:bg-gray-300 transition" title="Refresh">
+                  <RefreshCw className="w-5 h-5" />
+                </button>
                 <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl flex items-center space-x-2 hover:bg-blue-700 active:bg-blue-800 transition text-sm font-medium shadow-md" data-testid="staff-add-lead-btn">
                   <Plus className="w-5 h-5" /><span>Add Lead</span>
                 </button>
@@ -651,8 +692,8 @@ export const StaffPortal = () => {
                 <div className="text-sm text-green-700 font-medium">Called</div>
               </div>
               <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 text-center">
-                <div className="text-3xl font-bold text-orange-600">{leads.filter(l => l.stage === 'interested').length}</div>
-                <div className="text-sm text-orange-700 font-medium">Interested</div>
+                <div className="text-3xl font-bold text-orange-600">{leads.filter(l => l.stage === 'contacted' || l.stage === 'site_visit').length}</div>
+                <div className="text-sm text-orange-700 font-medium">In Progress</div>
               </div>
             </div>
             
@@ -736,8 +777,8 @@ export const StaffPortal = () => {
               </table>
             </div>
 
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3">
+            {/* Mobile Card View - Super Touch Friendly */}
+            <div className="md:hidden space-y-4">
               {leads
                 .filter(lead => {
                   if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
@@ -745,74 +786,97 @@ export const StaffPortal = () => {
                   return true;
                 })
                 .map((lead) => (
-                <div key={lead.id} className={`bg-white shadow-lg border-2 rounded-2xl p-5 ${calledLeads.has(lead.id) ? 'border-green-400 bg-green-50/50' : 'border-sky-200'}`} data-testid={`lead-card-${lead.id}`}>
-                  {/* Called Badge */}
-                  {calledLeads.has(lead.id) && (
-                    <div className="bg-green-100 text-green-700 text-sm px-3 py-1.5 rounded-full inline-flex items-center mb-3 font-medium">
-                      <CheckCircle className="w-4 h-4 mr-1.5" /> Called
+                <div key={lead.id} className={`bg-white shadow-lg border-2 rounded-2xl overflow-hidden ${calledLeads.has(lead.id) ? 'border-green-400 bg-green-50/30' : 'border-sky-200'}`} data-testid={`lead-card-${lead.id}`}>
+                  {/* Lead Header with Call Status */}
+                  <div className={`px-5 py-4 ${calledLeads.has(lead.id) ? 'bg-green-100' : 'bg-gray-50'}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          {calledLeads.has(lead.id) && (
+                            <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full flex items-center">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Called
+                            </span>
+                          )}
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-500'} text-white`}>
+                            {PIPELINE_STAGES.find(s => s.id === lead.stage)?.label || 'New'}
+                          </span>
+                        </div>
+                        <h3 className="text-[#0a355e] font-bold text-xl">{lead.name || 'Unknown'}</h3>
+                      </div>
                     </div>
-                  )}
-                  {/* Lead Info - Larger Touch Friendly */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="text-[#0a355e] font-bold text-xl mb-1">{lead.name || 'Unknown'}</div>
-                      <a href={`tel:${lead.phone}`} className="text-blue-600 font-mono text-lg block mb-1 underline">{lead.phone}</a>
-                      {lead.district && <div className="text-gray-600 text-base">{lead.district}</div>}
-                      {lead.monthly_bill && <div className="text-gray-500 text-sm mt-1">₹{lead.monthly_bill}/month bill</div>}
-                    </div>
-                    <span className={`px-3 py-1.5 rounded-lg text-sm font-medium ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-500'} text-white`}>
-                      {PIPELINE_STAGES.find(s => s.id === lead.stage)?.label || 'New'}
-                    </span>
-                  </div>
-
-                  {/* Status Update Dropdown - Larger */}
-                  <div className="mb-4">
-                    <label className="text-sm text-gray-600 mb-2 block font-medium">Update Status:</label>
-                    <select
-                      value={lead.stage || 'new'}
-                      onChange={(e) => quickUpdateLeadStatus(lead.id, e.target.value)}
-                      disabled={updatingLeadId === lead.id}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base focus:ring-2 focus:ring-blue-400 focus:border-blue-400 font-medium"
-                      data-testid={`mobile-lead-status-${lead.id}`}
-                    >
-                      {PIPELINE_STAGES.map(stage => (
-                        <option key={stage.id} value={stage.id}>{stage.label}</option>
-                      ))}
-                    </select>
-                    {updatingLeadId === lead.id && <span className="text-sm text-blue-500 mt-2 block">Saving...</span>}
-                  </div>
-
-                  {/* Action Buttons - Full Width for Mobile - Easy Touch Targets */}
-                  <div className="grid grid-cols-2 gap-3 mt-3">
-                    <button 
-                      onClick={() => handleCallLead(lead)}
-                      className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-lg"
+                    
+                    {/* Phone Number - Large and Tappable */}
+                    <a 
+                      href={`tel:${lead.phone}`} 
+                      className="mt-2 flex items-center gap-2 text-blue-600 font-mono text-xl font-bold underline"
+                      onClick={(e) => { e.preventDefault(); handleCallLead(lead); }}
                     >
                       <Phone className="w-5 h-5" />
+                      {lead.phone}
+                    </a>
+                    
+                    {/* Lead Details */}
+                    <div className="mt-2 flex flex-wrap gap-3 text-sm text-gray-600">
+                      {lead.district && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{lead.district}</span>}
+                      {lead.monthly_bill && <span>₹{lead.monthly_bill}/month</span>}
+                    </div>
+                  </div>
+                  
+                  {/* Action Buttons - Full Width, Large Touch Targets */}
+                  <div className="p-4 space-y-3">
+                    {/* Primary Action: Call */}
+                    <button 
+                      onClick={() => handleCallLead(lead)}
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 text-white py-4 rounded-xl text-lg flex items-center justify-center space-x-3 transition font-bold shadow-lg"
+                      data-testid={`call-btn-${lead.id}`}
+                    >
+                      <Phone className="w-6 h-6" />
                       <span>Call Now</span>
                     </button>
-                    <button 
-                      onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
-                      className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-lg"
-                    >
-                      <MessageSquare className="w-5 h-5" />
-                      <span>WhatsApp</span>
-                    </button>
-                    <button 
-                      onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }}
-                      className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-lg"
-                    >
-                      <Edit className="w-5 h-5" />
-                      <span>Update</span>
-                    </button>
-                    <button 
-                      onClick={() => quickUpdateLeadStatus(lead.id, 'not_interested')}
-                      disabled={updatingLeadId === lead.id}
-                      className="bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold disabled:opacity-50 shadow-lg"
-                    >
-                      <X className="w-5 h-5" />
-                      <span>Not Interested</span>
-                    </button>
+                    
+                    {/* Secondary Actions Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <button 
+                        onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
+                        className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white py-3.5 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-md"
+                        data-testid={`whatsapp-btn-${lead.id}`}
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                        <span>WhatsApp</span>
+                      </button>
+                      <button 
+                        onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }}
+                        className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white py-3.5 rounded-xl text-base flex items-center justify-center space-x-2 transition font-semibold shadow-md"
+                        data-testid={`update-btn-${lead.id}`}
+                      >
+                        <Edit className="w-5 h-5" />
+                        <span>Update</span>
+                      </button>
+                    </div>
+                    
+                    {/* Status Update & Not Interested */}
+                    <div className="flex gap-3">
+                      <select
+                        value={lead.stage || 'new'}
+                        onChange={(e) => quickUpdateLeadStatus(lead.id, e.target.value)}
+                        disabled={updatingLeadId === lead.id}
+                        className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 text-base focus:ring-2 focus:ring-blue-400 focus:border-blue-400 font-medium bg-white"
+                        data-testid={`mobile-lead-status-${lead.id}`}
+                      >
+                        {PIPELINE_STAGES.map(stage => (
+                          <option key={stage.id} value={stage.id}>{stage.label}</option>
+                        ))}
+                      </select>
+                      <button 
+                        onClick={() => quickUpdateLeadStatus(lead.id, 'not_interested')}
+                        disabled={updatingLeadId === lead.id}
+                        className="bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 px-4 py-3 rounded-xl text-sm flex items-center justify-center transition font-medium disabled:opacity-50"
+                        title="Not Interested"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    {updatingLeadId === lead.id && <p className="text-center text-sm text-blue-500">Saving...</p>}
                   </div>
                 </div>
               ))}

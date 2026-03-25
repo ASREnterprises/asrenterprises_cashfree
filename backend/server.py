@@ -1281,8 +1281,8 @@ class CRMLead(BaseModel):
     monthly_bill: Optional[float] = None
     roof_area: Optional[float] = None
     source: str = "website"  # website, whatsapp, call, facebook, instagram
-    # Pipeline stage
-    stage: str = "new"  # new, follow_up, survey, quotation, installation, completed, lost
+    # Pipeline stage - aligned with frontend CRMDashboard.js and StaffPortal.js
+    stage: str = "new"  # new, contacted, site_visit, quotation, negotiation, converted, completed, lost
     # Assignment
     assigned_to: Optional[str] = None  # employee id
     assigned_by: Optional[str] = None
@@ -5332,7 +5332,7 @@ async def ai_lead_priority(data: Dict[str, Any]):
             system_message="You are a sales AI assistant for a solar company."
         )
         
-        leads = await db.crm_leads.find({"stage": {"$in": ["new", "follow_up"]}}, {"_id": 0}).limit(20).to_list(20)
+        leads = await db.crm_leads.find({"stage": {"$in": ["new", "contacted"]}}, {"_id": 0}).limit(20).to_list(20)
         
         leads_summary = "\n".join([
             f"- {l.get('name')}: ₹{l.get('monthly_bill', 0)} bill, {l.get('district')}, {l.get('property_type')}"
@@ -8338,7 +8338,7 @@ async def get_revenue_dashboard():
     
     # Pipeline value (potential revenue from active leads)
     pipeline_leads = await db.crm_leads.find(
-        {"stage": {"$in": ["new", "follow_up", "survey", "quotation"]}},
+        {"stage": {"$in": ["new", "contacted", "site_visit", "quotation", "negotiation"]}},
         {"_id": 0, "monthly_bill": 1}
     ).to_list(1000)
     
@@ -8403,9 +8403,9 @@ async def get_lead_analytics():
     # Conversion funnel
     total_leads = await db.crm_leads.count_documents({})
     contacted = await db.crm_leads.count_documents({"stage": {"$ne": "new"}})
-    surveyed = await db.crm_leads.count_documents({"stage": {"$in": ["survey", "quotation", "negotiation", "won", "lost"]}})
-    quoted = await db.crm_leads.count_documents({"stage": {"$in": ["quotation", "negotiation", "won", "lost"]}})
-    won = await db.crm_leads.count_documents({"stage": "won"})
+    surveyed = await db.crm_leads.count_documents({"stage": {"$in": ["site_visit", "quotation", "negotiation", "converted", "completed", "lost"]}})
+    quoted = await db.crm_leads.count_documents({"stage": {"$in": ["quotation", "negotiation", "converted", "completed", "lost"]}})
+    won = await db.crm_leads.count_documents({"stage": {"$in": ["converted", "completed"]}})
     
     # Average lead score
     avg_score = await db.crm_leads.aggregate([
@@ -8444,7 +8444,7 @@ async def get_overdue_leads():
     now = datetime.now(timezone.utc)
     
     leads = await db.crm_leads.find(
-        {"stage": {"$in": ["new", "follow_up"]}},
+        {"stage": {"$in": ["new", "contacted"]}},
         {"_id": 0}
     ).to_list(500)
     
@@ -8684,9 +8684,9 @@ async def get_daily_digest():
         {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
     ]).to_list(1)
     
-    # Hot leads (high score, new/follow_up stage)
+    # Hot leads (high score, new/contacted stage)
     hot_leads = await db.crm_leads.find(
-        {"lead_score": {"$gte": 75}, "stage": {"$in": ["new", "follow_up"]}},
+        {"lead_score": {"$gte": 75}, "stage": {"$in": ["new", "contacted"]}},
         {"_id": 0}
     ).sort("lead_score", -1).limit(5).to_list(5)
     
@@ -9039,7 +9039,7 @@ async def create_lead_from_social_message(
             # Update existing lead with new message
             update_data = {
                 "follow_up_notes": f"{existing_lead.get('follow_up_notes', '')}\n[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}] {source.upper()}: {message_text[:200]}",
-                "stage": "follow_up" if existing_lead.get("stage") == "new" else existing_lead.get("stage")
+                "stage": "contacted" if existing_lead.get("stage") == "new" else existing_lead.get("stage")
             }
             await db.crm_leads.update_one({"id": existing_lead["id"]}, {"$set": update_data})
             logger.info(f"Updated existing lead {existing_lead['id']} from {source}")

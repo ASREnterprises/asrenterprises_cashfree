@@ -535,10 +535,11 @@ const BackupsTab = memo(() => {
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New Lead", color: "bg-blue-500" },
-  { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },
-  { id: "telecall", label: "Tele Call", color: "bg-purple-500" },
+  { id: "contacted", label: "Contacted", color: "bg-yellow-500" },
+  { id: "site_visit", label: "Site Visit", color: "bg-purple-500" },
   { id: "quotation", label: "Quotation", color: "bg-orange-500" },
-  { id: "installation", label: "Installation", color: "bg-cyan-500" },
+  { id: "negotiation", label: "Negotiation", color: "bg-cyan-500" },
+  { id: "converted", label: "Converted", color: "bg-teal-500" },
   { id: "completed", label: "Completed", color: "bg-green-500" },
   { id: "lost", label: "Lost", color: "bg-red-500" }
 ];

@@ -15,12 +15,10 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "bg-blue-500" },
   { id: "contacted", label: "Contacted", color: "bg-indigo-500" },
-  { id: "follow_up", label: "Follow Up", color: "bg-yellow-500" },
-  { id: "interested", label: "Interested", color: "bg-orange-500" },
-  { id: "not_interested", label: "Not Interested", color: "bg-gray-500" },
-  { id: "survey", label: "Survey", color: "bg-purple-500" },
-  { id: "quotation", label: "Quotation", color: "bg-pink-500" },
-  { id: "installation", label: "Installation", color: "bg-cyan-500" },
+  { id: "site_visit", label: "Site Visit", color: "bg-yellow-500" },
+  { id: "quotation", label: "Quotation", color: "bg-orange-500" },
+  { id: "negotiation", label: "Negotiation", color: "bg-purple-500" },
+  { id: "converted", label: "Converted", color: "bg-pink-500" },
   { id: "completed", label: "Completed", color: "bg-green-500" },
   { id: "lost", label: "Lost", color: "bg-red-500" }
 ];

@@ -3,7 +3,28 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 23, 2026) - Major Cleanup & Performance Optimization
+## Latest Session (March 25, 2026) - Lead Management Fix
+
+### Issues Fixed
+
+#### 1. Lead Management Not Loading Initially ✅
+- Added `fetchLeads()` to initial useEffect so leads load on page mount
+- Fixed `fetchDashboard()` → `fetchDashboardData()` typo in auto-sync useEffect
+
+#### 2. Pipeline Stage Mismatch ✅
+- Aligned frontend PIPELINE_STAGES with backend API stages
+- **Old stages**: new, follow_up, telecall, quotation, installation, completed, lost
+- **New stages**: new, contacted, site_visit, quotation, negotiation, converted, completed, lost
+- Updated both CRMDashboard.js and StaffPortal.js
+
+### Test Results
+- Backend API: 69 leads with correct pagination ✅
+- Dashboard API: Pipeline stats showing correctly ✅
+- Frontend: Leads display, search, filter, pagination all working ✅
+
+---
+
+## Previous Session (March 23, 2026) - Major Cleanup & Performance Optimization
 
 ### Changes Made
 

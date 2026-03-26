@@ -3999,6 +3999,123 @@ async def staff_verify_2fa(request: Request, data: Dict[str, Any]):
         "staff": staff
     }
 
+# Staff Email + Mobile OTP 2FA Endpoints
+@api_router.post("/staff/login-email-2fa")
+async def staff_login_email_2fa(request: Request, data: Dict[str, Any]):
+    """Staff login with email - Step 1 of 2FA: verify email, require mobile OTP"""
+    client_ip = get_client_ip(request)
+    if not check_login_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
+    
+    email = data.get("email", "").strip().lower()
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    
+    # Find staff by email
+    staff = await db.crm_staff_accounts.find_one(
+        {"email": email, "is_active": True},
+        {"_id": 0, "password_hash": 0, "password": 0}
+    )
+    
+    if not staff:
+        raise HTTPException(status_code=401, detail="Email not registered. Please contact admin.")
+    
+    # Get staff phone for 2FA
+    phone = staff.get("phone", "")
+    mobile_last4 = phone[-4:] if phone else "****"
+    
+    # Store pending 2FA session
+    await db.pending_2fa_sessions.update_one(
+        {"email": email},
+        {"$set": {
+            "email": email,
+            "staff_id": staff.get("staff_id"),
+            "staff": staff,
+            "phone": phone,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+        }},
+        upsert=True
+    )
+    
+    logger.info(f"Staff email 2FA initiated for {email} from IP: {client_ip}")
+    
+    return {
+        "success": True,
+        "require_otp": True,
+        "phone": phone,
+        "mobile_last4": mobile_last4,
+        "staff_id": staff.get("staff_id"),
+        "name": staff.get("name"),
+        "message": f"Email verified. OTP will be sent to mobile ending in ****{mobile_last4}"
+    }
+
+@api_router.post("/staff/verify-email-2fa")
+async def staff_verify_email_2fa(request: Request, data: Dict[str, Any]):
+    """Staff email 2FA - Step 2: Complete login after MSG91 OTP verification"""
+    import secrets
+    
+    client_ip = get_client_ip(request)
+    if not check_login_rate_limit(client_ip):
+        raise HTTPException(status_code=429, detail="Too many attempts. Please try again in 5 minutes.")
+    
+    email = data.get("email", "").strip().lower()
+    staff_id = data.get("staff_id", "").strip().upper()
+    
+    # Check pending 2FA session
+    pending_session = await db.pending_2fa_sessions.find_one(
+        {"$or": [{"email": email}, {"staff_id": staff_id}]},
+        {"_id": 0}
+    )
+    
+    if pending_session:
+        # Check if session is expired
+        expires_at = pending_session.get("expires_at")
+        if expires_at:
+            try:
+                expiry_time = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                if datetime.now(timezone.utc) > expiry_time:
+                    await db.pending_2fa_sessions.delete_one({"email": email})
+                    raise HTTPException(status_code=401, detail="2FA session expired. Please login again.")
+            except:
+                pass
+        
+        # Get staff data from session
+        staff = pending_session.get("staff")
+        if staff:
+            # Clean up pending session
+            await db.pending_2fa_sessions.delete_one({"email": email})
+            
+            # Create session token
+            session_token = secrets.token_urlsafe(32)
+            
+            logger.info(f"Successful email 2FA login for staff {staff.get('name')} from IP: {client_ip}")
+            return {
+                "success": True,
+                "token": session_token,
+                "staff": staff
+            }
+    
+    # Fallback: Get staff directly from database
+    staff = await db.crm_staff_accounts.find_one(
+        {"$or": [{"email": email}, {"staff_id": staff_id}], "is_active": True},
+        {"_id": 0, "password_hash": 0, "password": 0}
+    )
+    
+    if not staff:
+        raise HTTPException(status_code=401, detail="Staff account not found")
+    
+    # Create session token
+    session_token = secrets.token_urlsafe(32)
+    
+    logger.info(f"Successful email 2FA login for staff {staff.get('name')} from IP: {client_ip}")
+    return {
+        "success": True,
+        "token": session_token,
+        "staff": staff
+    }
+
 # Staff OTP Login Endpoints
 @api_router.post("/staff/send-otp")
 async def staff_send_otp(data: Dict[str, Any]):

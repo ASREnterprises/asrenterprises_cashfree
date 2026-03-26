@@ -13,9 +13,12 @@ Build a feature-rich website for "ASR Enterprises" solar energy business with cu
 
 #### 2. Two-Factor Authentication (2FA) for Admin & Staff ✅
 - **Admin**: Email/Password → Mobile OTP verification
-- **Staff**: Staff ID/Password → Mobile OTP verification
-- Step indicators showing "1 Credentials → 2 OTP"
+- **Staff**: Email → Mobile OTP verification (Updated!)
+  - Step 1: Enter registered email
+  - Step 2: Verify OTP sent to registered mobile
+- Step indicators showing "1 Email → 2 Mobile OTP"
 - Mobile last 4 digits displayed for verification
+- Removed old Staff ID + Password as primary method
 
 #### 3. HR Management - Employees Not Found ✅
 - **Root Cause**: HR router was not included in server.py

@@ -585,6 +585,7 @@ export const CRMDashboard = () => {
   const [payments, setPayments] = useState([]);
   const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leadsLoading, setLeadsLoading] = useState(false); // Separate loading for leads
   const [selectedLead, setSelectedLead] = useState(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
@@ -744,8 +745,12 @@ export const CRMDashboard = () => {
   };
   
   const fetchLeads = async (page = 1, search = '') => {
+    // Show loading indicator
+    setLeadsLoading(true);
+    
     try {
-      const params = new URLSearchParams({ page, limit: 250 });
+      // Use smaller page size (50) for faster loading with large datasets
+      const params = new URLSearchParams({ page, limit: 50 });
       if (filterStage) params.append('stage', filterStage);
       if (search) params.append('search', search);
       
@@ -753,22 +758,32 @@ export const CRMDashboard = () => {
       
       // Handle both old (array) and new (object with pagination) response formats
       if (Array.isArray(res.data)) {
-        // Only update if we got valid data
-        if (res.data.length > 0 || leads.length === 0) {
-          setLeads(res.data);
-        }
-        setLeadsPagination({ current_page: 1, total_pages: 1, total_count: res.data.length, per_page: 250, has_next: false, has_prev: false });
+        setLeads(res.data);
+        setLeadsPagination({ 
+          current_page: 1, 
+          total_pages: Math.ceil(res.data.length / 50), 
+          total_count: res.data.length, 
+          per_page: 50, 
+          has_next: false, 
+          has_prev: false 
+        });
       } else {
         const newLeads = res.data.leads || [];
-        // Only update if we got valid data
-        if (newLeads.length > 0 || leads.length === 0) {
-          setLeads(newLeads);
-        }
-        setLeadsPagination(res.data.pagination || { current_page: 1, total_pages: 1, total_count: newLeads.length, per_page: 250, has_next: false, has_prev: false });
+        setLeads(newLeads);
+        setLeadsPagination(res.data.pagination || { 
+          current_page: page, 
+          total_pages: 1, 
+          total_count: newLeads.length, 
+          per_page: 50, 
+          has_next: false, 
+          has_prev: page > 1 
+        });
       }
     } catch (err) { 
       console.error("Leads error:", err);
-      // Don't clear leads on error - keep existing data
+      // Keep existing data on error
+    } finally {
+      setLeadsLoading(false);
     }
   };
   
@@ -1564,11 +1579,12 @@ export const CRMDashboard = () => {
                     </tr>
                   </thead>
                 <tbody>
-                  {leads.length === 0 && loading ? (
+                  {leadsLoading ? (
                     <tr>
-                      <td colSpan="7" className="px-4 py-12 text-center">
-                        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
-                        <p className="text-gray-500">Loading leads...</p>
+                      <td colSpan="7" className="px-4 py-16 text-center">
+                        <RefreshCw className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
+                        <p className="text-gray-600 font-medium text-lg">Loading leads...</p>
+                        <p className="text-gray-400 text-sm mt-2">Please wait while we fetch your data</p>
                       </td>
                     </tr>
                   ) : leads.length === 0 ? (

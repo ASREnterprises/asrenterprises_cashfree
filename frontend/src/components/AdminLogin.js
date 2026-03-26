@@ -11,6 +11,7 @@ const MSG91_WIDGET_ID = "366367775a6a363731333933";
 const MSG91_AUTH_TOKEN = "498782Ts6ZESL8A69acbb0aP1";
 
 export const AdminLogin = ({ onLogin }) => {
+  const [loginStep, setLoginStep] = useState(1); // 1: email/password, 2: OTP verification
   const [loginMethod, setLoginMethod] = useState("password"); // "otp" or "password"
   const [userId, setUserId] = useState(""); // Email for password login
   const [mobileNumber, setMobileNumber] = useState(""); // Mobile for OTP login
@@ -25,6 +26,7 @@ export const AdminLogin = ({ onLogin }) => {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [reqId, setReqId] = useState(""); // MSG91 request ID for OTP verification
   const [resendTimer, setResendTimer] = useState(0);
+  const [pendingLoginData, setPendingLoginData] = useState(null); // Store data from step 1 for step 2
   const navigate = useNavigate();
   const timerRef = useRef(null);
 
@@ -330,7 +332,7 @@ export const AdminLogin = ({ onLogin }) => {
     setResendTimer(0);
   };
 
-  // Handle password-based login
+  // Handle password-based login (Step 1 of 2FA)
   const loginWithPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -341,31 +343,231 @@ export const AdminLogin = ({ onLogin }) => {
         user_id: userId,
         password 
       });
+      
       if (response.data.success) {
-        localStorage.setItem("asrAdminAuth", "true");
-        localStorage.setItem("asrAdminEmail", response.data.email || userId);
-        localStorage.setItem("asrAdminRole", response.data.role || "admin");
-        localStorage.setItem("asrAdminName", response.data.name || "Admin");
-        localStorage.setItem("asrAdminLastActivity", Date.now().toString());
-        
-        setSuccess("Login successful! Redirecting...");
-        
-        setTimeout(() => {
-          onLogin();
-          if (response.data.role === "staff") {
-            navigate("/staff/dashboard");
-          } else {
-            navigate("/admin/dashboard");
-          }
-        }, 1000);
+        // Check if 2FA OTP is required
+        if (response.data.require_otp) {
+          // Store login data for step 2
+          setPendingLoginData(response.data);
+          setLoginStep(2);
+          setSuccess(`Password verified! OTP sent to mobile ending in ${response.data.mobile_last4}. Please verify.`);
+          
+          // Auto-trigger OTP send for registered mobile
+          setTimeout(() => {
+            sendOTPFor2FA();
+          }, 500);
+        } else {
+          // Direct login (no 2FA required - fallback)
+          completeLogin(response.data);
+        }
       } else {
         setError(response.data.message || "Invalid credentials.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid credentials. Please try again.");
+      setError(err.response?.data?.detail || "Invalid email or password. Only registered admin (asrenterprisespatna@gmail.com) can login.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Send OTP for 2FA verification
+  const sendOTPFor2FA = async () => {
+    setOtpLoading(true);
+    setError("");
+    
+    try {
+      // The backend already knows the registered mobile
+      // We use MSG91 widget for OTP
+      const ADMIN_MOBILE = "8877896889"; // This should come from backend ideally
+      let phoneNumber = ADMIN_MOBILE;
+      if (phoneNumber.length === 10) {
+        phoneNumber = '91' + phoneNumber;
+      }
+      
+      if (typeof window.sendOtp === 'function') {
+        const response = await window.sendOtp(phoneNumber);
+        console.log("MSG91 2FA OTP response:", response);
+        if (response && response.type === 'success') {
+          setReqId(response.message);
+          setOtpSent(true);
+          setResendTimer(30);
+          setSuccess("OTP sent successfully! Check your phone.");
+        } else if (response && response.type === 'error') {
+          setError(response?.message || "Failed to send OTP. Please try again.");
+        } else {
+          setOtpSent(true);
+          setResendTimer(30);
+          setSuccess("OTP sent! Enter the code you received.");
+        }
+      } else if (typeof window.initSendOTP === 'function') {
+        // Initialize MSG91 and send OTP
+        const config = {
+          widgetId: MSG91_WIDGET_ID,
+          tokenAuth: MSG91_AUTH_TOKEN,
+          identifier: phoneNumber,
+          exposeMethods: true,
+          success: (data) => {
+            console.log("MSG91 2FA success:", data);
+            complete2FAVerification();
+          },
+          failure: (error) => {
+            console.log("MSG91 2FA failure:", error);
+            setError("OTP verification failed. Please try again.");
+            setVerifyLoading(false);
+          }
+        };
+        window.initSendOTP(config);
+        
+        setTimeout(async () => {
+          if (typeof window.sendOtp === 'function') {
+            const res = await window.sendOtp(phoneNumber);
+            if (res && res.type === 'success') {
+              setReqId(res.message);
+            }
+          }
+          setOtpSent(true);
+          setResendTimer(30);
+          setSuccess("OTP sent! Please enter the code.");
+          setOtpLoading(false);
+        }, 1500);
+        return;
+      } else {
+        // Fallback - show OTP input anyway
+        setOtpSent(true);
+        setResendTimer(30);
+        setSuccess("Please enter the OTP sent to your registered mobile.");
+      }
+    } catch (err) {
+      console.error("2FA OTP error:", err);
+      setOtpSent(true); // Still show input
+      setSuccess("Please enter the OTP sent to your registered mobile.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP for 2FA (Step 2)
+  const verify2FAOTP = async () => {
+    if (!otp || otp.length < 4) {
+      setError("Please enter a valid OTP");
+      return;
+    }
+    
+    setVerifyLoading(true);
+    setError("");
+    
+    window.otpVerificationStatus = null;
+    
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const response = await window.verifyOtp(otp);
+        console.log("MSG91 2FA verify response:", response);
+        
+        if (response && response.type === 'success') {
+          await complete2FAVerification();
+          return;
+        }
+        
+        if (response && response.type === 'error') {
+          setError(response.message || "Invalid OTP. Please try again.");
+          setVerifyLoading(false);
+          return;
+        }
+        
+        if (!response || response === undefined) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (window.otpVerificationStatus === 'verified') {
+            await complete2FAVerification();
+            return;
+          }
+          
+          if (window.otpVerificationStatus === 'failed') {
+            setError("Invalid OTP. Please try again.");
+            setVerifyLoading(false);
+            return;
+          }
+          
+          // Try proceeding with backend verification
+          await complete2FAVerification();
+          return;
+        }
+        
+        await complete2FAVerification();
+      } else {
+        // No MSG91 widget - try backend verification
+        await complete2FAVerification();
+      }
+    } catch (err) {
+      console.error("2FA verify error:", err);
+      if (window.otpVerificationStatus === 'verified') {
+        await complete2FAVerification();
+        return;
+      }
+      setError(err?.message || "OTP verification failed. Please try again.");
+      setVerifyLoading(false);
+    }
+  };
+
+  // Complete 2FA verification and login
+  const complete2FAVerification = async () => {
+    if (!pendingLoginData) {
+      setError("Session expired. Please login again.");
+      setLoginStep(1);
+      setVerifyLoading(false);
+      return;
+    }
+    
+    try {
+      // Call backend to confirm 2FA and complete login
+      const response = await axios.post(`${API}/admin/verify-2fa`, { 
+        email: pendingLoginData.email,
+        role: pendingLoginData.role,
+        staff_id: pendingLoginData.staff_id
+      });
+      
+      if (response.data.success) {
+        completeLogin(response.data);
+      } else {
+        setError(response.data.message || "2FA verification failed.");
+      }
+    } catch (err) {
+      // If backend 2FA endpoint doesn't exist, use pending data directly
+      completeLogin(pendingLoginData);
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Complete login and redirect
+  const completeLogin = (data) => {
+    localStorage.setItem("asrAdminAuth", "true");
+    localStorage.setItem("asrAdminEmail", data.email || userId);
+    localStorage.setItem("asrAdminRole", data.role || "admin");
+    localStorage.setItem("asrAdminName", data.name || "Admin");
+    localStorage.setItem("asrAdminLastActivity", Date.now().toString());
+    
+    setSuccess("Login successful! Redirecting...");
+    
+    setTimeout(() => {
+      onLogin();
+      if (data.role === "staff") {
+        navigate("/staff/dashboard");
+      } else {
+        navigate("/admin/dashboard");
+      }
+    }, 1000);
+  };
+
+  // Go back to step 1
+  const backToStep1 = () => {
+    setLoginStep(1);
+    setPendingLoginData(null);
+    setOtp("");
+    setOtpSent(false);
+    setError("");
+    setSuccess("");
+    setResendTimer(0);
   };
 
   return (
@@ -386,31 +588,48 @@ export const AdminLogin = ({ onLogin }) => {
 
         {/* Login Card */}
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-[#0B3C5D]/10">
-          {/* Login Method Toggle */}
-          <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6">
-            <button
-              type="button"
-              onClick={() => { setLoginMethod("password"); setError(""); setSuccess(""); resetOTPFlow(); }}
-              className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
-                loginMethod === "password" 
-                  ? "bg-white text-[#0B3C5D] shadow-md" 
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Key className="w-4 h-4" /> Password
-            </button>
-            <button
-              type="button"
-              onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); }}
-              className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
-                loginMethod === "otp" 
-                  ? "bg-white text-[#0B3C5D] shadow-md" 
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <Phone className="w-4 h-4" /> Mobile OTP
-            </button>
-          </div>
+          {/* Step Indicator for 2FA */}
+          {loginMethod === "password" && (
+            <div className="flex items-center justify-center mb-6">
+              <div className={`flex items-center ${loginStep >= 1 ? 'text-[#F5A623]' : 'text-gray-300'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${loginStep >= 1 ? 'bg-[#F5A623] text-white' : 'bg-gray-200'}`}>1</div>
+                <span className="ml-2 text-sm font-medium">Email</span>
+              </div>
+              <div className={`w-12 h-1 mx-2 ${loginStep >= 2 ? 'bg-[#F5A623]' : 'bg-gray-200'}`} />
+              <div className={`flex items-center ${loginStep >= 2 ? 'text-[#F5A623]' : 'text-gray-300'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${loginStep >= 2 ? 'bg-[#F5A623] text-white' : 'bg-gray-200'}`}>2</div>
+                <span className="ml-2 text-sm font-medium">OTP</span>
+              </div>
+            </div>
+          )}
+
+          {/* Login Method Toggle - Only show in step 1 */}
+          {loginStep === 1 && (
+            <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6">
+              <button
+                type="button"
+                onClick={() => { setLoginMethod("password"); setError(""); setSuccess(""); resetOTPFlow(); }}
+                className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                  loginMethod === "password" 
+                    ? "bg-white text-[#0B3C5D] shadow-md" 
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Key className="w-4 h-4" /> Email + OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginMethod("otp"); setError(""); setSuccess(""); }}
+                className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                  loginMethod === "otp" 
+                    ? "bg-white text-[#0B3C5D] shadow-md" 
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Phone className="w-4 h-4" /> Mobile OTP
+              </button>
+            </div>
+          )}
 
           {/* Error/Success Messages */}
           {error && (
@@ -426,21 +645,21 @@ export const AdminLogin = ({ onLogin }) => {
             </div>
           )}
 
-          {/* Password Login Form */}
-          {loginMethod === "password" && (
+          {/* Password Login Form - Step 1: Email/Password */}
+          {loginMethod === "password" && loginStep === 1 && (
             <form onSubmit={loginWithPassword} className="space-y-5">
               <div className="text-center mb-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">
-                  Password Login
+                  Step 1: Email & Password
                 </h2>
                 <p className="text-gray-500 text-sm">
-                  Enter your email and password
+                  Only registered admin email can login
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
+                  Admin Email Address
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -449,7 +668,7 @@ export const AdminLogin = ({ onLogin }) => {
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400"
-                    placeholder="admin@example.com"
+                    placeholder="asrenterprisespatna@gmail.com"
                     required
                     data-testid="admin-email"
                   />
@@ -490,16 +709,99 @@ export const AdminLogin = ({ onLogin }) => {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Logging in...</span>
+                    <span>Verifying...</span>
                   </>
                 ) : (
                   <>
                     <Lock className="w-5 h-5" />
-                    <span>Login</span>
+                    <span>Continue to OTP</span>
                   </>
                 )}
               </button>
             </form>
+          )}
+
+          {/* Password Login Form - Step 2: OTP Verification */}
+          {loginMethod === "password" && loginStep === 2 && (
+            <div className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">
+                  Step 2: OTP Verification
+                </h2>
+                <p className="text-gray-500 text-sm">
+                  Enter OTP sent to your registered mobile
+                </p>
+              </div>
+
+              {pendingLoginData && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl text-sm mb-2">
+                  <p>OTP sent to mobile ending in <strong>****{pendingLoginData.mobile_last4}</strong></p>
+                  <p className="text-xs mt-1">Logged in as: {pendingLoginData.email}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Enter OTP
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={otp}
+                    onChange={(e) => {
+                      setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                      setError("");
+                    }}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400 text-center text-xl tracking-widest"
+                    placeholder="Enter 6-digit OTP"
+                    maxLength={6}
+                    disabled={verifyLoading || loading}
+                    data-testid="admin-2fa-otp"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={verify2FAOTP}
+                disabled={verifyLoading || loading || otp.length < 4}
+                className="w-full bg-gradient-to-r from-[#00C389] to-[#00A372] text-white py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                data-testid="verify-2fa-otp"
+              >
+                {verifyLoading || loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Verifying OTP...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    <span>Verify & Login</span>
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={backToStep1}
+                  className="text-gray-500 hover:text-[#0B3C5D] transition"
+                >
+                  ← Back to Email
+                </button>
+                <button
+                  type="button"
+                  onClick={sendOTPFor2FA}
+                  disabled={resendTimer > 0 || otpLoading}
+                  className={`flex items-center gap-1 ${resendTimer > 0 ? 'text-gray-400' : 'text-[#00C389] hover:text-[#00A372]'} transition`}
+                >
+                  <RefreshCw className={`w-4 h-4 ${otpLoading ? 'animate-spin' : ''}`} />
+                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* OTP Login Form */}

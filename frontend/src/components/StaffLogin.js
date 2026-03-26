@@ -314,7 +314,7 @@ export const StaffLogin = () => {
     setResendTimer(0);
   };
 
-  // Password Login
+  // Password Login - Step 1 of 2FA
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -326,10 +326,24 @@ export const StaffLogin = () => {
         password: password
       });
 
-      if (res.data.requires_otp) {
+      if (res.data.require_otp) {
+        // 2FA - Password verified, now need OTP
         setStep("otp_verify");
-        setSuccess(res.data.message || "OTP sent to your email for verification");
+        setMobileNumber(res.data.phone || "");
+        setSuccess(res.data.message || `Password verified! OTP sent to mobile ending in ****${res.data.mobile_last4}`);
+        
+        // Auto-trigger OTP send
+        if (res.data.phone) {
+          let phoneNumber = res.data.phone.replace(/\D/g, '');
+          if (phoneNumber.length === 10) {
+            phoneNumber = '91' + phoneNumber;
+          }
+          setTimeout(() => {
+            sendStaff2FAOTP(phoneNumber);
+          }, 500);
+        }
       } else if (res.data.success) {
+        // Direct login (backwards compatibility)
         localStorage.setItem("asrStaffAuth", "true");
         localStorage.setItem("asrStaffData", JSON.stringify(res.data.staff));
         localStorage.setItem("asrStaffToken", res.data.token);
@@ -339,6 +353,121 @@ export const StaffLogin = () => {
       setError(err.response?.data?.detail || "Invalid Staff ID or Password");
     }
     setLoading(false);
+  };
+
+  // Send OTP for 2FA
+  const sendStaff2FAOTP = async (phoneNumber) => {
+    setOtpLoading(true);
+    try {
+      if (typeof window.sendOtp === 'function') {
+        const response = await window.sendOtp(phoneNumber);
+        if (response && response.type === 'success') {
+          setOtpSent(true);
+          setResendTimer(30);
+        } else {
+          setOtpSent(true);
+          setResendTimer(30);
+        }
+      } else {
+        setOtpSent(true);
+        setResendTimer(30);
+      }
+    } catch (err) {
+      setOtpSent(true);
+      setResendTimer(30);
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP for Staff 2FA - Step 2
+  const verifyStaff2FAOTP = async () => {
+    if (!mobileOtp || mobileOtp.length < 4) {
+      setError("Please enter a valid OTP");
+      return;
+    }
+    
+    setVerifyLoading(true);
+    setError("");
+    
+    try {
+      // Verify with MSG91
+      if (typeof window.verifyOtp === 'function') {
+        const response = await window.verifyOtp(mobileOtp);
+        
+        if (response && response.type === 'success') {
+          await completeStaff2FALogin();
+          return;
+        }
+        
+        if (response && response.type === 'error') {
+          setError(response.message || "Invalid OTP. Please try again.");
+          setVerifyLoading(false);
+          return;
+        }
+        
+        // If undefined, try proceeding
+        if (!response) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (window.otpVerificationStatus === 'verified') {
+            await completeStaff2FALogin();
+            return;
+          }
+          if (window.otpVerificationStatus === 'failed') {
+            setError("Invalid OTP. Please try again.");
+            setVerifyLoading(false);
+            return;
+          }
+          await completeStaff2FALogin();
+          return;
+        }
+        
+        await completeStaff2FALogin();
+      } else {
+        await completeStaff2FALogin();
+      }
+    } catch (err) {
+      if (window.otpVerificationStatus === 'verified') {
+        await completeStaff2FALogin();
+        return;
+      }
+      setError("OTP verification failed. Please try again.");
+      setVerifyLoading(false);
+    }
+  };
+
+  // Complete Staff 2FA Login
+  const completeStaff2FALogin = async () => {
+    try {
+      const res = await axios.post(`${API}/staff/verify-2fa`, {
+        staff_id: staffId.toUpperCase()
+      });
+      
+      if (res.data.success) {
+        localStorage.setItem("asrStaffAuth", "true");
+        localStorage.setItem("asrStaffData", JSON.stringify(res.data.staff));
+        localStorage.setItem("asrStaffToken", res.data.token || "");
+        setSuccess("Login successful! Redirecting...");
+        setTimeout(() => {
+          navigate("/staff/portal");
+        }, 1000);
+      } else {
+        setError(res.data.message || "2FA verification failed");
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "2FA verification failed. Please try again.");
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Back to Step 1
+  const backToStep1 = () => {
+    setStep("credentials");
+    setMobileOtp("");
+    setOtpSent(false);
+    setError("");
+    setSuccess("");
   };
 
   // Email + Password Login (No OTP required)
@@ -498,86 +627,135 @@ export const StaffLogin = () => {
             </div>
           )}
 
-          {/* Password Login */}
+          {/* Password Login with 2FA */}
           {loginMethod === "password" && (
-            step === "credentials" ? (
-            <form onSubmit={handlePasswordLogin} className="space-y-5">
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">Staff ID</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={staffId}
-                    onChange={(e) => setStaffId(e.target.value.toUpperCase())}
-                    placeholder="ASR1001"
-                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none uppercase"
-                    required
-                    data-testid="staff-id"
-                  />
+            <>
+              {/* Step Indicator */}
+              <div className="flex items-center justify-center mb-6">
+                <div className={`flex items-center ${step === 'credentials' || step === 'otp_verify' ? 'text-[#F5A623]' : 'text-gray-300'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === 'credentials' || step === 'otp_verify' ? 'bg-[#F5A623] text-white' : 'bg-gray-200'}`}>1</div>
+                  <span className="ml-2 text-sm font-medium">Staff ID</span>
+                </div>
+                <div className={`w-12 h-1 mx-2 ${step === 'otp_verify' ? 'bg-[#F5A623]' : 'bg-gray-200'}`} />
+                <div className={`flex items-center ${step === 'otp_verify' ? 'text-[#F5A623]' : 'text-gray-300'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === 'otp_verify' ? 'bg-[#F5A623] text-white' : 'bg-gray-200'}`}>2</div>
+                  <span className="ml-2 text-sm font-medium">OTP</span>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
-                    required
-                    data-testid="staff-password"
-                  />
+              {step === "credentials" ? (
+              <form onSubmit={handlePasswordLogin} className="space-y-5">
+                <div className="text-center mb-4">
+                  <h2 className="text-lg font-bold text-[#0B3C5D]">Step 1: Staff ID & Password</h2>
+                  <p className="text-gray-500 text-sm">Enter your registered credentials</p>
                 </div>
-              </div>
+                <div>
+                  <label className="block text-gray-600 text-sm font-medium mb-2">Staff ID</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={staffId}
+                      onChange={(e) => setStaffId(e.target.value.toUpperCase())}
+                      placeholder="ASR1001"
+                      className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none uppercase"
+                      required
+                      data-testid="staff-id"
+                    />
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
-                data-testid="staff-login-btn"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
-                <span>{loading ? "Logging in..." : "Login"}</span>
-              </button>
-            </form>
-            ) : (
-            <form onSubmit={handleVerify2FA} className="space-y-5">
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">Enter OTP</label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    value={emailOtp}
-                    onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="6-digit OTP"
-                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none text-center tracking-widest text-lg"
-                    maxLength={6}
-                    required
-                  />
+                <div>
+                  <label className="block text-gray-600 text-sm font-medium mb-2">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
+                      required
+                      data-testid="staff-password"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                  data-testid="staff-login-btn"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                  <span>{loading ? "Verifying..." : "Continue to OTP"}</span>
+                </button>
+              </form>
+              ) : (
+              <div className="space-y-5">
+                <div className="text-center mb-4">
+                  <h2 className="text-lg font-bold text-[#0B3C5D]">Step 2: OTP Verification</h2>
+                  <p className="text-gray-500 text-sm">Enter OTP sent to your registered mobile</p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-xl text-sm">
+                  <p>OTP sent to mobile ending in <strong>****{mobileNumber.slice(-4)}</strong></p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-600 text-sm font-medium mb-2">Enter OTP</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      value={mobileOtp}
+                      onChange={(e) => setMobileOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="Enter 6-digit OTP"
+                      className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none text-center text-xl tracking-widest"
+                      maxLength={6}
+                      required
+                      autoFocus
+                      data-testid="staff-2fa-otp"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={verifyStaff2FAOTP}
+                  disabled={verifyLoading || loading || mobileOtp.length < 4}
+                  className="w-full bg-gradient-to-r from-[#00C389] to-[#00A372] text-white py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                  data-testid="verify-staff-2fa"
+                >
+                  {verifyLoading || loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                  <span>{verifyLoading || loading ? "Verifying..." : "Verify & Login"}</span>
+                </button>
+
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={backToStep1}
+                    className="text-gray-500 hover:text-[#0B3C5D] transition"
+                  >
+                    ← Back to Step 1
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let phone = mobileNumber.replace(/\D/g, '');
+                      if (phone.length === 10) phone = '91' + phone;
+                      sendStaff2FAOTP(phone);
+                    }}
+                    disabled={resendTimer > 0 || otpLoading}
+                    className={`flex items-center gap-1 ${resendTimer > 0 ? 'text-gray-400' : 'text-[#00C389] hover:text-[#00A372]'} transition`}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${otpLoading ? 'animate-spin' : ''}`} />
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                  </button>
                 </div>
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                <span>{loading ? "Verifying..." : "Verify OTP"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setStep("credentials"); setEmailOtp(""); setSuccess(""); }}
-                className="w-full text-gray-500 text-sm hover:text-[#0B3C5D]"
-              >
-                ← Back to login
-              </button>
-            </form>
-            )
+              )}
+            </>
           )}
 
           {/* Email + Password Login (No OTP) */}

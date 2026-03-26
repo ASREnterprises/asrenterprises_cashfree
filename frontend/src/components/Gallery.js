@@ -297,10 +297,10 @@ export const GalleryPage = () => {
                 Get Free Consultation
               </Link>
               <Link
-                to="/shop"
+                to="/contact"
                 className="bg-transparent text-white border-2 border-white/30 px-8 py-4 rounded-full font-bold hover:bg-white/10 transition shadow-md"
               >
-                Explore Products
+                Contact Us
               </Link>
             </div>
           </div>

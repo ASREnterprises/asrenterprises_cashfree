@@ -639,3 +639,82 @@ async def get_hr_summary_report():
         "total_revenue_generated": total_revenue,
         "tenure_analysis": tenure_data
     }
+
+
+# ==================== SYNC ENDPOINTS ====================
+
+@router.post("/sync-from-crm")
+async def sync_hr_from_crm():
+    """Sync HR employees from CRM staff accounts - creates/updates HR records for active CRM staff"""
+    # Get all active CRM staff accounts
+    crm_staff = await db.crm_staff_accounts.find(
+        {"is_active": True},
+        {"_id": 0, "password_hash": 0, "password": 0}
+    ).to_list(500)
+    
+    synced = 0
+    created = 0
+    updated = 0
+    
+    for staff in crm_staff:
+        staff_id = staff.get("staff_id")
+        if not staff_id:
+            continue
+        
+        # Check if HR employee exists
+        existing = await db.hr_employees.find_one({"employee_id": staff_id}, {"_id": 0})
+        
+        hr_data = {
+            "employee_id": staff_id,
+            "name": staff.get("name", ""),
+            "email": staff.get("email", ""),
+            "phone": staff.get("phone", ""),
+            "department": "sales",
+            "designation": staff.get("role", "sales").title() + " Executive",
+            "role": staff.get("role", "sales"),
+            "status": "active",
+            "is_active": True,
+            "leads_assigned": staff.get("leads_assigned", 0),
+            "leads_converted": staff.get("leads_converted", 0),
+            "joining_date": staff.get("created_at", datetime.now(timezone.utc).strftime("%Y-%m-%d"))[:10] if staff.get("created_at") else datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        if existing:
+            # Update existing
+            await db.hr_employees.update_one(
+                {"employee_id": staff_id},
+                {"$set": hr_data}
+            )
+            updated += 1
+        else:
+            # Create new
+            hr_data["id"] = staff.get("id", str(uuid.uuid4()))
+            hr_data["created_at"] = datetime.now(timezone.utc).isoformat()
+            await db.hr_employees.insert_one(hr_data)
+            created += 1
+        
+        synced += 1
+    
+    return {
+        "success": True,
+        "total_synced": synced,
+        "created": created,
+        "updated": updated,
+        "message": f"Synced {synced} employees ({created} created, {updated} updated)"
+    }
+
+
+@router.put("/employees/activate-all")
+async def activate_all_employees():
+    """Activate all HR employees (reset status to active)"""
+    result = await db.hr_employees.update_many(
+        {},
+        {"$set": {"status": "active", "is_active": True}}
+    )
+    return {
+        "success": True,
+        "modified_count": result.modified_count,
+        "message": f"Activated {result.modified_count} employees"
+    }
+

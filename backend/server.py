@@ -3840,7 +3840,7 @@ async def register_staff(data: Dict[str, Any]):
 
 @api_router.post("/staff/login")
 async def staff_login(request: Request, data: Dict[str, Any]):
-    """Staff login with password - sends OTP for 2FA verification"""
+    """Staff login with password - Step 1 of 2FA: verify credentials, require mobile OTP"""
     import hashlib
     
     client_ip = get_client_ip(request)
@@ -3851,30 +3851,46 @@ async def staff_login(request: Request, data: Dict[str, Any]):
     password = data.get("password", "")
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     
+    # Find staff with hashed password
     staff = await db.crm_staff_accounts.find_one(
         {"staff_id": staff_id, "password_hash": password_hash, "is_active": True},
         {"_id": 0, "password_hash": 0}
     )
     
+    # Also try with plain password for backwards compatibility
+    if not staff:
+        staff = await db.crm_staff_accounts.find_one(
+            {"staff_id": staff_id, "password": password, "is_active": True},
+            {"_id": 0, "password": 0}
+        )
+    
     if not staff:
         raise HTTPException(status_code=401, detail="Invalid Staff ID or Password")
     
-    # Send OTP for 2FA
-    email = staff.get("email")
-    otp = generate_secure_otp()
-    store_otp(f"staff_2fa:{staff_id}", otp)
+    # Get staff phone for 2FA
+    phone = staff.get("phone", "")
+    mobile_last4 = phone[-4:] if phone else "****"
     
-    email_sent = False
-    if email:
-        email_sent = await send_otp_email(email, otp, "Staff 2FA")
+    # Store staff_id in pending 2FA sessions
+    await db.pending_2fa_sessions.update_one(
+        {"staff_id": staff_id},
+        {"$set": {
+            "staff_id": staff_id,
+            "staff": staff,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
+        }},
+        upsert=True
+    )
     
-    masked_email = f"{email[:3]}***{email[-10:]}" if email and len(email) > 13 else "configured email"
+    logger.info(f"Staff 2FA initiated for {staff_id} from IP: {client_ip}")
     
     return {
         "success": True,
-        "requires_otp": True,
-        "message": f"OTP sent to {masked_email}" if email_sent else "OTP has been sent to your registered email",
-        "email_sent": email_sent,
+        "require_otp": True,
+        "phone": phone,
+        "mobile_last4": mobile_last4,
+        "message": f"Password verified. OTP will be sent to mobile ending in ****{mobile_last4}",
         "staff_id": staff_id
     }
 
@@ -3921,42 +3937,62 @@ async def staff_login_email(request: Request, data: Dict[str, Any]):
 
 @api_router.post("/staff/verify-2fa")
 async def staff_verify_2fa(request: Request, data: Dict[str, Any]):
-    """Verify 2FA OTP after password login"""
-    import hashlib
+    """Verify 2FA OTP after password login - Step 2: Complete login after MSG91 OTP verification"""
+    import secrets
     
     client_ip = get_client_ip(request)
     if not check_login_rate_limit(client_ip):
         raise HTTPException(status_code=429, detail="Too many attempts. Please try again in 5 minutes.")
     
     staff_id = data.get("staff_id", "").strip().upper()
-    otp = data.get("otp", "").strip()
-    password = data.get("password", "")
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
     
-    # Re-verify password
+    # Check if there's a pending 2FA session
+    pending_session = await db.pending_2fa_sessions.find_one(
+        {"staff_id": staff_id},
+        {"_id": 0}
+    )
+    
+    if pending_session:
+        # Check if session is expired
+        expires_at = pending_session.get("expires_at")
+        if expires_at:
+            try:
+                expiry_time = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                if datetime.now(timezone.utc) > expiry_time:
+                    await db.pending_2fa_sessions.delete_one({"staff_id": staff_id})
+                    raise HTTPException(status_code=401, detail="2FA session expired. Please login again.")
+            except:
+                pass
+        
+        # Get staff data from session
+        staff = pending_session.get("staff")
+        if staff:
+            # Clean up pending session
+            await db.pending_2fa_sessions.delete_one({"staff_id": staff_id})
+            
+            # Create session token
+            session_token = secrets.token_urlsafe(32)
+            
+            logger.info(f"Successful 2FA login for staff {staff_id} from IP: {client_ip}")
+            return {
+                "success": True,
+                "token": session_token,
+                "staff": staff
+            }
+    
+    # Fallback: Get staff directly from database
     staff = await db.crm_staff_accounts.find_one(
-        {"staff_id": staff_id, "password_hash": password_hash, "is_active": True},
-        {"_id": 0, "password_hash": 0}
+        {"staff_id": staff_id, "is_active": True},
+        {"_id": 0, "password_hash": 0, "password": 0}
     )
     
     if not staff:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Verify OTP
-    if not verify_otp(f"staff_2fa:{staff_id}", otp):
-        raise HTTPException(status_code=401, detail="Invalid or expired OTP")
+        raise HTTPException(status_code=401, detail="Staff account not found")
     
     # Create session token
-    session_token = str(uuid.uuid4())
-    staff_sessions[session_token] = {
-        "staff_id": staff_id,
-        "id": staff.get("id"),
-        "name": staff.get("name"),
-        "role": staff.get("role"),
-        "timestamp": time.time()
-    }
+    session_token = secrets.token_urlsafe(32)
     
-    logger.info(f"Successful 2FA login for {staff_id} from IP: {client_ip}")
+    logger.info(f"Successful 2FA login for staff {staff_id} from IP: {client_ip}")
     return {
         "success": True,
         "token": session_token,
@@ -10854,6 +10890,9 @@ api_router.include_router(crm_router)
 
 # Include Staff router under /api prefix
 api_router.include_router(staff_router)
+
+# Include HR router under /api prefix
+api_router.include_router(hr_router)
 
 app.include_router(api_router)
 

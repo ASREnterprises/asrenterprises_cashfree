@@ -130,8 +130,8 @@ export const ContactPage = () => {
                 <div>
                   <h3 className="font-semibold text-[#0B3C5D] mb-2">Business Hours</h3>
                   <div className="text-sm text-gray-700 space-y-1">
-                    <p><strong>Monday - Saturday:</strong> 9:00 AM - 7:00 PM</p>
-                    <p><strong>Sunday:</strong> 10:00 AM - 5:00 PM</p>
+                    <p><strong>Monday - Saturday:</strong> 10:00 AM - 7:00 PM</p>
+                    <p><strong>Sunday:</strong> Closed</p>
                   </div>
                 </div>
               </div>

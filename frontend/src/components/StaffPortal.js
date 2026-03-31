@@ -136,14 +136,12 @@ export const StaffPortal = () => {
       
       setDashboard(dashRes.data);
       
-      // Only update leads if we got valid data
+      // Always update leads with fresh data from server
       const newLeads = leadsRes.data || [];
-      if (newLeads.length > 0 || leads.length === 0) {
-        setLeads(newLeads);
-        // Update cache with fresh data
-        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(newLeads));
-        localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
-      }
+      setLeads(newLeads);
+      // Update cache with fresh data
+      localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(newLeads));
+      localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
       
       setFollowups(followupsRes.data);
       setTasks(tasksRes.data || []);
@@ -650,14 +648,33 @@ export const StaffPortal = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h2 className="text-xl sm:text-2xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
               <div className="flex items-center gap-2">
-                <button onClick={fetchAllData} className="bg-gray-100 text-gray-600 p-2.5 rounded-xl hover:bg-gray-200 active:bg-gray-300 transition" title="Refresh">
+                <button 
+                  onClick={() => {
+                    // Force refresh - clear cache and fetch fresh data
+                    localStorage.removeItem(`staffLeadsCache_${staffData.staff_id}`);
+                    localStorage.removeItem(`staffLeadsCacheTime_${staffData.staff_id}`);
+                    setLeads([]);
+                    fetchAllData();
+                  }} 
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2.5 rounded-xl hover:shadow-lg active:scale-95 transition flex items-center gap-1" 
+                  title="Refresh Leads"
+                >
                   <RefreshCw className="w-5 h-5" />
+                  <span className="text-sm font-medium hidden sm:inline">Refresh</span>
                 </button>
                 <button onClick={() => setShowAddLeadModal(true)} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl flex items-center space-x-2 hover:bg-blue-700 active:bg-blue-800 transition text-sm font-medium shadow-md" data-testid="staff-add-lead-btn">
                   <Plus className="w-5 h-5" /><span>Add Lead</span>
                 </button>
               </div>
             </div>
+            
+            {/* Last Updated Time */}
+            {loading && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-center gap-2">
+                <RefreshCw className="w-5 h-5 text-blue-500 animate-spin" />
+                <span className="text-blue-600 text-sm font-medium">Refreshing your leads...</span>
+              </div>
+            )}
             
             {/* Filter Buttons - Large Touch Targets for Mobile */}
             <div className="grid grid-cols-3 gap-2">

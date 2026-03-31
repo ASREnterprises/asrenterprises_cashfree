@@ -577,6 +577,7 @@ export const CRMDashboard = () => {
   });
   const [leadsSearch, setLeadsSearch] = useState('');
   const [staffAccounts, setStaffAccounts] = useState([]);
+  const [selectedStaffFilter, setSelectedStaffFilter] = useState(null); // Filter leads by staff
   const [tasks, setTasks] = useState([]);
   const [messages, setMessages] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -749,8 +750,8 @@ export const CRMDashboard = () => {
     setLeadsLoading(true);
     
     try {
-      // Use smaller page size (50) for faster loading with large datasets
-      const params = new URLSearchParams({ page, limit: 50 });
+      // Use 250 leads per page as requested by user
+      const params = new URLSearchParams({ page, limit: 250 });
       if (filterStage) params.append('stage', filterStage);
       if (search) params.append('search', search);
       
@@ -761,9 +762,9 @@ export const CRMDashboard = () => {
         setLeads(res.data);
         setLeadsPagination({ 
           current_page: 1, 
-          total_pages: Math.ceil(res.data.length / 50), 
+          total_pages: Math.ceil(res.data.length / 250), 
           total_count: res.data.length, 
-          per_page: 50, 
+          per_page: 250, 
           has_next: false, 
           has_prev: false 
         });
@@ -774,7 +775,7 @@ export const CRMDashboard = () => {
           current_page: page, 
           total_pages: 1, 
           total_count: newLeads.length, 
-          per_page: 50, 
+          per_page: 250, 
           has_next: false, 
           has_prev: page > 1 
         });
@@ -1485,6 +1486,27 @@ export const CRMDashboard = () => {
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
+                {/* Staff Filter Dropdown */}
+                <select
+                  value={selectedStaffFilter || ''}
+                  onChange={(e) => setSelectedStaffFilter(e.target.value || null)}
+                  className="bg-white border border-gray-300 text-[#0a355e] px-3 py-2 rounded-lg text-sm"
+                >
+                  <option value="">All Staff</option>
+                  <option value="unassigned">Unassigned</option>
+                  {staffAccounts.filter(s => s.is_active && s.leads_assigned > 0).map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.leads_assigned})</option>
+                  ))}
+                </select>
+                {selectedStaffFilter && (
+                  <button 
+                    onClick={() => setSelectedStaffFilter(null)}
+                    className="bg-gray-200 text-gray-600 px-2 py-2 rounded-lg text-sm"
+                    title="Clear filter"
+                  >
+                    ✕
+                  </button>
+                )}
                 <button onClick={() => setShowQuickAddModal(true)} className="bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:bg-green-700 transition" data-testid="quick-add-btn">
                   <Plus className="w-4 h-4" /><span className="hidden sm:inline">Quick Add</span><span className="sm:hidden">+</span>
                 </button>
@@ -1503,6 +1525,30 @@ export const CRMDashboard = () => {
                 <button onClick={autoAssignAllLeads} className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 hover:from-purple-700 hover:to-pink-700 transition" data-testid="auto-assign-all-btn">
                   <Zap className="w-4 h-4" /><span className="hidden md:inline">AI Auto-Assign</span>
                 </button>
+              </div>
+            </div>
+            
+            {/* Staff Leads Summary - Quick View */}
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4">
+              <h3 className="text-sm font-bold text-[#0a355e] mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4" /> Staff Leads Distribution
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedStaffFilter('unassigned')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${selectedStaffFilter === 'unassigned' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                >
+                  Unassigned ({leads.filter(l => !l.assigned_to).length})
+                </button>
+                {staffAccounts.filter(s => s.is_active).map((staff) => (
+                  <button
+                    key={staff.id}
+                    onClick={() => setSelectedStaffFilter(staff.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${selectedStaffFilter === staff.id ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-blue-100 border border-gray-200'}`}
+                  >
+                    {staff.name.split(' ')[0]} ({staff.leads_assigned || 0})
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -1587,15 +1633,28 @@ export const CRMDashboard = () => {
                         <p className="text-gray-400 text-sm mt-2">Please wait while we fetch your data</p>
                       </td>
                     </tr>
-                  ) : leads.length === 0 ? (
+                  ) : leads.filter(lead => {
+                    // Apply staff filter
+                    if (selectedStaffFilter === 'unassigned') return !lead.assigned_to;
+                    if (selectedStaffFilter) return lead.assigned_to === selectedStaffFilter;
+                    return true;
+                  }).length === 0 ? (
                     <tr>
                       <td colSpan="7" className="px-4 py-12 text-center">
                         <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 font-medium">No leads found</p>
-                        <p className="text-gray-400 text-sm mt-1">Add new leads using the buttons above</p>
+                        <p className="text-gray-500 font-medium">{selectedStaffFilter ? 'No leads match this filter' : 'No leads found'}</p>
+                        <p className="text-gray-400 text-sm mt-1">{selectedStaffFilter ? 'Try selecting a different staff member' : 'Add new leads using the buttons above'}</p>
+                        {selectedStaffFilter && (
+                          <button onClick={() => setSelectedStaffFilter(null)} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
+                        )}
                       </td>
                     </tr>
-                  ) : leads.map((lead) => (
+                  ) : leads.filter(lead => {
+                    // Apply staff filter
+                    if (selectedStaffFilter === 'unassigned') return !lead.assigned_to;
+                    if (selectedStaffFilter) return lead.assigned_to === selectedStaffFilter;
+                    return true;
+                  }).map((lead) => (
                     <tr key={lead.id} className={`border-t border-gray-100 hover:bg-gray-50 ${selectedLeadIds.includes(lead.id) ? 'bg-blue-50' : ''}`}>
                       <td className="px-3 py-3">
                         <input
@@ -1820,6 +1879,20 @@ export const CRMDashboard = () => {
                       <div className="text-gray-500 text-xs">Revenue</div>
                     </div>
                   </div>
+                  {/* Quick View Leads Button */}
+                  {staff.leads_assigned > 0 && (
+                    <button 
+                      onClick={() => {
+                        // Filter leads by this staff's ID and switch to leads tab
+                        setSelectedStaffFilter(staff.id);
+                        setActiveTab("leads");
+                      }}
+                      className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-2 rounded-lg text-sm font-medium mb-3 flex items-center justify-center space-x-2 hover:shadow-lg transition"
+                    >
+                      <ClipboardList className="w-4 h-4" />
+                      <span>View {staff.leads_assigned} Leads</span>
+                    </button>
+                  )}
                   <div className="flex space-x-2">
                     <button onClick={async () => {
                       const newPass = prompt('New password:', 'asr@123');

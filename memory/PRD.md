@@ -3,7 +3,38 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 31, 2026) - Leads Management Enhancement
+## Latest Session (March 31, 2026) - Login Restrictions & Staff Leads Pagination
+
+### Issues Fixed
+
+#### 1. Admin Login Restricted to Single Credential ✅
+- **Mobile OTP**: Only `8877896889` can access admin via OTP
+- **Email**: Only `asrenterprisespatna@gmail.com` can access
+- **Other numbers**: Returns "Invalid details. Only registered admin can access."
+
+#### 2. Staff Login Restricted to Registered Mobiles ✅
+- Staff OTP login only works with registered staff mobile numbers
+- Unregistered mobiles get: "Invalid login. Mobile number not registered. Contact admin."
+- Admin mobile `8877896889` can also access staff portal (for testing)
+
+#### 3. Staff Leads Pagination Fixed ✅
+- **Problem**: Staff could only see 200 leads even with 700+ assigned
+- **Fix**: Changed from `to_list(200)` to paginated response with 150 per page
+- **Response format**: `{leads: [], pagination: {current_page, total_pages, total_count, per_page, has_next, has_prev}}`
+
+#### 4. Staff Portal Pagination UI ✅
+- Shows "Page X of Y" in header
+- Pagination banner when total leads > 150
+- Bottom pagination controls: First, Prev, page numbers, Next, Last
+
+### Test Results (iteration_60.json)
+- Backend: 100% pass (14/14 tests)
+- All login restrictions verified
+- Pagination working correctly
+
+---
+
+## Previous Session (March 31, 2026 - Earlier) - Leads Management Enhancement
 
 ### Issues Fixed
 

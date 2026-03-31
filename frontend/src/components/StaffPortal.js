@@ -34,6 +34,15 @@ const TASK_TYPES = {
 
 export const StaffPortal = () => {
   const [staffData, setStaffData] = useState(null);
+  const [leadsPage, setLeadsPage] = useState(1);
+  const [leadsPagination, setLeadsPagination] = useState({
+    current_page: 1,
+    total_pages: 1,
+    total_count: 0,
+    per_page: 150,
+    has_next: false,
+    has_prev: false
+  });
   const [dashboard, setDashboard] = useState(null);
   const [leads, setLeads] = useState([]);
   const [followups, setFollowups] = useState([]);
@@ -118,7 +127,7 @@ export const StaffPortal = () => {
     return () => clearInterval(syncInterval);
   }, [autoSyncEnabled, staffData?.staff_id, activeTab]);
 
-  const fetchAllData = async () => {
+  const fetchAllData = async (page = leadsPage) => {
     // Don't show loading spinner if we already have data (prevents flash/white screen)
     if (!dashboard && !leads.length) {
       setLoading(true);
@@ -126,7 +135,7 @@ export const StaffPortal = () => {
     try {
       const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes, notifRes] = await Promise.all([
         axios.get(`${API}/staff/${staffData.staff_id}/dashboard`),
-        axios.get(`${API}/staff/${staffData.staff_id}/leads`),
+        axios.get(`${API}/staff/${staffData.staff_id}/leads?page=${page}&limit=150`),
         axios.get(`${API}/staff/${staffData.staff_id}/followups`),
         axios.get(`${API}/staff/${staffData.staff_id}/tasks/today`).catch(() => ({ data: [] })),
         axios.get(`${API}/staff/${staffData.staff_id}/messages`).catch(() => ({ data: [] })),
@@ -136,12 +145,29 @@ export const StaffPortal = () => {
       
       setDashboard(dashRes.data);
       
-      // Always update leads with fresh data from server
-      const newLeads = leadsRes.data || [];
-      setLeads(newLeads);
-      // Update cache with fresh data
-      localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(newLeads));
-      localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
+      // Handle paginated leads response
+      const leadsData = leadsRes.data;
+      if (leadsData.leads && leadsData.pagination) {
+        // New paginated response format
+        setLeads(leadsData.leads);
+        setLeadsPagination(leadsData.pagination);
+        // Update cache with fresh data
+        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leadsData.leads));
+        localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
+      } else if (Array.isArray(leadsData)) {
+        // Old array response format (backwards compatibility)
+        setLeads(leadsData);
+        setLeadsPagination({
+          current_page: 1,
+          total_pages: 1,
+          total_count: leadsData.length,
+          per_page: 150,
+          has_next: false,
+          has_prev: false
+        });
+        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leadsData));
+        localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
+      }
       
       setFollowups(followupsRes.data);
       setTasks(tasksRes.data || []);
@@ -154,6 +180,12 @@ export const StaffPortal = () => {
       // Don't clear existing data on error - keeps the UI stable
     }
     setLoading(false);
+  };
+  
+  // Change leads page
+  const changeLeadsPage = (newPage) => {
+    setLeadsPage(newPage);
+    fetchAllData(newPage);
   };
 
   const markNotificationRead = async (notifId) => {
@@ -646,7 +678,14 @@ export const StaffPortal = () => {
           <div className="space-y-4">
             {/* Header - Mobile Friendly */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h2 className="text-xl sm:text-2xl font-bold text-[#0a355e]">My Leads ({leads.length})</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#0a355e]">
+                My Leads ({leadsPagination.total_count || leads.length})
+                {leadsPagination.total_pages > 1 && (
+                  <span className="text-sm font-normal text-gray-500 ml-2">
+                    Page {leadsPagination.current_page} of {leadsPagination.total_pages}
+                  </span>
+                )}
+              </h2>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => {
@@ -654,7 +693,8 @@ export const StaffPortal = () => {
                     localStorage.removeItem(`staffLeadsCache_${staffData.staff_id}`);
                     localStorage.removeItem(`staffLeadsCacheTime_${staffData.staff_id}`);
                     setLeads([]);
-                    fetchAllData();
+                    setLeadsPage(1);
+                    fetchAllData(1);
                   }} 
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-2.5 rounded-xl hover:shadow-lg active:scale-95 transition flex items-center gap-1" 
                   title="Refresh Leads"
@@ -667,6 +707,34 @@ export const StaffPortal = () => {
                 </button>
               </div>
             </div>
+            
+            {/* Pagination Info Banner */}
+            {leadsPagination.total_count > 150 && (
+              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <span className="text-blue-700 text-sm font-medium">
+                  Showing {leads.length} of {leadsPagination.total_count} total leads
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => changeLeadsPage(leadsPagination.current_page - 1)}
+                    disabled={!leadsPagination.has_prev}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${leadsPagination.has_prev ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  >
+                    ← Prev
+                  </button>
+                  <span className="text-blue-700 text-sm font-bold px-2">
+                    {leadsPagination.current_page} / {leadsPagination.total_pages}
+                  </span>
+                  <button
+                    onClick={() => changeLeadsPage(leadsPagination.current_page + 1)}
+                    disabled={!leadsPagination.has_next}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${leadsPagination.has_next ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Last Updated Time */}
             {loading && (
@@ -910,6 +978,71 @@ export const StaffPortal = () => {
                 {callFilter !== 'all' && (
                   <button onClick={() => setCallFilter('all')} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
                 )}
+              </div>
+            )}
+            
+            {/* Bottom Pagination */}
+            {leadsPagination.total_pages > 1 && leads.length > 0 && (
+              <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <span className="text-gray-600 text-sm">
+                  Showing {((leadsPagination.current_page - 1) * 150) + 1} - {Math.min(leadsPagination.current_page * 150, leadsPagination.total_count)} of {leadsPagination.total_count} leads
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => changeLeadsPage(1)}
+                    disabled={leadsPagination.current_page === 1}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${leadsPagination.current_page > 1 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                  >
+                    First
+                  </button>
+                  <button
+                    onClick={() => changeLeadsPage(leadsPagination.current_page - 1)}
+                    disabled={!leadsPagination.has_prev}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${leadsPagination.has_prev ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  >
+                    ← Prev
+                  </button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {[...Array(Math.min(5, leadsPagination.total_pages))].map((_, i) => {
+                      let pageNum;
+                      if (leadsPagination.total_pages <= 5) {
+                        pageNum = i + 1;
+                      } else if (leadsPagination.current_page <= 3) {
+                        pageNum = i + 1;
+                      } else if (leadsPagination.current_page >= leadsPagination.total_pages - 2) {
+                        pageNum = leadsPagination.total_pages - 4 + i;
+                      } else {
+                        pageNum = leadsPagination.current_page - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => changeLeadsPage(pageNum)}
+                          className={`w-10 h-10 rounded-lg text-sm font-bold transition ${pageNum === leadsPagination.current_page ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={() => changeLeadsPage(leadsPagination.current_page + 1)}
+                    disabled={!leadsPagination.has_next}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${leadsPagination.has_next ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  >
+                    Next →
+                  </button>
+                  <button
+                    onClick={() => changeLeadsPage(leadsPagination.total_pages)}
+                    disabled={leadsPagination.current_page === leadsPagination.total_pages}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition ${leadsPagination.current_page < leadsPagination.total_pages ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                  >
+                    Last
+                  </button>
+                </div>
               </div>
             )}
           </div>

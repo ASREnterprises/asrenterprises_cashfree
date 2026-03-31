@@ -3306,15 +3306,21 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     logger.warning(f"Failed password login for {user_id} from IP: {client_ip}")
     raise HTTPException(status_code=401, detail="Invalid email or password. Only registered admin/staff can login.")
 
-# Registered admin mobile number for OTP login
+# Registered admin credentials - ONLY these can access admin panel
 ADMIN_REGISTERED_MOBILE = "8877896889"
+ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
 
 @api_router.post("/admin/login-otp")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def admin_login_otp(request: Request, data: Dict[str, Any]):
-    """Login with mobile OTP for admin and staff (MSG91 verified)"""
+    """Login with mobile OTP for admin and staff (MSG91 verified)
+    
+    Admin: Only 8877896889 is allowed
+    Staff: Only registered staff mobile numbers are allowed
+    """
     client_ip = get_real_ip(request)
     mobile = data.get("mobile", "").strip().replace(" ", "").replace("-", "")
+    login_type = data.get("login_type", "staff")  # 'admin' or 'staff'
     
     # Remove country code if present
     if mobile.startswith("91") and len(mobile) == 12:
@@ -3331,19 +3337,36 @@ async def admin_login_otp(request: Request, data: Dict[str, Any]):
         security_tracker.record_failed_attempt(client_ip, "Login lockout active")
         raise HTTPException(status_code=429, detail=message)
     
-    # Check if it's the registered admin mobile
-    if mobile == ADMIN_REGISTERED_MOBILE:
+    # ADMIN LOGIN: Only allow registered admin mobile
+    if login_type == "admin":
+        if mobile != ADMIN_REGISTERED_MOBILE:
+            record_failed_login(client_ip, mobile)
+            logger.warning(f"Invalid admin login attempt with mobile {mobile} from IP: {client_ip}")
+            raise HTTPException(status_code=401, detail="Invalid details. Only registered admin can access.")
+        
         reset_failed_login(client_ip, mobile)
         logger.info(f"Successful OTP login for admin mobile from IP: {client_ip}")
         return {
             "success": True, 
             "role": "admin", 
-            "email": "asrenterprisespatna@gmail.com",
+            "email": ADMIN_REGISTERED_EMAIL,
             "name": "Admin",
             "message": "Admin login successful"
         }
     
-    # Check if mobile is registered for staff OTP login (all staff can use mobile OTP)
+    # STAFF LOGIN: Check if it's registered admin mobile (can also login as staff for testing)
+    if mobile == ADMIN_REGISTERED_MOBILE:
+        reset_failed_login(client_ip, mobile)
+        logger.info(f"Admin logged in via staff portal from IP: {client_ip}")
+        return {
+            "success": True, 
+            "role": "admin", 
+            "email": ADMIN_REGISTERED_EMAIL,
+            "name": "Admin",
+            "message": "Admin login successful"
+        }
+    
+    # STAFF LOGIN: Check if mobile is registered for staff
     staff = await db.crm_staff_accounts.find_one(
         {"phone": mobile, "is_active": True}, 
         {"_id": 0}
@@ -3358,29 +3381,14 @@ async def admin_login_otp(request: Request, data: Dict[str, Any]):
             "email": staff.get("email"),
             "name": staff.get("name"),
             "staff_id": staff.get("staff_id"),
+            "id": staff.get("id"),
             "message": "Staff login successful"
         }
     
-    # Check registered_otp_logins collection for additional authorized mobiles
-    otp_user = await db.registered_otp_logins.find_one(
-        {"mobile": mobile, "active": True},
-        {"_id": 0}
-    )
-    
-    if otp_user:
-        reset_failed_login(client_ip, mobile)
-        logger.info(f"Successful OTP login for {otp_user.get('name')} from IP: {client_ip}")
-        return {
-            "success": True,
-            "role": otp_user.get("role", "staff"),
-            "email": otp_user.get("email"),
-            "name": otp_user.get("name"),
-            "message": "Login successful"
-        }
-    
+    # Not registered - reject
     record_failed_login(client_ip, mobile)
-    logger.warning(f"Failed OTP login attempt for unregistered mobile {mobile} from IP: {client_ip}")
-    raise HTTPException(status_code=401, detail="Mobile number not registered for OTP login. Contact admin.")
+    logger.warning(f"Invalid login attempt with unregistered mobile {mobile} from IP: {client_ip}")
+    raise HTTPException(status_code=401, detail="Invalid login. Mobile number not registered. Contact admin.")
 
 @api_router.post("/admin/verify-2fa")
 @limiter.limit(RATE_LIMIT_AUTH)
@@ -4232,19 +4240,39 @@ async def get_staff_profile(staff_id: str):
     return staff
 
 @api_router.get("/staff/{staff_id}/leads")
-async def get_staff_assigned_leads(staff_id: str):
-    """Get leads assigned to this staff member"""
+async def get_staff_assigned_leads(staff_id: str, page: int = 1, limit: int = 150):
+    """Get leads assigned to this staff member with pagination (150 per page)"""
     # Get internal ID from staff_id
     staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
-    leads = await db.crm_leads.find(
-        {"assigned_to": staff.get("id")},
-        {"_id": 0}
-    ).sort("timestamp", -1).to_list(200)
+    staff_internal_id = staff.get("id")
     
-    return leads
+    # Get total count
+    total_count = await db.crm_leads.count_documents({"assigned_to": staff_internal_id})
+    
+    # Calculate pagination
+    skip = (page - 1) * limit
+    total_pages = (total_count + limit - 1) // limit if total_count > 0 else 1
+    
+    # Get paginated leads
+    leads = await db.crm_leads.find(
+        {"assigned_to": staff_internal_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "pagination": {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_count": total_count,
+            "per_page": limit,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
 
 @api_router.put("/staff/{staff_id}/leads/{lead_id}")
 async def staff_update_lead(staff_id: str, lead_id: str, data: Dict[str, Any]):

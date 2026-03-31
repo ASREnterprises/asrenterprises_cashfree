@@ -1,0 +1,122 @@
+{
+  "summary": "Tested Admin/Staff OTP login restrictions and Staff leads pagination. All features working correctly: Admin login only allows 8877896889, Staff login only allows registered mobiles, Staff leads API returns paginated response with 150 per page.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin_staff_login_iter60.py",
+    "/app/test_reports/pytest/pytest_iter60.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_admin_staff_login_iter60.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed - 4 initial failures were due to rate limiting, all pass when rate limit resets)"
+  },
+  "test_credentials": {
+    "admin_mobile": "8877896889",
+    "admin_email": "asrenterprisespatna@gmail.com",
+    "test_invalid_mobile": "9123456789"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Admin/Staff OTP login restrictions and Staff leads pagination fully tested. Admin login only allows 8877896889, rejects all other numbers with 'Invalid details'. Staff login only allows registered staff mobiles, rejects unregistered with 'Invalid login. Mobile number not registered'. Staff leads API returns paginated response with 150 per page including pagination object with total_count, total_pages, has_next, has_prev.",
+  "features_tested": {
+    "admin_otp_login_valid_mobile": {
+      "status": "PASS",
+      "details": "Admin login with 8877896889 returns success=true, role=admin, email=asrenterprisespatna@gmail.com"
+    },
+    "admin_otp_login_invalid_mobile_rejected": {
+      "status": "PASS",
+      "details": "Admin login with 9123456789 returns 401 with 'Invalid details. Only registered admin can access.'"
+    },
+    "admin_otp_login_random_mobile_rejected": {
+      "status": "PASS",
+      "details": "Admin login with random mobile 9999888877 returns 401 with 'Invalid details'"
+    },
+    "admin_otp_login_country_code_prefix": {
+      "status": "PASS",
+      "details": "Admin login with +918877896889 works correctly (strips country code)"
+    },
+    "staff_otp_login_unregistered_rejected": {
+      "status": "PASS",
+      "details": "Staff login with unregistered mobile returns 401 with 'Invalid login. Mobile number not registered. Contact admin.'"
+    },
+    "staff_otp_login_random_mobile_rejected": {
+      "status": "PASS",
+      "details": "Staff login with random mobile returns 401 with 'Invalid login' message"
+    },
+    "staff_otp_login_admin_mobile_works": {
+      "status": "PASS",
+      "details": "Admin mobile 8877896889 can access staff portal (returns success=true, role=admin)"
+    },
+    "staff_leads_paginated_response": {
+      "status": "PASS",
+      "details": "Staff leads API returns {leads: [], pagination: {}} structure"
+    },
+    "staff_leads_pagination_object": {
+      "status": "PASS",
+      "details": "Pagination object contains: current_page, total_pages, total_count, per_page, has_next, has_prev"
+    },
+    "staff_leads_default_150_per_page": {
+      "status": "PASS",
+      "details": "Default pagination limit is 150 per page (per_page=150)"
+    },
+    "staff_leads_page_1_no_prev": {
+      "status": "PASS",
+      "details": "Page 1 correctly has has_prev=False"
+    },
+    "staff_leads_custom_limit": {
+      "status": "PASS",
+      "details": "Custom limit parameter works (e.g., limit=50 returns per_page=50)"
+    },
+    "login_validation_empty_mobile": {
+      "status": "PASS",
+      "details": "Empty mobile returns 400 'Invalid mobile number format'"
+    },
+    "login_validation_short_mobile": {
+      "status": "PASS",
+      "details": "Short mobile (12345) returns 400 'Invalid mobile number format'"
+    }
+  },
+  "api_verification": {
+    "admin_login_otp": {
+      "endpoint": "POST /api/admin/login-otp",
+      "valid_request": {"mobile": "8877896889", "login_type": "admin"},
+      "valid_response": {"success": true, "role": "admin", "email": "asrenterprisespatna@gmail.com"},
+      "invalid_request": {"mobile": "9123456789", "login_type": "admin"},
+      "invalid_response": "401 - Invalid details. Only registered admin can access."
+    },
+    "staff_login_otp": {
+      "endpoint": "POST /api/admin/login-otp",
+      "valid_request": {"mobile": "registered_staff_mobile", "login_type": "staff"},
+      "valid_response": {"success": true, "role": "staff", "staff_id": "ASRxxxx"},
+      "invalid_request": {"mobile": "unregistered_mobile", "login_type": "staff"},
+      "invalid_response": "401 - Invalid login. Mobile number not registered. Contact admin."
+    },
+    "staff_leads_pagination": {
+      "endpoint": "GET /api/staff/{staff_id}/leads?page=1&limit=150",
+      "response_structure": {
+        "leads": "array of lead objects",
+        "pagination": {
+          "current_page": "int",
+          "total_pages": "int",
+          "total_count": "int",
+          "per_page": 150,
+          "has_next": "bool",
+          "has_prev": "bool"
+        }
+      }
+    }
+  },
+  "rca_of_issue": "N/A - All features working correctly as implemented"
+}

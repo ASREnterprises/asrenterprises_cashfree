@@ -134,18 +134,38 @@ async def staff_login_email(data: Dict[str, Any]):
 # ==================== STAFF LEADS ENDPOINTS ====================
 
 @router.get("/{staff_id}/leads")
-async def get_staff_assigned_leads(staff_id: str):
-    """Get leads assigned to this staff member"""
+async def get_staff_assigned_leads(staff_id: str, page: int = 1, limit: int = 150):
+    """Get leads assigned to this staff member with pagination"""
     staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
     if not staff:
         raise HTTPException(status_code=404, detail="Staff not found")
     
-    leads = await db.crm_leads.find(
-        {"assigned_to": staff.get("id")},
-        {"_id": 0}
-    ).sort("timestamp", -1).to_list(200)
+    staff_internal_id = staff.get("id")
     
-    return leads
+    # Get total count
+    total_count = await db.crm_leads.count_documents({"assigned_to": staff_internal_id})
+    
+    # Calculate pagination
+    skip = (page - 1) * limit
+    total_pages = (total_count + limit - 1) // limit if total_count > 0 else 1
+    
+    # Get paginated leads
+    leads = await db.crm_leads.find(
+        {"assigned_to": staff_internal_id},
+        {"_id": 0}
+    ).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "pagination": {
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_count": total_count,
+            "per_page": limit,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
 
 @router.put("/{staff_id}/leads/{lead_id}")
 async def staff_update_lead(staff_id: str, lead_id: str, data: Dict[str, Any]):

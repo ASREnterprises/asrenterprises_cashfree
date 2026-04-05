@@ -70,6 +70,14 @@ export const StaffPortal = () => {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
+  // New leads tracking - Track lead IDs seen previously
+  const [seenLeadIds, setSeenLeadIds] = useState(() => {
+    const stored = localStorage.getItem('staffSeenLeadIds');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
+  const [previousTotalCount, setPreviousTotalCount] = useState(0);
+  
   // WhatsApp Cloud API state
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppModalLead, setWhatsAppModalLead] = useState(null);
@@ -134,15 +142,18 @@ export const StaffPortal = () => {
     return () => clearInterval(syncInterval);
   }, [autoSyncEnabled, staffData?.staff_id, activeTab]);
 
-  const fetchAllData = async (page = leadsPage) => {
+  const fetchAllData = async (page = leadsPage, forceRefresh = false) => {
     // Don't show loading spinner if we already have data (prevents flash/white screen)
     if (!dashboard && !leads.length) {
       setLoading(true);
     }
     try {
+      // Always fetch page 1 first to check for new leads
+      const pageToFetch = forceRefresh ? 1 : page;
+      
       const [dashRes, leadsRes, followupsRes, tasksRes, msgRes, unreadRes, notifRes] = await Promise.all([
         axios.get(`${API}/staff/${staffData.staff_id}/dashboard`),
-        axios.get(`${API}/staff/${staffData.staff_id}/leads?page=${page}&limit=150`),
+        axios.get(`${API}/staff/${staffData.staff_id}/leads?page=${pageToFetch}&limit=150`),
         axios.get(`${API}/staff/${staffData.staff_id}/followups`),
         axios.get(`${API}/staff/${staffData.staff_id}/tasks/today`).catch(() => ({ data: [] })),
         axios.get(`${API}/staff/${staffData.staff_id}/messages`).catch(() => ({ data: [] })),
@@ -155,15 +166,52 @@ export const StaffPortal = () => {
       // Handle paginated leads response
       const leadsData = leadsRes.data;
       if (leadsData.leads && leadsData.pagination) {
-        // New paginated response format
-        setLeads(leadsData.leads);
+        const fetchedLeads = leadsData.leads;
+        const newTotal = leadsData.pagination.total_count;
+        
+        // Check for new leads
+        const currentLeadIds = fetchedLeads.map(l => l.id);
+        const newLeadsList = fetchedLeads.filter(l => !seenLeadIds.has(l.id));
+        
+        // If total count increased, there are new leads
+        if (previousTotalCount > 0 && newTotal > previousTotalCount) {
+          setNewLeadsCount(prev => prev + (newTotal - previousTotalCount));
+          // Auto-switch to page 1 if new leads detected during auto-sync
+          if (autoSyncEnabled && pageToFetch !== 1) {
+            setLeadsPage(1);
+          }
+        }
+        
+        // Mark current leads as seen
+        if (currentLeadIds.length > 0) {
+          const updatedSeenIds = new Set(seenLeadIds);
+          currentLeadIds.forEach(id => updatedSeenIds.add(id));
+          setSeenLeadIds(updatedSeenIds);
+          localStorage.setItem('staffSeenLeadIds', JSON.stringify([...updatedSeenIds]));
+        }
+        
+        // Mark leads as "new" for visual indicator (within last 2 hours)
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+        const leadsWithNewFlag = fetchedLeads.map(lead => ({
+          ...lead,
+          isNew: (lead.assigned_at && lead.assigned_at > twoHoursAgo) || !seenLeadIds.has(lead.id)
+        }));
+        
+        setLeads(leadsWithNewFlag);
         setLeadsPagination(leadsData.pagination);
-        // Update cache with fresh data
-        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leadsData.leads));
+        setPreviousTotalCount(newTotal);
+        
+        // Update cache
+        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leadsWithNewFlag));
         localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
       } else if (Array.isArray(leadsData)) {
         // Old array response format (backwards compatibility)
-        setLeads(leadsData);
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+        const leadsWithNewFlag = leadsData.map(lead => ({
+          ...lead,
+          isNew: (lead.assigned_at && lead.assigned_at > twoHoursAgo) || !seenLeadIds.has(lead.id)
+        }));
+        setLeads(leadsWithNewFlag);
         setLeadsPagination({
           current_page: 1,
           total_pages: 1,
@@ -172,7 +220,7 @@ export const StaffPortal = () => {
           has_next: false,
           has_prev: false
         });
-        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leadsData));
+        localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leadsWithNewFlag));
         localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
       }
       
@@ -187,6 +235,22 @@ export const StaffPortal = () => {
       // Don't clear existing data on error - keeps the UI stable
     }
     setLoading(false);
+  };
+  
+  // Mark lead as seen (remove new badge)
+  const markLeadAsSeen = (leadId) => {
+    const updatedSeenIds = new Set(seenLeadIds);
+    updatedSeenIds.add(leadId);
+    setSeenLeadIds(updatedSeenIds);
+    localStorage.setItem('staffSeenLeadIds', JSON.stringify([...updatedSeenIds]));
+    
+    // Update leads to remove isNew flag
+    setLeads(prev => prev.map(lead => 
+      lead.id === leadId ? { ...lead, isNew: false } : lead
+    ));
+    
+    // Decrease new leads count
+    setNewLeadsCount(prev => Math.max(0, prev - 1));
   };
   
   // Change leads page
@@ -498,7 +562,12 @@ export const StaffPortal = () => {
               {unreadCount > 0 && (
                 <span className="bg-red-500 text-[#0a355e] text-xs px-2 py-1 rounded-full">{unreadCount} msg</span>
               )}
-              <button onClick={fetchAllData} className="text-gray-500 hover:text-[#0a355e]"><RefreshCw className="w-5 h-5" /></button>
+              {newLeadsCount > 0 && (
+                <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse font-bold">
+                  {newLeadsCount} NEW
+                </span>
+              )}
+              <button onClick={() => fetchAllData(1, true)} className="text-gray-500 hover:text-[#0a355e]" title="Refresh all data"><RefreshCw className="w-5 h-5" /></button>
               <button
                 onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}
                 className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 transition ${autoSyncEnabled ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}
@@ -833,8 +902,15 @@ export const StaffPortal = () => {
                           <span className="text-gray-300 text-lg" title="Not Called">○</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="text-[#0a355e] font-medium">{lead.name || 'Unknown'}</div>
+                      <td className="px-4 py-3" onClick={() => markLeadAsSeen(lead.id)}>
+                        <div className="flex items-center gap-2">
+                          <div className="text-[#0a355e] font-medium">{lead.name || 'Unknown'}</div>
+                          {lead.isNew && (
+                            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                              NEW
+                            </span>
+                          )}
+                        </div>
                         <div className="text-gray-500 text-sm font-mono">{lead.phone}</div>
                         <div className="text-gray-400 text-xs">{lead.district} • ₹{lead.monthly_bill}/mo</div>
                       </td>
@@ -923,11 +999,16 @@ export const StaffPortal = () => {
                               <CheckCircle className="w-3 h-3 mr-1" /> Called
                             </span>
                           )}
+                          {lead.isNew && (
+                            <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                              NEW
+                            </span>
+                          )}
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PIPELINE_STAGES.find(s => s.id === lead.stage)?.color || 'bg-gray-500'} text-white`}>
                             {PIPELINE_STAGES.find(s => s.id === lead.stage)?.label || 'New'}
                           </span>
                         </div>
-                        <h3 className="text-[#0a355e] font-bold text-xl">{lead.name || 'Unknown'}</h3>
+                        <h3 className="text-[#0a355e] font-bold text-xl" onClick={() => markLeadAsSeen(lead.id)}>{lead.name || 'Unknown'}</h3>
                       </div>
                     </div>
                     

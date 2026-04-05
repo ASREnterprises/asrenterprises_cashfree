@@ -118,8 +118,10 @@ const CreatePostTab = ({ settings, onPostCreated }) => {
   const [scheduleMode, setScheduleMode] = useState('now');
   const [scheduleTime, setScheduleTime] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploadedFile, setUploadedFile] = useState(null);
   
   const togglePlatform = (platform) => {
     if (platform === 'both') {
@@ -130,6 +132,64 @@ const CreatePostTab = ({ settings, onPostCreated }) => {
           ? prev.filter(p => p !== platform)
           : [...prev.filter(p => p !== 'both'), platform]
       );
+    }
+  };
+  
+  // Handle file upload
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Allowed: JPEG, PNG, GIF, WebP, MP4, MOV');
+      return;
+    }
+    
+    // Validate file size
+    const maxSize = file.type.startsWith('video') ? 25 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError(`File too large. Max size: ${maxSize / (1024 * 1024)}MB`);
+      return;
+    }
+    
+    setUploading(true);
+    setError('');
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await axios.post(`${API}/api/social/upload/media`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      if (res.data.success) {
+        // Get the public URL
+        const urlRes = await axios.get(`${API}/api/social/files/${res.data.file_id}/url`);
+        const fileUrl = urlRes.data.url;
+        
+        if (file.type.startsWith('video')) {
+          setVideoUrl(fileUrl);
+        } else {
+          setImageUrl(fileUrl);
+        }
+        
+        setUploadedFile({
+          id: res.data.file_id,
+          name: file.name,
+          type: file.type,
+          url: fileUrl
+        });
+        
+        setSuccess(`File uploaded successfully: ${file.name}`);
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to upload file');
+    } finally {
+      setUploading(false);
     }
   };
   
@@ -220,8 +280,48 @@ const CreatePostTab = ({ settings, onPostCreated }) => {
             />
           </div>
           
-          {/* Media URLs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* File Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Upload className="w-4 h-4 inline mr-1" />
+              Upload from Device
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 transition">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="media-upload"
+                disabled={uploading}
+              />
+              <label htmlFor="media-upload" className="cursor-pointer">
+                {uploading ? (
+                  <div className="flex flex-col items-center">
+                    <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+                    <span className="text-gray-600">Uploading...</span>
+                  </div>
+                ) : uploadedFile ? (
+                  <div className="flex flex-col items-center">
+                    <CheckCircle className="w-8 h-8 text-green-500 mb-2" />
+                    <span className="text-green-600 font-medium">{uploadedFile.name}</span>
+                    <span className="text-xs text-gray-500 mt-1">Click to replace</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-gray-600">Click to upload image or video</span>
+                    <span className="text-xs text-gray-400 mt-1">JPEG, PNG, GIF, WebP, MP4, MOV (Max 25MB)</span>
+                  </div>
+                )}
+              </label>
+            </div>
+          </div>
+          
+          {/* Media URLs (Alternative) */}
+          <div className="border-t border-gray-200 pt-4">
+            <p className="text-sm text-gray-500 mb-3">Or paste media URL directly:</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <Image className="w-4 h-4 inline mr-1" />
@@ -247,6 +347,7 @@ const CreatePostTab = ({ settings, onPostCreated }) => {
                 placeholder="https://example.com/video.mp4"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
             </div>
           </div>
           
@@ -727,13 +828,48 @@ const SettingsTab = ({ settings, onRefresh }) => {
         </div>
       )}
       
+      {/* Permissions Warning */}
+      {settings.facebook_connected && !settings.facebook_has_posting_permissions && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold mb-2">Missing Permissions</h4>
+              <p className="text-sm mb-3">
+                Your Page Access Token is missing required permissions. Posts will fail until you add these permissions:
+              </p>
+              <ul className="text-sm list-disc list-inside space-y-1 mb-3">
+                <li><strong>pages_read_engagement</strong> - Read page content</li>
+                <li><strong>pages_manage_posts</strong> - Publish and manage posts</li>
+                <li><strong>pages_manage_engagement</strong> - Respond to comments</li>
+              </ul>
+              <p className="text-sm font-medium">
+                Steps to fix:
+              </p>
+              <ol className="text-sm list-decimal list-inside space-y-1 mt-1">
+                <li>Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Meta Developer Console</a></li>
+                <li>Select your App → App Review → Permissions</li>
+                <li>Request the permissions listed above</li>
+                <li>Generate a new Page Access Token with these permissions</li>
+                <li>Update the token below</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Facebook Settings */}
       <div className="bg-white rounded-2xl p-6 border border-gray-200">
         <div className="flex items-center gap-3 mb-4">
           <Facebook className="w-8 h-8 text-blue-600" />
           <div>
             <h3 className="text-lg font-semibold text-gray-800">Facebook Page</h3>
-            <ConnectionBadge connected={settings.facebook_connected} label="Status" />
+            <div className="flex items-center gap-2 mt-1">
+              <ConnectionBadge connected={settings.facebook_connected} label="Status" />
+              {settings.facebook_connected && settings.facebook_has_posting_permissions && (
+                <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Permissions OK</span>
+              )}
+            </div>
           </div>
         </div>
         

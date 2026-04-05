@@ -1162,6 +1162,218 @@ async def get_conversation_by_lead(lead_id: str):
     # Get conversation thread
     return await get_conversation_thread(clean_phone)
 
+# ==================== MESSAGE DELETE ENDPOINTS ====================
+
+@router.delete("/messages/{message_id}")
+async def delete_message(message_id: str):
+    """Delete a single WhatsApp message from CRM (does not delete from customer's phone)"""
+    result = await db.whatsapp_messages.delete_one({"id": message_id})
+    
+    if result.deleted_count > 0:
+        return {"success": True, "message": "Message deleted"}
+    else:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+@router.post("/messages/bulk-delete")
+async def bulk_delete_messages(request: Request):
+    """Delete multiple WhatsApp messages from CRM"""
+    data = await request.json()
+    message_ids = data.get("message_ids", [])
+    
+    if not message_ids:
+        raise HTTPException(status_code=400, detail="No message IDs provided")
+    
+    result = await db.whatsapp_messages.delete_many({"id": {"$in": message_ids}})
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"Deleted {result.deleted_count} messages"
+    }
+
+@router.delete("/conversations/{phone}/clear")
+async def clear_conversation(phone: str):
+    """Delete all messages in a conversation"""
+    clean_phone = clean_phone_number(phone)
+    
+    result = await db.whatsapp_messages.delete_many({
+        "$or": [
+            {"phone": phone},
+            {"phone": clean_phone},
+            {"phone": {"$regex": phone[-10:] if len(phone) >= 10 else phone}}
+        ]
+    })
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"Cleared conversation - deleted {result.deleted_count} messages"
+    }
+
+@router.delete("/conversations/old")
+async def delete_old_conversations(request: Request):
+    """Delete conversations older than specified days"""
+    data = await request.json()
+    days = data.get("days", 30)  # Default 30 days
+    
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+    
+    result = await db.whatsapp_messages.delete_many({
+        "created_at": {"$lt": cutoff_date.isoformat()}
+    })
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"Deleted {result.deleted_count} messages older than {days} days"
+    }
+
+# ==================== MEDIA SENDING ENDPOINTS ====================
+
+@router.post("/conversations/{phone}/send-media")
+async def send_media_message(phone: str, request: Request):
+    """
+    Send media message (image, document, video) to a conversation.
+    Requires 24-hour window for non-template media.
+    """
+    data = await request.json()
+    media_type = data.get("media_type", "image")  # image, document, video, audio
+    media_url = data.get("media_url", "").strip()
+    caption = data.get("caption", "").strip()
+    filename = data.get("filename", "")
+    
+    if not media_url:
+        raise HTTPException(status_code=400, detail="Media URL is required")
+    
+    # Check 24-hour window
+    clean_phone = clean_phone_number(phone)
+    
+    last_incoming = await db.whatsapp_messages.find_one(
+        {"phone": {"$in": [phone, clean_phone]}, "direction": "incoming"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    
+    if not last_incoming:
+        raise HTTPException(
+            status_code=400,
+            detail="No incoming message found. Customer must message first before you can send media."
+        )
+    
+    last_incoming_at = last_incoming.get("created_at")
+    try:
+        if isinstance(last_incoming_at, str):
+            last_incoming_dt = datetime.fromisoformat(last_incoming_at.replace("Z", "+00:00"))
+        else:
+            last_incoming_dt = last_incoming_at
+        
+        if datetime.now(timezone.utc) - last_incoming_dt > timedelta(hours=24):
+            raise HTTPException(
+                status_code=400,
+                detail="Outside 24-hour customer service window. Media can only be sent within 24 hours of customer's last message."
+            )
+    except HTTPException:
+        raise
+    except (ValueError, TypeError, AttributeError) as e:
+        raise HTTPException(status_code=400, detail=f"Unable to verify message window: {str(e)}")
+    
+    # Get WhatsApp settings
+    settings = await get_whatsapp_settings()
+    if not settings or not settings.get("access_token"):
+        raise HTTPException(status_code=400, detail="WhatsApp API not configured")
+    
+    lead_id = last_incoming.get("lead_id")
+    
+    # Create message record
+    message_id = str(uuid.uuid4())
+    message_record = {
+        "id": message_id,
+        "phone": clean_phone,
+        "lead_id": lead_id,
+        "direction": "outgoing",
+        "type": media_type,
+        "media_url": media_url,
+        "content": caption,
+        "filename": filename,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.whatsapp_messages.insert_one(message_record)
+    
+    # Send via Meta API
+    api_url = f"{WHATSAPP_API_BASE}/{settings['phone_number_id']}/messages"
+    headers = {
+        "Authorization": f"Bearer {settings['access_token']}",
+        "Content-Type": "application/json"
+    }
+    
+    # Build payload based on media type
+    if media_type == "image":
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "image",
+            "image": {"link": media_url, "caption": caption}
+        }
+    elif media_type == "document":
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "document",
+            "document": {"link": media_url, "caption": caption, "filename": filename or "document"}
+        }
+    elif media_type == "video":
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "video",
+            "video": {"link": media_url, "caption": caption}
+        }
+    elif media_type == "audio":
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": clean_phone,
+            "type": "audio",
+            "audio": {"link": media_url}
+        }
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported media type: {media_type}")
+    
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as http_client:
+            response = await http_client.post(api_url, headers=headers, json=payload)
+            response_data = response.json()
+            
+            if response.status_code in [200, 201]:
+                wa_message_id = response_data.get("messages", [{}])[0].get("id", "")
+                await db.whatsapp_messages.update_one(
+                    {"id": message_id},
+                    {"$set": {
+                        "status": "sent",
+                        "wa_message_id": wa_message_id,
+                        "sent_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                return {
+                    "success": True,
+                    "message_id": message_id,
+                    "wa_message_id": wa_message_id,
+                    "status": "sent"
+                }
+            else:
+                error_msg = response_data.get("error", {}).get("message", "Unknown error")
+                await db.whatsapp_messages.update_one(
+                    {"id": message_id},
+                    {"$set": {"status": "failed", "error": error_msg}}
+                )
+                return {"success": False, "message_id": message_id, "error": error_msg, "status": "failed"}
+    except Exception as e:
+        await db.whatsapp_messages.update_one(
+            {"id": message_id},
+            {"$set": {"status": "failed", "error": str(e)}}
+        )
+        return {"success": False, "message_id": message_id, "error": str(e), "status": "failed"}
+
 # ==================== DASHBOARD STATS ====================
 
 @router.get("/dashboard/stats")

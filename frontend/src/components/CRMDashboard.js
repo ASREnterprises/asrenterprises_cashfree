@@ -8,10 +8,11 @@ import {
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2,
-  User, X
+  User, X, History
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
+import { WhatsAppModule, SendWhatsAppModal, BulkCampaignModal } from "@/components/WhatsAppCRM";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -592,6 +593,14 @@ export const CRMDashboard = () => {
   const [showEditStaffModal, setShowEditStaffModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  
+  // WhatsApp Cloud API Integration state
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppModalLead, setWhatsAppModalLead] = useState(null);
+  const [showBulkCampaignModal, setShowBulkCampaignModal] = useState(false);
+  const [selectedLeadsForCampaign, setSelectedLeadsForCampaign] = useState([]);
+  const [showLeadWhatsAppHistory, setShowLeadWhatsAppHistory] = useState(false);
+  const [leadWhatsAppMessages, setLeadWhatsAppMessages] = useState([]);
   
   // Scroll to top state
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -1317,6 +1326,33 @@ export const CRMDashboard = () => {
     sendWhatsApp(staff.phone, msg);
   };
 
+  // WhatsApp Cloud API Integration Functions
+  const openWhatsAppTemplateModal = (lead) => {
+    setWhatsAppModalLead(lead);
+    setShowWhatsAppModal(true);
+  };
+
+  const fetchLeadWhatsAppHistory = async (leadId) => {
+    try {
+      const res = await axios.get(`${API}/whatsapp/messages/lead/${leadId}`);
+      setLeadWhatsAppMessages(res.data || []);
+      setShowLeadWhatsAppHistory(true);
+    } catch (err) {
+      console.error('Error fetching WhatsApp history:', err);
+      setLeadWhatsAppMessages([]);
+    }
+  };
+
+  const handleBulkCampaign = () => {
+    const selectedIds = leads.filter(l => l.selected).map(l => l.id);
+    if (selectedIds.length === 0) {
+      alert('Please select leads first by checking the checkboxes');
+      return;
+    }
+    setSelectedLeadsForCampaign(selectedIds);
+    setShowBulkCampaignModal(true);
+  };
+
   const updateLeadStage = async (leadId, newStage) => {
     try {
       await axios.put(`${API}/crm/leads/${leadId}`, { stage: newStage });
@@ -1361,6 +1397,7 @@ export const CRMDashboard = () => {
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
@@ -1482,6 +1519,16 @@ export const CRMDashboard = () => {
                   >
                     <Users className="w-4 h-4" />
                     <span>Bulk Assign ({selectedLeadIds.length})</span>
+                  </button>
+                )}
+                {selectedLeadIds.length > 0 && (
+                  <button 
+                    onClick={() => { setSelectedLeadsForCampaign(selectedLeadIds); setShowBulkCampaignModal(true); }}
+                    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 hover:from-green-600 hover:to-green-700 transition"
+                    data-testid="bulk-whatsapp-btn"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>WhatsApp Campaign ({selectedLeadIds.length})</span>
                   </button>
                 )}
               </div>
@@ -1692,7 +1739,8 @@ export const CRMDashboard = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
-                          <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is ASR Enterprises...`)} className="text-green-400 hover:text-green-300" title="WhatsApp Customer"><MessageSquare className="w-4 h-4" /></button>
+                          <button onClick={() => openWhatsAppTemplateModal(lead)} className="text-green-500 hover:text-green-600" title="Send WhatsApp Template" data-testid="whatsapp-template-btn"><MessageSquare className="w-4 h-4" /></button>
+                          <button onClick={() => fetchLeadWhatsAppHistory(lead.id)} className="text-cyan-500 hover:text-cyan-600" title="WhatsApp History" data-testid="whatsapp-history-btn"><History className="w-4 h-4" /></button>
                           <a href={`tel:${lead.phone}`} className="text-blue-400 hover:text-blue-300" title="Call"><Phone className="w-4 h-4" /></a>
                           <button onClick={() => sendQuoteViaWhatsApp(lead.id)} className="text-orange-400 hover:text-orange-300" title="Send Quote via WhatsApp"><FileSpreadsheet className="w-4 h-4" /></button>
                           {!lead.assigned_to && (
@@ -1765,6 +1813,11 @@ export const CRMDashboard = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* WhatsApp CRM Tab */}
+        {activeTab === "whatsapp" && (
+          <WhatsAppModule />
         )}
 
         {/* Tasks Tab */}
@@ -3331,6 +3384,79 @@ export const CRMDashboard = () => {
         >
           <ChevronUp className="w-6 h-6" />
         </button>
+      )}
+
+      {/* WhatsApp Send Template Modal */}
+      <SendWhatsAppModal 
+        isOpen={showWhatsAppModal} 
+        onClose={() => { setShowWhatsAppModal(false); setWhatsAppModalLead(null); }}
+        lead={whatsAppModalLead}
+        onSent={() => { fetchAllData(); }}
+      />
+
+      {/* WhatsApp Bulk Campaign Modal */}
+      <BulkCampaignModal 
+        isOpen={showBulkCampaignModal}
+        onClose={() => { setShowBulkCampaignModal(false); setSelectedLeadsForCampaign([]); }}
+        selectedLeads={selectedLeadsForCampaign}
+        onCampaignStarted={() => { 
+          setSelectedLeadIds([]);
+          setSelectedLeadsForCampaign([]);
+          fetchAllData(); 
+        }}
+      />
+
+      {/* WhatsApp Lead History Modal */}
+      {showLeadWhatsAppHistory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <History className="w-6 h-6 text-green-500" />
+                WhatsApp History
+              </h2>
+              <button onClick={() => setShowLeadWhatsAppHistory(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 max-h-96 overflow-y-auto">
+              {leadWhatsAppMessages.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>No WhatsApp messages for this lead yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {leadWhatsAppMessages.map((msg) => (
+                    <div key={msg.id} className={`p-3 rounded-xl ${msg.direction === 'incoming' ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-green-50 border-l-4 border-green-400'}`}>
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>{msg.direction === 'incoming' ? '📥 Received' : '📤 Sent'}</span>
+                        <span>{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-gray-700 text-sm">{msg.content || msg.template_name || '-'}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          msg.status === 'read' ? 'bg-cyan-100 text-cyan-700' :
+                          msg.status === 'delivered' ? 'bg-blue-100 text-blue-700' :
+                          msg.status === 'sent' ? 'bg-green-100 text-green-700' :
+                          msg.status === 'failed' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {msg.status}
+                        </span>
+                        {msg.template_name && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                            {msg.template_name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

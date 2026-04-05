@@ -1,0 +1,128 @@
+{
+  "summary": "Tested WhatsApp Cloud API integration for ASR CRM. All 26 backend API tests pass. Frontend integration verified in code - WhatsApp tab in CRM Dashboard, SendWhatsAppModal, BulkCampaignModal, and WhatsApp buttons in leads table are properly implemented. Fixed webhook verification bug (ValueError when challenge is non-numeric string).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/whatsapp/webhook",
+        "issue": "Fixed: ValueError when challenge is non-numeric string - now handles both numeric and string challenges",
+        "priority": "FIXED"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_whatsapp_cloud_api_iter61.py",
+    "/app/test_reports/pytest/pytest_iter61.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "WhatsApp Cloud API integration is complete and well-structured",
+    "All 8 predefined templates are available: asr_welcome, asr_solar_offer, asr_subsidy_info, asr_site_visit, asr_quotation_followup, asr_callback_request, asr_reactivation, hello_world",
+    "Phone number cleaning correctly handles 10-digit, +91, 91, and 0-prefixed formats",
+    "Webhook verification now handles both numeric and string challenges from Meta",
+    "Campaign creation finds all leads with phone numbers when lead_ids is empty",
+    "Message sending will fail without real Meta API credentials (expected behavior)"
+  ],
+  "updated_files": [
+    "/app/backend/routes/whatsapp.py",
+    "/app/backend/tests/test_whatsapp_cloud_api_iter61.py"
+  ],
+  "success_rate": {
+    "backend": "100% (26/26 tests passed)",
+    "frontend": "Code review verified - WhatsApp integration properly implemented"
+  },
+  "test_credentials": {
+    "admin_email": "asrenterprisespatna@gmail.com",
+    "admin_phone": "8877896889",
+    "fallback_otp": "131993",
+    "staff_test_login": "ASR1024 / test123"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "WhatsApp Cloud API integration fully tested. All backend APIs working: settings, templates (8 predefined), phone cleaning (91XXXXXXXXXX format), dashboard stats, campaigns, messages, webhook verification, send message, automation settings. Frontend has WhatsApp tab in CRM Dashboard with WhatsAppModule component, SendWhatsAppModal for single lead messaging, BulkCampaignModal for campaigns. Staff portal also has WhatsApp template and history buttons. Meta API calls will fail without real credentials - this is expected.",
+  "features_tested": {
+    "whatsapp_settings_api": {
+      "GET /api/whatsapp/settings": "PASS - Returns default settings with configured=false initially",
+      "POST /api/whatsapp/settings": "PASS - Saves credentials, validates required fields"
+    },
+    "whatsapp_templates_api": {
+      "GET /api/whatsapp/templates": "PASS - Returns 8 predefined templates"
+    },
+    "phone_cleaning_api": {
+      "POST /api/whatsapp/clean-phone": "PASS - Cleans 10-digit to 91XXXXXXXXXX, handles +91, 91, 0 prefixes"
+    },
+    "dashboard_stats_api": {
+      "GET /api/whatsapp/dashboard/stats": "PASS - Returns today/total stats and active campaigns"
+    },
+    "campaigns_api": {
+      "GET /api/whatsapp/campaigns": "PASS - Returns paginated campaigns",
+      "POST /api/whatsapp/campaigns": "PASS - Creates campaign with leads"
+    },
+    "messages_api": {
+      "GET /api/whatsapp/messages": "PASS - Returns paginated messages",
+      "GET /api/whatsapp/messages/lead/{lead_id}": "PASS - Returns lead-specific messages"
+    },
+    "webhook_api": {
+      "GET /api/whatsapp/webhook": "PASS - Handles Meta verification challenge (fixed ValueError bug)",
+      "POST /api/whatsapp/webhook": "Available for incoming messages"
+    },
+    "send_message_api": {
+      "POST /api/whatsapp/send": "PASS - Validates phone and template, returns error without real API credentials"
+    },
+    "automation_settings_api": {
+      "GET /api/whatsapp/automation/settings": "PASS - Returns automation config",
+      "POST /api/whatsapp/automation/settings": "PASS - Saves automation config"
+    },
+    "leads_for_campaign_api": {
+      "GET /api/whatsapp/leads-for-campaign": "PASS - Returns eligible leads with valid phone numbers"
+    },
+    "frontend_integration": {
+      "WhatsApp tab in CRM Dashboard": "VERIFIED in code - line 1400, 1819-1821",
+      "SendWhatsAppModal component": "VERIFIED in code - imported and used",
+      "BulkCampaignModal component": "VERIFIED in code - imported and used",
+      "WhatsApp buttons in leads table": "VERIFIED in code - data-testid='whatsapp-template-btn', 'whatsapp-history-btn'",
+      "Staff portal WhatsApp integration": "VERIFIED in code - Template and History buttons available"
+    }
+  },
+  "api_verification": {
+    "whatsapp_settings": {
+      "endpoint": "GET /api/whatsapp/settings",
+      "response_fields": ["configured", "access_token", "phone_number_id", "waba_id", "verify_token", "default_country_code", "webhook_url"]
+    },
+    "whatsapp_templates": {
+      "endpoint": "GET /api/whatsapp/templates",
+      "template_count": 8,
+      "template_names": ["asr_welcome", "asr_solar_offer", "asr_subsidy_info", "asr_site_visit", "asr_quotation_followup", "asr_callback_request", "asr_reactivation", "hello_world"]
+    },
+    "phone_cleaning": {
+      "endpoint": "POST /api/whatsapp/clean-phone",
+      "examples": {
+        "9876543210": "919876543210",
+        "+919876543210": "919876543210",
+        "09876543210": "919876543210"
+      }
+    },
+    "dashboard_stats": {
+      "endpoint": "GET /api/whatsapp/dashboard/stats",
+      "response_structure": {
+        "today": {"sent": "int", "delivered": "int", "read": "int", "failed": "int", "replies": "int"},
+        "total": {"sent": "int", "replies": "int"},
+        "active_campaigns": "int"
+      }
+    }
+  },
+  "bug_fixed": {
+    "file": "/app/backend/routes/whatsapp.py",
+    "line": "845-852",
+    "issue": "ValueError: invalid literal for int() with base 10 when webhook challenge is non-numeric",
+    "fix": "Added try/except to handle both numeric and string challenges, returning PlainTextResponse for strings"
+  },
+  "mocked_apis_note": "Meta WhatsApp Cloud API calls will fail without real credentials. API structure is fully testable. When real credentials are configured, actual message sending will work.",
+  "rca_of_issue": "N/A - All features working correctly"
+}

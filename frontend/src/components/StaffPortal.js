@@ -5,10 +5,11 @@ import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
   ChevronRight, ChevronUp, FileText, TrendingUp, Bell, Plus, Edit,
-  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap
+  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import StaffTraining from "./StaffTraining";
+import { SendWhatsAppModal } from "@/components/WhatsAppCRM";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -68,6 +69,12 @@ export const StaffPortal = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  
+  // WhatsApp Cloud API state
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppModalLead, setWhatsAppModalLead] = useState(null);
+  const [showLeadWhatsAppHistory, setShowLeadWhatsAppHistory] = useState(false);
+  const [leadWhatsAppMessages, setLeadWhatsAppMessages] = useState([]);
   
   const navigate = useNavigate();
 
@@ -396,6 +403,23 @@ export const StaffPortal = () => {
     const cleanPhone = phone.replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
     window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  // WhatsApp Cloud API Integration Functions
+  const openWhatsAppTemplateModal = (lead) => {
+    setWhatsAppModalLead(lead);
+    setShowWhatsAppModal(true);
+  };
+
+  const fetchLeadWhatsAppHistory = async (leadId) => {
+    try {
+      const res = await axios.get(`${API}/whatsapp/messages/lead/${leadId}`);
+      setLeadWhatsAppMessages(res.data || []);
+      setShowLeadWhatsAppHistory(true);
+    } catch (err) {
+      console.error('Error fetching WhatsApp history:', err);
+      setLeadWhatsAppMessages([]);
+    }
   };
 
   if (loading || !staffData) {
@@ -841,10 +865,27 @@ export const StaffPortal = () => {
                           <button 
                             onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
                             className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
-                            title="WhatsApp Customer"
+                            title="WhatsApp Customer (Direct)"
                           >
                             <MessageSquare className="w-3 h-3" />
                             <span>WhatsApp</span>
+                          </button>
+                          <button 
+                            onClick={() => openWhatsAppTemplateModal(lead)} 
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
+                            title="Send WhatsApp Template"
+                            data-testid="staff-whatsapp-template-btn"
+                          >
+                            <Send className="w-3 h-3" />
+                            <span>Template</span>
+                          </button>
+                          <button 
+                            onClick={() => fetchLeadWhatsAppHistory(lead.id)} 
+                            className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
+                            title="WhatsApp History"
+                            data-testid="staff-whatsapp-history-btn"
+                          >
+                            <History className="w-3 h-3" />
                           </button>
                           <button 
                             onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); }} 
@@ -1255,6 +1296,67 @@ export const StaffPortal = () => {
         >
           <ChevronUp className="w-6 h-6" />
         </button>
+      )}
+
+      {/* WhatsApp Send Template Modal for Staff */}
+      <SendWhatsAppModal 
+        isOpen={showWhatsAppModal} 
+        onClose={() => { setShowWhatsAppModal(false); setWhatsAppModalLead(null); }}
+        lead={whatsAppModalLead}
+        onSent={() => { fetchLeads(leadsPage); }}
+      />
+
+      {/* WhatsApp Lead History Modal for Staff */}
+      {showLeadWhatsAppHistory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <History className="w-6 h-6 text-green-500" />
+                WhatsApp History
+              </h2>
+              <button onClick={() => setShowLeadWhatsAppHistory(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 max-h-96 overflow-y-auto">
+              {leadWhatsAppMessages.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p>No WhatsApp messages for this lead yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {leadWhatsAppMessages.map((msg) => (
+                    <div key={msg.id} className={`p-3 rounded-xl ${msg.direction === 'incoming' ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-green-50 border-l-4 border-green-400'}`}>
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>{msg.direction === 'incoming' ? '📥 Received' : '📤 Sent'}</span>
+                        <span>{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-gray-700 text-sm">{msg.content || msg.template_name || '-'}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          msg.status === 'read' ? 'bg-cyan-100 text-cyan-700' :
+                          msg.status === 'delivered' ? 'bg-blue-100 text-blue-700' :
+                          msg.status === 'sent' ? 'bg-green-100 text-green-700' :
+                          msg.status === 'failed' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {msg.status}
+                        </span>
+                        {msg.template_name && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                            {msg.template_name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

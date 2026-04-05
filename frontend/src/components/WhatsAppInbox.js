@@ -3,7 +3,8 @@ import axios from 'axios';
 import { 
   MessageSquare, Send, Phone, User, Clock, CheckCircle, 
   CheckCheck, XCircle, AlertTriangle, ArrowLeft, Search,
-  RefreshCw, FileText, ChevronDown, X, Inbox, MessageCircle
+  RefreshCw, FileText, ChevronDown, X, Inbox, MessageCircle,
+  Trash2, Paperclip, Image, File, Video, Upload, CheckSquare, Square
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
@@ -123,8 +124,9 @@ const ConversationItem = ({ conversation, isActive, onClick }) => {
 };
 
 // Chat Message Bubble
-const ChatBubble = ({ message }) => {
+const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDelete }) => {
   const isIncoming = message.direction === 'incoming';
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
@@ -136,18 +138,71 @@ const ChatBubble = ({ message }) => {
     });
   };
   
+  const handleDelete = () => {
+    onDelete(message.id);
+    setShowDeleteConfirm(false);
+  };
+  
   return (
-    <div className={`flex ${isIncoming ? 'justify-start' : 'justify-end'} mb-3`}>
-      <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+    <div className={`flex ${isIncoming ? 'justify-start' : 'justify-end'} mb-3 group`}>
+      {/* Selection checkbox */}
+      {selectionMode && (
+        <button 
+          onClick={() => onToggleSelect(message.id)}
+          className={`mr-2 flex-shrink-0 self-center p-1 rounded ${isSelected ? 'text-green-500' : 'text-gray-400'}`}
+        >
+          {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+        </button>
+      )}
+      
+      <div className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${
         isIncoming 
           ? 'bg-white border border-gray-200 rounded-tl-md' 
           : 'bg-gradient-to-br from-green-500 to-green-600 text-white rounded-tr-md'
       }`}>
+        {/* Delete button (hover) */}
+        {!selectionMode && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className={`absolute -top-2 ${isIncoming ? '-right-2' : '-left-2'} opacity-0 group-hover:opacity-100 transition p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600`}
+            title="Delete message"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+        
+        {/* Delete confirmation */}
+        {showDeleteConfirm && (
+          <div className="absolute -top-12 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl p-2 z-10 flex items-center gap-2">
+            <span className="text-xs text-gray-600">Delete?</span>
+            <button onClick={handleDelete} className="text-xs bg-red-500 text-white px-2 py-1 rounded">Yes</button>
+            <button onClick={() => setShowDeleteConfirm(false)} className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">No</button>
+          </div>
+        )}
+        
         {/* Template indicator */}
         {message.template_name && (
           <div className={`flex items-center gap-1 text-xs mb-1 ${isIncoming ? 'text-purple-600' : 'text-green-100'}`}>
             <FileText className="w-3 h-3" />
             <span>Template: {message.template_name}</span>
+          </div>
+        )}
+        
+        {/* Media indicator */}
+        {message.type && message.type !== 'text' && message.media_url && (
+          <div className={`mb-2 ${isIncoming ? '' : ''}`}>
+            {message.type === 'image' && (
+              <img src={message.media_url} alt="Shared image" className="max-w-full rounded-lg max-h-48 object-cover" />
+            )}
+            {message.type === 'video' && (
+              <video src={message.media_url} controls className="max-w-full rounded-lg max-h-48" />
+            )}
+            {message.type === 'document' && (
+              <a href={message.media_url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 ${isIncoming ? 'text-blue-600' : 'text-green-100'}`}>
+                <File className="w-4 h-4" />
+                <span className="text-sm underline">{message.filename || 'Document'}</span>
+              </a>
+            )}
           </div>
         )}
         
@@ -257,13 +312,27 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   
   // Reply form state
-  const [replyMode, setReplyMode] = useState('template'); // 'template' or 'text'
+  const [replyMode, setReplyMode] = useState('template'); // 'template', 'text', or 'media'
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [templateVariables, setTemplateVariables] = useState([]);
   const [textMessage, setTextMessage] = useState('');
   
+  // Delete state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  
+  // Media upload state
+  const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaCaption, setMediaCaption] = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  
   const chatContainerRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
   
   // Fetch conversations
   const fetchConversations = useCallback(async () => {
@@ -416,6 +485,172 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
     }
   };
   
+  // ==================== DELETE FUNCTIONS ====================
+  
+  // Delete single message
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await axios.delete(`${API}/api/whatsapp/messages/${messageId}`);
+      // Refresh chat thread
+      await fetchChatThread(selectedConversation);
+    } catch (err) {
+      setError('Failed to delete message');
+    }
+  };
+  
+  // Toggle message selection
+  const toggleMessageSelection = (messageId) => {
+    setSelectedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+  
+  // Bulk delete selected messages
+  const handleBulkDelete = async () => {
+    if (selectedMessages.size === 0) return;
+    
+    setDeleting(true);
+    try {
+      await axios.post(`${API}/api/whatsapp/messages/bulk-delete`, {
+        message_ids: [...selectedMessages]
+      });
+      setSelectedMessages(new Set());
+      setSelectionMode(false);
+      await fetchChatThread(selectedConversation);
+    } catch (err) {
+      setError('Failed to delete messages');
+    } finally {
+      setDeleting(false);
+    }
+  };
+  
+  // Clear entire conversation
+  const handleClearConversation = async () => {
+    if (!selectedConversation) return;
+    
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/api/whatsapp/conversations/${encodeURIComponent(selectedConversation)}/clear`);
+      setShowClearConfirm(false);
+      await fetchChatThread(selectedConversation);
+      await fetchConversations();
+    } catch (err) {
+      setError('Failed to clear conversation');
+    } finally {
+      setDeleting(false);
+    }
+  };
+  
+  // ==================== MEDIA UPLOAD FUNCTIONS ====================
+  
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Invalid file type. Allowed: Images, Videos, PDF, Word documents');
+      return;
+    }
+    
+    // Validate file size (max 25MB for videos, 8MB for images/docs)
+    const maxSize = file.type.startsWith('video') ? 25 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError(`File too large. Max size: ${maxSize / (1024 * 1024)}MB`);
+      return;
+    }
+    
+    setMediaFile(file);
+    
+    // Create preview for images
+    if (file.type.startsWith('image')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setMediaPreview(e.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setMediaPreview(null);
+    }
+    
+    setShowMediaUpload(true);
+  };
+  
+  // Get media type from file
+  const getMediaType = (file) => {
+    if (file.type.startsWith('image')) return 'image';
+    if (file.type.startsWith('video')) return 'video';
+    return 'document';
+  };
+  
+  // Send media message
+  const handleSendMedia = async () => {
+    if (!mediaFile || !selectedConversation) return;
+    
+    if (!chatThread?.within_24h_window) {
+      setError('Outside 24-hour window. Media can only be sent within 24 hours of customer\'s last message.');
+      return;
+    }
+    
+    setUploadingMedia(true);
+    setError('');
+    
+    try {
+      // First upload to object storage
+      const formData = new FormData();
+      formData.append('file', mediaFile);
+      
+      const uploadRes = await axios.post(`${API}/api/social/upload/media`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      if (!uploadRes.data.success) {
+        throw new Error('Failed to upload file');
+      }
+      
+      // Get public URL for the file
+      const urlRes = await axios.get(`${API}/api/social/files/${uploadRes.data.file_id}/url`);
+      const mediaUrl = urlRes.data.url;
+      
+      // Send media via WhatsApp
+      const res = await axios.post(`${API}/api/whatsapp/conversations/${encodeURIComponent(selectedConversation)}/send-media`, {
+        media_type: getMediaType(mediaFile),
+        media_url: mediaUrl,
+        caption: mediaCaption.trim(),
+        filename: mediaFile.name
+      });
+      
+      if (res.data.success) {
+        // Reset and refresh
+        setMediaFile(null);
+        setMediaPreview(null);
+        setMediaCaption('');
+        setShowMediaUpload(false);
+        await fetchChatThread(selectedConversation);
+      } else {
+        setError(res.data.error || 'Failed to send media');
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || err.message || 'Failed to send media');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+  
+  // Cancel media upload
+  const cancelMediaUpload = () => {
+    setMediaFile(null);
+    setMediaPreview(null);
+    setMediaCaption('');
+    setShowMediaUpload(false);
+  };
+  
   // Filter conversations by search
   const filteredConversations = conversations.filter(conv => {
     if (!searchQuery) return true;
@@ -566,7 +801,71 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
                     <Clock className="w-3 h-3" />
                     {chatThread?.within_24h_window ? '24h Active' : 'Template Only'}
                   </div>
+                  
+                  {/* Delete Controls */}
+                  <div className="flex items-center gap-2">
+                    {selectionMode ? (
+                      <>
+                        <span className="text-xs text-gray-500">{selectedMessages.size} selected</span>
+                        <button
+                          onClick={handleBulkDelete}
+                          disabled={selectedMessages.size === 0 || deleting}
+                          className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition"
+                          title="Delete selected"
+                        >
+                          {deleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => { setSelectionMode(false); setSelectedMessages(new Set()); }}
+                          className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setSelectionMode(true)}
+                          className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition"
+                          title="Select messages to delete"
+                          data-testid="select-messages-btn"
+                        >
+                          <CheckSquare className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => setShowClearConfirm(true)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          title="Clear entire conversation"
+                          data-testid="clear-conversation-btn"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+                
+                {/* Clear Conversation Confirmation */}
+                {showClearConfirm && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+                    <span className="text-red-700 text-sm">Delete all messages in this chat?</span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleClearConversation}
+                        disabled={deleting}
+                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 disabled:opacity-50"
+                      >
+                        {deleting ? 'Deleting...' : 'Yes, Clear'}
+                      </button>
+                      <button
+                        onClick={() => setShowClearConfirm(false)}
+                        className="px-3 py-1 bg-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Chat Messages */}
@@ -587,7 +886,14 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
                   </div>
                 ) : (
                   chatThread?.messages?.map((msg, idx) => (
-                    <ChatBubble key={msg.id || idx} message={msg} />
+                    <ChatBubble 
+                      key={msg.id || idx} 
+                      message={msg}
+                      selectionMode={selectionMode}
+                      isSelected={selectedMessages.has(msg.id)}
+                      onToggleSelect={toggleMessageSelection}
+                      onDelete={handleDeleteMessage}
+                    />
                   ))
                 )}
               </div>
@@ -624,7 +930,7 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
                     }`}
                   >
                     <FileText className="w-4 h-4 inline mr-1" />
-                    Send Template
+                    Template
                   </button>
                   <button
                     onClick={() => setReplyMode('text')}
@@ -636,12 +942,95 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
                     } ${!chatThread?.within_24h_window ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <MessageSquare className="w-4 h-4 inline mr-1" />
-                    Free Text {!chatThread?.within_24h_window && '(Locked)'}
+                    Text
                   </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!chatThread?.within_24h_window}
+                    className={`py-2 px-4 rounded-xl text-sm font-medium transition ${
+                      chatThread?.within_24h_window
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    }`}
+                    title={chatThread?.within_24h_window ? 'Attach file' : 'Media only within 24h window'}
+                    data-testid="attach-media-btn"
+                  >
+                    <Paperclip className="w-4 h-4 inline mr-1" />
+                    Media
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*,video/mp4,video/quicktime,application/pdf,.doc,.docx"
+                    className="hidden"
+                  />
                 </div>
                 
+                {/* Media Upload Preview */}
+                {showMediaUpload && mediaFile && (
+                  <div className="mb-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      {/* Preview */}
+                      <div className="flex-shrink-0">
+                        {mediaPreview ? (
+                          <img src={mediaPreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg" />
+                        ) : (
+                          <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+                            {mediaFile.type.startsWith('video') ? (
+                              <Video className="w-8 h-8 text-gray-500" />
+                            ) : (
+                              <File className="w-8 h-8 text-gray-500" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* File Info & Caption */}
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-800 truncate">{mediaFile.name}</span>
+                          <button onClick={cancelMediaUpload} className="text-gray-500 hover:text-red-500">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <span className="text-xs text-gray-500 block mb-2">
+                          {(mediaFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                        <input
+                          type="text"
+                          value={mediaCaption}
+                          onChange={(e) => setMediaCaption(e.target.value)}
+                          placeholder="Add a caption (optional)..."
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Send Media Button */}
+                    <button
+                      onClick={handleSendMedia}
+                      disabled={uploadingMedia}
+                      className="mt-3 w-full py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                      data-testid="send-media-btn"
+                    >
+                      {uploadingMedia ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Uploading & Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Send Media
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+                
                 {/* Template Selector */}
-                {replyMode === 'template' && (
+                {replyMode === 'template' && !showMediaUpload && (
                   <div className="mb-3">
                     <TemplateSelector
                       templates={templates}
@@ -654,7 +1043,7 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
                 )}
                 
                 {/* Text Input */}
-                {replyMode === 'text' && chatThread?.within_24h_window && (
+                {replyMode === 'text' && chatThread?.within_24h_window && !showMediaUpload && (
                   <div className="mb-3">
                     <textarea
                       ref={inputRef}
@@ -668,19 +1057,21 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
                 )}
                 
                 {/* Send Button */}
-                <button
-                  onClick={replyMode === 'template' ? handleSendTemplate : handleSendText}
-                  disabled={sending || (replyMode === 'template' ? !selectedTemplate : !textMessage.trim() || !chatThread?.within_24h_window)}
-                  className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium hover:from-green-600 hover:to-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  data-testid="send-reply-btn"
-                >
-                  {sending ? (
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                  {sending ? 'Sending...' : 'Send Reply'}
-                </button>
+                {!showMediaUpload && (
+                  <button
+                    onClick={replyMode === 'template' ? handleSendTemplate : handleSendText}
+                    disabled={sending || (replyMode === 'template' ? !selectedTemplate : !textMessage.trim() || !chatThread?.within_24h_window)}
+                    className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium hover:from-green-600 hover:to-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    data-testid="send-reply-btn"
+                  >
+                    {sending ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                    {sending ? 'Sending...' : 'Send Reply'}
+                  </button>
+                )}
               </div>
             </>
           )}

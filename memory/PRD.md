@@ -3,50 +3,63 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 5, 2026) - WhatsApp Cloud API Integration
+## Latest Session (April 5, 2026) - WhatsApp Inbox/Chat Conversation System
 
 ### What Was Built
 
-#### Complete Native Meta WhatsApp Cloud API Integration ✅
-Built a full-featured WhatsApp messaging system directly integrated with Meta's Cloud API (no third-party wrappers like WATI).
+#### Complete WhatsApp Inbox/Chat Conversation System ✅
+Built a full chat interface for WhatsApp conversations inside the CRM with reply capabilities.
 
-**Backend (`/app/backend/routes/whatsapp.py`):**
-- WhatsApp Settings API (save/retrieve API credentials)
-- Phone Number Cleaning (converts to 91XXXXXXXXXX format)
-- Single Lead Template Messaging
-- Bulk Campaign Sending (30 messages per batch with delay)
-- Webhook Endpoints (GET for verification, POST for incoming messages)
-- Message Logging with Status Tracking (sent, delivered, read, failed)
-- Auto Stage Update Logic (keyword-based: "Interested" → Contacted)
-- Dashboard Statistics API
-- Automation Settings API
+**New Backend Endpoints (`/app/backend/routes/whatsapp.py`):**
+- `GET /api/whatsapp/conversations` - List conversations grouped by phone
+- `GET /api/whatsapp/conversations/unread-count` - Get unread message count
+- `GET /api/whatsapp/conversations/{phone}` - Get full chat thread for a phone
+- `GET /api/whatsapp/conversations/by-lead/{lead_id}` - Open conversation by lead ID
+- `POST /api/whatsapp/conversations/{phone}/send-template` - Send template in chat
+- `POST /api/whatsapp/conversations/{phone}/send-text` - Send free-form text (24h window enforced)
 
-**Frontend (`/app/frontend/src/components/WhatsAppCRM.js`):**
-- WhatsApp Dashboard Tab with stats cards
-- Campaigns Tab with history and creation
-- Messages Tab with paginated message log
-- Templates Tab showing 8 predefined templates
-- Settings Tab for API credentials (Admin only)
-- SendWhatsAppModal for single lead messaging
-- BulkCampaignModal for bulk campaigns
+**New Frontend Component (`/app/frontend/src/components/WhatsAppInbox.js`):**
+- Conversation list with search functionality
+- Chat panel with full message thread
+- Status badges (Sent, Delivered, Read, Failed, Received)
+- Template selector dropdown with variable inputs
+- Free-form text reply (locked outside 24h window)
+- 24h window indicator ("24h Active" / "Template Only")
+- Unread message badges
+- Mobile responsive layout with back navigation
 
 **CRM Dashboard Integration:**
-- WhatsApp tab added to main navigation
-- WhatsApp Template Send button on each lead row
-- WhatsApp History button to view lead-specific messages
-- Bulk WhatsApp Campaign button for selected leads
+- **Inbox** tab added to WhatsApp module (primary interface)
+- **History** tab for raw message log view
+- **Open Chat** button (📥 icon) on leads table
+- Click any conversation to open chat panel
 
-**Staff Portal Integration:**
-- WhatsApp Template button for assigned leads
-- WhatsApp History button
-- Direct WhatsApp link (existing)
+**Features Implemented:**
+1. ✅ Clickable phone/message rows open chat panel
+2. ✅ Full chat conversation panel with message thread
+3. ✅ Customer phone number and linked lead name display
+4. ✅ Timestamps on all messages
+5. ✅ Status badges (sent, delivered, read, failed, received)
+6. ✅ Template name indicator on sent templates
+7. ✅ Reply box with "Send Template" and "Free Text" modes
+8. ✅ Template selector with 8 approved templates
+9. ✅ 24-hour customer service window enforcement
+10. ✅ Warning message when outside 24h window
+11. ✅ "Send Reply" button in chat
+12. ✅ "Open Chat" from leads table
+13. ✅ Conversations sorted by latest activity
+14. ✅ Unread badges / new message indicators
+15. ✅ Mobile responsive chat layout
+16. ✅ Messages stored in chronological order
 
-**8 Predefined Templates:**
-1. `asr_welcome` - Welcome Message (MARKETING)
-2. `asr_solar_offer` - Solar Offer (MARKETING)
-3. `asr_subsidy_info` - Subsidy Information (UTILITY)
-4. `asr_site_visit` - Site Visit Reminder (UTILITY)
-5. `asr_quotation_followup` - Quotation Follow-up (MARKETING)
+### Test Results (iteration_62.json)
+- Backend: 100% pass (22/22 tests)
+- Frontend: 100% verified
+- All features working correctly
+
+---
+
+## Previous Session - WhatsApp Cloud API Integration
 6. `asr_callback_request` - Callback Request (UTILITY)
 7. `asr_reactivation` - Lead Reactivation (MARKETING)
 8. `hello_world` - Test Template (UTILITY)

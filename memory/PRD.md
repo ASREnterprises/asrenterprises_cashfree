@@ -3,7 +3,99 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (March 31, 2026) - Login Restrictions & Staff Leads Pagination
+## Latest Session (April 5, 2026) - WhatsApp Cloud API Integration
+
+### What Was Built
+
+#### Complete Native Meta WhatsApp Cloud API Integration ✅
+Built a full-featured WhatsApp messaging system directly integrated with Meta's Cloud API (no third-party wrappers like WATI).
+
+**Backend (`/app/backend/routes/whatsapp.py`):**
+- WhatsApp Settings API (save/retrieve API credentials)
+- Phone Number Cleaning (converts to 91XXXXXXXXXX format)
+- Single Lead Template Messaging
+- Bulk Campaign Sending (30 messages per batch with delay)
+- Webhook Endpoints (GET for verification, POST for incoming messages)
+- Message Logging with Status Tracking (sent, delivered, read, failed)
+- Auto Stage Update Logic (keyword-based: "Interested" → Contacted)
+- Dashboard Statistics API
+- Automation Settings API
+
+**Frontend (`/app/frontend/src/components/WhatsAppCRM.js`):**
+- WhatsApp Dashboard Tab with stats cards
+- Campaigns Tab with history and creation
+- Messages Tab with paginated message log
+- Templates Tab showing 8 predefined templates
+- Settings Tab for API credentials (Admin only)
+- SendWhatsAppModal for single lead messaging
+- BulkCampaignModal for bulk campaigns
+
+**CRM Dashboard Integration:**
+- WhatsApp tab added to main navigation
+- WhatsApp Template Send button on each lead row
+- WhatsApp History button to view lead-specific messages
+- Bulk WhatsApp Campaign button for selected leads
+
+**Staff Portal Integration:**
+- WhatsApp Template button for assigned leads
+- WhatsApp History button
+- Direct WhatsApp link (existing)
+
+**8 Predefined Templates:**
+1. `asr_welcome` - Welcome Message (MARKETING)
+2. `asr_solar_offer` - Solar Offer (MARKETING)
+3. `asr_subsidy_info` - Subsidy Information (UTILITY)
+4. `asr_site_visit` - Site Visit Reminder (UTILITY)
+5. `asr_quotation_followup` - Quotation Follow-up (MARKETING)
+6. `asr_callback_request` - Callback Request (UTILITY)
+7. `asr_reactivation` - Lead Reactivation (MARKETING)
+8. `hello_world` - Test Template (UTILITY)
+
+**Access Control:**
+- WhatsApp API Settings → Admin only
+- Campaign sending → Admin only
+- Single WhatsApp send → Admin + assigned staff
+- Message logs → Admin + assigned staff (only their leads)
+
+**MongoDB Collections Created:**
+- `whatsapp_settings`
+- `whatsapp_templates`
+- `whatsapp_messages`
+- `whatsapp_campaigns`
+- `whatsapp_webhook_logs`
+
+### Test Results (iteration_61.json)
+- Backend: 100% pass (26/26 tests)
+- Frontend: Code review verified - all components properly implemented
+- Bug Fixed: ValueError in webhook verification when challenge is non-numeric
+
+### API Endpoints Created
+- `GET /api/whatsapp/settings` - Get WhatsApp settings
+- `POST /api/whatsapp/settings` - Save WhatsApp settings
+- `GET /api/whatsapp/templates` - Get all templates
+- `POST /api/whatsapp/clean-phone` - Clean phone number
+- `GET /api/whatsapp/dashboard/stats` - Get dashboard statistics
+- `GET /api/whatsapp/campaigns` - Get paginated campaigns
+- `POST /api/whatsapp/campaigns` - Create a campaign
+- `GET /api/whatsapp/messages` - Get paginated messages
+- `GET /api/whatsapp/messages/lead/{lead_id}` - Get lead-specific messages
+- `GET /api/whatsapp/webhook` - Meta webhook verification
+- `POST /api/whatsapp/webhook` - Receive incoming messages
+- `POST /api/whatsapp/send` - Send single template message
+- `GET /api/whatsapp/automation/settings` - Get automation settings
+- `POST /api/whatsapp/automation/settings` - Save automation settings
+- `GET /api/whatsapp/leads-for-campaign` - Get eligible leads for campaign
+
+### To Activate WhatsApp Integration
+User needs to provide:
+1. Permanent Access Token (from Meta Business Manager)
+2. Phone Number ID
+3. WhatsApp Business Account ID (WABA ID)
+4. Add webhook URL to Meta: `https://www.asrenterprises.in/api/whatsapp/webhook`
+
+---
+
+## Previous Session (March 31, 2026) - Login Restrictions & Staff Leads Pagination
 
 ### Issues Fixed
 

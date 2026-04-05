@@ -14,6 +14,7 @@ import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
 import { WhatsAppModule, SendWhatsAppModal, BulkCampaignModal } from "@/components/WhatsAppCRM";
 import { WhatsAppInbox } from "@/components/WhatsAppInbox";
+import { SocialMediaManager } from "@/components/SocialMediaManager";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1406,6 +1407,7 @@ export const CRMDashboard = () => {
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
+              { id: "social", label: "Social Media", icon: <Activity className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
@@ -1484,6 +1486,64 @@ export const CRMDashboard = () => {
                       </span>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Modules */}
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-6">
+              <h2 className="text-xl font-bold text-[#0a355e] mb-4">Quick Modules</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Social Media Manager Card */}
+                <div className="bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl p-5 text-white">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Activity className="w-8 h-8 opacity-80" />
+                    <div>
+                      <h3 className="font-bold text-lg">Social Media Manager</h3>
+                      <p className="text-pink-100 text-sm">Manage Facebook & Instagram posts</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('social')}
+                    className="w-full mt-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                    data-testid="manage-social-btn"
+                  >
+                    Manage Social
+                  </button>
+                </div>
+
+                {/* WhatsApp CRM Card */}
+                <div className="bg-gradient-to-br from-green-500 to-teal-600 rounded-xl p-5 text-white">
+                  <div className="flex items-center gap-3 mb-3">
+                    <MessageSquare className="w-8 h-8 opacity-80" />
+                    <div>
+                      <h3 className="font-bold text-lg">WhatsApp CRM</h3>
+                      <p className="text-green-100 text-sm">Campaigns & conversations</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('whatsapp')}
+                    className="w-full mt-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    Open WhatsApp
+                  </button>
+                </div>
+
+                {/* Team Management Card */}
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-5 text-white">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Users className="w-8 h-8 opacity-80" />
+                    <div>
+                      <h3 className="font-bold text-lg">Team Management</h3>
+                      <p className="text-blue-100 text-sm">{staffAccounts.length} active staff members</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('team')}
+                    className="w-full mt-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                  >
+                    Manage Team
+                  </button>
                 </div>
               </div>
             </div>
@@ -1834,6 +1894,11 @@ export const CRMDashboard = () => {
           ) : (
             <WhatsAppModule />
           )
+        )}
+
+        {/* Social Media Manager Tab */}
+        {activeTab === "social" && (
+          <SocialMediaManager />
         )}
 
         {/* Tasks Tab */}

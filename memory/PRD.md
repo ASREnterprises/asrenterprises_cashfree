@@ -3,63 +3,72 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 5, 2026) - WhatsApp Inbox/Chat Conversation System
+## Latest Session (April 5, 2026) - Social Media Manager Module
 
 ### What Was Built
 
-#### Complete WhatsApp Inbox/Chat Conversation System ✅
-Built a full chat interface for WhatsApp conversations inside the CRM with reply capabilities.
+#### Complete Social Media Manager Module ✅
+Built a full Facebook & Instagram posting system integrated into the existing Admin Dashboard.
 
-**New Backend Endpoints (`/app/backend/routes/whatsapp.py`):**
-- `GET /api/whatsapp/conversations` - List conversations grouped by phone
-- `GET /api/whatsapp/conversations/unread-count` - Get unread message count
-- `GET /api/whatsapp/conversations/{phone}` - Get full chat thread for a phone
-- `GET /api/whatsapp/conversations/by-lead/{lead_id}` - Open conversation by lead ID
-- `POST /api/whatsapp/conversations/{phone}/send-template` - Send template in chat
-- `POST /api/whatsapp/conversations/{phone}/send-text` - Send free-form text (24h window enforced)
+**New Backend Routes (`/app/backend/routes/social_media.py`):**
+- `GET /api/social/dashboard/stats` - Dashboard statistics
+- `GET /api/social/settings` - Get masked settings
+- `POST /api/social/settings` - Save settings
+- `POST /api/social/connect/facebook` - Connect Facebook Page
+- `POST /api/social/connect/instagram` - Connect Instagram Business
+- `POST /api/social/test-connection` - Test all connections
+- `POST /api/social/posts/create` - Create post (publish now or schedule)
+- `GET /api/social/posts` - Get published posts
+- `GET /api/social/posts/scheduled` - Get scheduled posts
+- `PUT /api/social/posts/scheduled/{post_id}` - Update scheduled post
+- `DELETE /api/social/posts/scheduled/{post_id}` - Delete scheduled post
+- `POST /api/social/posts/festival` - Publish festival post
 
-**New Frontend Component (`/app/frontend/src/components/WhatsAppInbox.js`):**
-- Conversation list with search functionality
-- Chat panel with full message thread
-- Status badges (Sent, Delivered, Read, Failed, Received)
-- Template selector dropdown with variable inputs
-- Free-form text reply (locked outside 24h window)
-- 24h window indicator ("24h Active" / "Template Only")
-- Unread message badges
-- Mobile responsive layout with back navigation
+**New Frontend Component (`/app/frontend/src/components/SocialMediaManager.js`):**
+- Dashboard tab with stats cards and connection status
+- Create Post tab with caption, image/video URL, platform selection
+- Scheduled posts tab with edit/delete functionality
+- Published posts tab with preview images and status badges
+- Settings tab with Facebook/Instagram configuration
 
 **CRM Dashboard Integration:**
-- **Inbox** tab added to WhatsApp module (primary interface)
-- **History** tab for raw message log view
-- **Open Chat** button (📥 icon) on leads table
-- Click any conversation to open chat panel
+- **Social Media** tab added to main navigation
+- **Quick Modules** section with Social Media Manager card
+- Mobile responsive layout
 
 **Features Implemented:**
-1. ✅ Clickable phone/message rows open chat panel
-2. ✅ Full chat conversation panel with message thread
-3. ✅ Customer phone number and linked lead name display
-4. ✅ Timestamps on all messages
-5. ✅ Status badges (sent, delivered, read, failed, received)
-6. ✅ Template name indicator on sent templates
-7. ✅ Reply box with "Send Template" and "Free Text" modes
-8. ✅ Template selector with 8 approved templates
-9. ✅ 24-hour customer service window enforcement
-10. ✅ Warning message when outside 24h window
-11. ✅ "Send Reply" button in chat
-12. ✅ "Open Chat" from leads table
-13. ✅ Conversations sorted by latest activity
-14. ✅ Unread badges / new message indicators
-15. ✅ Mobile responsive chat layout
-16. ✅ Messages stored in chronological order
+1. ✅ Dashboard card in Quick Modules section
+2. ✅ Module with 5 tabs (Dashboard, Create Post, Scheduled, Published, Settings)
+3. ✅ Stats cards (Total Posts, Scheduled, Published, Failed)
+4. ✅ Facebook/Instagram connection status badges
+5. ✅ Create Post form with caption, image/video, platform selection
+6. ✅ Publish Now and Schedule Later options
+7. ✅ Scheduled posts list with edit/delete
+8. ✅ Published posts grid with preview images
+9. ✅ Settings with Facebook Page ID, Access Token, Instagram Account ID
+10. ✅ Connect and Test Connection buttons
+11. ✅ Error handling for token expiry and publish failures
+12. ✅ Mobile responsive design
 
-### Test Results (iteration_62.json)
+**MongoDB Collections Created:**
+- `social_accounts` - Stores connection settings
+- `social_posts` - Published posts history
+- `social_scheduled_posts` - Scheduled posts queue
+
+### Test Results (iteration_63.json)
 - Backend: 100% pass (22/22 tests)
-- Frontend: 100% verified
+- Frontend: Code review verified
 - All features working correctly
+
+### To Activate Social Media Posting
+User needs to provide:
+1. Facebook Page ID
+2. Facebook Page Access Token (from Meta Developer Console)
+3. Instagram Business Account ID (linked to Facebook Page)
 
 ---
 
-## Previous Session - WhatsApp Cloud API Integration
+## Previous Session - WhatsApp Inbox/Chat Conversation System
 6. `asr_callback_request` - Callback Request (UTILITY)
 7. `asr_reactivation` - Lead Reactivation (MARKETING)
 8. `hello_world` - Test Template (UTILITY)

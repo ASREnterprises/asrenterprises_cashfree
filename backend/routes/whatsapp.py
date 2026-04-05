@@ -769,6 +769,399 @@ async def get_lead_messages(lead_id: str):
     
     return messages
 
+# ==================== CONVERSATION / INBOX ENDPOINTS ====================
+
+@router.get("/conversations")
+async def get_conversations(page: int = 1, limit: int = 50):
+    """
+    Get all conversations grouped by phone number.
+    Returns list of conversations with last message, unread count, and lead info.
+    Sorted by last activity (most recent first).
+    """
+    skip = (page - 1) * limit
+    
+    # Aggregate messages by phone number
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$phone",
+                "last_message": {"$last": "$$ROOT"},
+                "first_message": {"$first": "$$ROOT"},
+                "message_count": {"$sum": 1},
+                "unread_count": {
+                    "$sum": {
+                        "$cond": [
+                            {"$and": [
+                                {"$eq": ["$direction", "incoming"]},
+                                {"$ne": ["$read_by_admin", True]}
+                            ]},
+                            1,
+                            0
+                        ]
+                    }
+                },
+                "last_incoming_at": {
+                    "$max": {
+                        "$cond": [
+                            {"$eq": ["$direction", "incoming"]},
+                            "$created_at",
+                            None
+                        ]
+                    }
+                },
+                "last_activity": {"$max": "$created_at"}
+            }
+        },
+        {"$sort": {"last_activity": -1}},
+        {"$skip": skip},
+        {"$limit": limit}
+    ]
+    
+    conversations_cursor = db.whatsapp_messages.aggregate(pipeline)
+    conversations_raw = await conversations_cursor.to_list(limit)
+    
+    # Process and enrich conversations
+    conversations = []
+    for conv in conversations_raw:
+        phone = conv["_id"]
+        if not phone:
+            continue
+            
+        last_msg = conv.get("last_message", {})
+        lead_id = last_msg.get("lead_id")
+        
+        # Try to find linked lead
+        lead_info = None
+        if lead_id:
+            lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0, "id": 1, "name": 1, "phone": 1, "stage": 1, "district": 1})
+            if lead:
+                lead_info = lead
+        
+        # If no lead_id in message, try to find by phone
+        if not lead_info:
+            # Clean phone for matching
+            clean_phone = re.sub(r'\D', '', phone)
+            if clean_phone.startswith("91") and len(clean_phone) > 10:
+                clean_phone = clean_phone[2:]
+            
+            lead = await db.crm_leads.find_one(
+                {"$or": [
+                    {"phone": {"$regex": clean_phone[-10:]}},
+                    {"phone": phone}
+                ]},
+                {"_id": 0, "id": 1, "name": 1, "phone": 1, "stage": 1, "district": 1}
+            )
+            if lead:
+                lead_info = lead
+        
+        # Check 24-hour window
+        last_incoming = conv.get("last_incoming_at")
+        within_24h = False
+        if last_incoming:
+            try:
+                if isinstance(last_incoming, str):
+                    last_incoming_dt = datetime.fromisoformat(last_incoming.replace("Z", "+00:00"))
+                else:
+                    last_incoming_dt = last_incoming
+                within_24h = datetime.now(timezone.utc) - last_incoming_dt < timedelta(hours=24)
+            except (ValueError, TypeError, AttributeError):
+                pass
+        
+        conversations.append({
+            "phone": phone,
+            "lead": lead_info,
+            "last_message": {
+                "content": last_msg.get("content") or last_msg.get("template_name") or "",
+                "direction": last_msg.get("direction", ""),
+                "status": last_msg.get("status", ""),
+                "created_at": last_msg.get("created_at", ""),
+                "template_name": last_msg.get("template_name")
+            },
+            "message_count": conv.get("message_count", 0),
+            "unread_count": conv.get("unread_count", 0),
+            "last_activity": conv.get("last_activity", ""),
+            "within_24h_window": within_24h,
+            "last_incoming_at": last_incoming
+        })
+    
+    # Get total unique conversations
+    total_pipeline = [{"$group": {"_id": "$phone"}}, {"$count": "total"}]
+    total_result = await db.whatsapp_messages.aggregate(total_pipeline).to_list(1)
+    total = total_result[0]["total"] if total_result else 0
+    
+    return {
+        "conversations": conversations,
+        "pagination": {
+            "current_page": page,
+            "total_pages": (total + limit - 1) // limit if total > 0 else 1,
+            "total_count": total
+        }
+    }
+
+@router.get("/conversations/unread-count")
+async def get_unread_count():
+    """Get total unread message count across all conversations"""
+    count = await db.whatsapp_messages.count_documents({
+        "direction": "incoming",
+        "read_by_admin": {"$ne": True}
+    })
+    return {"unread_count": count}
+
+@router.get("/conversations/{phone}")
+async def get_conversation_thread(phone: str):
+    """
+    Get full message thread for a specific phone number.
+    Returns all messages in chronological order with lead info.
+    """
+    # Clean phone number for query
+    clean_phone = clean_phone_number(phone)
+    
+    # Find messages by phone (try multiple formats)
+    messages = await db.whatsapp_messages.find(
+        {"$or": [
+            {"phone": phone},
+            {"phone": clean_phone},
+            {"phone": {"$regex": phone[-10:] if len(phone) >= 10 else phone}}
+        ]},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(500)
+    
+    # Mark incoming messages as read
+    await db.whatsapp_messages.update_many(
+        {"phone": {"$in": [phone, clean_phone]}, "direction": "incoming"},
+        {"$set": {"read_by_admin": True, "read_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Try to find linked lead
+    lead_info = None
+    lead_id = None
+    for msg in messages:
+        if msg.get("lead_id"):
+            lead_id = msg.get("lead_id")
+            break
+    
+    if lead_id:
+        lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0, "id": 1, "name": 1, "phone": 1, "stage": 1, "district": 1, "monthly_bill": 1, "property_type": 1})
+        if lead:
+            lead_info = lead
+    
+    if not lead_info:
+        # Try to find by phone
+        search_phone = phone[-10:] if len(phone) >= 10 else phone
+        lead = await db.crm_leads.find_one(
+            {"phone": {"$regex": search_phone}},
+            {"_id": 0, "id": 1, "name": 1, "phone": 1, "stage": 1, "district": 1, "monthly_bill": 1, "property_type": 1}
+        )
+        if lead:
+            lead_info = lead
+    
+    # Check 24-hour window
+    last_incoming = None
+    for msg in reversed(messages):
+        if msg.get("direction") == "incoming":
+            last_incoming = msg.get("created_at")
+            break
+    
+    within_24h = False
+    if last_incoming:
+        try:
+            if isinstance(last_incoming, str):
+                last_incoming_dt = datetime.fromisoformat(last_incoming.replace("Z", "+00:00"))
+            else:
+                last_incoming_dt = last_incoming
+            within_24h = datetime.now(timezone.utc) - last_incoming_dt < timedelta(hours=24)
+        except (ValueError, TypeError, AttributeError):
+            pass
+    
+    return {
+        "phone": phone,
+        "lead": lead_info,
+        "messages": messages,
+        "within_24h_window": within_24h,
+        "last_incoming_at": last_incoming,
+        "message_count": len(messages)
+    }
+
+@router.post("/conversations/{phone}/send-text")
+async def send_freeform_text(phone: str, request: Request):
+    """
+    Send free-form text message (only within 24-hour customer service window).
+    """
+    data = await request.json()
+    text = data.get("text", "").strip()
+    
+    if not text:
+        raise HTTPException(status_code=400, detail="Message text is required")
+    
+    # Check 24-hour window
+    clean_phone = clean_phone_number(phone)
+    
+    # Find last incoming message
+    last_incoming = await db.whatsapp_messages.find_one(
+        {"phone": {"$in": [phone, clean_phone]}, "direction": "incoming"},
+        {"_id": 0},
+        sort=[("created_at", -1)]
+    )
+    
+    if not last_incoming:
+        raise HTTPException(
+            status_code=400, 
+            detail="No incoming message found. Customer must message first before you can reply with free-form text."
+        )
+    
+    last_incoming_at = last_incoming.get("created_at")
+    try:
+        if isinstance(last_incoming_at, str):
+            last_incoming_dt = datetime.fromisoformat(last_incoming_at.replace("Z", "+00:00"))
+        else:
+            last_incoming_dt = last_incoming_at
+        
+        if datetime.now(timezone.utc) - last_incoming_dt > timedelta(hours=24):
+            raise HTTPException(
+                status_code=400,
+                detail="Outside 24-hour customer service window. Please send an approved template instead."
+            )
+    except HTTPException:
+        raise
+    except (ValueError, TypeError, AttributeError) as e:
+        raise HTTPException(status_code=400, detail=f"Unable to verify message window: {str(e)}")
+    
+    # Get WhatsApp settings
+    settings = await get_whatsapp_settings()
+    if not settings or not settings.get("access_token"):
+        raise HTTPException(status_code=400, detail="WhatsApp API not configured")
+    
+    # Find lead_id if exists
+    lead_id = last_incoming.get("lead_id")
+    
+    # Create message record first
+    message_id = str(uuid.uuid4())
+    message_record = {
+        "id": message_id,
+        "phone": clean_phone,
+        "lead_id": lead_id,
+        "direction": "outgoing",
+        "type": "text",
+        "content": text,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.whatsapp_messages.insert_one(message_record)
+    
+    # Send via Meta API
+    api_url = f"{WHATSAPP_API_BASE}/{settings['phone_number_id']}/messages"
+    headers = {
+        "Authorization": f"Bearer {settings['access_token']}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": clean_phone,
+        "type": "text",
+        "text": {"body": text}
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(api_url, headers=headers, json=payload)
+            response_data = response.json()
+            
+            if response.status_code in [200, 201]:
+                wa_message_id = response_data.get("messages", [{}])[0].get("id", "")
+                await db.whatsapp_messages.update_one(
+                    {"id": message_id},
+                    {"$set": {
+                        "status": "sent",
+                        "wa_message_id": wa_message_id,
+                        "sent_at": datetime.now(timezone.utc).isoformat()
+                    }}
+                )
+                return {
+                    "success": True,
+                    "message_id": message_id,
+                    "wa_message_id": wa_message_id,
+                    "status": "sent"
+                }
+            else:
+                error_msg = response_data.get("error", {}).get("message", "Unknown error")
+                await db.whatsapp_messages.update_one(
+                    {"id": message_id},
+                    {"$set": {"status": "failed", "error": error_msg}}
+                )
+                return {
+                    "success": False,
+                    "message_id": message_id,
+                    "error": error_msg,
+                    "status": "failed"
+                }
+    except Exception as e:
+        await db.whatsapp_messages.update_one(
+            {"id": message_id},
+            {"$set": {"status": "failed", "error": str(e)}}
+        )
+        return {"success": False, "message_id": message_id, "error": str(e), "status": "failed"}
+
+@router.post("/conversations/{phone}/send-template")
+async def send_template_to_conversation(phone: str, request: Request):
+    """
+    Send template message to a conversation.
+    Can be used anytime (not restricted to 24-hour window).
+    """
+    data = await request.json()
+    template_name = data.get("template_name")
+    variables = data.get("variables", [])
+    
+    if not template_name:
+        raise HTTPException(status_code=400, detail="Template name is required")
+    
+    # Find lead_id if exists
+    clean_phone = clean_phone_number(phone)
+    last_msg = await db.whatsapp_messages.find_one(
+        {"phone": {"$in": [phone, clean_phone]}},
+        {"_id": 0, "lead_id": 1},
+        sort=[("created_at", -1)]
+    )
+    lead_id = last_msg.get("lead_id") if last_msg else None
+    
+    # If no lead_id from messages, try to find by phone
+    if not lead_id:
+        search_phone = phone[-10:] if len(phone) >= 10 else phone
+        lead = await db.crm_leads.find_one({"phone": {"$regex": search_phone}}, {"_id": 0, "id": 1})
+        if lead:
+            lead_id = lead.get("id")
+    
+    # Send template
+    result = await send_whatsapp_template(
+        phone=clean_phone,
+        template_name=template_name,
+        variables=variables,
+        lead_id=lead_id
+    )
+    
+    return result
+
+@router.get("/conversations/by-lead/{lead_id}")
+async def get_conversation_by_lead(lead_id: str):
+    """
+    Get conversation thread for a specific lead.
+    Returns phone number and redirects to that conversation.
+    """
+    # Get lead info
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0, "id": 1, "name": 1, "phone": 1})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    phone = lead.get("phone", "")
+    if not phone:
+        raise HTTPException(status_code=400, detail="Lead has no phone number")
+    
+    # Clean phone
+    clean_phone = clean_phone_number(phone)
+    
+    # Get conversation thread
+    return await get_conversation_thread(clean_phone)
+
 # ==================== DASHBOARD STATS ====================
 
 @router.get("/dashboard/stats")

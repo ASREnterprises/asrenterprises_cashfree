@@ -8,11 +8,12 @@ import {
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2,
-  User, X, History
+  User, X, History, Inbox
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
 import { WhatsAppModule, SendWhatsAppModal, BulkCampaignModal } from "@/components/WhatsAppCRM";
+import { WhatsAppInbox } from "@/components/WhatsAppInbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -601,6 +602,7 @@ export const CRMDashboard = () => {
   const [selectedLeadsForCampaign, setSelectedLeadsForCampaign] = useState([]);
   const [showLeadWhatsAppHistory, setShowLeadWhatsAppHistory] = useState(false);
   const [leadWhatsAppMessages, setLeadWhatsAppMessages] = useState([]);
+  const [openWhatsAppChatLeadId, setOpenWhatsAppChatLeadId] = useState(null);
   
   // Scroll to top state
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -1343,6 +1345,12 @@ export const CRMDashboard = () => {
     }
   };
 
+  // Open WhatsApp Chat directly from Lead
+  const openWhatsAppChatFromLead = (leadId) => {
+    setOpenWhatsAppChatLeadId(leadId);
+    setActiveTab('whatsapp');
+  };
+
   const handleBulkCampaign = () => {
     const selectedIds = leads.filter(l => l.selected).map(l => l.id);
     if (selectedIds.length === 0) {
@@ -1405,7 +1413,10 @@ export const CRMDashboard = () => {
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> },
               { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
             ].map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              <button key={tab.id} onClick={() => { 
+                setActiveTab(tab.id); 
+                if (tab.id !== 'whatsapp') setOpenWhatsAppChatLeadId(null); 
+              }}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${activeTab === tab.id ? "bg-blue-600 text-[#0a355e]" : "text-gray-600 hover:bg-gray-50 border border-gray-300"}`}>
                 {tab.icon}<span>{tab.label}</span>
               </button>
@@ -1739,6 +1750,7 @@ export const CRMDashboard = () => {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex space-x-2">
+                          <button onClick={() => openWhatsAppChatFromLead(lead.id)} className="text-emerald-500 hover:text-emerald-600" title="Open WhatsApp Chat" data-testid="whatsapp-chat-btn"><Inbox className="w-4 h-4" /></button>
                           <button onClick={() => openWhatsAppTemplateModal(lead)} className="text-green-500 hover:text-green-600" title="Send WhatsApp Template" data-testid="whatsapp-template-btn"><MessageSquare className="w-4 h-4" /></button>
                           <button onClick={() => fetchLeadWhatsAppHistory(lead.id)} className="text-cyan-500 hover:text-cyan-600" title="WhatsApp History" data-testid="whatsapp-history-btn"><History className="w-4 h-4" /></button>
                           <a href={`tel:${lead.phone}`} className="text-blue-400 hover:text-blue-300" title="Call"><Phone className="w-4 h-4" /></a>
@@ -1817,7 +1829,11 @@ export const CRMDashboard = () => {
 
         {/* WhatsApp CRM Tab */}
         {activeTab === "whatsapp" && (
-          <WhatsAppModule />
+          openWhatsAppChatLeadId ? (
+            <WhatsAppInbox onOpenFromLead={openWhatsAppChatLeadId} />
+          ) : (
+            <WhatsAppModule />
+          )
         )}
 
         {/* Tasks Tab */}

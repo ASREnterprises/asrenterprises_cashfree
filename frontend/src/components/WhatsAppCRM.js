@@ -3,8 +3,9 @@ import axios from 'axios';
 import { 
   MessageSquare, Send, Users, Settings, BarChart3, RefreshCw, 
   CheckCircle, XCircle, Clock, Eye, AlertTriangle, Filter, Search,
-  ChevronLeft, ChevronRight, Phone, FileText, Zap, X, Plus
+  ChevronLeft, ChevronRight, Phone, FileText, Zap, X, Plus, Inbox
 } from 'lucide-react';
+import { WhatsAppInbox } from './WhatsAppInbox';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
 
@@ -575,8 +576,9 @@ export const WhatsAppModule = () => {
   
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'inbox', label: 'Inbox', icon: Inbox },
     { id: 'campaigns', label: 'Campaigns', icon: Users },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'messages', label: 'History', icon: MessageSquare },
     { id: 'templates', label: 'Templates', icon: FileText },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
@@ -664,6 +666,11 @@ export const WhatsAppModule = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Inbox Tab - Primary WhatsApp Chat Interface */}
+      {activeTab === 'inbox' && (
+        <WhatsAppInbox />
       )}
       
       {/* Campaigns Tab */}

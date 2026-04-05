@@ -831,29 +831,48 @@ async def get_dashboard_stats():
 
 @router.get("/webhook")
 async def webhook_verify(request: Request):
-    """Verify webhook for Meta WhatsApp Cloud API"""
+    """
+    Verify webhook for Meta WhatsApp Cloud API
+    
+    Meta sends GET request with query params:
+    - hub.mode: should be "subscribe"
+    - hub.verify_token: must match our saved verify token
+    - hub.challenge: must be returned as plain text response
+    
+    Returns: Plain text response with challenge value (HTTP 200) or HTTP 403
+    """
+    from fastapi.responses import PlainTextResponse, Response
+    
     params = dict(request.query_params)
     
     mode = params.get("hub.mode")
     token = params.get("hub.verify_token")
     challenge = params.get("hub.challenge")
     
+    # If no params provided, show debug message
+    if not mode and not token and not challenge:
+        return PlainTextResponse(
+            content="WhatsApp webhook endpoint active. Ready to receive Meta verification.",
+            status_code=200
+        )
+    
     # Get verify token from settings
     settings = await get_whatsapp_settings()
     verify_token = settings.get("verify_token", "asr_whatsapp_verify_2024") if settings else "asr_whatsapp_verify_2024"
     
+    logger.info(f"Webhook verification request - Mode: {mode}, Token received: {token}, Expected token: {verify_token}, Challenge: {challenge}")
+    
     if mode == "subscribe" and token == verify_token:
-        logger.info("WhatsApp webhook verified successfully")
-        # Meta sends numeric challenge, return as-is (FastAPI will handle response)
-        try:
-            return int(challenge)
-        except (ValueError, TypeError):
-            # If challenge is not numeric, return as string
-            from fastapi.responses import PlainTextResponse
-            return PlainTextResponse(content=str(challenge))
+        if challenge:
+            logger.info(f"WhatsApp webhook verified successfully. Returning challenge: {challenge}")
+            # IMPORTANT: Meta expects ONLY the challenge value as plain text, HTTP 200
+            return PlainTextResponse(content=str(challenge), status_code=200)
+        else:
+            logger.warning("WhatsApp webhook verification: No challenge provided")
+            return PlainTextResponse(content="Missing challenge", status_code=400)
     else:
-        logger.warning(f"WhatsApp webhook verification failed. Mode: {mode}, Token: {token}")
-        raise HTTPException(status_code=403, detail="Verification failed")
+        logger.warning(f"WhatsApp webhook verification failed. Mode: {mode}, Token: {token}, Expected: {verify_token}")
+        return PlainTextResponse(content="Verification failed", status_code=403)
 
 @router.post("/webhook")
 async def webhook_receive(request: Request):

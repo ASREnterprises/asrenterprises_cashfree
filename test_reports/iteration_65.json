@@ -1,0 +1,75 @@
+{
+  "summary": "Tested Staff Portal iteration 65 features: call_status/last_call_at API fields, WhatsApp tab, mobile-friendly pipeline, NEW leads sorting. Fixed bug where call_status wasn't being persisted (duplicate endpoint in server.py). All 9 backend tests pass (100%). Frontend code review verified all features implemented correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Staff Login",
+        "issues": ["Staff login now requires Email+OTP or Mobile OTP - automated UI testing blocked"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_staff_portal_iter65.py",
+    "/app/test_reports/pytest/pytest_iter65.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "FIXED: call_status and last_call_at fields were not being persisted - duplicate endpoint in server.py (line 4279) was missing these fields. Added call tracking fields to server.py endpoint.",
+    "WhatsApp tab implemented in StaffPortal navigation (line 604) with Inbox icon and 'WA' short label for mobile",
+    "WhatsApp Inbox in staff mode filters conversations by staffLeadIds (lines 348-350 in WhatsAppInbox.js)",
+    "Mobile-friendly pipeline section uses overflow-x-auto and min-w-max for horizontal scrolling (lines 715-716)",
+    "NEW leads sorting implemented: isNew leads appear first, then sorted by assigned_at descending (lines 907-916)",
+    "Filter counts (All/Uncalled/Called) correctly use both local calledLeads state AND backend call_status field (lines 863, 869)",
+    "Call Now button updates both local state and backend call_status via PUT /api/staff/{staff_id}/leads/{lead_id} (lines 323-350)"
+  ],
+  "updated_files": [
+    "/app/backend/server.py",
+    "/app/backend/tests/test_staff_portal_iter65.py"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 tests passed)",
+    "frontend": "Code review verified - OTP auth blocks automated UI testing"
+  },
+  "test_credentials": {
+    "admin_phone": "8877896889",
+    "fallback_otp": "131993",
+    "staff_login": "ASR1024 (requires Email+OTP or Mobile OTP)",
+    "staff_password": "test123 (deprecated - OTP auth required)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Staff Portal login requires OTP authentication (Email+OTP or Mobile OTP). Backend API tests can be run without authentication. Key data-testids: 'nav-tab-whatsapp' (WhatsApp tab), 'call-btn-{lead_id}' (Call Now button), 'mobile-lead-status-{lead_id}' (status dropdown). The call_status field is now properly persisted via PUT /api/staff/{staff_id}/leads/{lead_id}.",
+  "features_tested": {
+    "backend_apis": {
+      "PUT /api/staff/{staff_id}/leads/{lead_id}": "PASS - Now accepts call_status and last_call_at fields (BUG FIXED)",
+      "GET /api/staff/{staff_id}/leads": "PASS - Returns leads with pagination and call_status field",
+      "GET /api/staff/{staff_id}/dashboard": "PASS - Returns pipeline_stats, total_assigned, total_converted",
+      "GET /api/whatsapp/conversations": "PASS - Returns conversations with lead info for staff filtering",
+      "GET /api/whatsapp/conversations/unread-count": "PASS - Returns unread count",
+      "GET /api/social/settings": "PASS - Returns masked Facebook/WhatsApp tokens"
+    },
+    "frontend_components_verified": {
+      "StaffPortal.js - WhatsApp Tab": "VERIFIED - Line 604: Navigation tab with id='whatsapp', label='WhatsApp', shortLabel='WA'",
+      "StaffPortal.js - WhatsApp Inbox Integration": "VERIFIED - Lines 1219-1223: WhatsAppInbox with staffMode=true, staffId, staffLeadIds props",
+      "StaffPortal.js - Mobile Pipeline": "VERIFIED - Lines 715-716: overflow-x-auto and min-w-max for horizontal scrolling",
+      "StaffPortal.js - NEW Leads Sorting": "VERIFIED - Lines 907-916: Sort by isNew flag first, then assigned_at descending",
+      "StaffPortal.js - Filter Counts": "VERIFIED - Lines 863, 869: Counts use both calledLeads state and call_status field",
+      "StaffPortal.js - Call Now Handler": "VERIFIED - Lines 323-350: Updates local state, localStorage, and backend call_status",
+      "WhatsAppInbox.js - Staff Mode Filter": "VERIFIED - Lines 348-350: Filters conversations by staffLeadIds"
+    }
+  },
+  "bug_fixed": {
+    "issue": "call_status and last_call_at fields not being persisted when staff calls a lead",
+    "root_cause": "Duplicate PUT endpoint in server.py (line 4279) was being used instead of routes/staff.py. The server.py endpoint was missing call_status and last_call_at field handling.",
+    "fix_applied": "Added call tracking fields to server.py endpoint at lines 4310-4313",
+    "verification": "Backend test test_staff_update_lead_with_call_status now passes - call_status='called' is properly saved and returned"
+  },
+  "rca_of_issue": "The PUT /api/staff/{staff_id}/leads/{lead_id} endpoint was defined in both server.py and routes/staff.py. FastAPI was routing requests to the server.py version which lacked the call_status and last_call_at field handling. Fixed by adding these fields to the server.py endpoint."
+}

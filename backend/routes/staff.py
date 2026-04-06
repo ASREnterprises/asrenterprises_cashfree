@@ -199,6 +199,11 @@ async def staff_update_lead(staff_id: str, lead_id: str, data: Dict[str, Any]):
         update_fields["survey_done"] = data["survey_done"]
     if "quoted_amount" in data:
         update_fields["quoted_amount"] = data["quoted_amount"]
+    # Call tracking fields
+    if "call_status" in data:
+        update_fields["call_status"] = data["call_status"]
+    if "last_call_at" in data:
+        update_fields["last_call_at"] = data["last_call_at"]
     
     await db.crm_leads.update_one({"id": lead_id}, {"$set": update_fields})
     

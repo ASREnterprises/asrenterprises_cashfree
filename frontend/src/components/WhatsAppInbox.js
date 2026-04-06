@@ -299,7 +299,7 @@ const TemplateSelector = ({ templates, selectedTemplate, onSelect, variables, on
 };
 
 // Main WhatsApp Inbox Component
-export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
+export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffId = null, staffLeadIds = [] }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [chatThread, setChatThread] = useState(null);
@@ -334,21 +334,31 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   
-  // Fetch conversations
+  // Fetch conversations - staff mode filters by assigned leads
   const fetchConversations = useCallback(async () => {
     try {
       const [convRes, unreadRes] = await Promise.all([
         axios.get(`${API}/api/whatsapp/conversations?limit=100`),
         axios.get(`${API}/api/whatsapp/conversations/unread-count`)
       ]);
-      setConversations(convRes.data.conversations || []);
+      
+      let allConversations = convRes.data.conversations || [];
+      
+      // In staff mode, filter to only show conversations for staff's assigned leads
+      if (staffMode && staffLeadIds.length > 0) {
+        allConversations = allConversations.filter(conv => 
+          conv.lead && staffLeadIds.includes(conv.lead.id)
+        );
+      }
+      
+      setConversations(allConversations);
       setUnreadCount(unreadRes.data.unread_count || 0);
     } catch (err) {
       console.error('Error fetching conversations:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [staffMode, staffLeadIds]);
   
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
@@ -406,6 +416,13 @@ export const WhatsAppInbox = ({ onOpenFromLead = null }) => {
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
   }, [fetchConversations, fetchTemplates]);
+  
+  // Re-fetch when staff leads change
+  useEffect(() => {
+    if (staffMode && staffLeadIds.length > 0) {
+      fetchConversations();
+    }
+  }, [staffMode, staffLeadIds.length, fetchConversations]);
   
   // Handle external open from lead
   useEffect(() => {

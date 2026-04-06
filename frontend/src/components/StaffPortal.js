@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
   ChevronRight, ChevronUp, FileText, TrendingUp, Bell, Plus, Edit,
-  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History
+  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import StaffTraining from "./StaffTraining";
 import { SendWhatsAppModal } from "@/components/WhatsAppCRM";
+import { WhatsAppInbox } from "@/components/WhatsAppInbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -332,14 +333,21 @@ export const StaffPortal = () => {
     localStorage.setItem(`staffLeadsCache_${staffData.staff_id}`, JSON.stringify(leads));
     localStorage.setItem(`staffLeadsCacheTime_${staffData.staff_id}`, Date.now().toString());
     
-    // Log call activity in background (don't wait for it)
-    axios.post(`${API}/crm/leads/${lead.id}/activities`, {
-      staff_id: staffData.staff_id,
-      staff_name: staffData.name,
-      activity_type: "call",
-      title: "Call Initiated",
-      description: `${staffData.name} called ${lead.name} at ${lead.phone}`
-    }).catch(err => console.error("Error logging call:", err));
+    // Log call activity AND mark as called in backend (don't wait for it)
+    Promise.all([
+      axios.post(`${API}/crm/leads/${lead.id}/activities`, {
+        staff_id: staffData.staff_id,
+        staff_name: staffData.name,
+        activity_type: "call",
+        title: "Call Initiated",
+        description: `${staffData.name} called ${lead.name} at ${lead.phone}`
+      }),
+      // Update lead's call_status in backend
+      axios.put(`${API}/staff/${staffData.staff_id}/leads/${lead.id}`, { 
+        call_status: 'called',
+        last_call_at: new Date().toISOString()
+      })
+    ]).catch(err => console.error("Error logging call:", err));
     
     // Update lead stage to contacted if still new (in background)
     if (lead.stage === 'new') {
@@ -593,6 +601,7 @@ export const StaffPortal = () => {
               { id: "dashboard", label: "Dashboard", shortLabel: "Home", icon: <TrendingUp className="w-4 h-4" /> },
               { id: "tasks", label: "Today's Tasks", shortLabel: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "leads", label: "My Leads", shortLabel: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "whatsapp", label: "WhatsApp", shortLabel: "WA", icon: <Inbox className="w-4 h-4" /> },
               { id: "followups", label: "Follow-ups", shortLabel: "Follow", icon: <Calendar className="w-4 h-4" /> },
               { id: "training", label: "Training", shortLabel: "Train", icon: <GraduationCap className="w-4 h-4" /> },
               { id: "messages", label: "Messages", shortLabel: "Msgs", icon: <MessageCircle className="w-4 h-4" /> }
@@ -700,18 +709,20 @@ export const StaffPortal = () => {
               </div>
             )}
 
-            {/* Pipeline */}
+            {/* Pipeline - Mobile Scrollable */}
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-5">
               <h2 className="text-lg font-bold text-[#0a355e] mb-4">My Pipeline</h2>
-              <div className="grid grid-cols-7 gap-2">
-                {PIPELINE_STAGES.map((stage) => (
-                  <div key={stage.id} className="text-center">
-                    <div className={`${stage.color} rounded-lg p-3 text-[#0a355e] mb-1`}>
-                      <div className="text-xl font-bold">{dashboard.pipeline_stats?.[stage.id] || 0}</div>
+              <div className="overflow-x-auto pb-2 -mx-2 px-2">
+                <div className="flex gap-2 min-w-max sm:grid sm:grid-cols-4 lg:grid-cols-8 sm:min-w-0">
+                  {PIPELINE_STAGES.map((stage) => (
+                    <div key={stage.id} className="text-center min-w-[70px] sm:min-w-0">
+                      <div className={`${stage.color} rounded-lg p-3 text-white mb-1`}>
+                        <div className="text-xl font-bold">{dashboard.pipeline_stats?.[stage.id] || 0}</div>
+                      </div>
+                      <div className="text-gray-500 text-xs truncate">{stage.label}</div>
                     </div>
-                    <div className="text-gray-500 text-xs">{stage.label}</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -849,7 +860,7 @@ export const StaffPortal = () => {
                 onClick={() => setCallFilter('uncalled')}
                 className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'uncalled' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
-                Uncalled ({leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length})
+                Uncalled ({leads.filter(l => !calledLeads.has(l.id) && l.call_status !== 'called').length})
               </button>
               <button
                 onClick={() => setCallFilter('called')}
@@ -862,7 +873,7 @@ export const StaffPortal = () => {
             {/* Quick Stats - Larger for Mobile */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center">
-                <div className="text-3xl font-bold text-blue-600">{leads.filter(l => !calledLeads.has(l.id) && !l.call_status).length}</div>
+                <div className="text-3xl font-bold text-blue-600">{leads.filter(l => !calledLeads.has(l.id) && l.call_status !== 'called').length}</div>
                 <div className="text-sm text-blue-700 font-medium">To Call</div>
               </div>
               <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 text-center">
@@ -890,8 +901,18 @@ export const StaffPortal = () => {
                   {leads
                     .filter(lead => {
                       if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
-                      if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && !lead.call_status;
+                      if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
                       return true;
+                    })
+                    // Sort: NEW leads first, then by assigned_at descending
+                    .sort((a, b) => {
+                      // isNew leads come first
+                      if (a.isNew && !b.isNew) return -1;
+                      if (!a.isNew && b.isNew) return 1;
+                      // Then sort by assigned_at (newest first)
+                      const aTime = a.assigned_at ? new Date(a.assigned_at).getTime() : 0;
+                      const bTime = b.assigned_at ? new Date(b.assigned_at).getTime() : 0;
+                      return bTime - aTime;
                     })
                     .map((lead) => (
                     <tr key={lead.id} className={`border-t border-gray-100 hover:bg-gray-50 ${calledLeads.has(lead.id) ? 'bg-green-50/50' : ''}`}>
@@ -984,8 +1005,18 @@ export const StaffPortal = () => {
               {leads
                 .filter(lead => {
                   if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
-                  if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && !lead.call_status;
+                  if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
                   return true;
+                })
+                // Sort: NEW leads first, then by assigned_at descending
+                .sort((a, b) => {
+                  // isNew leads come first
+                  if (a.isNew && !b.isNew) return -1;
+                  if (!a.isNew && b.isNew) return 1;
+                  // Then sort by assigned_at (newest first)
+                  const aTime = a.assigned_at ? new Date(a.assigned_at).getTime() : 0;
+                  const bTime = b.assigned_at ? new Date(b.assigned_at).getTime() : 0;
+                  return bTime - aTime;
                 })
                 .map((lead) => (
                 <div key={lead.id} className={`bg-white shadow-lg border-2 rounded-2xl overflow-hidden ${calledLeads.has(lead.id) ? 'border-green-400 bg-green-50/30' : 'border-sky-200'}`} data-testid={`lead-card-${lead.id}`}>
@@ -1091,7 +1122,7 @@ export const StaffPortal = () => {
 
             {leads.filter(lead => {
               if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
-              if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && !lead.call_status;
+              if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
               return true;
             }).length === 0 && (
               <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
@@ -1167,6 +1198,30 @@ export const StaffPortal = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* WhatsApp Tab - Staff Inbox for Assigned Leads */}
+        {activeTab === "whatsapp" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-[#0a355e] flex items-center gap-2">
+                <Inbox className="w-6 h-6 text-green-500" />
+                WhatsApp Inbox
+              </h2>
+              <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                Only your assigned leads
+              </span>
+            </div>
+            
+            {/* WhatsApp Inbox Component - Filtered for staff's leads */}
+            <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
+              <WhatsAppInbox 
+                staffMode={true}
+                staffId={staffData?.staff_id}
+                staffLeadIds={leads.map(l => l.id)}
+              />
+            </div>
           </div>
         )}
 

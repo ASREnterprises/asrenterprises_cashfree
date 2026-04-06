@@ -413,7 +413,7 @@ class TestAutomationSettings:
 
 
 class TestKeywordDetection:
-    """Tests for keyword-based option detection"""
+    """Tests for keyword-based option detection (updated for new mappings)"""
     
     def test_detect_home_solar_keyword(self):
         """Bot should detect 'home solar' as option 1"""
@@ -440,7 +440,7 @@ class TestKeywordDetection:
         print(f"✓ Bot detects 'subsidy' as option 3")
     
     def test_detect_price_keyword(self):
-        """Bot should detect 'price' as option 5"""
+        """Bot should detect 'price' as option 4 (Price/Quotation)"""
         response = requests.post(
             f"{BASE_URL}/api/whatsapp/automation/bot/test",
             json={"phone": "9999999999", "content": "what is the price"}
@@ -448,11 +448,12 @@ class TestKeywordDetection:
         assert response.status_code == 200
         
         data = response.json()
-        assert data.get("detected_option") == "5", f"Expected option 5 for 'price', got {data.get('detected_option')}"
-        print(f"✓ Bot detects 'price' as option 5")
+        # Price maps to option 4 (Price/Quotation)
+        assert data.get("detected_option") == "4", f"Expected option 4 for 'price', got {data.get('detected_option')}"
+        print(f"✓ Bot detects 'price' as option 4 (Price/Quotation)")
     
     def test_detect_site_visit_keyword(self):
-        """Bot should detect 'site visit' as option 4"""
+        """Bot should detect 'site visit' as option 5 (Free Site Visit)"""
         response = requests.post(
             f"{BASE_URL}/api/whatsapp/automation/bot/test",
             json={"phone": "9999999999", "content": "I need a site visit"}
@@ -460,8 +461,238 @@ class TestKeywordDetection:
         assert response.status_code == 200
         
         data = response.json()
-        assert data.get("detected_option") == "4", f"Expected option 4 for 'site visit', got {data.get('detected_option')}"
-        print(f"✓ Bot detects 'site visit' as option 4")
+        # Site visit maps to option 5 (Free Site Visit)
+        assert data.get("detected_option") == "5", f"Expected option 5 for 'site visit', got {data.get('detected_option')}"
+        print(f"✓ Bot detects 'site visit' as option 5 (Free Site Visit)")
+
+
+class TestHindiHinglishKeywords:
+    """Tests for Hindi/Hinglish keyword detection"""
+    
+    def test_detect_ghar_ka_solar(self):
+        """Bot should detect 'ghar ka solar' as option 1 (Home Solar)"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "ghar ka solar"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "1", f"Expected option 1 for 'ghar ka solar', got {data.get('detected_option')}"
+        print(f"✓ Bot detects Hindi 'ghar ka solar' as option 1")
+    
+    def test_detect_ghar_keyword(self):
+        """Bot should detect 'ghar' as option 1 (Home Solar)"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "ghar ke liye solar"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "1", f"Expected option 1 for 'ghar', got {data.get('detected_option')}"
+        print(f"✓ Bot detects Hindi 'ghar' as option 1")
+    
+    def test_detect_dukan_keyword(self):
+        """Bot should detect 'dukan' as option 2 (Shop/Office Solar)"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "dukan ke liye solar"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "2", f"Expected option 2 for 'dukan', got {data.get('detected_option')}"
+        print(f"✓ Bot detects Hindi 'dukan' as option 2")
+    
+    def test_detect_kitna_keyword(self):
+        """Bot should detect 'kitna' as option 4 (Price/Quotation)"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "kitna lagega"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "4", f"Expected option 4 for 'kitna', got {data.get('detected_option')}"
+        print(f"✓ Bot detects Hindi 'kitna' as option 4 (Price)")
+
+
+class TestShortFriendlyMessages:
+    """Tests for shorter, friendlier message format"""
+    
+    def test_option_1_response_is_short(self):
+        """Option 1 response should be short and friendly"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "1"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        reply_msg = data.get("reply_message", "")
+        
+        # Check message is short (under 200 chars)
+        assert len(reply_msg) < 250, f"Option 1 response too long: {len(reply_msg)} chars"
+        # Check it contains friendly emoji
+        assert "👍" in reply_msg or "Great" in reply_msg, "Option 1 response should be friendly"
+        # Check it asks one question at a time (about electricity bill)
+        assert "electricity bill" in reply_msg.lower() or "bill" in reply_msg.lower(), \
+            "Option 1 should ask about electricity bill"
+        
+        print(f"✓ Option 1 response is short and friendly ({len(reply_msg)} chars)")
+    
+    def test_option_4_response_is_short(self):
+        """Option 4 (Price) response should be short and friendly"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "4"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        reply_msg = data.get("reply_message", "")
+        
+        # Check message is short
+        assert len(reply_msg) < 250, f"Option 4 response too long: {len(reply_msg)} chars"
+        # Check it's friendly
+        assert "👍" in reply_msg or "Sure" in reply_msg, "Option 4 response should be friendly"
+        
+        print(f"✓ Option 4 response is short and friendly ({len(reply_msg)} chars)")
+    
+    def test_option_5_response_is_short(self):
+        """Option 5 (Site Visit) response should be short and friendly"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "5"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        reply_msg = data.get("reply_message", "")
+        
+        # Check message is short
+        assert len(reply_msg) < 300, f"Option 5 response too long: {len(reply_msg)} chars"
+        # Check it's friendly
+        assert "👍" in reply_msg or "Great" in reply_msg, "Option 5 response should be friendly"
+        
+        print(f"✓ Option 5 response is short and friendly ({len(reply_msg)} chars)")
+
+
+class TestLeadScoring:
+    """Tests for lead scoring (hot/warm/cold)"""
+    
+    def test_price_request_is_hot_lead(self):
+        """Price/quotation request should be tagged as hot_lead"""
+        # Option 4 (Price/Quotation) should be hot lead
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "4"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        # Option 4 is in hot_options list
+        assert data.get("detected_option") == "4"
+        print(f"✓ Price request (option 4) detected - should be hot_lead")
+    
+    def test_site_visit_request_is_hot_lead(self):
+        """Site visit request should be tagged as hot_lead"""
+        # Option 5 (Site Visit) should be hot lead
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "5"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        # Option 5 is in hot_options list
+        assert data.get("detected_option") == "5"
+        print(f"✓ Site visit request (option 5) detected - should be hot_lead")
+    
+    def test_sales_callback_is_hot_lead(self):
+        """Sales callback request should be tagged as hot_lead"""
+        # Option 7 (Talk to Sales) should be hot lead
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "7"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        # Option 7 is in hot_options list
+        assert data.get("detected_option") == "7"
+        print(f"✓ Sales callback request (option 7) detected - should be hot_lead")
+
+
+class TestFreeTextIntentDetection:
+    """Tests for improved intent detection from free text"""
+    
+    def test_free_text_price_maps_to_option_4(self):
+        """Free text 'price' should map to option 4"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "price"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "4", f"Expected option 4 for 'price', got {data.get('detected_option')}"
+        assert data.get("would_send_reply") == True
+        assert data.get("reply_type") == "quick_reply"
+        print(f"✓ Free text 'price' correctly maps to option 4")
+    
+    def test_free_text_subsidy_maps_to_option_3(self):
+        """Free text 'subsidy' should map to option 3"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "subsidy"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "3", f"Expected option 3 for 'subsidy', got {data.get('detected_option')}"
+        assert data.get("would_send_reply") == True
+        assert data.get("reply_type") == "quick_reply"
+        print(f"✓ Free text 'subsidy' correctly maps to option 3")
+    
+    def test_free_text_ghar_ka_solar_maps_to_option_1(self):
+        """Free text 'ghar ka solar' should map to option 1"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "ghar ka solar"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "1", f"Expected option 1 for 'ghar ka solar', got {data.get('detected_option')}"
+        assert data.get("would_send_reply") == True
+        assert data.get("reply_type") == "quick_reply"
+        print(f"✓ Free text 'ghar ka solar' correctly maps to option 1")
+    
+    def test_free_text_cost_maps_to_option_4(self):
+        """Free text 'cost' should map to option 4"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "what is the cost"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "4", f"Expected option 4 for 'cost', got {data.get('detected_option')}"
+        print(f"✓ Free text 'cost' correctly maps to option 4")
+    
+    def test_free_text_quotation_maps_to_option_4(self):
+        """Free text 'quotation' should map to option 4"""
+        response = requests.post(
+            f"{BASE_URL}/api/whatsapp/automation/bot/test",
+            json={"phone": "9999999999", "content": "send quotation"}
+        )
+        assert response.status_code == 200
+        
+        data = response.json()
+        assert data.get("detected_option") == "4", f"Expected option 4 for 'quotation', got {data.get('detected_option')}"
+        print(f"✓ Free text 'quotation' correctly maps to option 4")
 
 
 # Run tests

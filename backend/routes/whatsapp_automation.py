@@ -56,223 +56,190 @@ FOLLOW_UP_CONFIG = {
     "respect_24h_window": True       # Only send free-form within 24h, else use template
 }
 
+# Lead scoring thresholds
+LEAD_SCORING = {
+    "hot_triggers": ["price", "quotation", "site visit", "callback", "install", "when can", "cost", "rate", "kitna"],
+    "warm_triggers": ["subsidy", "interested", "solar", "exploring", "information", "details"],
+    "cold_indicators": ["just browsing", "not now", "later", "no thanks"]
+}
+
+# Capacity suggestion based on monthly electricity bill
+CAPACITY_SUGGESTIONS = {
+    (0, 1500): {"capacity": "1kW–2kW", "text": "Based on your bill, a 1kW–2kW system may be suitable."},
+    (1500, 3000): {"capacity": "2kW–3kW", "text": "Based on your bill, a 2kW–3kW system may be suitable."},
+    (3000, 6000): {"capacity": "3kW–5kW", "text": "Based on your bill, a 3kW–5kW system may be suitable."},
+    (6000, 100000): {"capacity": "5kW+", "text": "Based on your bill, a 5kW or higher system may be suitable."}
+}
+
+# Hindi/Hinglish keywords for language detection
+HINDI_KEYWORDS = [
+    "kya", "hai", "hain", "mujhe", "chahiye", "kaise", "kitna", "lagega", "solar", "ghar", 
+    "dukan", "office", "bill", "bijli", "subsidy", "sarkar", "yojana", "price", "rate",
+    "namaste", "namaskar", "dhanyavad", "ji", "haan", "nahi", "theek", "accha", "batao",
+    "bataiye", "lagwana", "installation", "kab", "कितना", "क्या", "है", "चाहिए", "सोलर"
+]
+
 # ==================== AUTO-REPLY MESSAGES ====================
 
-DEFAULT_WELCOME_MESSAGE = """👋 Hello! Welcome to ASR Enterprises ☀️
+DEFAULT_WELCOME_MESSAGE = """🙏 Welcome to ASR Enterprises – Solar Rooftop Installation
 
-Thank you for contacting us for Rooftop Solar Solutions.
+Thank you for contacting us. ☀️
+We help with Home Solar, Shop/Office Solar, Subsidy, Price & Installation.
 
-We are here to help you with:
-✅ Home Solar Installation
-✅ Shop / Office Solar
-✅ PM Surya Ghar Subsidy Guidance
-✅ Free Site Visit
-✅ Price / Quotation
-✅ System Upgrade / Support
-
-Please reply with the option number below:
+Please choose one option to continue:
 
 1️⃣ Home Solar
 2️⃣ Shop / Office Solar
 3️⃣ PM Surya Ghar Subsidy
-4️⃣ Free Site Visit
-5️⃣ Price / Quotation
-6️⃣ Existing Solar Service / Support
+4️⃣ Price / Quotation
+5️⃣ Free Site Visit
+6️⃣ Service / Support
 7️⃣ Talk to Sales Team
 
-📞 Call: 9296389097
-🌐 www.asrenterprises.in
-📍 Patna, Bihar"""
+Reply with the number only."""
 
-FACEBOOK_INSTAGRAM_WELCOME = """👋 Hello! Thank you for your interest in ASR Enterprises Solar Solutions ☀️
+FACEBOOK_INSTAGRAM_WELCOME = """🙏 Welcome to ASR Enterprises ☀️
 
-We'd be happy to help you with the best solar solution for your home or business.
+Thanks for reaching out through our ad!
+We specialize in Rooftop Solar Installation in Bihar.
 
-Please reply with any one option:
-
-1️⃣ I want Home Solar
-2️⃣ I want Shop / Office Solar
-3️⃣ I want Subsidy Information
-4️⃣ I want Price Details
-5️⃣ I want a Free Site Visit
-
-You can also send:
-📸 A photo of your roof
-📄 Your electricity bill
-📍 Your location
-
-This helps us give you a faster and better estimate.
-
-📞 9296389097"""
-
-AFTER_HOURS_MESSAGE = """🌙 Hello! Thank you for contacting ASR Enterprises ☀️
-
-Our team is currently offline, but your inquiry is important to us.
-
-Please leave the following details and our team will contact you soon:
-
-👤 Name
-📍 Location
-🏠 Home / Shop / Office
-⚡ Monthly electricity bill (approx)
-📸 Roof photo (optional)
-
-You can also reply with:
+Quick options:
 
 1️⃣ Home Solar
 2️⃣ Shop / Office Solar
-3️⃣ Subsidy Help
+3️⃣ Subsidy Info
 4️⃣ Price / Quotation
 5️⃣ Free Site Visit
 
-We will get back to you as soon as possible.
+Reply with the number or tell us your requirement directly."""
 
-📞 9296389097
-📍 Patna, Bihar"""
+AFTER_HOURS_MESSAGE = """🙏 Welcome to ASR Enterprises ☀️
 
-FOLLOW_UP_MESSAGE = """👋 Hello from ASR Enterprises ☀️
+Thanks for contacting us!
+Our team is currently offline but will respond soon.
 
-Just following up on your solar inquiry.
+Meanwhile, please share:
+- Your name
+- Location
+- Monthly electricity bill
 
-If you are still interested, we can help you with:
+Or reply with:
+1 for Home Solar
+2 for Shop/Office Solar
+3 for Subsidy
+4 for Price
+5 for Site Visit
 
-✅ Solar price estimate
-✅ Subsidy guidance
-✅ Free site visit
-✅ Home / Shop solar installation
+We'll assist you first thing. 📞 8298389097"""
 
-Simply reply with:
-1️⃣ Price
-2️⃣ Subsidy
-3️⃣ Site Visit
-4️⃣ Talk to Team
+FOLLOW_UP_MESSAGE = """Hello 👋
+Just checking in regarding your rooftop solar inquiry.
 
-📞 9296389097"""
+If you want, simply reply with:
 
-# ==================== QUICK REPLY RESPONSES ====================
+1 for Home Solar
+2 for Shop/Office Solar
+3 for Subsidy
+4 for Price
+5 for Site Visit
+
+We'll assist you quickly. ☀️"""
+
+# ==================== QUICK REPLY RESPONSES (Short, One Question at a Time) ====================
 
 QUICK_REPLIES = {
     "1": {
-        "tag": "Home Solar Lead",
+        "tag": "home_solar",
+        "tags": ["whatsapp_lead", "new_inquiry", "home_solar"],
         "stage": "contacted",
-        "response": """🏠 Great choice! We can help you with Home Rooftop Solar Installation.
+        "lead_type": "Home Solar",
+        "response": """Great 👍
+To guide you better, please tell us your monthly electricity bill.
 
-To guide you properly, please send:
-
-1️⃣ Your location
-2️⃣ Approx monthly electricity bill
-3️⃣ Roof type (RCC / Tin / Other)
-4️⃣ Roof photo (optional)
-
-Once we receive this, our team can suggest the best solar capacity for your home.
-
-📞 9296389097"""
+Examples: ₹1000, ₹2000, ₹3000+""",
+        "next_question": "location"
     },
     "2": {
-        "tag": "Commercial Solar Lead",
+        "tag": "commercial_solar",
+        "tags": ["whatsapp_lead", "new_inquiry", "commercial_solar"],
         "stage": "contacted",
-        "response": """🏢 Thank you! We also provide Solar Solutions for Shops, Offices & Commercial Use.
-
-Please share:
-
-1️⃣ Your business/shop location
-2️⃣ Approx monthly electricity bill
-3️⃣ Available rooftop space
-4️⃣ Roof photo (optional)
-
-Our team will suggest the best system for your requirement.
-
-📞 9296389097"""
+        "lead_type": "Shop/Office Solar",
+        "response": """Perfect 👍
+Please tell us your shop/office monthly electricity bill or approximate load requirement.""",
+        "next_question": "location"
     },
     "3": {
-        "tag": "Subsidy Lead",
+        "tag": "subsidy_interest",
+        "tags": ["whatsapp_lead", "new_inquiry", "subsidy_interest"],
         "stage": "contacted",
-        "response": """☀️ Yes, we can guide you regarding PM Surya Ghar Yojana / Subsidy Support.
+        "lead_type": "Subsidy Inquiry",
+        "response": """Sure 👍
+We can guide you about PM Surya Ghar Yojana subsidy.
 
-To help you better, please share:
-
-1️⃣ Your district / location
-2️⃣ House type
-3️⃣ Approx electricity bill
-4️⃣ Whether you want installation also
-
-Our team will explain eligibility, process, and solar options.
-
-📞 9296389097"""
+Please tell us:
+- Is this for Home or Business?
+- And your monthly electricity bill?""",
+        "next_question": "property_type"
     },
     "4": {
-        "tag": "Site Visit Lead",
-        "stage": "site_visit",
-        "response": """📍 Sure! We can arrange a Free Site Visit.
+        "tag": "quotation_requested",
+        "tags": ["whatsapp_lead", "new_inquiry", "quotation_requested", "hot_lead"],
+        "stage": "quotation",
+        "lead_type": "Price/Quotation",
+        "response": """Sure 👍
+We can help with a solar quotation.
 
-Please send:
-
-1️⃣ Your name
-2️⃣ Full address / location
-3️⃣ Preferred day / time
-4️⃣ Contact number
-
-Our team will coordinate with you shortly.
-
-📞 9296389097"""
+Please share your monthly electricity bill first so we can suggest the right solar capacity.""",
+        "next_question": "bill"
     },
     "5": {
-        "tag": "Quotation Lead",
-        "stage": "quotation",
-        "response": """💰 Sure! We can help with Solar Price / Quotation.
+        "tag": "site_visit_requested",
+        "tags": ["whatsapp_lead", "new_inquiry", "site_visit_requested", "hot_lead"],
+        "stage": "site_visit",
+        "lead_type": "Site Visit",
+        "response": """Great 👍
+We can arrange a free site visit.
 
 Please share:
-
-1️⃣ Monthly electricity bill
-2️⃣ Home / Shop / Office
-3️⃣ Location
-4️⃣ Roof type
-
-After that, our team can suggest an estimated system size and pricing.
-
-📞 9296389097"""
+1. Your name
+2. Location / area
+3. Monthly electricity bill""",
+        "next_question": "name"
     },
     "6": {
-        "tag": "Service Lead",
+        "tag": "service_inquiry",
+        "tags": ["whatsapp_lead", "service_inquiry"],
         "stage": "contacted",
-        "response": """🛠️ We can also help with Existing Solar System Service / Support.
-
-Please send:
-
-1️⃣ Installed system size (if known)
-2️⃣ Problem you are facing
-3️⃣ Location
-4️⃣ Photo / video (if available)
-
-Our support team will review and assist you.
-
-📞 9296389097"""
+        "lead_type": "Service/Support",
+        "response": """Sure 👍
+Please briefly tell us your service/support issue.""",
+        "next_question": "issue"
     },
     "7": {
-        "tag": "Sales Call Lead",
+        "tag": "sales_call_requested",
+        "tags": ["whatsapp_lead", "new_inquiry", "sales_call_requested", "hot_lead"],
         "stage": "contacted",
-        "response": """📞 Sure! Our sales team will connect with you shortly.
+        "lead_type": "Sales Callback",
+        "response": """Certainly 👍
+Please share your:
+1. Name
+2. Location
+3. Monthly electricity bill
 
-Please share:
-
-- Your name
-- Your location
-- Your requirement
-
-You can also call directly on:
-📞 9296389097"""
+Our sales team will assist you shortly.""",
+        "next_question": "name"
     }
 }
 
-# Alternative keywords for each option
+# Alternative keywords for each option (improved with Hindi/Hinglish)
 KEYWORD_MAPPINGS = {
-    "1": ["home solar", "residential", "ghar", "घर", "home", "1️⃣"],
-    "2": ["shop", "office", "commercial", "business", "dukan", "दुकान", "2️⃣"],
-    "3": ["subsidy", "pm surya", "surya ghar", "yojana", "सब्सिडी", "3️⃣"],
-    "4": ["site visit", "visit", "free visit", "survey", "देखना", "4️⃣"],
-    "5": ["price", "quotation", "quote", "cost", "rate", "kitna", "कीमत", "5️⃣"],
-    "6": ["service", "support", "repair", "problem", "issue", "समस्या", "6️⃣"],
-    "7": ["call", "talk", "sales", "baat", "बात", "7️⃣"]
+    "1": ["home solar", "residential", "ghar", "घर", "home", "1️⃣", "ghar ka", "residential solar"],
+    "2": ["shop", "office", "commercial", "business", "dukan", "दुकान", "2️⃣", "shop ka", "office ka", "factory"],
+    "3": ["subsidy", "pm surya", "surya ghar", "yojana", "सब्सिडी", "3️⃣", "government", "sarkari", "scheme"],
+    "4": ["price", "quotation", "quote", "cost", "rate", "kitna", "कीमत", "4️⃣", "kitna lagega", "price kya hai", "kharcha"],
+    "5": ["site visit", "visit", "free visit", "survey", "देखना", "5️⃣", "ghar aao", "dekhne aao", "inspection"],
+    "6": ["service", "support", "repair", "problem", "issue", "समस्या", "6️⃣", "complaint", "kharab", "not working"],
+    "7": ["call", "talk", "sales", "baat", "बात", "7️⃣", "call karo", "baat karna hai", "contact"]
 }
 
 # Source tag mappings - Maps internal source values to display tags
@@ -369,6 +336,133 @@ def is_greeting_message(content: str) -> bool:
             return True
     
     return False
+
+def detect_language(content: str) -> str:
+    """
+    Detect if the message is in Hindi/Hinglish or English.
+    Returns: 'hindi' or 'english'
+    """
+    content_lower = content.lower()
+    
+    # Check for Hindi characters (Devanagari script)
+    if re.search(r'[\u0900-\u097F]', content):
+        return 'hindi'
+    
+    # Check for common Hindi/Hinglish words
+    hindi_count = sum(1 for word in HINDI_KEYWORDS if word in content_lower)
+    
+    # If more than 2 Hindi keywords, treat as Hindi
+    if hindi_count >= 2:
+        return 'hindi'
+    
+    return 'english'
+
+def calculate_lead_score(content: str, selected_option: str = None) -> str:
+    """
+    Calculate lead score based on message content and selected option.
+    Returns: 'hot_lead', 'warm_lead', or 'cold_lead'
+    """
+    content_lower = content.lower()
+    
+    # Hot lead indicators - high intent
+    for trigger in LEAD_SCORING["hot_triggers"]:
+        if trigger in content_lower:
+            return "hot_lead"
+    
+    # Options that indicate hot leads
+    hot_options = ["4", "5", "7"]  # Price, Site Visit, Sales
+    if selected_option in hot_options:
+        return "hot_lead"
+    
+    # Cold lead indicators
+    for indicator in LEAD_SCORING["cold_indicators"]:
+        if indicator in content_lower:
+            return "cold_lead"
+    
+    # Warm lead - interested but not urgent
+    for trigger in LEAD_SCORING["warm_triggers"]:
+        if trigger in content_lower:
+            return "warm_lead"
+    
+    # Default to warm if they're engaging
+    if selected_option:
+        return "warm_lead"
+    
+    return "warm_lead"
+
+def extract_electricity_bill(content: str) -> Optional[int]:
+    """
+    Extract electricity bill amount from message content.
+    Handles formats like: ₹2000, 2000, Rs 2000, 2000 rupees, etc.
+    """
+    # Remove common prefixes and clean
+    content = content.lower().replace('₹', '').replace('rs', '').replace('rs.', '')
+    content = content.replace('rupees', '').replace('rupee', '').replace('inr', '')
+    content = content.strip()
+    
+    # Try to find a number
+    numbers = re.findall(r'\d+', content)
+    
+    if numbers:
+        # Get the first reasonable number (bill amount typically 500-50000)
+        for num_str in numbers:
+            num = int(num_str)
+            if 100 <= num <= 100000:
+                return num
+    
+    return None
+
+def suggest_capacity(bill_amount: int) -> Dict:
+    """
+    Suggest solar capacity based on monthly electricity bill.
+    """
+    for (min_bill, max_bill), suggestion in CAPACITY_SUGGESTIONS.items():
+        if min_bill <= bill_amount < max_bill:
+            return suggestion
+    
+    # Default for very high bills
+    return {"capacity": "5kW+", "text": "Based on your bill, a 5kW or higher system may be suitable."}
+
+def generate_lead_summary(lead_data: Dict) -> str:
+    """
+    Generate a clean lead summary for handoff to sales team.
+    """
+    summary = """Thank you 🙏
+We have noted your requirement.
+
+📌 Your Requirement Summary
+"""
+    
+    if lead_data.get("name"):
+        summary += f"- Name: {lead_data['name']}\n"
+    if lead_data.get("location"):
+        summary += f"- Location: {lead_data['location']}\n"
+    if lead_data.get("requirement_type"):
+        summary += f"- Type: {lead_data['requirement_type']}\n"
+    if lead_data.get("bill"):
+        summary += f"- Electricity Bill: ₹{lead_data['bill']}\n"
+    if lead_data.get("need"):
+        summary += f"- Need: {lead_data['need']}\n"
+    if lead_data.get("capacity_suggestion"):
+        summary += f"- Suggested Capacity: {lead_data['capacity_suggestion']}\n"
+    
+    summary += "\nOur team will connect with you shortly for further guidance. ☀️"
+    
+    return summary
+
+def generate_internal_lead_note(lead_data: Dict, phone: str, lead_score: str) -> str:
+    """
+    Generate internal CRM note for sales team.
+    """
+    return f"""NEW SOLAR LEAD
+Name: {lead_data.get('name', 'Not provided')}
+Phone: {phone}
+Location: {lead_data.get('location', 'Not provided')}
+Requirement: {lead_data.get('requirement_type', 'Not specified')}
+Electricity Bill: {lead_data.get('bill', 'Not provided')}
+Need: {lead_data.get('need', 'Not specified')}
+Lead Score: {lead_score.upper().replace('_', ' ')}
+Source: WhatsApp Inquiry"""
 
 def detect_option_from_message(content: str) -> Optional[str]:
     """
@@ -758,7 +852,8 @@ async def process_auto_reply(
     1. Check if user selected an option (1-7) → Send quick reply
     2. Check if greeting/new conversation → Send welcome message
     3. Determine which welcome: after-hours, ad-specific, or default
-    4. Prevent duplicate messages in same conversation
+    4. Calculate lead score and apply tags
+    5. Prevent duplicate messages in same conversation
     
     Args:
         phone: Sender's phone number
@@ -773,6 +868,9 @@ async def process_auto_reply(
     # Get conversation state
     is_new = await is_new_conversation(phone)
     has_welcome = await has_received_welcome(phone)
+    
+    # Detect language for potential Hindi response
+    language = detect_language(content)
     
     # Detect lead source (priority: payload > DB > default)
     if not lead_source:
@@ -792,34 +890,75 @@ async def process_auto_reply(
         
         reply_config = QUICK_REPLIES[selected_option]
         
-        # Tag the lead with qualification tag
-        await tag_lead(phone, reply_config["tag"])
+        # Calculate lead score
+        lead_score = calculate_lead_score(content, selected_option)
+        
+        # Get all tags to apply
+        tags_to_apply = reply_config.get("tags", [reply_config["tag"]])
+        tags_to_apply.append(lead_score)
+        
+        # Add source-based tag
+        source_tag_internal = "organic_lead"
+        if source_key in ["facebook", "facebook_ads", "fb"]:
+            source_tag_internal = "facebook_ad_lead"
+        elif source_key in ["instagram", "instagram_ads", "ig"]:
+            source_tag_internal = "instagram_ad_lead"
+        elif source_key == "website":
+            source_tag_internal = "website_lead"
+        tags_to_apply.append(source_tag_internal)
+        
+        # Apply all tags
+        for tag in tags_to_apply:
+            await tag_lead(phone, tag)
         
         # Update lead stage
         await update_lead_stage(phone, reply_config["stage"], selected_option, reply_config["tag"])
         
-        # Also add source tag
-        await tag_lead(phone, source_tag)
-        
         # Update lead source if detected from payload
         if source_key != "whatsapp_direct":
             await update_lead_source(phone, source_key, source_tag)
+        
+        # Extract bill amount if mentioned
+        bill_amount = extract_electricity_bill(content)
+        capacity_suggestion = None
+        if bill_amount:
+            capacity_suggestion = suggest_capacity(bill_amount)
+            # Update lead with bill info
+            phone_suffix = phone[-10:] if len(phone) >= 10 else phone
+            await db.crm_leads.update_one(
+                {"$or": [{"phone": phone}, {"phone": phone_suffix}]},
+                {"$set": {
+                    "monthly_bill": bill_amount,
+                    "suggested_capacity": capacity_suggestion["capacity"]
+                }}
+            )
         
         return {
             "type": "quick_reply",
             "option": selected_option,
             "message": reply_config["response"],
             "tag": reply_config["tag"],
-            "stage": reply_config["stage"]
+            "tags": tags_to_apply,
+            "stage": reply_config["stage"],
+            "lead_type": reply_config.get("lead_type"),
+            "lead_score": lead_score,
+            "language": language,
+            "bill_amount": bill_amount,
+            "capacity_suggestion": capacity_suggestion
         }
     
     # ==================== WELCOME MESSAGE LOGIC ====================
     # Send welcome only for:
     # 1. New conversations (no messages in 24h)
     # 2. Greeting messages (hi, hello, etc.) even in existing conversation
-    # 3. Only if welcome not already sent in this conversation
+    # 3. Any short inquiry like "price?", "solar?", "subsidy?" 
+    # 4. Only if welcome not already sent in this conversation
     
     should_send_welcome = False
+    
+    # Short inquiries that should trigger welcome
+    short_inquiry_words = ["price", "solar", "subsidy", "cost", "rate", "kitna"]
+    is_short_inquiry = any(word in content.lower() for word in short_inquiry_words) and len(content) < 20
     
     if is_new and not has_welcome:
         should_send_welcome = True
@@ -827,8 +966,19 @@ async def process_auto_reply(
     elif is_greeting_message(content) and not has_welcome:
         should_send_welcome = True
         logger.info(f"Greeting message detected for {phone}, will send welcome")
+    elif is_short_inquiry and not has_welcome:
+        should_send_welcome = True
+        logger.info(f"Short inquiry detected for {phone}, will send welcome")
     
     if should_send_welcome:
+        # Calculate lead score
+        lead_score = calculate_lead_score(content)
+        
+        # Apply initial tags
+        initial_tags = ["whatsapp_lead", "new_inquiry", lead_score]
+        for tag in initial_tags:
+            await tag_lead(phone, tag)
+        
         # Update lead source if detected
         if source_key != "whatsapp_direct":
             await update_lead_source(phone, source_key, source_tag)
@@ -839,21 +989,27 @@ async def process_auto_reply(
             return {
                 "type": "after_hours",
                 "message": AFTER_HOURS_MESSAGE,
-                "source_tag": source_tag
+                "source_tag": source_tag,
+                "lead_score": lead_score,
+                "language": language
             }
         elif source_key in ["facebook", "facebook_ads", "instagram", "instagram_ads", "fb", "ig"]:
             # Facebook/Instagram specific welcome
             return {
                 "type": "fb_ig_welcome",
                 "message": FACEBOOK_INSTAGRAM_WELCOME,
-                "source_tag": source_tag
+                "source_tag": source_tag,
+                "lead_score": lead_score,
+                "language": language
             }
         else:
             # Default welcome
             return {
                 "type": "welcome",
                 "message": DEFAULT_WELCOME_MESSAGE,
-                "source_tag": source_tag
+                "source_tag": source_tag,
+                "lead_score": lead_score,
+                "language": language
             }
     
     # No auto-reply needed

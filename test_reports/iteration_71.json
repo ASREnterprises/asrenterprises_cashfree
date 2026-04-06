@@ -1,0 +1,66 @@
+{
+  "summary": "Tested WhatsApp CRM automation bot new features. All 43 backend API tests passed (100%). Bot correctly handles: shorter/friendlier messages, one question at a time approach, lead scoring (hot/warm/cold), Hindi/Hinglish keyword detection, and improved free text intent detection.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_whatsapp_automation_bot.py",
+    "/app/test_reports/pytest/pytest_iter71.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_whatsapp_automation_bot.py"
+  ],
+  "success_rate": {
+    "backend": "100% (43/43 tests passed)",
+    "frontend": "N/A - backend only testing"
+  },
+  "test_credentials": {},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "WhatsApp automation bot fully tested with new features. All core features verified: greeting detection, option 1-7 detection, keyword matching (English + Hindi/Hinglish), lead source identification, business hours logic, after-hours responses, quick replies, follow-up scheduling, lead scoring, and free text intent detection.",
+  "features_verified": {
+    "New shorter welcome message format": "VERIFIED - Messages are short and friendly with emojis",
+    "Option 1-7 responses are short and friendly": "VERIFIED - All responses under 250 chars with 👍 emoji",
+    "Free text 'price' maps to option 4": "VERIFIED - 'price', 'cost', 'quotation' all map to option 4",
+    "Free text 'subsidy' maps to option 3": "VERIFIED - 'subsidy' correctly maps to option 3",
+    "Hindi/Hinglish 'ghar ka solar' maps to option 1": "VERIFIED - 'ghar ka solar', 'ghar' map to option 1",
+    "Bot status API shows correct stats": "VERIFIED - Returns is_business_hours, current_time_ist, today_stats",
+    "Lead scoring works (hot_lead for price/site visit)": "VERIFIED - Options 4, 5, 7 are hot_lead triggers",
+    "Webhook processes messages and sends correct responses": "VERIFIED - POST /api/whatsapp/webhook returns 200"
+  },
+  "api_tests_passed": [
+    "GET /api/whatsapp/automation/bot/status - Returns bot status with business hours",
+    "POST /api/whatsapp/automation/bot/test - Tests greeting detection (hi, hello, namaste)",
+    "POST /api/whatsapp/automation/bot/test - Tests option detection (1-7)",
+    "POST /api/whatsapp/automation/bot/test - Tests keyword detection (home solar, subsidy, price, site visit)",
+    "POST /api/whatsapp/automation/bot/test - Tests Hindi/Hinglish keywords (ghar ka solar, dukan, kitna)",
+    "POST /api/whatsapp/automation/bot/test - Tests free text intent (price, subsidy, cost, quotation)",
+    "POST /api/whatsapp/automation/bot/test - Tests lead source (facebook, instagram)",
+    "GET /api/whatsapp/webhook - Webhook verification endpoint active",
+    "POST /api/whatsapp/webhook - Accepts incoming message payloads",
+    "GET /api/whatsapp/automation/bot/follow-ups - Returns follow-ups list",
+    "GET /api/whatsapp/automation/bot/follow-ups?status=pending - Filters pending follow-ups",
+    "POST /api/whatsapp/automation/bot/process-follow-ups - Triggers follow-up processing",
+    "GET /api/whatsapp/automation/settings - Returns automation settings",
+    "GET /api/whatsapp/automation/bot/settings - Returns bot settings with business hours"
+  ],
+  "keyword_mappings_verified": {
+    "option_1_home_solar": ["home solar", "ghar", "ghar ka", "residential"],
+    "option_2_commercial": ["shop", "office", "dukan", "commercial"],
+    "option_3_subsidy": ["subsidy", "pm surya", "yojana", "government"],
+    "option_4_price": ["price", "quotation", "cost", "rate", "kitna"],
+    "option_5_site_visit": ["site visit", "visit", "survey"],
+    "option_6_service": ["service", "support", "repair", "problem"],
+    "option_7_sales": ["call", "talk", "sales", "baat"]
+  },
+  "notes": "WhatsApp Cloud API send is not mocked but decision logic is fully functional. Current time 11:05 PM IST is outside business hours (10AM-7PM), so after_hours responses are correctly triggered. Previous test file had incorrect expectations for price (expected option 5, actual is option 4) and site visit (expected option 4, actual is option 5) - fixed in this iteration."
+}

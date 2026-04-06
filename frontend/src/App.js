@@ -33,6 +33,7 @@ const SecurityCenter = lazy(() => import("@/components/SecurityCenter").then(m =
 const LeadsManagement = lazy(() => import("@/components/LeadsManagement").then(m => ({ default: m.LeadsManagement })));
 const AnalyticsPage = lazy(() => import("@/components/AnalyticsPage").then(m => ({ default: m.AnalyticsPage })));
 const SocialMediaIntegration = lazy(() => import("@/components/SocialMediaIntegration").then(m => ({ default: m.SocialMediaIntegration })));
+const SocialMediaManager = lazy(() => import("@/components/SocialMediaManager").then(m => ({ default: m.default })));
 const HRManagement = lazy(() => import("@/components/HRManagement").then(m => ({ default: m.HRManagement })));
 const FestiveThemeOverlay = lazy(() => import("@/components/FestiveThemeOverlay").then(m => ({ default: m.FestiveThemeOverlay })));
 const AIChatWidget = lazy(() => import("@/components/AIChatWidget").then(m => ({ default: m.AIChatWidget })));
@@ -2359,7 +2360,7 @@ export default function App() {
           } />
           <Route path="/admin/social-media" element={
             <ProtectedRoute>
-              <SocialMediaIntegration />
+              <SocialMediaManager />
             </ProtectedRoute>
           } />
           <Route path="/admin/crm" element={

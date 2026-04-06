@@ -122,6 +122,14 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/security",
       color: "from-red-500 to-pink-600",
       count: "Protected"
+    },
+    {
+      title: "Social Media",
+      description: "Post to Facebook & Instagram",
+      icon: <Share2 className="w-10 h-10" />,
+      link: "/admin/social-media",
+      color: "from-blue-500 to-indigo-600",
+      count: "FB & IG"
     }
   ];
 

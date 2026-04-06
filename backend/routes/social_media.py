@@ -567,24 +567,77 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
         # Get Page Access Token (important for System User tokens)
         page_access_token = await get_page_access_token(page_id, access_token)
         
-        async with httpx.AsyncClient(timeout=60.0) as http_client:
-            if post.get("image_url"):
-                # Photo post
+        async with httpx.AsyncClient(timeout=120.0) as http_client:
+            image_url = post.get("image_url", "")
+            video_url = post.get("video_url", "")
+            
+            # Check if the URL is from our API (local file) - need to fetch and upload directly
+            is_local_image = image_url and "/api/social/files/" in image_url
+            is_local_video = video_url and "/api/social/files/" in video_url
+            
+            if is_local_image:
+                # Fetch the image from our storage and upload directly to Facebook
+                try:
+                    file_response = await http_client.get(image_url, timeout=30.0)
+                    if file_response.status_code == 200:
+                        # Upload as multipart form data
+                        files = {
+                            "source": ("image.jpg", file_response.content, "image/jpeg"),
+                        }
+                        data = {
+                            "caption": post.get("caption", ""),
+                            "access_token": page_access_token,
+                            "published": "true"
+                        }
+                        response = await http_client.post(
+                            f"{FB_GRAPH_API}/{page_id}/photos",
+                            files=files,
+                            data=data
+                        )
+                    else:
+                        return {"success": False, "error": f"Could not fetch local image: HTTP {file_response.status_code}"}
+                except Exception as e:
+                    logger.error(f"Error uploading local image to Facebook: {e}")
+                    return {"success": False, "error": f"Failed to upload image: {str(e)}"}
+            elif is_local_video:
+                # Fetch and upload video directly
+                try:
+                    file_response = await http_client.get(video_url, timeout=60.0)
+                    if file_response.status_code == 200:
+                        files = {
+                            "source": ("video.mp4", file_response.content, "video/mp4"),
+                        }
+                        data = {
+                            "description": post.get("caption", ""),
+                            "access_token": page_access_token
+                        }
+                        response = await http_client.post(
+                            f"{FB_GRAPH_API}/{page_id}/videos",
+                            files=files,
+                            data=data
+                        )
+                    else:
+                        return {"success": False, "error": f"Could not fetch local video: HTTP {file_response.status_code}"}
+                except Exception as e:
+                    logger.error(f"Error uploading local video to Facebook: {e}")
+                    return {"success": False, "error": f"Failed to upload video: {str(e)}"}
+            elif image_url:
+                # External URL - use URL method
                 response = await http_client.post(
                     f"{FB_GRAPH_API}/{page_id}/photos",
                     data={
-                        "url": post["image_url"],
+                        "url": image_url,
                         "caption": post.get("caption", ""),
                         "access_token": page_access_token,
                         "published": "true"
                     }
                 )
-            elif post.get("video_url"):
-                # Video post
+            elif video_url:
+                # External video URL
                 response = await http_client.post(
                     f"{FB_GRAPH_API}/{page_id}/videos",
                     data={
-                        "file_url": post["video_url"],
+                        "file_url": video_url,
                         "description": post.get("caption", ""),
                         "access_token": page_access_token
                     }
@@ -639,9 +692,20 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
     if not ig_account_id or not access_token:
         return {"success": False, "error": "Instagram not configured. Connect Facebook first, then add Instagram Business Account ID."}
     
+    image_url = post.get("image_url", "")
+    video_url = post.get("video_url", "")
+    
     # Instagram requires an image or video
-    if not post.get("image_url") and not post.get("video_url"):
+    if not image_url and not video_url:
         return {"success": False, "error": "Instagram requires an image or video. Text-only posts are not supported."}
+    
+    # Check if URL is from our local API - Instagram REQUIRES publicly accessible URLs
+    is_local = ("/api/social/files/" in image_url) or ("/api/social/files/" in video_url)
+    if is_local:
+        return {
+            "success": False, 
+            "error": "Instagram requires a publicly accessible URL. Please use the direct URL input instead of file upload, or upload your image to a free image hosting service (like imgur.com or imgbb.com) and paste the URL."
+        }
     
     try:
         # Get Page Access Token for Instagram API calls
@@ -649,11 +713,11 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
         
         async with httpx.AsyncClient(timeout=120.0) as http_client:
             # Step 1: Create media container
-            if post.get("video_url"):
+            if video_url:
                 container_response = await http_client.post(
                     f"{FB_GRAPH_API}/{ig_account_id}/media",
                     data={
-                        "video_url": post["video_url"],
+                        "video_url": video_url,
                         "caption": post.get("caption", ""),
                         "media_type": "REELS",
                         "access_token": page_access_token
@@ -663,7 +727,7 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
                 container_response = await http_client.post(
                     f"{FB_GRAPH_API}/{ig_account_id}/media",
                     data={
-                        "image_url": post["image_url"],
+                        "image_url": image_url,
                         "caption": post.get("caption", ""),
                         "access_token": page_access_token
                     }
@@ -678,8 +742,8 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
                 
                 if error_code == 200:
                     error_msg = "PERMISSION ERROR: Your token lacks instagram_content_publish permission."
-                elif "image" in error_msg.lower():
-                    error_msg = "IMAGE ERROR: Instagram couldn't access the image URL. Ensure it's publicly accessible and in JPEG/PNG format."
+                elif "image" in error_msg.lower() or "url" in error_msg.lower():
+                    error_msg = "IMAGE ERROR: Instagram couldn't access the image URL. Use a direct public URL (e.g., from imgur.com or imgbb.com)."
                 
                 return {"success": False, "error": error_msg, "error_code": error_code}
             

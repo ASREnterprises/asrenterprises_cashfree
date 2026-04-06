@@ -1264,6 +1264,38 @@ export const StaffPortal = () => {
               </span>
             </div>
             
+            {/* Selected Lead Quick Actions */}
+            {selectedWhatsAppLead && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800">{selectedWhatsAppLead.name}</p>
+                      <p className="text-sm text-gray-500">{selectedWhatsAppLead.phone}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openWhatsAppTemplateModal(selectedWhatsAppLead)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Send Template
+                    </button>
+                    <button
+                      onClick={() => setSelectedWhatsAppLead(null)}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* WhatsApp Inbox Component - Filtered for staff's leads */}
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl overflow-hidden">
               <WhatsAppInbox 
@@ -1547,8 +1579,8 @@ export const StaffPortal = () => {
         </div>
       )}
       
-      {/* Mobile Floating Action Button */}
-      <div className="md:hidden fixed bottom-6 right-4 z-50">
+      {/* Mobile Floating Action Button - Positioned higher to not block scrolling */}
+      <div className="md:hidden fixed bottom-20 right-4 z-50">
         {/* FAB Menu Options */}
         {showFabMenu && (
           <div className="absolute bottom-16 right-0 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden w-56 animate-in slide-in-from-bottom-4 duration-200">

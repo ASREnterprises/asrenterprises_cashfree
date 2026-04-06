@@ -3,56 +3,43 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - WhatsApp Mobile Fix + CRM Integration + Bulk Send
+## Latest Session (April 6, 2026) - Meta API Fixes + New Token
 
-### What Was Built
+### What Was Fixed
 
-#### 1. WhatsApp Inbox Mobile Chat Fix ✅
-- Chat bubbles now use WhatsApp-style green (#dcf8c6) for outgoing messages
-- Mobile-optimized sizing: 85% max-width on mobile, 75% on desktop
-- Proper text wrapping with `break-words` to prevent cutoff
-- Smaller, more compact timestamp styling
+#### 1. Facebook Posting Fixed ✅
+- Added `get_page_access_token()` function to derive Page Access Token from System User token
+- System User tokens cannot directly post - they need to be exchanged for Page tokens
+- Facebook posts now work correctly (verified with post ID: 963923893475549_122117543613241422)
 
-#### 2. WhatsApp Button Links to CRM ✅
-- Staff Portal: WhatsApp button now opens CRM WhatsApp tab instead of external wa.me
-- Admin Dashboard: Same behavior - WhatsApp button opens CRM tab
-- `openLeadPhone` prop added to auto-open specific lead's conversation
+#### 2. Instagram Posting Fixed ✅  
+- Instagram API calls now also use Page Access Token
+- Instagram connected: @asr_enterprises_patna (ID: 17841466839933393)
 
-#### 3. Quick Reply Buttons ✅
-- 6 preset quick replies: Hello, Call You, Noted, Schedule, Quote, Thanks
-- Only visible when 24-hour window is active
-- Clicking pre-fills the text message input
-- Collapsible toggle to save space
+#### 3. WhatsApp Template Language Auto-Detection ✅
+- Templates now auto-detect language code from stored template
+- `hello_world` template is "en_US", `promote_asr_enterprises` is "en"
+- Fixed endpoints to not override language_code when not provided:
+  - `/api/whatsapp/send`
+  - `/api/whatsapp/send-to-lead/{lead_id}`
+  - `/api/whatsapp/conversations/{phone}/send-template`
 
-#### 4. Floating Action Button (FAB) for Staff Mobile ✅
-- Visible only on mobile (md:hidden)
-- Shows quick actions for top 3 recent leads:
-  - Call button
-  - WhatsApp button (opens CRM inbox)
-  - Update button (opens status modal)
-- Add New Lead button
-- Open WhatsApp Inbox button
+#### 4. New Token Updated ✅
+Token: `EAASYb5BHB00BRISoTj6qclKOUjVm7ZCR1by...QZDZD`
 
-#### 5. Bulk Template Sending ✅
-- New endpoint: `POST /api/whatsapp/templates/bulk-send`
-- Accepts lead_ids or phone numbers array
-- Processes in background with rate limiting (0.5s delay)
-- Returns job_id for status tracking
-- Status endpoint: `GET /api/whatsapp/templates/bulk-send/{job_id}`
-
-### Test Results (iteration_67.json)
+### Test Results (iteration_68.json)
 - Backend: 100% (12/12 tests passed)
-- All features verified through code review
+- Facebook posting: Working (2 test posts created)
+- WhatsApp template sending: Working
+- All connections verified
 
 ### Files Modified
-- `/app/frontend/src/components/WhatsAppInbox.js` - Mobile chat fix, quick replies, openLeadPhone
-- `/app/frontend/src/components/StaffPortal.js` - FAB, sendWhatsApp to CRM tab
-- `/app/frontend/src/components/CRMDashboard.js` - sendWhatsApp to CRM tab
-- `/app/backend/routes/whatsapp.py` - Bulk template sending endpoints
+- `/app/backend/routes/social_media.py` - Added get_page_access_token() function
+- `/app/backend/routes/whatsapp.py` - Fixed language_code auto-detection
 
 ---
 
-## Previous Session - WhatsApp Mobile UI + Pipeline Filters
+## Previous Session - WhatsApp Mobile Fix + CRM Integration
 
 ### What Was Built
 

@@ -3,53 +3,56 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - WhatsApp Mobile UI + Pipeline Filters + Credentials Update
+## Latest Session (April 6, 2026) - WhatsApp Mobile Fix + CRM Integration + Bulk Send
 
 ### What Was Built
 
-#### 1. Mobile-Friendly WhatsApp Inbox ✅
-- WhatsApp-style header with compact design
-- Smaller avatars and touch-friendly buttons on mobile
-- WhatsApp-style chat background (#e5ddd5)
-- Search bar with rounded pill design
-- staffMode header shows "Your leads only" text
+#### 1. WhatsApp Inbox Mobile Chat Fix ✅
+- Chat bubbles now use WhatsApp-style green (#dcf8c6) for outgoing messages
+- Mobile-optimized sizing: 85% max-width on mobile, 75% on desktop
+- Proper text wrapping with `break-words` to prevent cutoff
+- Smaller, more compact timestamp styling
 
-#### 2. Clickable Pipeline Stages in Staff Dashboard ✅
-- Pipeline stages are now clickable buttons
-- Clicking a stage filters leads to that stage
-- Filter indicator shows with "Clear Filter ×" button
-- Works on both desktop and mobile views
-- Hover effects (scale-105) for better interactivity
+#### 2. WhatsApp Button Links to CRM ✅
+- Staff Portal: WhatsApp button now opens CRM WhatsApp tab instead of external wa.me
+- Admin Dashboard: Same behavior - WhatsApp button opens CRM tab
+- `openLeadPhone` prop added to auto-open specific lead's conversation
 
-#### 3. 48-Hour Auto-Delete for WhatsApp Messages ✅
-- Messages older than 48 hours are automatically deleted
-- Cleanup runs in background when fetching conversations
-- New endpoints:
-  - `GET /api/whatsapp/messages/cleanup-status` - Shows message counts by age
-  - `DELETE /api/whatsapp/messages/auto-cleanup-48h` - Manual cleanup trigger
+#### 3. Quick Reply Buttons ✅
+- 6 preset quick replies: Hello, Call You, Noted, Schedule, Quote, Thanks
+- Only visible when 24-hour window is active
+- Clicking pre-fills the text message input
+- Collapsible toggle to save space
 
-#### 4. All Meta Credentials Updated ✅
-- Facebook Page ID: `963923893475549`
-- Instagram Account ID: `17841466839933393`
-- WhatsApp Phone Number ID: `1042033085660106`
-- WhatsApp Business Account ID: `1850072805696246`
-- Access Token: Updated to latest user-provided token
+#### 4. Floating Action Button (FAB) for Staff Mobile ✅
+- Visible only on mobile (md:hidden)
+- Shows quick actions for top 3 recent leads:
+  - Call button
+  - WhatsApp button (opens CRM inbox)
+  - Update button (opens status modal)
+- Add New Lead button
+- Open WhatsApp Inbox button
 
-### Bug Fixed
-- Route ordering bug in whatsapp.py - `/messages/auto-cleanup-48h` was being matched as `{message_id}` parameter
+#### 5. Bulk Template Sending ✅
+- New endpoint: `POST /api/whatsapp/templates/bulk-send`
+- Accepts lead_ids or phone numbers array
+- Processes in background with rate limiting (0.5s delay)
+- Returns job_id for status tracking
+- Status endpoint: `GET /api/whatsapp/templates/bulk-send/{job_id}`
 
-### Test Results (iteration_66.json)
-- Backend: 100% (7/7 tests passed)
+### Test Results (iteration_67.json)
+- Backend: 100% (12/12 tests passed)
 - All features verified through code review
 
 ### Files Modified
-- `/app/frontend/src/components/WhatsAppInbox.js` - Mobile-friendly UI, staffMode header
-- `/app/frontend/src/components/StaffPortal.js` - Clickable pipeline, pipelineStageFilter
-- `/app/backend/routes/whatsapp.py` - 48-hour auto-cleanup, route ordering fix
+- `/app/frontend/src/components/WhatsAppInbox.js` - Mobile chat fix, quick replies, openLeadPhone
+- `/app/frontend/src/components/StaffPortal.js` - FAB, sendWhatsApp to CRM tab
+- `/app/frontend/src/components/CRMDashboard.js` - sendWhatsApp to CRM tab
+- `/app/backend/routes/whatsapp.py` - Bulk template sending endpoints
 
 ---
 
-## Previous Session - Staff Portal Enhancements
+## Previous Session - WhatsApp Mobile UI + Pipeline Filters
 
 ### What Was Built
 

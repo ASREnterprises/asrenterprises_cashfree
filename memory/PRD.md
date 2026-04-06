@@ -3,50 +3,53 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - Staff Portal Enhancements + WhatsApp for Staff
+## Latest Session (April 6, 2026) - WhatsApp Mobile UI + Pipeline Filters + Credentials Update
 
 ### What Was Built
 
-#### 1. Staff Portal - New Leads First ✅
-- Leads now sorted with `isNew` flagged leads appearing first
-- Then sorted by `assigned_at` descending (newest assignments first)
-- Works in both desktop table and mobile card views
+#### 1. Mobile-Friendly WhatsApp Inbox ✅
+- WhatsApp-style header with compact design
+- Smaller avatars and touch-friendly buttons on mobile
+- WhatsApp-style chat background (#e5ddd5)
+- Search bar with rounded pill design
+- staffMode header shows "Your leads only" text
 
-#### 2. Staff Portal - Auto Call Tracking ✅  
-- When staff clicks "Call Now", lead automatically marked as `called`
-- `call_status` and `last_call_at` fields persisted to backend
-- Leads filter correctly shows: All / Uncalled / Called counts
-- **Bug Fixed**: Duplicate endpoint in server.py wasn't saving call_status - now fixed
+#### 2. Clickable Pipeline Stages in Staff Dashboard ✅
+- Pipeline stages are now clickable buttons
+- Clicking a stage filters leads to that stage
+- Filter indicator shows with "Clear Filter ×" button
+- Works on both desktop and mobile views
+- Hover effects (scale-105) for better interactivity
 
-#### 3. Staff Portal - Mobile-Friendly Dashboard ✅
-- Pipeline section now horizontally scrollable on mobile
-- Uses `overflow-x-auto` with `min-w-max` for proper touch scrolling
-- Pipeline stages display cleanly on small screens
+#### 3. 48-Hour Auto-Delete for WhatsApp Messages ✅
+- Messages older than 48 hours are automatically deleted
+- Cleanup runs in background when fetching conversations
+- New endpoints:
+  - `GET /api/whatsapp/messages/cleanup-status` - Shows message counts by age
+  - `DELETE /api/whatsapp/messages/auto-cleanup-48h` - Manual cleanup trigger
 
-#### 4. Staff Portal - WhatsApp Tab ✅
-- New "WhatsApp" tab added to staff navigation (shortLabel "WA")
-- Shows WhatsAppInbox component in `staffMode`
-- Filters conversations to only show staff's assigned leads
-- Staff can send template messages and reply to customers
+#### 4. All Meta Credentials Updated ✅
+- Facebook Page ID: `963923893475549`
+- Instagram Account ID: `17841466839933393`
+- WhatsApp Phone Number ID: `1042033085660106`
+- WhatsApp Business Account ID: `1850072805696246`
+- Access Token: Updated to latest user-provided token
 
-#### 5. Facebook Token Updated ✅
-- New access token saved: `EAASYb5BHB00BRJ...QcHHDMZD`
-- **Note**: User still needs to provide Facebook Page ID for posting to work
+### Bug Fixed
+- Route ordering bug in whatsapp.py - `/messages/auto-cleanup-48h` was being matched as `{message_id}` parameter
 
-### Test Results (iteration_65.json)
-- Backend: 100% (9/9 tests passed)
-- Bug Fixed: call_status persistence issue in server.py
+### Test Results (iteration_66.json)
+- Backend: 100% (7/7 tests passed)
 - All features verified through code review
 
 ### Files Modified
-- `/app/frontend/src/components/StaffPortal.js` - WhatsApp tab, sorting, call tracking
-- `/app/frontend/src/components/WhatsAppInbox.js` - staffMode filtering  
-- `/app/backend/routes/staff.py` - call_status field support
-- `/app/backend/server.py` - Fixed duplicate endpoint with call tracking fields
+- `/app/frontend/src/components/WhatsAppInbox.js` - Mobile-friendly UI, staffMode header
+- `/app/frontend/src/components/StaffPortal.js` - Clickable pipeline, pipelineStageFilter
+- `/app/backend/routes/whatsapp.py` - 48-hour auto-cleanup, route ordering fix
 
 ---
 
-## Previous Session (April 5-6, 2026) - WhatsApp Delete & Media Features
+## Previous Session - Staff Portal Enhancements
 
 ### What Was Built
 

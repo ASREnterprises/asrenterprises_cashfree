@@ -530,6 +530,32 @@ async def publish_post_to_platforms(post: dict, settings: dict):
     
     return results
 
+async def get_page_access_token(page_id: str, system_user_token: str):
+    """
+    Get Page Access Token from System User token.
+    System User tokens have permissions but need to be exchanged for a Page token to post.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.get(
+                f"{FB_GRAPH_API}/{page_id}",
+                params={
+                    "fields": "access_token",
+                    "access_token": system_user_token
+                }
+            )
+            data = response.json()
+            page_token = data.get("access_token")
+            if page_token:
+                logger.info(f"Successfully obtained Page Access Token for page {page_id}")
+                return page_token
+            else:
+                logger.warning(f"Could not get Page token: {data}")
+                return system_user_token  # Fall back to original token
+    except Exception as e:
+        logger.error(f"Error getting Page Access Token: {e}")
+        return system_user_token  # Fall back to original token
+
 async def publish_to_facebook(post: dict, settings: dict, access_token: str):
     """Publish to Facebook Page"""
     page_id = settings.get("facebook_page_id", "")
@@ -538,6 +564,9 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
         return {"success": False, "error": "Facebook not configured. Please add Page ID and Access Token in Settings."}
     
     try:
+        # Get Page Access Token (important for System User tokens)
+        page_access_token = await get_page_access_token(page_id, access_token)
+        
         async with httpx.AsyncClient(timeout=60.0) as http_client:
             if post.get("image_url"):
                 # Photo post
@@ -546,7 +575,7 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
                     data={
                         "url": post["image_url"],
                         "caption": post.get("caption", ""),
-                        "access_token": access_token,
+                        "access_token": page_access_token,
                         "published": "true"
                     }
                 )
@@ -557,7 +586,7 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
                     data={
                         "file_url": post["video_url"],
                         "description": post.get("caption", ""),
-                        "access_token": access_token
+                        "access_token": page_access_token
                     }
                 )
             else:
@@ -566,7 +595,7 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
                     f"{FB_GRAPH_API}/{page_id}/feed",
                     data={
                         "message": post.get("caption", ""),
-                        "access_token": access_token
+                        "access_token": page_access_token
                     }
                 )
             
@@ -605,6 +634,7 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
 async def publish_to_instagram(post: dict, settings: dict, access_token: str):
     """Publish to Instagram Business Account"""
     ig_account_id = settings.get("instagram_account_id", "")
+    page_id = settings.get("facebook_page_id", "")
     
     if not ig_account_id or not access_token:
         return {"success": False, "error": "Instagram not configured. Connect Facebook first, then add Instagram Business Account ID."}
@@ -614,6 +644,9 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
         return {"success": False, "error": "Instagram requires an image or video. Text-only posts are not supported."}
     
     try:
+        # Get Page Access Token for Instagram API calls
+        page_access_token = await get_page_access_token(page_id, access_token) if page_id else access_token
+        
         async with httpx.AsyncClient(timeout=120.0) as http_client:
             # Step 1: Create media container
             if post.get("video_url"):
@@ -623,7 +656,7 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
                         "video_url": post["video_url"],
                         "caption": post.get("caption", ""),
                         "media_type": "REELS",
-                        "access_token": access_token
+                        "access_token": page_access_token
                     }
                 )
             else:
@@ -632,7 +665,7 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
                     data={
                         "image_url": post["image_url"],
                         "caption": post.get("caption", ""),
-                        "access_token": access_token
+                        "access_token": page_access_token
                     }
                 )
             
@@ -660,7 +693,7 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
                 f"{FB_GRAPH_API}/{ig_account_id}/media_publish",
                 data={
                     "creation_id": container_id,
-                    "access_token": access_token
+                    "access_token": page_access_token
                 }
             )
             

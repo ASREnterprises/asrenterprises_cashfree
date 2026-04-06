@@ -1,0 +1,68 @@
+{
+  "summary": "Tested Social Media (Facebook/Instagram) and WhatsApp integration for iteration 68. All 12 backend API tests pass (100%). Fixed a bug in /api/whatsapp/send endpoint where language_code defaulted to 'en' instead of auto-detecting from template.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_social_whatsapp_iter68.py",
+    "/app/test_reports/pytest/pytest_iter68.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fixed: /api/whatsapp/send endpoint now auto-detects language_code from template (was defaulting to 'en')",
+    "Fixed: /api/whatsapp/send-to-lead/{lead_id} endpoint now auto-detects language_code from template",
+    "Facebook posting works with Page Access Token derived from System User token (get_page_access_token function)",
+    "WhatsApp template sync correctly stores language_code field (hello_world=en_US, promote_asr_enterprises=en)"
+  ],
+  "updated_files": [
+    "/app/backend/routes/whatsapp.py",
+    "/app/backend/tests/test_social_whatsapp_iter68.py"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "Not tested (backend-only testing requested)"
+  },
+  "test_credentials": {
+    "admin_phone": "8877896889",
+    "fallback_otp": "131993",
+    "facebook_page_id": "963923893475549",
+    "facebook_page_name": "ASR Enterprises",
+    "instagram_account_id": "17841466839933393",
+    "instagram_username": "asr_enterprises_patna",
+    "whatsapp_phone_number_id": "1042033085660106",
+    "whatsapp_waba_id": "1850072805696246",
+    "whatsapp_verified_name": "ASR Enterprises",
+    "whatsapp_quality_rating": "GREEN"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All social media and WhatsApp integrations verified working. Facebook posts successfully created (IDs: 963923893475549_122117544789241422, 963923893475549_122117544747241422). WhatsApp templates synced with correct language codes. Auto-detect language feature now works on all WhatsApp send endpoints.",
+  "features_tested": {
+    "POST /api/social/test-connection": "PASS - Facebook and Instagram both connected",
+    "GET /api/social/settings": "PASS - Returns correct Page ID and Account ID",
+    "POST /api/social/posts/create": "PASS - Facebook text post created successfully",
+    "GET /api/whatsapp/settings": "PASS - WhatsApp configured and active",
+    "POST /api/whatsapp/templates/sync": "PASS - Synced 2 templates from Meta",
+    "GET /api/whatsapp/templates": "PASS - Returns templates with language_code field",
+    "POST /api/whatsapp/settings/test": "PASS - API connection successful, quality GREEN",
+    "POST /api/whatsapp/conversations/{phone}/send-template": "PASS - Auto-detects language, sends successfully",
+    "POST /api/whatsapp/send": "PASS - Auto-detects language after fix",
+    "GET /api/social/dashboard/stats": "PASS - Returns correct stats",
+    "GET /api/whatsapp/dashboard/stats": "PASS - Returns message counts",
+    "GET /api/social/posts": "PASS - Returns post history"
+  },
+  "bug_fixed": {
+    "endpoint": "/api/whatsapp/send and /api/whatsapp/send-to-lead/{lead_id}",
+    "issue": "language_code defaulted to 'en' instead of None, bypassing auto-detection from template",
+    "fix": "Changed data.get('language_code', 'en') to data.get('language_code') to allow None value for auto-detection",
+    "verification": "Test now passes - hello_world template sends with en_US language code"
+  },
+  "rca_of_issue": "The /api/whatsapp/send endpoint was hardcoding language_code='en' as default, which caused template send failures when the actual template language was different (e.g., en_US). The send_whatsapp_template function has auto-detection logic that looks up the template's language_code from the database, but this was being bypassed because a non-None value was always passed."
+}

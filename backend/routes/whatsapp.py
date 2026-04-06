@@ -101,7 +101,7 @@ async def get_whatsapp_settings() -> Optional[Dict]:
 async def send_whatsapp_template(
     phone: str,
     template_name: str,
-    language_code: str = "en",
+    language_code: str = None,  # Changed to None to auto-detect
     variables: List[str] = None,
     lead_id: str = None,
     campaign_id: str = None
@@ -115,6 +115,16 @@ async def send_whatsapp_template(
     cleaned_phone = clean_phone_number(phone, settings.get("default_country_code", "91"))
     if not cleaned_phone:
         return {"success": False, "error": f"Invalid phone number: {phone}"}
+    
+    # Auto-detect language code from template if not provided
+    if not language_code:
+        # Try to find by template_name first
+        template = await db.whatsapp_templates.find_one({"template_name": template_name}, {"_id": 0})
+        if not template:
+            # Also try by name field
+            template = await db.whatsapp_templates.find_one({"name": template_name}, {"_id": 0})
+        
+        language_code = template.get("language_code", "en") if template else "en"
     
     # Build request payload
     payload = {
@@ -463,7 +473,7 @@ async def send_single_message(data: Dict[str, Any]):
     phone = data.get("phone")
     template_name = data.get("template_name", "")
     variables = data.get("variables", [])
-    language_code = data.get("language_code", "en")
+    language_code = data.get("language_code")  # None to auto-detect from template
     
     if not phone:
         raise HTTPException(status_code=400, detail="Phone number is required")
@@ -512,7 +522,7 @@ async def send_to_lead(lead_id: str, data: Dict[str, Any]):
     result = await send_whatsapp_template(
         phone=phone,
         template_name=template_name,
-        language_code=data.get("language_code", "en"),
+        language_code=data.get("language_code"),  # None to auto-detect from template
         variables=variables,
         lead_id=lead_id
     )

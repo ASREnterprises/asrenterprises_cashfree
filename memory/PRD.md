@@ -3,104 +3,86 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - WhatsApp Automation Bot Implementation
+## Latest Session (April 6, 2026) - WhatsApp Automation Bot v2 - Enhanced
 
 ### What Was Built
 
-#### WhatsApp CRM Automation Bot ✅
-Implemented a complete WhatsApp automation system for handling customer inquiries with intelligent auto-replies.
+#### WhatsApp CRM Automation Bot v2 ✅
+Enhanced the WhatsApp automation system with conversational, human-like responses per user's detailed requirements.
 
-**New Backend File (`/app/backend/routes/whatsapp_automation.py`):**
-Full bot logic implementation with:
-- Business hours detection (Mon-Sat 10AM-7PM IST)
-- Greeting message detection (hi, hello, namaste, etc.)
-- Option detection (1-7 numeric and keyword matching)
-- Lead source detection (Facebook/Instagram/Website/Direct)
-- Auto-reply message templates
-- Lead tagging and qualification
-- Follow-up scheduling system
+**Key Enhancements:**
 
-**New API Endpoints:**
-- `GET /api/whatsapp/automation/bot/status` - Bot status with business hours and stats
-- `GET /api/whatsapp/automation/bot/settings` - Get bot configuration
-- `POST /api/whatsapp/automation/bot/settings` - Update bot settings
-- `POST /api/whatsapp/automation/bot/test` - Test bot response logic
-- `GET /api/whatsapp/automation/bot/follow-ups` - View scheduled follow-ups
-- `POST /api/whatsapp/automation/bot/process-follow-ups` - Trigger follow-up processing
-- `DELETE /api/whatsapp/automation/bot/follow-ups/{id}` - Cancel a follow-up
+1. **Shorter, Friendlier Messages** ✅
+   - All responses now under 250 characters
+   - Uses casual, friendly tone with emojis (👍, 🙏, ☀️)
+   - One question at a time approach
+   - Mobile-friendly formatting
 
-**Webhook Integration (`/app/backend/routes/whatsapp.py`):**
-- Updated `process_incoming_message` to trigger automation
-- Referral data extraction for Click-to-WhatsApp ads
-- Automatic lead creation with source tagging
-- Follow-up scheduling after bot replies
-- Follow-up cancellation when customer responds
+2. **Lead Scoring System** ✅
+   - **HOT LEAD**: Price/quotation requests, site visit requests, sales callback
+   - **WARM LEAD**: Subsidy inquiry, general solar interest
+   - **COLD LEAD**: Just browsing, no engagement
 
-**Features Implemented:**
+3. **Hindi/Hinglish Support** ✅
+   - Detects Hindi keywords: "ghar", "dukan", "kitna", "chahiye"
+   - Maps to correct options automatically
+   - Example: "ghar ka solar chahiye" → Option 1 (Home Solar)
 
-1. **Default Welcome Auto-Reply** ✅
-   - Sent to new WhatsApp contacts
-   - Menu with options 1-7 (Home Solar, Shop Solar, Subsidy, Site Visit, Price, Service, Sales)
-   - Includes contact info and business details
+4. **Improved Intent Detection** ✅
+   - Free text "price" → Option 4 (Price/Quotation)
+   - Free text "subsidy" → Option 3 (PM Surya Ghar)
+   - Free text "site visit" → Option 5 (Free Site Visit)
+   - No forced menu re-display for clear intent
 
-2. **Ad-Specific Auto-Reply (Facebook/Instagram)** ✅
-   - Detects Click-to-WhatsApp ad referrals
-   - Personalized welcome for social media leads
-   - Asks for roof photos, electricity bill, location
+5. **Capacity Suggestion Logic** ✅
+   - ₹500-₹1500 bill → 1kW-2kW
+   - ₹1500-₹3000 bill → 2kW-3kW
+   - ₹3000-₹6000 bill → 3kW-5kW
+   - ₹6000+ bill → 5kW+
 
-3. **After-Hours Auto-Reply** ✅
-   - Activates outside Mon-Sat 10AM-7PM IST
-   - Sunday treated as after-hours/holiday
-   - Requests customer details for callback
+6. **Enhanced Tagging** ✅
+   - whatsapp_lead, new_inquiry
+   - home_solar, commercial_solar, subsidy_interest
+   - quotation_requested, site_visit_requested
+   - hot_lead, warm_lead, cold_lead
+   - facebook_ad_lead, instagram_ad_lead, website_lead
 
-4. **Quick Reply Menu (Options 1-7)** ✅
-   - Option 1: Home Solar → requests location, bill, roof type
-   - Option 2: Shop/Office Solar → commercial info request
-   - Option 3: PM Surya Ghar Subsidy → eligibility questions
-   - Option 4: Free Site Visit → address and preferred time
-   - Option 5: Price/Quotation → bill and property details
-   - Option 6: Service/Support → problem description
-   - Option 7: Talk to Sales → direct callback promise
+**Updated Messages:**
 
-5. **Lead Qualification & Tagging** ✅
-   - Auto-tags based on selection:
-     - Home Solar Lead, Commercial Solar Lead
-     - Subsidy Lead, Site Visit Lead
-     - Quotation Lead, Service Lead, Sales Call Lead
-   - Source tags: Facebook Lead, Instagram Lead, Website Lead, Direct WhatsApp Lead
+```
+Welcome Message:
+🙏 Welcome to ASR Enterprises – Solar Rooftop Installation
+Thank you for contacting us. ☀️
+We help with Home Solar, Shop/Office Solar, Subsidy, Price & Installation.
 
-6. **Follow-Up Scheduling** ✅
-   - First follow-up: 2 hours after inactivity
-   - Second follow-up: 24 hours (WhatsApp policy compliant)
-   - Max 2 follow-ups per lead
-   - Auto-cancelled when customer responds
+Option 1 Response:
+Great 👍
+To guide you better, please tell us your monthly electricity bill.
+Examples: ₹1000, ₹2000, ₹3000+
 
-7. **Duplicate Prevention** ✅
-   - No repeat welcome messages in same conversation
-   - No repeat option replies for same selection
-   - Greeting detection for re-engagement
+Option 4 Response:
+Sure 👍
+We can help with a solar quotation.
+Please share your monthly electricity bill first so we can suggest the right solar capacity.
+```
 
-### Test Results (iteration_70.json)
-- Backend: 100% (28/28 tests passed)
-- All bot features verified:
-  - Greeting detection ✓
-  - Option 1-7 detection ✓
-  - Keyword matching ✓
-  - Lead source identification ✓
-  - Business hours logic ✓
-  - After-hours response ✓
-  - Quick replies ✓
-  - Follow-up scheduling ✓
+### Test Results (iteration_71.json)
+- Backend: **100% (43/43 tests passed)**
+- All new features verified:
+  - Shorter messages ✓
+  - Lead scoring ✓
+  - Hindi/Hinglish detection ✓
+  - Free text intent mapping ✓
 
 ### Files Modified
-- `/app/backend/routes/whatsapp_automation.py` - Complete bot logic (NEW - 1100+ lines)
-- `/app/backend/routes/whatsapp.py` - Webhook integration, new API endpoints
+- `/app/backend/routes/whatsapp_automation.py` - Complete rewrite of messages and logic
 
-### Configuration
+### Configuration (Updated)
 - Business Hours: Monday-Saturday, 10:00 AM - 7:00 PM IST
 - Sunday: Treated as after-hours
-- Follow-up Timing: 2 hours (first), 24 hours (second)
-- Max Follow-ups: 2 per lead
+- WhatsApp: 8298389097
+- Phone: 9296389097
+- Email: support@asrenterprises.in
 
 ---
 

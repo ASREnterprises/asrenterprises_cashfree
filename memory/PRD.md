@@ -3,51 +3,50 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - WhatsApp & Social Media Enhancements
+## Latest Session (April 6, 2026) - Staff Portal Enhancements + WhatsApp for Staff
 
 ### What Was Built
 
-#### 1. WhatsApp Inbox Delete & Media Features ✅
-Added message deletion and media sharing capabilities to WhatsApp Inbox.
+#### 1. Staff Portal - New Leads First ✅
+- Leads now sorted with `isNew` flagged leads appearing first
+- Then sorted by `assigned_at` descending (newest assignments first)
+- Works in both desktop table and mobile card views
 
-**New UI Features in WhatsAppInbox.js:**
-- **Single Message Delete**: Hover trash icon on any message with confirmation dialog
-- **Bulk Selection Mode**: Checkbox selection for multiple messages with bulk delete button
-- **Clear Conversation**: Button to clear all messages with confirmation
-- **Media Attachment**: File picker button in reply box for images, videos, documents
-- **Media Preview**: Shows file preview with caption input before sending
-- **24-Hour Window Enforcement**: Media can only be sent within 24h of customer's last message
+#### 2. Staff Portal - Auto Call Tracking ✅  
+- When staff clicks "Call Now", lead automatically marked as `called`
+- `call_status` and `last_call_at` fields persisted to backend
+- Leads filter correctly shows: All / Uncalled / Called counts
+- **Bug Fixed**: Duplicate endpoint in server.py wasn't saving call_status - now fixed
 
-**Backend Endpoints (already existed):**
-- `DELETE /api/whatsapp/messages/{id}` - Delete single message
-- `POST /api/whatsapp/messages/bulk-delete` - Bulk delete messages
-- `DELETE /api/whatsapp/conversations/{phone}/clear` - Clear all messages
-- `POST /api/whatsapp/conversations/{phone}/send-media` - Send media message
+#### 3. Staff Portal - Mobile-Friendly Dashboard ✅
+- Pipeline section now horizontally scrollable on mobile
+- Uses `overflow-x-auto` with `min-w-max` for proper touch scrolling
+- Pipeline stages display cleanly on small screens
 
-#### 2. Social Media File Upload (Already Complete) ✅
-File upload UI was already implemented in previous session with:
-- Drag-and-drop upload zone
-- File validation (images and videos)
-- Upload progress indicator
-- Preview before posting
-- Connected to `/api/social/upload/media` endpoint
+#### 4. Staff Portal - WhatsApp Tab ✅
+- New "WhatsApp" tab added to staff navigation (shortLabel "WA")
+- Shows WhatsAppInbox component in `staffMode`
+- Filters conversations to only show staff's assigned leads
+- Staff can send template messages and reply to customers
 
-#### 3. Staff Portal Auto-Sync & NEW Badge (Already Complete) ✅
-- Auto-sync toggle button syncs leads every 30 seconds
-- "NEW" badge with pulse animation on recently assigned leads (within 2 hours)
-- Pagination controls for leads exceeding 150 per page
+#### 5. Facebook Token Updated ✅
+- New access token saved: `EAASYb5BHB00BRJ...QcHHDMZD`
+- **Note**: User still needs to provide Facebook Page ID for posting to work
 
-### Test Results (iteration_64.json)
-- Backend: 100% (17/17 tests passed)
-- Frontend: Code review verified
-- All features working correctly
+### Test Results (iteration_65.json)
+- Backend: 100% (9/9 tests passed)
+- Bug Fixed: call_status persistence issue in server.py
+- All features verified through code review
 
 ### Files Modified
-- `/app/frontend/src/components/WhatsAppInbox.js` - Added delete UI, bulk selection, media attachment
+- `/app/frontend/src/components/StaffPortal.js` - WhatsApp tab, sorting, call tracking
+- `/app/frontend/src/components/WhatsAppInbox.js` - staffMode filtering  
+- `/app/backend/routes/staff.py` - call_status field support
+- `/app/backend/server.py` - Fixed duplicate endpoint with call tracking fields
 
 ---
 
-## Previous Session (April 5, 2026) - Social Media Manager Module
+## Previous Session (April 5-6, 2026) - WhatsApp Delete & Media Features
 
 ### What Was Built
 

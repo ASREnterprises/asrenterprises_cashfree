@@ -1729,7 +1729,13 @@ async def webhook_receive(request: Request):
         return {"status": "error", "message": str(e)}
 
 async def process_incoming_message(message: Dict, value: Dict):
-    """Process incoming WhatsApp message"""
+    """Process incoming WhatsApp message and trigger automation"""
+    from routes.whatsapp_automation import (
+        handle_incoming_message_automation, 
+        cancel_follow_ups_for_lead,
+        schedule_follow_up
+    )
+    
     wa_message_id = message.get("id", "")
     from_phone = message.get("from", "")
     msg_type = message.get("type", "")
@@ -1750,6 +1756,19 @@ async def process_incoming_message(message: Dict, value: Dict):
     
     # Clean phone number for lookup
     cleaned_phone = clean_phone_number(from_phone)
+    
+    # Check for referral data (from Click-to-WhatsApp ads)
+    referral = message.get("referral", {})
+    detected_source = None
+    if referral:
+        source_url = referral.get("source_url", "").lower()
+        source_type = referral.get("source_type", "").lower()
+        if "facebook" in source_url or source_type == "facebook":
+            detected_source = "facebook"
+        elif "instagram" in source_url or source_type == "instagram":
+            detected_source = "instagram"
+        else:
+            detected_source = "facebook"  # Default for Meta ads
     
     # Find matching lead
     lead = await db.crm_leads.find_one(
@@ -1775,12 +1794,9 @@ async def process_incoming_message(message: Dict, value: Dict):
         "wa_message_id": wa_message_id,
         "status": "received",
         "raw_message": message,
+        "referral": referral if referral else None,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    
-    # Auto-update lead stage based on keywords
-    if lead_id and content:
-        await auto_update_lead_stage(lead_id, content, lead)
     
     # Create new lead if not found
     if not lead_id and cleaned_phone:
@@ -1790,12 +1806,15 @@ async def process_incoming_message(message: Dict, value: Dict):
             contact_name = contacts[0].get("profile", {}).get("name", "")
         
         new_lead_id = str(uuid.uuid4())
+        lead_source = detected_source or "whatsapp_reply"
+        
         await db.crm_leads.insert_one({
             "id": new_lead_id,
             "name": contact_name or f"WhatsApp {cleaned_phone[-4:]}",
             "phone": cleaned_phone,
-            "source": "whatsapp_reply",
+            "source": lead_source,
             "stage": "new",
+            "tags": [],
             "created_at": datetime.now(timezone.utc).isoformat(),
             "activities": [{
                 "id": str(uuid.uuid4()),
@@ -1806,26 +1825,66 @@ async def process_incoming_message(message: Dict, value: Dict):
             }]
         })
         
+        lead_id = new_lead_id
+        
         # Update message with new lead ID
         await db.whatsapp_messages.update_one(
             {"id": message_id},
             {"$set": {"lead_id": new_lead_id}}
         )
     
-    # Add activity to lead
-    if lead_id:
+    # Add activity to existing lead
+    if lead_id and lead:
         await db.crm_leads.update_one(
             {"id": lead_id},
-            {"$push": {
-                "activities": {
-                    "id": str(uuid.uuid4()),
-                    "type": "whatsapp_reply",
-                    "title": "WhatsApp Reply Received",
-                    "description": content[:200] if content else "Received message",
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+            {
+                "$push": {
+                    "activities": {
+                        "id": str(uuid.uuid4()),
+                        "type": "whatsapp_reply",
+                        "title": "WhatsApp Reply Received",
+                        "description": content[:200] if content else "Received message",
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                },
+                "$set": {
+                    "last_interaction": datetime.now(timezone.utc).isoformat()
                 }
-            }}
+            }
         )
+    
+    # Cancel any pending follow-ups since customer responded
+    try:
+        await cancel_follow_ups_for_lead(cleaned_phone)
+    except Exception as e:
+        logger.warning(f"Error cancelling follow-ups: {e}")
+    
+    # ==================== TRIGGER AUTOMATION BOT ====================
+    try:
+        automation_result = await handle_incoming_message_automation(
+            phone=cleaned_phone,
+            content=content,
+            lead_source=detected_source,
+            payload=message,
+            lead_id=lead_id
+        )
+        
+        logger.info(f"Automation result for {cleaned_phone}: {automation_result}")
+        
+        # Schedule follow-up if automation sent a reply
+        if automation_result.get("auto_reply_sent") and lead_id:
+            try:
+                await schedule_follow_up(phone=cleaned_phone, lead_id=lead_id, follow_up_number=1)
+            except Exception as e:
+                logger.warning(f"Error scheduling follow-up: {e}")
+                
+    except Exception as e:
+        logger.error(f"Automation error for {cleaned_phone}: {str(e)}")
+        # Don't fail the webhook on automation error
+    
+    # Auto-update lead stage based on keywords (legacy logic, kept for backward compatibility)
+    if lead_id and content and lead:
+        await auto_update_lead_stage(lead_id, content, lead)
 
 async def auto_update_lead_stage(lead_id: str, content: str, lead: Dict):
     """Auto-update lead stage based on message keywords"""
@@ -2010,3 +2069,152 @@ async def get_leads_for_campaign(
         "invalid_count": invalid_count,
         "total_found": len(leads)
     }
+
+
+# ==================== AUTOMATION BOT ENDPOINTS ====================
+
+@router.get("/automation/bot/settings")
+async def get_bot_automation_settings():
+    """Get WhatsApp bot automation settings"""
+    from routes.whatsapp_automation import get_automation_settings, BUSINESS_INFO, FOLLOW_UP_CONFIG
+    
+    settings = await get_automation_settings()
+    
+    return {
+        "settings": settings,
+        "business_hours": {
+            "start": str(BUSINESS_INFO["business_hours"]["start"]),
+            "end": str(BUSINESS_INFO["business_hours"]["end"]),
+            "days": BUSINESS_INFO["business_hours"]["days"],
+            "days_display": "Monday to Saturday"
+        },
+        "follow_up_config": FOLLOW_UP_CONFIG
+    }
+
+@router.post("/automation/bot/settings")
+async def update_bot_automation_settings(data: Dict[str, Any]):
+    """Update WhatsApp bot automation settings"""
+    from routes.whatsapp_automation import update_automation_settings
+    
+    settings = await update_automation_settings(data)
+    return {"success": True, "settings": settings}
+
+@router.get("/automation/bot/status")
+async def get_bot_status():
+    """Get current bot status and statistics"""
+    from routes.whatsapp_automation import is_business_hours, get_ist_now
+    
+    now_ist = get_ist_now()
+    
+    # Get auto-reply stats for today
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    stats = {
+        "welcome_sent": await db.whatsapp_messages.count_documents({
+            "auto_reply_type": "welcome",
+            "created_at": {"$gte": today_start.isoformat()}
+        }),
+        "after_hours_sent": await db.whatsapp_messages.count_documents({
+            "auto_reply_type": "after_hours",
+            "created_at": {"$gte": today_start.isoformat()}
+        }),
+        "fb_ig_welcome_sent": await db.whatsapp_messages.count_documents({
+            "auto_reply_type": "fb_ig_welcome",
+            "created_at": {"$gte": today_start.isoformat()}
+        }),
+        "quick_replies_sent": await db.whatsapp_messages.count_documents({
+            "auto_reply_type": "quick_reply",
+            "created_at": {"$gte": today_start.isoformat()}
+        }),
+        "follow_ups_sent": await db.whatsapp_messages.count_documents({
+            "auto_reply_type": "follow_up",
+            "created_at": {"$gte": today_start.isoformat()}
+        })
+    }
+    
+    # Get pending follow-ups
+    pending_follow_ups = await db.whatsapp_follow_ups.count_documents({"status": "pending"})
+    
+    return {
+        "bot_active": True,
+        "is_business_hours": is_business_hours(),
+        "current_time_ist": now_ist.strftime("%Y-%m-%d %H:%M:%S IST"),
+        "current_day": now_ist.strftime("%A"),
+        "today_stats": stats,
+        "pending_follow_ups": pending_follow_ups
+    }
+
+@router.post("/automation/bot/test")
+async def test_bot_response(data: Dict[str, Any]):
+    """Test bot response for a given message (does not actually send)"""
+    from routes.whatsapp_automation import (
+        process_auto_reply, 
+        detect_option_from_message,
+        is_business_hours,
+        is_greeting_message
+    )
+    
+    phone = data.get("phone", "9999999999")
+    content = data.get("content", "")
+    lead_source = data.get("lead_source")
+    
+    # Get what the bot would respond with
+    result = await process_auto_reply(
+        phone=phone,
+        content=content,
+        lead_source=lead_source
+    )
+    
+    return {
+        "test_input": {
+            "phone": phone,
+            "content": content,
+            "lead_source": lead_source
+        },
+        "detected_option": detect_option_from_message(content),
+        "is_greeting": is_greeting_message(content),
+        "is_business_hours": is_business_hours(),
+        "would_send_reply": result is not None,
+        "reply_type": result.get("type") if result else None,
+        "reply_message": result.get("message")[:200] + "..." if result and len(result.get("message", "")) > 200 else (result.get("message") if result else None)
+    }
+
+@router.get("/automation/bot/follow-ups")
+async def get_follow_ups(status: str = None, limit: int = 50):
+    """Get scheduled follow-ups"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    follow_ups = await db.whatsapp_follow_ups.find(
+        query,
+        {"_id": 0}
+    ).sort("scheduled_at", -1).limit(limit).to_list(limit)
+    
+    return {"follow_ups": follow_ups, "count": len(follow_ups)}
+
+@router.post("/automation/bot/process-follow-ups")
+async def trigger_process_follow_ups():
+    """Manually trigger processing of pending follow-ups"""
+    from routes.whatsapp_automation import process_pending_follow_ups
+    
+    await process_pending_follow_ups()
+    
+    return {"success": True, "message": "Follow-ups processed"}
+
+@router.delete("/automation/bot/follow-ups/{follow_up_id}")
+async def cancel_follow_up(follow_up_id: str):
+    """Cancel a specific follow-up"""
+    result = await db.whatsapp_follow_ups.update_one(
+        {"id": follow_up_id, "status": "pending"},
+        {"$set": {
+            "status": "cancelled_manually",
+            "cancelled_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count > 0:
+        return {"success": True, "message": "Follow-up cancelled"}
+    else:
+        raise HTTPException(status_code=404, detail="Follow-up not found or already processed")
+

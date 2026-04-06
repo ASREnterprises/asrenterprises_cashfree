@@ -123,18 +123,26 @@ const ConversationItem = ({ conversation, isActive, onClick }) => {
   );
 };
 
-// Chat Message Bubble
+// Chat Message Bubble - Mobile Optimized
 const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDelete }) => {
   const isIncoming = message.direction === 'incoming';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   const formatTime = (dateStr) => {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleString('en-IN', {
-      day: '2-digit',
-      month: 'short',
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-IN', {
       hour: '2-digit',
       minute: '2-digit'
+    });
+  };
+  
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short'
     });
   };
   
@@ -144,27 +152,27 @@ const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDele
   };
   
   return (
-    <div className={`flex ${isIncoming ? 'justify-start' : 'justify-end'} mb-3 group`}>
+    <div className={`flex ${isIncoming ? 'justify-start' : 'justify-end'} mb-2 px-2 group`}>
       {/* Selection checkbox */}
       {selectionMode && (
         <button 
           onClick={() => onToggleSelect(message.id)}
-          className={`mr-2 flex-shrink-0 self-center p-1 rounded ${isSelected ? 'text-green-500' : 'text-gray-400'}`}
+          className={`mr-1 flex-shrink-0 self-center p-1 rounded ${isSelected ? 'text-green-500' : 'text-gray-400'}`}
         >
-          {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+          {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
         </button>
       )}
       
-      <div className={`relative max-w-[75%] rounded-2xl px-4 py-3 ${
+      <div className={`relative max-w-[85%] sm:max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
         isIncoming 
-          ? 'bg-white border border-gray-200 rounded-tl-md' 
-          : 'bg-gradient-to-br from-green-500 to-green-600 text-white rounded-tr-md'
+          ? 'bg-white text-gray-800 rounded-tl-none' 
+          : 'bg-[#dcf8c6] text-gray-800 rounded-tr-none'
       }`}>
-        {/* Delete button (hover) */}
+        {/* Delete button (tap on mobile, hover on desktop) */}
         {!selectionMode && (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className={`absolute -top-2 ${isIncoming ? '-right-2' : '-left-2'} opacity-0 group-hover:opacity-100 transition p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600`}
+            className={`absolute -top-2 ${isIncoming ? '-right-2' : '-left-2'} md:opacity-0 md:group-hover:opacity-100 opacity-100 transition p-1 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600`}
             title="Delete message"
           >
             <Trash2 className="w-3 h-3" />
@@ -173,7 +181,7 @@ const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDele
         
         {/* Delete confirmation */}
         {showDeleteConfirm && (
-          <div className="absolute -top-12 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl p-2 z-10 flex items-center gap-2">
+          <div className={`absolute -top-10 ${isIncoming ? 'left-0' : 'right-0'} bg-white border border-gray-200 rounded-lg shadow-xl p-2 z-10 flex items-center gap-1`}>
             <span className="text-xs text-gray-600">Delete?</span>
             <button onClick={handleDelete} className="text-xs bg-red-500 text-white px-2 py-1 rounded">Yes</button>
             <button onClick={() => setShowDeleteConfirm(false)} className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">No</button>
@@ -182,38 +190,38 @@ const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDele
         
         {/* Template indicator */}
         {message.template_name && (
-          <div className={`flex items-center gap-1 text-xs mb-1 ${isIncoming ? 'text-purple-600' : 'text-green-100'}`}>
+          <div className="flex items-center gap-1 text-xs mb-1 text-purple-600">
             <FileText className="w-3 h-3" />
-            <span>Template: {message.template_name}</span>
+            <span className="truncate">Template: {message.template_name}</span>
           </div>
         )}
         
-        {/* Media indicator */}
+        {/* Media content */}
         {message.type && message.type !== 'text' && message.media_url && (
-          <div className={`mb-2 ${isIncoming ? '' : ''}`}>
+          <div className="mb-2">
             {message.type === 'image' && (
-              <img src={message.media_url} alt="Shared image" className="max-w-full rounded-lg max-h-48 object-cover" />
+              <img src={message.media_url} alt="Shared" className="max-w-full rounded-lg max-h-40 object-cover" />
             )}
             {message.type === 'video' && (
-              <video src={message.media_url} controls className="max-w-full rounded-lg max-h-48" />
+              <video src={message.media_url} controls className="max-w-full rounded-lg max-h-40" />
             )}
             {message.type === 'document' && (
-              <a href={message.media_url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 ${isIncoming ? 'text-blue-600' : 'text-green-100'}`}>
+              <a href={message.media_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600">
                 <File className="w-4 h-4" />
-                <span className="text-sm underline">{message.filename || 'Document'}</span>
+                <span className="text-sm underline truncate">{message.filename || 'Document'}</span>
               </a>
             )}
           </div>
         )}
         
         {/* Message content */}
-        <p className={`text-sm whitespace-pre-wrap ${isIncoming ? 'text-gray-800' : 'text-white'}`}>
+        <p className="text-sm whitespace-pre-wrap break-words">
           {message.content || message.template_name || '(No content)'}
         </p>
         
-        {/* Footer with time and status */}
-        <div className={`flex items-center justify-end gap-2 mt-2 ${isIncoming ? 'text-gray-400' : 'text-green-100'}`}>
-          <span className="text-xs">{formatTime(message.created_at)}</span>
+        {/* Footer with time and status - WhatsApp style */}
+        <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-gray-500">
+          <span>{formatTime(message.created_at)}</span>
           {!isIncoming && <StatusBadge status={message.status} direction={message.direction} />}
         </div>
       </div>
@@ -299,7 +307,7 @@ const TemplateSelector = ({ templates, selectedTemplate, onSelect, variables, on
 };
 
 // Main WhatsApp Inbox Component
-export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffId = null, staffLeadIds = [] }) => {
+export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffId = null, staffLeadIds = [], openLeadPhone = null, onLeadOpened = null }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [chatThread, setChatThread] = useState(null);
@@ -311,11 +319,25 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
   
+  // Mobile state
+  const [showMobileChat, setShowMobileChat] = useState(false);
+  
   // Reply form state
   const [replyMode, setReplyMode] = useState('template'); // 'template', 'text', or 'media'
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [templateVariables, setTemplateVariables] = useState([]);
   const [textMessage, setTextMessage] = useState('');
+  
+  // Quick reply state
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const quickReplies = [
+    { label: "👋 Hello", text: "Hello! How can I help you today?" },
+    { label: "📞 Call You", text: "I'll call you shortly to discuss further." },
+    { label: "✅ Noted", text: "Noted. I'll follow up on this." },
+    { label: "📅 Schedule", text: "Would you like to schedule a site visit?" },
+    { label: "💰 Quote", text: "I'll prepare a quotation and share it with you soon." },
+    { label: "🙏 Thanks", text: "Thank you for your interest in our solar solutions!" }
+  ];
   
   // Delete state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -333,6 +355,18 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   const chatContainerRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
+  
+  // Handle openLeadPhone prop to auto-open a conversation
+  useEffect(() => {
+    if (openLeadPhone) {
+      const cleanPhone = openLeadPhone.replace(/\D/g, '');
+      const phoneWithCountry = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
+      setSelectedConversation(phoneWithCountry);
+      fetchChatThread(phoneWithCountry);
+      setShowMobileChat(true);
+      if (onLeadOpened) onLeadOpened();
+    }
+  }, [openLeadPhone]);
   
   // Fetch conversations - staff mode filters by assigned leads
   const fetchConversations = useCallback(async () => {
@@ -679,9 +713,6 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
     );
   });
   
-  // Mobile view state
-  const [showMobileChat, setShowMobileChat] = useState(false);
-  
   const handleMobileBack = () => {
     setShowMobileChat(false);
     setSelectedConversation(null);
@@ -935,6 +966,36 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                   <div className="mb-3 p-3 bg-amber-50 text-amber-700 rounded-xl text-sm flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                     <span>Outside 24-hour window. Please send an approved template instead.</span>
+                  </div>
+                )}
+                
+                {/* Quick Reply Buttons */}
+                {chatThread?.within_24h_window && (
+                  <div className="mb-3">
+                    <button
+                      onClick={() => setShowQuickReplies(!showQuickReplies)}
+                      className="text-sm text-gray-600 flex items-center gap-1 mb-2 hover:text-green-600 transition"
+                    >
+                      <ChevronDown className={`w-4 h-4 transition-transform ${showQuickReplies ? 'rotate-180' : ''}`} />
+                      Quick Replies
+                    </button>
+                    {showQuickReplies && (
+                      <div className="flex flex-wrap gap-2">
+                        {quickReplies.map((reply, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setTextMessage(reply.text);
+                              setReplyMode('text');
+                              setShowQuickReplies(false);
+                            }}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700 rounded-full text-xs font-medium transition"
+                          >
+                            {reply.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
                 

@@ -1315,13 +1315,16 @@ export const CRMDashboard = () => {
     setUploading(false);
   };
 
-  const sendWhatsApp = (phone, message) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const phoneWithCountry = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
-    // Use api.whatsapp.com which prioritizes WhatsApp Business app on mobile
-    // Falls back to regular WhatsApp if Business app is not installed
-    const businessUrl = `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(message)}`;
-    window.open(businessUrl, '_blank');
+  // Open WhatsApp CRM for a lead - switch to WhatsApp tab
+  const sendWhatsApp = (phone, message, lead = null) => {
+    if (lead) {
+      // Open WhatsApp inbox with this lead's conversation
+      setOpenWhatsAppChatLeadId(lead.id);
+      setActiveTab('whatsapp');
+    } else {
+      // Just switch to WhatsApp tab
+      setActiveTab('whatsapp');
+    }
   };
 
   const forwardLeadToStaffWhatsApp = async (lead, staff) => {

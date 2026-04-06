@@ -8,6 +8,7 @@ import uuid
 import httpx
 import logging
 import hashlib
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
@@ -1158,6 +1159,128 @@ async def send_template_to_conversation(phone: str, request: Request):
     )
     
     return result
+
+@router.post("/templates/bulk-send")
+async def send_template_bulk(request: Request, background_tasks: BackgroundTasks):
+    """
+    Send template message to multiple leads in bulk.
+    Accepts list of lead_ids or phone numbers and a template name.
+    Returns immediately and processes in background.
+    """
+    data = await request.json()
+    template_name = data.get("template_name")
+    lead_ids = data.get("lead_ids", [])
+    phones = data.get("phones", [])
+    variables = data.get("variables", [])  # Variables to use for all messages
+    
+    if not template_name:
+        raise HTTPException(status_code=400, detail="Template name is required")
+    
+    if not lead_ids and not phones:
+        raise HTTPException(status_code=400, detail="At least one lead_id or phone number is required")
+    
+    # Get settings
+    settings = await db.whatsapp_settings.find_one({}, {"_id": 0})
+    if not settings or not settings.get("access_token"):
+        raise HTTPException(status_code=400, detail="WhatsApp API not configured")
+    
+    # Collect all phone numbers
+    all_phones = []
+    
+    # Get phones from lead_ids
+    if lead_ids:
+        for lead_id in lead_ids:
+            lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0, "phone": 1, "name": 1})
+            if lead and lead.get("phone"):
+                all_phones.append({
+                    "phone": clean_phone_number(lead["phone"]),
+                    "lead_id": lead_id,
+                    "name": lead.get("name", "")
+                })
+    
+    # Add direct phone numbers
+    for phone in phones:
+        clean_phone = clean_phone_number(phone)
+        if clean_phone not in [p["phone"] for p in all_phones]:
+            all_phones.append({
+                "phone": clean_phone,
+                "lead_id": None,
+                "name": ""
+            })
+    
+    if not all_phones:
+        raise HTTPException(status_code=400, detail="No valid phone numbers found")
+    
+    # Create bulk send job
+    job_id = str(uuid.uuid4())
+    job_record = {
+        "id": job_id,
+        "template_name": template_name,
+        "total_count": len(all_phones),
+        "sent_count": 0,
+        "failed_count": 0,
+        "status": "processing",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "results": []
+    }
+    await db.whatsapp_bulk_jobs.insert_one(job_record)
+    
+    # Process in background
+    async def process_bulk_send():
+        sent = 0
+        failed = 0
+        results = []
+        
+        for recipient in all_phones:
+            try:
+                result = await send_whatsapp_template(
+                    phone=recipient["phone"],
+                    template_name=template_name,
+                    variables=variables,
+                    lead_id=recipient.get("lead_id")
+                )
+                
+                if result.get("success"):
+                    sent += 1
+                    results.append({"phone": recipient["phone"], "status": "sent"})
+                else:
+                    failed += 1
+                    results.append({"phone": recipient["phone"], "status": "failed", "error": result.get("error")})
+                
+                # Small delay to avoid rate limiting
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                failed += 1
+                results.append({"phone": recipient["phone"], "status": "failed", "error": str(e)})
+        
+        # Update job record
+        await db.whatsapp_bulk_jobs.update_one(
+            {"id": job_id},
+            {"$set": {
+                "sent_count": sent,
+                "failed_count": failed,
+                "status": "completed",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "results": results
+            }}
+        )
+    
+    background_tasks.add_task(process_bulk_send)
+    
+    return {
+        "success": True,
+        "job_id": job_id,
+        "message": f"Bulk send started for {len(all_phones)} recipients",
+        "total_count": len(all_phones)
+    }
+
+@router.get("/templates/bulk-send/{job_id}")
+async def get_bulk_send_status(job_id: str):
+    """Get status of a bulk send job"""
+    job = await db.whatsapp_bulk_jobs.find_one({"id": job_id}, {"_id": 0})
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return job
 
 @router.get("/conversations/by-lead/{lead_id}")
 async def get_conversation_by_lead(lead_id: str):

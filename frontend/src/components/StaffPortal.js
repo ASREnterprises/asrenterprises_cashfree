@@ -86,6 +86,10 @@ export const StaffPortal = () => {
   const [showLeadWhatsAppHistory, setShowLeadWhatsAppHistory] = useState(false);
   const [leadWhatsAppMessages, setLeadWhatsAppMessages] = useState([]);
   
+  // Floating Action Button state
+  const [showFabMenu, setShowFabMenu] = useState(false);
+  const [quickActionLead, setQuickActionLead] = useState(null);
+  
   const navigate = useNavigate();
 
   // Handle scroll to show/hide scroll-to-top button
@@ -472,11 +476,20 @@ export const StaffPortal = () => {
     }
   };
 
-  const sendWhatsApp = (phone, message) => {
-    const cleanPhone = phone.replace(/\D/g, '');
-    const phoneWithCountry = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
-    window.open(`https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`, '_blank');
+  // Open WhatsApp CRM for a lead - instead of external WhatsApp
+  const sendWhatsApp = (phone, message, lead = null) => {
+    // If we have a lead, switch to WhatsApp tab and open their conversation
+    if (lead) {
+      setActiveTab('whatsapp');
+      setSelectedWhatsAppLead(lead);
+    } else {
+      // Fallback to WhatsApp tab
+      setActiveTab('whatsapp');
+    }
   };
+  
+  // State for selected WhatsApp lead
+  const [selectedWhatsAppLead, setSelectedWhatsAppLead] = useState(null);
 
   // WhatsApp Cloud API Integration Functions
   const openWhatsAppTemplateModal = (lead) => {
@@ -700,7 +713,7 @@ export const StaffPortal = () => {
                         </div>
                         <div className="flex space-x-2">
                           {lead && (
-                            <button onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name}, this is from ASR Enterprises...`)} className="bg-green-600 text-[#0a355e] px-3 py-1 rounded text-sm">WhatsApp</button>
+                            <button onClick={() => sendWhatsApp(lead.phone, '', lead)} className="bg-green-600 text-[#0a355e] px-3 py-1 rounded text-sm">WhatsApp</button>
                           )}
                         </div>
                       </div>
@@ -988,7 +1001,7 @@ export const StaffPortal = () => {
                             <span>Call</span>
                           </button>
                           <button 
-                            onClick={() => sendWhatsApp(lead.phone, `Hi ${lead.name || ''}, this is ${staffData?.name} from ASR Enterprises regarding your solar inquiry.`)} 
+                            onClick={() => sendWhatsApp(lead.phone, '', lead)} 
                             className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 transition"
                             title="WhatsApp Customer (Direct)"
                           >
@@ -1257,6 +1270,8 @@ export const StaffPortal = () => {
                 staffMode={true}
                 staffId={staffData?.staff_id}
                 staffLeadIds={leads.map(l => l.id)}
+                openLeadPhone={selectedWhatsAppLead?.phone}
+                onLeadOpened={() => setSelectedWhatsAppLead(null)}
               />
             </div>
           </div>
@@ -1531,6 +1546,87 @@ export const StaffPortal = () => {
           </div>
         </div>
       )}
+      
+      {/* Mobile Floating Action Button */}
+      <div className="md:hidden fixed bottom-6 right-4 z-50">
+        {/* FAB Menu Options */}
+        {showFabMenu && (
+          <div className="absolute bottom-16 right-0 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden w-56 animate-in slide-in-from-bottom-4 duration-200">
+            <div className="p-2 border-b border-gray-100 bg-gray-50">
+              <p className="text-xs text-gray-500 font-medium px-2">Quick Actions</p>
+            </div>
+            
+            {/* Recent Lead Quick Actions */}
+            {leads.slice(0, 3).map((lead) => (
+              <div key={lead.id} className="border-b border-gray-100 last:border-0">
+                <div className="px-3 py-2 bg-gray-50">
+                  <p className="text-sm font-medium text-gray-800 truncate">{lead.name}</p>
+                  <p className="text-xs text-gray-500">{lead.phone}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-1 p-2">
+                  <button
+                    onClick={() => { handleCallLead(lead); setShowFabMenu(false); }}
+                    className="flex flex-col items-center p-2 rounded-lg hover:bg-green-50 transition"
+                  >
+                    <Phone className="w-5 h-5 text-green-600" />
+                    <span className="text-[10px] text-gray-600 mt-1">Call</span>
+                  </button>
+                  <button
+                    onClick={() => { sendWhatsApp(lead.phone, '', lead); setShowFabMenu(false); }}
+                    className="flex flex-col items-center p-2 rounded-lg hover:bg-green-50 transition"
+                  >
+                    <MessageSquare className="w-5 h-5 text-green-600" />
+                    <span className="text-[10px] text-gray-600 mt-1">WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={() => { setSelectedLead(lead); setUpdateData({ stage: lead.stage }); setShowUpdateModal(true); setShowFabMenu(false); }}
+                    className="flex flex-col items-center p-2 rounded-lg hover:bg-amber-50 transition"
+                  >
+                    <Edit className="w-5 h-5 text-amber-600" />
+                    <span className="text-[10px] text-gray-600 mt-1">Update</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+            
+            {/* Add New Lead */}
+            <button
+              onClick={() => { setShowAddLeadModal(true); setShowFabMenu(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 transition text-left"
+            >
+              <Plus className="w-5 h-5 text-blue-600" />
+              <span className="text-sm text-gray-700">Add New Lead</span>
+            </button>
+            
+            {/* Open WhatsApp */}
+            <button
+              onClick={() => { setActiveTab('whatsapp'); setShowFabMenu(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-green-50 transition text-left border-t border-gray-100"
+            >
+              <Inbox className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-gray-700">WhatsApp Inbox</span>
+            </button>
+          </div>
+        )}
+        
+        {/* Main FAB Button */}
+        <button
+          onClick={() => setShowFabMenu(!showFabMenu)}
+          className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 ${
+            showFabMenu 
+              ? 'bg-gray-600 rotate-45' 
+              : 'bg-gradient-to-br from-green-500 to-green-600'
+          }`}
+        >
+          {showFabMenu ? (
+            <X className="w-6 h-6 text-white" />
+          ) : (
+            <Plus className="w-6 h-6 text-white" />
+          )}
+        </button>
+      </div>
     </div>
   );
 };
+
+export default StaffPortal;

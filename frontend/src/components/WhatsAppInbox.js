@@ -694,26 +694,31 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   };
   
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 140px)', minHeight: '500px' }}>
       <div className="flex h-full">
-        {/* Conversation List - Hidden on mobile when chat is open */}
-        <div className={`w-full md:w-96 border-r border-gray-200 flex flex-col ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-500 to-green-600">
-            <div className="flex items-center justify-between mb-3">
+        {/* Conversation List - Full width on mobile, hidden when chat open */}
+        <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
+          {/* Header - WhatsApp style */}
+          <div className="p-3 md:p-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-green-500">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Inbox className="w-6 h-6 text-white" />
-                <h2 className="text-lg font-bold text-white">WhatsApp Inbox</h2>
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Inbox className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base md:text-lg font-bold text-white">WhatsApp</h2>
+                  {staffMode && <span className="text-xs text-green-100">Your leads only</span>}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
-                  <span className="bg-white text-green-600 text-xs font-bold rounded-full px-2 py-1">
-                    {unreadCount} new
+                  <span className="bg-white text-green-600 text-xs font-bold rounded-full px-2 py-1 min-w-[24px] text-center">
+                    {unreadCount}
                   </span>
                 )}
                 <button
                   onClick={fetchConversations}
-                  className="p-2 text-white hover:bg-white/20 rounded-lg transition"
+                  className="p-2 text-white hover:bg-white/20 rounded-full transition"
                   title="Refresh"
                 >
                   <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
@@ -721,15 +726,15 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
               </div>
             </div>
             
-            {/* Search */}
-            <div className="relative">
+            {/* Search - Compact for mobile */}
+            <div className="relative mt-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-200" />
               <input
                 type="text"
-                placeholder="Search conversations..."
+                placeholder="Search chats..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white/20 text-white placeholder-green-100 rounded-xl focus:bg-white/30 focus:outline-none transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/20 text-white placeholder-green-100 rounded-full text-sm focus:bg-white/30 focus:outline-none transition"
               />
             </div>
           </div>
@@ -779,62 +784,56 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   
-                  {/* Avatar */}
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  {/* Avatar - Smaller on mobile */}
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
                     chatThread?.lead ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'
                   }`}>
-                    <User className="w-6 h-6 text-white" />
+                    <User className="w-5 h-5 md:w-6 md:h-6 text-white" />
                   </div>
                   
-                  {/* Info */}
+                  {/* Info - Compact for mobile */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-gray-900 text-sm md:text-base truncate">
                       {chatThread?.lead?.name || selectedConversation}
                     </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Phone className="w-3 h-3" />
-                      <span>{selectedConversation}</span>
-                      {chatThread?.lead && (
+                    <div className="flex items-center gap-1 md:gap-2 text-xs text-gray-500 truncate">
+                      <span className="hidden md:inline-flex items-center gap-1"><Phone className="w-3 h-3" />{selectedConversation}</span>
+                      <span className="md:hidden">{selectedConversation.slice(-10)}</span>
+                      {chatThread?.lead?.stage && (
                         <>
                           <span>•</span>
                           <span className="text-green-600">{chatThread.lead.stage}</span>
-                          {chatThread.lead.district && (
-                            <>
-                              <span>•</span>
-                              <span>{chatThread.lead.district}</span>
-                            </>
-                          )}
                         </>
                       )}
                     </div>
                   </div>
                   
-                  {/* 24h Window Indicator */}
-                  <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium ${
+                  {/* 24h Window - Icon only on mobile */}
+                  <div className={`flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-full text-xs font-medium ${
                     chatThread?.within_24h_window 
                       ? 'bg-green-100 text-green-700' 
                       : 'bg-amber-100 text-amber-700'
                   }`}>
                     <Clock className="w-3 h-3" />
-                    {chatThread?.within_24h_window ? '24h Active' : 'Template Only'}
+                    <span className="hidden md:inline">{chatThread?.within_24h_window ? '24h Active' : 'Template Only'}</span>
                   </div>
                   
-                  {/* Delete Controls */}
-                  <div className="flex items-center gap-2">
+                  {/* Delete Controls - Compact */}
+                  <div className="flex items-center gap-1 md:gap-2">
                     {selectionMode ? (
                       <>
-                        <span className="text-xs text-gray-500">{selectedMessages.size} selected</span>
+                        <span className="text-xs text-gray-500 hidden md:inline">{selectedMessages.size}</span>
                         <button
                           onClick={handleBulkDelete}
                           disabled={selectedMessages.size === 0 || deleting}
-                          className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition"
+                          className="p-1.5 md:p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition"
                           title="Delete selected"
                         >
                           {deleting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         </button>
                         <button
                           onClick={() => { setSelectionMode(false); setSelectedMessages(new Set()); }}
-                          className="p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition"
+                          className="p-1.5 md:p-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -843,19 +842,19 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                       <>
                         <button
                           onClick={() => setSelectionMode(true)}
-                          className="p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition"
+                          className="p-1.5 md:p-2 text-gray-500 hover:bg-gray-200 rounded-lg transition"
                           title="Select messages to delete"
                           data-testid="select-messages-btn"
                         >
-                          <CheckSquare className="w-5 h-5" />
+                          <CheckSquare className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                         <button
                           onClick={() => setShowClearConfirm(true)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                          className="p-1.5 md:p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
                           title="Clear entire conversation"
                           data-testid="clear-conversation-btn"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                       </>
                     )}
@@ -864,32 +863,35 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                 
                 {/* Clear Conversation Confirmation */}
                 {showClearConfirm && (
-                  <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
-                    <span className="text-red-700 text-sm">Delete all messages in this chat?</span>
+                  <div className="mt-2 p-2 md:p-3 bg-red-50 border border-red-200 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+                    <span className="text-red-700 text-xs md:text-sm">Delete all messages?</span>
                     <div className="flex gap-2">
                       <button
                         onClick={handleClearConversation}
                         disabled={deleting}
-                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 disabled:opacity-50"
+                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs md:text-sm hover:bg-red-600 disabled:opacity-50"
                       >
-                        {deleting ? 'Deleting...' : 'Yes, Clear'}
+                        {deleting ? 'Deleting...' : 'Yes'}
                       </button>
                       <button
                         onClick={() => setShowClearConfirm(false)}
-                        className="px-3 py-1 bg-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-300"
+                        className="px-3 py-1 bg-gray-200 text-gray-600 rounded-lg text-xs md:text-sm hover:bg-gray-300"
                       >
-                        Cancel
+                        No
                       </button>
                     </div>
                   </div>
                 )}
               </div>
               
-              {/* Chat Messages */}
+              {/* Chat Messages - WhatsApp style background */}
               <div 
                 ref={chatContainerRef}
-                className="flex-1 overflow-y-auto p-4 bg-gray-100"
-                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}
+                className="flex-1 overflow-y-auto p-3 md:p-4 bg-[#e5ddd5]"
+                style={{ 
+                  backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABF0lEQVR4nO3YMUrDUBjA8f9rXcQT6BnE0aFbZ8EL6OIp3N1cPI3DwUXBU+gNHFwVHBzaJTi4JL4kJNBq2kLNn8D/7OB9/B5JfjwAAAAAAAAAw/O2+6C9vQ8/O3UVGvh6Nb8J6+0/efr6JqnN/ZmJsNxbCI3r/0kkrDePwp6YDZvr5+HV/knY1/Nhcv1yeLH3JN6+ycIrxyAq8RMAAAAASUVORK5CYII=")',
+                  backgroundRepeat: 'repeat'
+                }}
               >
                 {chatLoading ? (
                   <div className="flex items-center justify-center h-32">

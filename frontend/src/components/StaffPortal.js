@@ -67,6 +67,7 @@ export const StaffPortal = () => {
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
   const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
   const [callFilter, setCallFilter] = useState('all'); // all, called, uncalled
+  const [pipelineStageFilter, setPipelineStageFilter] = useState(null); // Filter leads by pipeline stage
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
@@ -709,21 +710,30 @@ export const StaffPortal = () => {
               </div>
             )}
 
-            {/* Pipeline - Mobile Scrollable */}
+            {/* Pipeline - Mobile Scrollable & Clickable */}
             <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-5">
               <h2 className="text-lg font-bold text-[#0a355e] mb-4">My Pipeline</h2>
               <div className="overflow-x-auto pb-2 -mx-2 px-2">
                 <div className="flex gap-2 min-w-max sm:grid sm:grid-cols-4 lg:grid-cols-8 sm:min-w-0">
                   {PIPELINE_STAGES.map((stage) => (
-                    <div key={stage.id} className="text-center min-w-[70px] sm:min-w-0">
-                      <div className={`${stage.color} rounded-lg p-3 text-white mb-1`}>
+                    <button 
+                      key={stage.id} 
+                      onClick={() => {
+                        setActiveTab('leads');
+                        setCallFilter('all');
+                        setPipelineStageFilter(stage.id);
+                      }}
+                      className="text-center min-w-[70px] sm:min-w-0 cursor-pointer hover:scale-105 transition-transform"
+                    >
+                      <div className={`${stage.color} rounded-lg p-3 text-white mb-1 hover:shadow-lg transition-shadow`}>
                         <div className="text-xl font-bold">{dashboard.pipeline_stats?.[stage.id] || 0}</div>
                       </div>
                       <div className="text-gray-500 text-xs truncate">{stage.label}</div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
+              <p className="text-xs text-gray-400 mt-2 text-center">Tap any stage to view those leads</p>
             </div>
           </div>
         )}
@@ -851,24 +861,39 @@ export const StaffPortal = () => {
             {/* Filter Buttons - Large Touch Targets for Mobile */}
             <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={() => setCallFilter('all')}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }}
+                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' && !pipelineStageFilter ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 All ({leads.length})
               </button>
               <button
-                onClick={() => setCallFilter('uncalled')}
+                onClick={() => { setCallFilter('uncalled'); setPipelineStageFilter(null); }}
                 className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'uncalled' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 Uncalled ({leads.filter(l => !calledLeads.has(l.id) && l.call_status !== 'called').length})
               </button>
               <button
-                onClick={() => setCallFilter('called')}
+                onClick={() => { setCallFilter('called'); setPipelineStageFilter(null); }}
                 className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'called' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length})
               </button>
             </div>
+            
+            {/* Pipeline Stage Filter Indicator */}
+            {pipelineStageFilter && (
+              <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center justify-between">
+                <span className="text-purple-700 font-medium">
+                  Showing: {PIPELINE_STAGES.find(s => s.id === pipelineStageFilter)?.label || pipelineStageFilter} ({leads.filter(l => l.stage === pipelineStageFilter).length})
+                </span>
+                <button
+                  onClick={() => setPipelineStageFilter(null)}
+                  className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                >
+                  Clear Filter ×
+                </button>
+              </div>
+            )}
 
             {/* Quick Stats - Larger for Mobile */}
             <div className="grid grid-cols-3 gap-3">
@@ -900,6 +925,9 @@ export const StaffPortal = () => {
                 <tbody>
                   {leads
                     .filter(lead => {
+                      // Pipeline stage filter
+                      if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
+                      // Call status filter
                       if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
                       if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
                       return true;
@@ -1004,6 +1032,7 @@ export const StaffPortal = () => {
             <div className="md:hidden space-y-4">
               {leads
                 .filter(lead => {
+                  if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
                   if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
                   if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
                   return true;
@@ -1121,15 +1150,23 @@ export const StaffPortal = () => {
             </div>
 
             {leads.filter(lead => {
+              if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
               if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
               if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
               return true;
             }).length === 0 && (
               <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
                 <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">{callFilter === 'all' ? 'No leads assigned yet' : `No ${callFilter} leads`}</p>
-                {callFilter !== 'all' && (
-                  <button onClick={() => setCallFilter('all')} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
+                <p className="text-gray-500">
+                  {pipelineStageFilter 
+                    ? `No leads in "${PIPELINE_STAGES.find(s => s.id === pipelineStageFilter)?.label}" stage`
+                    : callFilter === 'all' 
+                      ? 'No leads assigned yet' 
+                      : `No ${callFilter} leads`
+                  }
+                </p>
+                {(callFilter !== 'all' || pipelineStageFilter) && (
+                  <button onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
                 )}
               </div>
             )}

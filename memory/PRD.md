@@ -3,43 +3,52 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - Meta API Fixes + New Token
+## Latest Session (April 6, 2026) - Social Media Fix + Staff WhatsApp + UI Updates
 
 ### What Was Fixed
 
-#### 1. Facebook Posting Fixed ✅
-- Added `get_page_access_token()` function to derive Page Access Token from System User token
-- System User tokens cannot directly post - they need to be exchanged for Page tokens
-- Facebook posts now work correctly (verified with post ID: 963923893475549_122117543613241422)
+#### 1. Facebook File Upload from Mobile ✅
+- Local files (from `/api/social/files/`) are now uploaded as binary data directly to Facebook
+- No longer relies on Meta fetching from our API URL (which they couldn't access)
+- Works with images and videos uploaded from mobile storage
 
-#### 2. Instagram Posting Fixed ✅  
-- Instagram API calls now also use Page Access Token
-- Instagram connected: @asr_enterprises_patna (ID: 17841466839933393)
+#### 2. Instagram Local File Error Message ✅
+- Instagram API requires publicly accessible URLs (Meta limitation)
+- Now shows clear error: "Please use public URL from imgur.com or imgbb.com"
+- Facebook works with local files, Instagram doesn't (API design difference)
 
-#### 3. WhatsApp Template Language Auto-Detection ✅
-- Templates now auto-detect language code from stored template
-- `hello_world` template is "en_US", `promote_asr_enterprises` is "en"
-- Fixed endpoints to not override language_code when not provided:
-  - `/api/whatsapp/send`
-  - `/api/whatsapp/send-to-lead/{lead_id}`
-  - `/api/whatsapp/conversations/{phone}/send-template`
+#### 3. Staff WhatsApp - Send Template Button ✅
+- When staff clicks WhatsApp on a lead, now shows:
+  - Selected lead's info (name, phone)
+  - "Send Template" button to open template modal
+  - "X" button to deselect
 
-#### 4. New Token Updated ✅
-Token: `EAASYb5BHB00BRISoTj6qclKOUjVm7ZCR1by...QZDZD`
+#### 4. Social Media Moved to Admin Dashboard ✅
+- New "Social Media" module card added to Admin Dashboard
+- Route `/admin/social-media` uses the full SocialMediaManager component
+- Still accessible from CRM Dashboard as well
 
-### Test Results (iteration_68.json)
+#### 5. Email Updated ✅
+- Gallery page: Changed to `support@asrenterprises.in`
+
+#### 6. FAB Button Position ✅
+- Moved from `bottom-6` to `bottom-20`
+- No longer blocks scrolling on mobile
+
+### Test Results (iteration_69.json)
 - Backend: 100% (12/12 tests passed)
-- Facebook posting: Working (2 test posts created)
-- WhatsApp template sending: Working
-- All connections verified
+- All features verified through code review
 
 ### Files Modified
-- `/app/backend/routes/social_media.py` - Added get_page_access_token() function
-- `/app/backend/routes/whatsapp.py` - Fixed language_code auto-detection
+- `/app/backend/routes/social_media.py` - Binary upload for Facebook
+- `/app/frontend/src/components/StaffPortal.js` - WhatsApp tab with Send Template, FAB position
+- `/app/frontend/src/components/AdminDashboard.js` - Social Media module card
+- `/app/frontend/src/App.js` - Route using SocialMediaManager
+- `/app/frontend/src/components/Gallery.js` - Email update
 
 ---
 
-## Previous Session - WhatsApp Mobile Fix + CRM Integration
+## Previous Session - Meta API Fixes + New Token
 
 ### What Was Built
 

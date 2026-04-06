@@ -3,7 +3,108 @@
 ## Original Problem Statement
 Build a feature-rich website for "ASR Enterprises" solar energy business with customer-facing website, admin/CRM panel, AI-powered features, and full e-commerce system.
 
-## Latest Session (April 6, 2026) - Social Media Fix + Staff WhatsApp + UI Updates
+## Latest Session (April 6, 2026) - WhatsApp Automation Bot Implementation
+
+### What Was Built
+
+#### WhatsApp CRM Automation Bot ✅
+Implemented a complete WhatsApp automation system for handling customer inquiries with intelligent auto-replies.
+
+**New Backend File (`/app/backend/routes/whatsapp_automation.py`):**
+Full bot logic implementation with:
+- Business hours detection (Mon-Sat 10AM-7PM IST)
+- Greeting message detection (hi, hello, namaste, etc.)
+- Option detection (1-7 numeric and keyword matching)
+- Lead source detection (Facebook/Instagram/Website/Direct)
+- Auto-reply message templates
+- Lead tagging and qualification
+- Follow-up scheduling system
+
+**New API Endpoints:**
+- `GET /api/whatsapp/automation/bot/status` - Bot status with business hours and stats
+- `GET /api/whatsapp/automation/bot/settings` - Get bot configuration
+- `POST /api/whatsapp/automation/bot/settings` - Update bot settings
+- `POST /api/whatsapp/automation/bot/test` - Test bot response logic
+- `GET /api/whatsapp/automation/bot/follow-ups` - View scheduled follow-ups
+- `POST /api/whatsapp/automation/bot/process-follow-ups` - Trigger follow-up processing
+- `DELETE /api/whatsapp/automation/bot/follow-ups/{id}` - Cancel a follow-up
+
+**Webhook Integration (`/app/backend/routes/whatsapp.py`):**
+- Updated `process_incoming_message` to trigger automation
+- Referral data extraction for Click-to-WhatsApp ads
+- Automatic lead creation with source tagging
+- Follow-up scheduling after bot replies
+- Follow-up cancellation when customer responds
+
+**Features Implemented:**
+
+1. **Default Welcome Auto-Reply** ✅
+   - Sent to new WhatsApp contacts
+   - Menu with options 1-7 (Home Solar, Shop Solar, Subsidy, Site Visit, Price, Service, Sales)
+   - Includes contact info and business details
+
+2. **Ad-Specific Auto-Reply (Facebook/Instagram)** ✅
+   - Detects Click-to-WhatsApp ad referrals
+   - Personalized welcome for social media leads
+   - Asks for roof photos, electricity bill, location
+
+3. **After-Hours Auto-Reply** ✅
+   - Activates outside Mon-Sat 10AM-7PM IST
+   - Sunday treated as after-hours/holiday
+   - Requests customer details for callback
+
+4. **Quick Reply Menu (Options 1-7)** ✅
+   - Option 1: Home Solar → requests location, bill, roof type
+   - Option 2: Shop/Office Solar → commercial info request
+   - Option 3: PM Surya Ghar Subsidy → eligibility questions
+   - Option 4: Free Site Visit → address and preferred time
+   - Option 5: Price/Quotation → bill and property details
+   - Option 6: Service/Support → problem description
+   - Option 7: Talk to Sales → direct callback promise
+
+5. **Lead Qualification & Tagging** ✅
+   - Auto-tags based on selection:
+     - Home Solar Lead, Commercial Solar Lead
+     - Subsidy Lead, Site Visit Lead
+     - Quotation Lead, Service Lead, Sales Call Lead
+   - Source tags: Facebook Lead, Instagram Lead, Website Lead, Direct WhatsApp Lead
+
+6. **Follow-Up Scheduling** ✅
+   - First follow-up: 2 hours after inactivity
+   - Second follow-up: 24 hours (WhatsApp policy compliant)
+   - Max 2 follow-ups per lead
+   - Auto-cancelled when customer responds
+
+7. **Duplicate Prevention** ✅
+   - No repeat welcome messages in same conversation
+   - No repeat option replies for same selection
+   - Greeting detection for re-engagement
+
+### Test Results (iteration_70.json)
+- Backend: 100% (28/28 tests passed)
+- All bot features verified:
+  - Greeting detection ✓
+  - Option 1-7 detection ✓
+  - Keyword matching ✓
+  - Lead source identification ✓
+  - Business hours logic ✓
+  - After-hours response ✓
+  - Quick replies ✓
+  - Follow-up scheduling ✓
+
+### Files Modified
+- `/app/backend/routes/whatsapp_automation.py` - Complete bot logic (NEW - 1100+ lines)
+- `/app/backend/routes/whatsapp.py` - Webhook integration, new API endpoints
+
+### Configuration
+- Business Hours: Monday-Saturday, 10:00 AM - 7:00 PM IST
+- Sunday: Treated as after-hours
+- Follow-up Timing: 2 hours (first), 24 hours (second)
+- Max Follow-ups: 2 per lead
+
+---
+
+## Previous Session - Social Media Fix + Staff WhatsApp + UI Updates
 
 ### What Was Fixed
 

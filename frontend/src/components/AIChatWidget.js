@@ -187,25 +187,25 @@ export const AIChatWidget = () => {
   // Closed state - Prominent floating button
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start space-y-2">
-        {/* Attention-grabbing pill */}
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-lg animate-bounce text-sm font-medium flex items-center space-x-2">
+      <div className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-auto z-50 flex flex-col items-start space-y-2">
+        {/* Attention-grabbing pill - hidden on mobile */}
+        <div className="hidden sm:flex bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-lg animate-bounce text-sm font-medium items-center space-x-2">
           <Sparkles className="w-4 h-4" />
           <span>Ask about ₹78,000 subsidy!</span>
         </div>
         
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-4 rounded-2xl shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-105 flex items-center space-x-3"
+          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-2xl shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-105 flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-center sm:justify-start"
           data-testid="ai-chat-toggle"
           aria-label="Open Solar Expert Chat"
         >
           <div className="relative">
-            <Bot className="w-8 h-8" />
+            <Bot className="w-7 h-7 sm:w-8 sm:h-8" />
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></span>
           </div>
           <div className="text-left">
-            <p className="font-bold text-base">ASR Solar Expert</p>
+            <p className="font-bold text-sm sm:text-base">ASR Solar Expert</p>
             <p className="text-xs text-amber-100">Chat • Voice • Upload Bill</p>
           </div>
         </button>
@@ -215,10 +215,12 @@ export const AIChatWidget = () => {
 
   return (
     <div 
-      className={`fixed bottom-6 left-6 z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 ${
-        isMinimized ? 'w-80 h-14' : 'w-[26rem] h-[34rem]'
+      className={`fixed z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden transition-all duration-300 ${
+        isMinimized 
+          ? 'bottom-6 left-4 right-4 sm:left-6 sm:right-auto sm:w-80 h-14' 
+          : 'bottom-4 left-2 right-2 sm:bottom-6 sm:left-6 sm:right-auto sm:w-[26rem] h-[32rem] sm:h-[34rem]'
       }`}
-      style={{ maxHeight: 'calc(100vh - 100px)' }}
+      style={{ maxHeight: 'calc(100vh - 80px)', maxWidth: isMinimized ? undefined : '100%' }}
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-3 flex items-center justify-between cursor-pointer"
@@ -252,7 +254,7 @@ export const AIChatWidget = () => {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <div className="h-72 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="h-52 sm:h-72 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
               <div key={idx}>
                 <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>

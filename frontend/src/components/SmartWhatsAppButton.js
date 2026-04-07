@@ -1,5 +1,22 @@
 import { useState, useEffect } from "react";
 import { MessageSquare } from "lucide-react";
+import axios from "axios";
+
+const API = process.env.REACT_APP_BACKEND_URL || "";
+
+// Log WhatsApp click to CRM
+const logWhatsAppClick = async (context, source = 'website') => {
+  try {
+    await axios.post(`${API}/api/whatsapp/website-click`, {
+      source: source,
+      context: context,
+      timestamp: new Date().toISOString(),
+      page: window.location.pathname
+    });
+  } catch (err) {
+    console.log("WhatsApp click logging skipped:", err.message);
+  }
+};
 
 // Context tracking for smart WhatsApp messages
 const useUserContext = () => {
@@ -122,7 +139,10 @@ export const SmartWhatsAppButton = ({ variant = 'floating', className = '' }) =>
           className="group flex items-center space-x-3 bg-gradient-to-r from-green-500 to-green-600 text-white pl-4 pr-5 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
-          onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'WhatsApp Chat', content_category: 'Smart Floating Button' }); }}
+          onClick={() => { 
+            logWhatsAppClick(context, 'smart_floating_button');
+            if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'WhatsApp Chat', content_category: 'Smart Floating Button' }); 
+          }}
           data-testid="smart-whatsapp-btn"
         >
           <div className="relative">
@@ -143,7 +163,10 @@ export const SmartWhatsAppButton = ({ variant = 'floating', className = '' }) =>
       target="_blank"
       rel="noopener noreferrer"
       className={`inline-flex items-center space-x-2 bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition ${className}`}
-      onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'WhatsApp Chat', content_category: 'Inline Button' }); }}
+      onClick={() => { 
+        logWhatsAppClick(context, 'inline_button');
+        if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'WhatsApp Chat', content_category: 'Inline Button' }); 
+      }}
       data-testid="smart-whatsapp-inline-btn"
     >
       <MessageSquare className="w-5 h-5" />

@@ -2092,7 +2092,7 @@ export const CRMDashboard = () => {
                     <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">A</div>
                     <div>
                       <div className="font-bold text-[#0a355e]">Admin Account</div>
-                      <div className="text-gray-500 text-sm">asrenterprisespatna@gmail.com</div>
+                      <div className="text-gray-500 text-sm">support@asrenterprises.in</div>
                     </div>
                   </div>
                   <button
@@ -2101,7 +2101,7 @@ export const CRMDashboard = () => {
                       if (newPass && newPass.length >= 6) {
                         try {
                           await axios.post(`${API}/admin/set-password`, { 
-                            user_id: 'asrenterprisespatna@gmail.com', 
+                            user_id: 'support@asrenterprises.in', 
                             password: newPass,
                             role: 'admin'
                           });

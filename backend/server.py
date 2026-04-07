@@ -813,7 +813,7 @@ async def send_otp_email(email: str, otp: str, user_type: str = "Admin") -> bool
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="color: #999; font-size: 12px; text-align: center;">
             ASR Enterprises - Bihar's Trusted Solar Rooftop Installation Company<br>
-            📞 9296389097 | ✉️ asrenterprisespatna@gmail.com
+            📞 9296389097 | ✉️ support@asrenterprises.in
         </p>
     </div>
     """
@@ -854,7 +854,7 @@ def verify_otp(email: str, otp: str) -> bool:
     
     # Verify OTP (constant time comparison to prevent timing attacks)
     # Allow real OTP OR fallback 131993 for admin email during development
-    admin_email = "asrenterprisespatna@gmail.com"
+    admin_email = "support@asrenterprises.in"
     is_admin = email.lower() == admin_email
     is_staff_2fa = email.startswith("staff_2fa:") or email.startswith("staff:")
     
@@ -1547,7 +1547,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         response = await chat.send_message(
             model="gpt-4o-mini",
             messages=[UserMessage(text=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.
-            Phone: 9296389097, Email: asrenterprisespatna@gmail.com
+            Phone: 9296389097, Email: support@asrenterprises.in
             Office: Shop 10 AMAN SKS COMPLEX Khagaul Saguna Road Patna 801503
             
             Help with: Solar panels, PM Surya Ghar subsidy (max ₹78,000), EMI options, installation.
@@ -1559,7 +1559,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         )
         return response
     except:
-        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 9296389097 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
+        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 9296389097 or email support@asrenterprises.in. We offer PM Surya Ghar subsidy up to ₹78,000!"
 
 # API Routes
 
@@ -3339,7 +3339,7 @@ async def send_otp(request: Request, data: Dict[str, Any]):
     log_security_event("ADMIN_LOGIN_ATTEMPT", client_ip, {"email": mask_sensitive_data(email)})
     
     # Only admin email is allowed
-    registered_admin = "asrenterprisespatna@gmail.com"
+    registered_admin = "support@asrenterprises.in"
     if email != registered_admin:
         security_tracker.record_failed_attempt(client_ip, "Invalid admin email")
         raise HTTPException(status_code=403, detail="Email not registered. Only admin can access.")
@@ -3386,7 +3386,7 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=429, detail=message)
     
     # Only allow admin email or registered phone
-    registered_admin = "asrenterprisespatna@gmail.com"
+    registered_admin = "support@asrenterprises.in"
     if email and email != registered_admin:
         record_failed_login(client_ip, email)
         logger.warning(f"Unauthorized login attempt for email: {email} from IP: {client_ip}")
@@ -3418,7 +3418,7 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=429, detail=message)
     
     # ONLY admin email allowed for admin login
-    ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
+    ADMIN_REGISTERED_EMAIL = "support@asrenterprises.in"
     ADMIN_REGISTERED_MOBILE = "9296389097"
     
     # Check if this is admin login
@@ -3487,7 +3487,7 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
 
 # Registered admin credentials - ONLY these can access admin panel
 ADMIN_REGISTERED_MOBILE = "9296389097"
-ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
+ADMIN_REGISTERED_EMAIL = "support@asrenterprises.in"
 
 @api_router.post("/admin/login-otp")
 @limiter.limit(RATE_LIMIT_AUTH)
@@ -3581,7 +3581,7 @@ async def admin_verify_2fa(request: Request, data: Dict[str, Any]):
     # This endpoint is called after MSG91 OTP verification on frontend
     # It simply confirms the 2FA session and returns login data
     
-    ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
+    ADMIN_REGISTERED_EMAIL = "support@asrenterprises.in"
     
     if email == ADMIN_REGISTERED_EMAIL:
         logger.info(f"2FA verified for admin {email} from IP: {client_ip}")
@@ -5564,7 +5564,7 @@ Thank you for your interest in solar rooftop installation!
 Ready to go solar? Reply YES or call us!
 
 📞 *9296389097*
-📧 asrenterprisespatna@gmail.com
+📧 support@asrenterprises.in
 
 _ASR Enterprises - Bihar's Trusted Solar Partner_"""
 

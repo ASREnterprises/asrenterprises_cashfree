@@ -2285,3 +2285,81 @@ async def cancel_follow_up(follow_up_id: str):
     else:
         raise HTTPException(status_code=404, detail="Follow-up not found or already processed")
 
+
+
+# ==================== WEBSITE WHATSAPP CLICK TRACKING ====================
+
+@router.post("/website-click")
+async def log_website_whatsapp_click(data: Dict[str, Any]):
+    """
+    Log WhatsApp click from website for CRM tracking.
+    Creates a lead record if visitor info is available.
+    """
+    try:
+        click_data = {
+            "id": str(uuid.uuid4()),
+            "source": data.get("source", "website"),
+            "context": data.get("context", {}),
+            "page": data.get("page", "/"),
+            "timestamp": data.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Store click event
+        await db.whatsapp_website_clicks.insert_one(click_data)
+        
+        # Create a potential lead if we have context
+        context = data.get("context", {})
+        if context.get("billAmount") or context.get("district") or context.get("lastViewedCapacity"):
+            lead_id = str(uuid.uuid4())
+            lead_data = {
+                "id": lead_id,
+                "name": "Website WhatsApp Click",
+                "phone": None,  # Will be captured when they message
+                "source": f"website_whatsapp_{data.get('source', 'click')}",
+                "stage": "new",
+                "tags": ["whatsapp_lead", "website_click", "pending_contact"],
+                "website_context": context,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "activities": [{
+                    "id": str(uuid.uuid4()),
+                    "type": "website_whatsapp_click",
+                    "title": "Clicked WhatsApp from Website",
+                    "description": f"Visitor clicked WhatsApp button on {data.get('page', '/')}. Bill: {context.get('billAmount', 'N/A')}, District: {context.get('district', 'N/A')}",
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }]
+            }
+            
+            # Only create lead if we have useful context
+            if context.get("billAmount") or context.get("lastViewedCapacity"):
+                await db.crm_leads.insert_one(lead_data)
+                return {"success": True, "message": "Click logged and lead created", "lead_id": lead_id}
+        
+        return {"success": True, "message": "Click logged"}
+        
+    except Exception as e:
+        logger.error(f"Error logging WhatsApp click: {e}")
+        return {"success": False, "error": str(e)}
+
+@router.get("/website-clicks/stats")
+async def get_website_click_stats():
+    """Get statistics for website WhatsApp clicks"""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    total_clicks = await db.whatsapp_website_clicks.count_documents({})
+    today_clicks = await db.whatsapp_website_clicks.count_documents({
+        "created_at": {"$gte": today_start.isoformat()}
+    })
+    
+    # Get clicks by source
+    pipeline = [
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    by_source = await db.whatsapp_website_clicks.aggregate(pipeline).to_list(10)
+    
+    return {
+        "total_clicks": total_clicks,
+        "today_clicks": today_clicks,
+        "by_source": {item["_id"]: item["count"] for item in by_source}
+    }

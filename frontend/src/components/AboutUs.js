@@ -321,7 +321,7 @@ export const AboutUsPage = () => {
               <Mail className="w-6 h-6 text-[#00C389]" />
               <div>
                 <p className="text-gray-400 text-sm">Email Us</p>
-                <a href="mailto:asrenterprisespatna@gmail.com" className="text-white font-semibold hover:text-[#F5A623] transition">asrenterprisespatna@gmail.com</a>
+                <a href="mailto:support@asrenterprises.in" className="text-white font-semibold hover:text-[#F5A623] transition">support@asrenterprises.in</a>
               </div>
             </div>
             <div className="flex items-center justify-center space-x-3">

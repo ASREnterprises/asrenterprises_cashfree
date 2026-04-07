@@ -74,8 +74,8 @@ export const ContactPage = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-[#0B3C5D] mb-1">Email</h3>
-                  <a href="mailto:asrenterprisespatna@gmail.com" className="text-[#F5A623] hover:text-[#FFD166] font-medium break-all transition">
-                    asrenterprisespatna@gmail.com
+                  <a href="mailto:support@asrenterprises.in" className="text-[#F5A623] hover:text-[#FFD166] font-medium break-all transition">
+                    support@asrenterprises.in
                   </a>
                   <p className="text-sm text-gray-500 mt-1">We'll respond within 24 hours</p>
                 </div>

@@ -989,6 +989,247 @@ const SettingsTab = ({ settings, onRefresh }) => {
   );
 };
 
+// Website Gallery Sync Tab - Sync Facebook posts to website gallery
+const GalleryTab = ({ onRefresh }) => {
+  const [galleryItems, setGalleryItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [filter, setFilter] = useState('all');
+  
+  const fetchGallery = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/api/social/gallery?include_hidden=true`);
+      setGalleryItems(res.data.items || []);
+    } catch (err) {
+      console.error('Error fetching gallery:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    fetchGallery();
+  }, [fetchGallery]);
+  
+  const syncFromFacebook = async () => {
+    setSyncing(true);
+    try {
+      const res = await axios.post(`${API}/api/social/facebook/posts/sync`);
+      if (res.data.success) {
+        alert(`✅ Synced ${res.data.synced_count} new posts from Facebook!`);
+        fetchGallery();
+      } else {
+        alert(`❌ Sync failed: ${res.data.error}`);
+      }
+    } catch (err) {
+      alert(`❌ Error: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+  
+  const updateItem = async (itemId, updates) => {
+    try {
+      await axios.put(`${API}/api/social/gallery/${itemId}`, updates);
+      fetchGallery();
+    } catch (err) {
+      console.error('Error updating item:', err);
+    }
+  };
+  
+  const deleteItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
+      await axios.delete(`${API}/api/social/gallery/${itemId}`);
+      fetchGallery();
+    } catch (err) {
+      console.error('Error deleting item:', err);
+    }
+  };
+  
+  const filteredItems = galleryItems.filter(item => {
+    if (filter === 'gallery') return item.show_on_gallery;
+    if (filter === 'latest_work') return item.show_on_latest_work;
+    if (filter === 'featured') return item.featured;
+    if (filter === 'hidden') return item.hidden;
+    return true;
+  });
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800">Website Gallery Sync</h3>
+          <p className="text-sm text-gray-600">Sync Facebook posts and manage website gallery/latest work display</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={syncFromFacebook}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync from Facebook'}
+          </button>
+          <button
+            onClick={fetchGallery}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+      
+      {/* Filter Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {[
+          { id: 'all', label: 'All Items' },
+          { id: 'gallery', label: 'Show on Gallery' },
+          { id: 'latest_work', label: 'Latest Work' },
+          { id: 'featured', label: 'Featured' },
+          { id: 'hidden', label: 'Hidden' }
+        ].map(f => (
+          <button
+            key={f.id}
+            onClick={() => setFilter(f.id)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+              filter === f.id
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      
+      {/* Gallery Grid */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-xl">
+          <Image className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500">No gallery items found</p>
+          <button
+            onClick={syncFromFacebook}
+            className="mt-4 text-blue-600 hover:underline text-sm"
+          >
+            Sync from Facebook to get started
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map(item => (
+            <div key={item.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              {/* Media Preview */}
+              <div className="relative aspect-video bg-gray-100">
+                {item.media_url ? (
+                  item.media_type === 'video' ? (
+                    <video src={item.media_url} className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={item.media_url} alt={item.title} className="w-full h-full object-cover" />
+                  )
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Image className="w-12 h-12 text-gray-300" />
+                  </div>
+                )}
+                {/* Source badge */}
+                <div className="absolute top-2 left-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    item.source === 'facebook' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white'
+                  }`}>
+                    {item.source === 'facebook' ? 'Facebook' : 'Manual'}
+                  </span>
+                </div>
+                {item.featured && (
+                  <div className="absolute top-2 right-2">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500 text-white">
+                      ⭐ Featured
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Content */}
+              <div className="p-4 space-y-3">
+                <p className="text-sm text-gray-700 line-clamp-2">{item.caption || item.title || 'No caption'}</p>
+                <p className="text-xs text-gray-400">{item.created_time ? new Date(item.created_time).toLocaleDateString() : 'Unknown date'}</p>
+                
+                {/* Toggle Controls */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={item.show_on_gallery || false}
+                      onChange={(e) => updateItem(item.id, { show_on_gallery: e.target.checked })}
+                      className="rounded text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700">Show on Gallery</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={item.show_on_latest_work || false}
+                      onChange={(e) => updateItem(item.id, { show_on_latest_work: e.target.checked })}
+                      className="rounded text-green-600"
+                    />
+                    <span className="text-sm text-gray-700">Show on Latest Work</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={item.featured || false}
+                      onChange={(e) => updateItem(item.id, { featured: e.target.checked })}
+                      className="rounded text-amber-600"
+                    />
+                    <span className="text-sm text-gray-700">Featured</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={item.hidden || false}
+                      onChange={(e) => updateItem(item.id, { hidden: e.target.checked })}
+                      className="rounded text-red-600"
+                    />
+                    <span className="text-sm text-gray-700">Hide</span>
+                  </label>
+                </div>
+                
+                {/* Actions */}
+                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  {item.permalink_url && (
+                    <a
+                      href={item.permalink_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                    >
+                      <Link className="w-3 h-3" /> View on FB
+                    </a>
+                  )}
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    className="flex items-center gap-1 text-xs text-red-600 hover:underline ml-auto"
+                  >
+                    <Trash2 className="w-3 h-3" /> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Main Social Media Manager Component
 export const SocialMediaManager = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -1019,6 +1260,7 @@ export const SocialMediaManager = () => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'create', label: 'Create Post', icon: Plus },
+    { id: 'gallery', label: 'Website Gallery', icon: Image },
     { id: 'scheduled', label: 'Scheduled', icon: Calendar },
     { id: 'published', label: 'Published', icon: CheckCircle },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -1067,6 +1309,9 @@ export const SocialMediaManager = () => {
         )}
         {activeTab === 'create' && (
           <CreatePostTab settings={settings} onPostCreated={fetchData} />
+        )}
+        {activeTab === 'gallery' && (
+          <GalleryTab onRefresh={fetchData} />
         )}
         {activeTab === 'scheduled' && (
           <ScheduledTab onRefresh={fetchData} />

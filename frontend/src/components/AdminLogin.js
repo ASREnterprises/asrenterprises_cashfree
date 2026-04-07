@@ -378,7 +378,7 @@ export const AdminLogin = ({ onLogin }) => {
     try {
       // The backend already knows the registered mobile
       // We use MSG91 widget for OTP
-      const ADMIN_MOBILE = "8877896889"; // This should come from backend ideally
+      const ADMIN_MOBILE = "9296389097"; // This should come from backend ideally
       let phoneNumber = ADMIN_MOBILE;
       if (phoneNumber.length === 10) {
         phoneNumber = '91' + phoneNumber;

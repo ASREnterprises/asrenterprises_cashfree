@@ -10,7 +10,15 @@ export const AIChatWidget = () => {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "नमस्ते! 🙏 Welcome to ASR Enterprises!\n\nI can help you:\n• Check PM Surya Ghar subsidy (up to ₹78,000)\n• Calculate savings from your bill\n• Book FREE site survey\n\n💡 Tip: Upload your bijli bill photo or use voice!"
+      content: "🙏 Welcome to ASR Enterprises - Solar Rooftop Installation!\n\nHow can I help you today?\n\n1️⃣ Home Solar\n2️⃣ Shop / Office Solar\n3️⃣ PM Surya Ghar Subsidy\n4️⃣ Price / Quotation\n5️⃣ Site Visit\n6️⃣ Upload Electricity Bill\n7️⃣ Talk to Solar Expert\n\n💡 Tip: You can type, use voice, or upload your bill!",
+      quickReplies: [
+        { label: "🏠 Home Solar", value: "I want home solar installation" },
+        { label: "🏢 Shop/Office", value: "I want shop or office solar" },
+        { label: "💰 Subsidy Info", value: "Tell me about PM Surya Ghar subsidy" },
+        { label: "📋 Get Quote", value: "I want price quotation" },
+        { label: "📍 Site Visit", value: "I want a free site visit" },
+        { label: "👤 Talk to Expert", value: "I want to talk to a solar expert" }
+      ]
     }
   ]);
   const [inputMessage, setInputMessage] = useState("");
@@ -18,6 +26,8 @@ export const AIChatWidget = () => {
   const [sessionId] = useState(() => `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [leadCaptured, setLeadCaptured] = useState(false);
+  const [humanHandover, setHumanHandover] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -53,6 +63,14 @@ export const AIChatWidget = () => {
       });
 
       if (response.data.success) {
+        // Check if human handover was triggered
+        if (response.data.human_handover) {
+          setHumanHandover(true);
+        }
+        if (response.data.lead_id) {
+          setLeadCaptured(true);
+        }
+        
         setMessages(prev => [...prev, { 
           role: "assistant", 
           content: response.data.response 
@@ -60,18 +78,22 @@ export const AIChatWidget = () => {
       } else {
         setMessages(prev => [...prev, { 
           role: "assistant", 
-          content: response.data.response || "Please call us at 8877896889 for help!"
+          content: response.data.response || "Please call us at 9296389097 for help!"
         }]);
       }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "Connection issue. Please call 8877896889 or WhatsApp us!"
+        content: "Connection issue. Please call 9296389097 or WhatsApp us!"
       }]);
     }
 
     setIsLoading(false);
+  };
+
+  const handleQuickReply = (value) => {
+    handleSend(value);
   };
 
   const handleKeyPress = (e) => {
@@ -232,30 +254,52 @@ export const AIChatWidget = () => {
           {/* Messages */}
           <div className="h-72 overflow-y-auto p-4 space-y-4 bg-gray-50">
             {messages.map((msg, idx) => (
-              <div 
-                key={idx} 
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div className={`flex items-start space-x-2 max-w-[85%] ${msg.role === "user" ? "flex-row-reverse space-x-reverse" : ""}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    msg.role === "user" ? "bg-blue-500" : "bg-gradient-to-r from-amber-500 to-orange-500"
-                  }`}>
-                    {msg.role === "user" ? (
-                      <User className="w-4 h-4 text-white" />
-                    ) : (
-                      <Bot className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-                  <div className={`px-4 py-3 rounded-2xl ${
-                    msg.role === "user" 
-                      ? "bg-blue-500 text-white rounded-br-md" 
-                      : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-md"
-                  }`}>
-                    <p className="text-sm whitespace-pre-line">{msg.content}</p>
+              <div key={idx}>
+                <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`flex items-start space-x-2 max-w-[85%] ${msg.role === "user" ? "flex-row-reverse space-x-reverse" : ""}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      msg.role === "user" ? "bg-blue-500" : "bg-gradient-to-r from-amber-500 to-orange-500"
+                    }`}>
+                      {msg.role === "user" ? (
+                        <User className="w-4 h-4 text-white" />
+                      ) : (
+                        <Bot className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                    <div className={`px-4 py-3 rounded-2xl ${
+                      msg.role === "user" 
+                        ? "bg-blue-500 text-white rounded-br-md" 
+                        : "bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-md"
+                    }`}>
+                      <p className="text-sm whitespace-pre-line">{msg.content}</p>
+                    </div>
                   </div>
                 </div>
+                {/* Quick Reply Buttons */}
+                {msg.quickReplies && msg.quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2 ml-10">
+                    {msg.quickReplies.map((qr, qrIdx) => (
+                      <button
+                        key={qrIdx}
+                        onClick={() => handleQuickReply(qr.value)}
+                        className="px-3 py-1.5 bg-amber-50 border border-amber-300 rounded-full text-xs text-amber-700 hover:bg-amber-100 transition font-medium"
+                      >
+                        {qr.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+            
+            {/* Human Handover Notice */}
+            {humanHandover && (
+              <div className="flex justify-center">
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-2 text-xs text-green-700">
+                  ✅ Our team has been notified and will contact you shortly!
+                </div>
+              </div>
+            )}
             
             {isLoading && (
               <div className="flex justify-start">
@@ -278,10 +322,15 @@ export const AIChatWidget = () => {
 
           {/* Quick Actions */}
           <div className="px-3 py-2 bg-white border-t border-gray-100 flex space-x-2 overflow-x-auto">
-            {["Check Subsidy", "My Bill ₹3000", "Book Survey", "Commercial Solar"].map((action, idx) => (
+            {["💰 Subsidy Info", "📋 Get Quote", "📍 Site Visit", "👤 Expert"].map((action, idx) => (
               <button
                 key={idx}
-                onClick={() => handleSend(action === "My Bill ₹3000" ? "My monthly electricity bill is around 3000 rupees" : action)}
+                onClick={() => handleSend(
+                  action.includes("Subsidy") ? "Tell me about PM Surya Ghar subsidy" :
+                  action.includes("Quote") ? "I want price quotation for solar" :
+                  action.includes("Site") ? "I want a free site visit" :
+                  "I want to talk to a solar expert"
+                )}
                 className="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700 hover:bg-amber-100 whitespace-nowrap transition"
               >
                 {action}

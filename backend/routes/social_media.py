@@ -983,3 +983,345 @@ async def process_scheduled_posts():
                 {"id": post["id"]},
                 {"$set": {"status": "failed", "error": str(e)}}
             )
+
+
+# ==================== FACEBOOK PAGE POSTS SYNC FOR WEBSITE GALLERY ====================
+
+@router.get("/facebook/posts")
+async def get_facebook_page_posts(limit: int = 25):
+    """
+    Fetch latest posts from the connected Facebook Page.
+    These can be used for Website Gallery / Latest Work display.
+    """
+    settings = await get_social_settings()
+    
+    if not settings.get("facebook_connected"):
+        raise HTTPException(status_code=400, detail="Facebook Page not connected")
+    
+    page_id = settings.get("facebook_page_id")
+    access_token = settings.get("facebook_access_token")
+    
+    if not page_id or not access_token:
+        raise HTTPException(status_code=400, detail="Facebook credentials missing")
+    
+    try:
+        # Get Page Access Token
+        page_access_token = await get_page_access_token(page_id, access_token)
+        
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            # Fetch posts - using only non-deprecated fields for Graph API v18+
+            response = await http_client.get(
+                f"{FB_GRAPH_API}/{page_id}/feed",
+                params={
+                    "fields": "id,message,full_picture,created_time,permalink_url,is_published",
+                    "limit": limit,
+                    "access_token": page_access_token
+                }
+            )
+            
+            if response.status_code != 200:
+                error_data = response.json()
+                error_msg = error_data.get("error", {}).get("message", "Failed to fetch posts")
+                return {"success": False, "error": error_msg, "posts": []}
+            
+            data = response.json()
+            posts = data.get("data", [])
+            
+            # Process posts to extract relevant info
+            processed_posts = []
+            for post in posts:
+                media_url = post.get("full_picture", "")
+                
+                # Determine media type from URL extension
+                media_type = "text"
+                if media_url:
+                    url_lower = media_url.lower()
+                    if any(ext in url_lower for ext in ['.mp4', '.mov', '.avi', 'video']):
+                        media_type = "video"
+                    elif any(ext in url_lower for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp']):
+                        media_type = "image"
+                    else:
+                        media_type = "image"  # Default to image if has full_picture
+                
+                processed_posts.append({
+                    "id": post.get("id", ""),
+                    "message": post.get("message", ""),
+                    "media_type": media_type,
+                    "media_url": media_url,
+                    "full_picture": post.get("full_picture", ""),
+                    "permalink_url": post.get("permalink_url", ""),
+                    "created_time": post.get("created_time", ""),
+                    "source": "facebook"
+                })
+            
+            return {
+                "success": True,
+                "posts": processed_posts,
+                "count": len(processed_posts)
+            }
+            
+    except Exception as e:
+        logger.error(f"Error fetching Facebook posts: {e}")
+        return {"success": False, "error": str(e), "posts": []}
+
+@router.post("/facebook/posts/sync")
+async def sync_facebook_posts_to_gallery():
+    """
+    Sync Facebook Page posts to local database for Website Gallery.
+    Admin can then select which posts to show on the website.
+    """
+    settings = await get_social_settings()
+    
+    if not settings.get("facebook_connected"):
+        raise HTTPException(status_code=400, detail="Facebook Page not connected")
+    
+    # Fetch latest posts from Facebook
+    posts_result = await get_facebook_page_posts(limit=50)
+    
+    if not posts_result.get("success"):
+        return {"success": False, "error": posts_result.get("error", "Failed to fetch posts")}
+    
+    posts = posts_result.get("posts", [])
+    synced_count = 0
+    
+    for post in posts:
+        # Only sync posts with media
+        if not post.get("media_url") and not post.get("full_picture"):
+            continue
+        
+        # Check if already synced
+        existing = await db.website_gallery.find_one({"facebook_post_id": post["id"]})
+        
+        if not existing:
+            gallery_item = {
+                "id": str(uuid.uuid4()),
+                "facebook_post_id": post["id"],
+                "title": (post.get("message", "")[:100] + "...") if len(post.get("message", "")) > 100 else post.get("message", ""),
+                "caption": post.get("message", ""),
+                "media_url": post.get("media_url") or post.get("full_picture"),
+                "media_type": post.get("media_type", "image"),
+                "permalink_url": post.get("permalink_url", ""),
+                "source": "facebook",
+                "created_time": post.get("created_time", ""),
+                # Admin controls
+                "show_on_gallery": False,
+                "show_on_latest_work": False,
+                "featured": False,
+                "hidden": False,
+                "sort_order": 0,
+                # Metadata
+                "synced_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.website_gallery.insert_one(gallery_item)
+            synced_count += 1
+        else:
+            # Update existing post with new data
+            await db.website_gallery.update_one(
+                {"facebook_post_id": post["id"]},
+                {"$set": {
+                    "caption": post.get("message", ""),
+                    "media_url": post.get("media_url") or post.get("full_picture"),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+    
+    return {
+        "success": True,
+        "message": f"Synced {synced_count} new posts from Facebook",
+        "synced_count": synced_count,
+        "total_fetched": len(posts)
+    }
+
+@router.get("/gallery")
+async def get_website_gallery(
+    show_on_gallery: bool = None,
+    show_on_latest_work: bool = None,
+    featured: bool = None,
+    include_hidden: bool = False,
+    page: int = 1,
+    limit: int = 50
+):
+    """
+    Get gallery items for website or admin management.
+    """
+    query = {}
+    
+    if not include_hidden:
+        query["hidden"] = {"$ne": True}
+    
+    if show_on_gallery is not None:
+        query["show_on_gallery"] = show_on_gallery
+    
+    if show_on_latest_work is not None:
+        query["show_on_latest_work"] = show_on_latest_work
+    
+    if featured is not None:
+        query["featured"] = featured
+    
+    skip = (page - 1) * limit
+    
+    items = await db.website_gallery.find(
+        query,
+        {"_id": 0}
+    ).sort([("sort_order", 1), ("created_time", -1)]).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.website_gallery.count_documents(query)
+    
+    return {
+        "items": items,
+        "pagination": {
+            "current_page": page,
+            "total_pages": (total + limit - 1) // limit if total > 0 else 1,
+            "total_count": total
+        }
+    }
+
+@router.put("/gallery/{item_id}")
+async def update_gallery_item(item_id: str, request: Request):
+    """
+    Update gallery item settings (show on gallery, featured, etc.)
+    """
+    data = await request.json()
+    
+    update_data = {}
+    
+    # Boolean flags
+    for field in ["show_on_gallery", "show_on_latest_work", "featured", "hidden"]:
+        if field in data:
+            update_data[field] = bool(data[field])
+    
+    # Other fields
+    if "title" in data:
+        update_data["title"] = data["title"]
+    if "sort_order" in data:
+        update_data["sort_order"] = int(data.get("sort_order", 0))
+    if "location" in data:
+        update_data["location"] = data["location"]
+    if "project_type" in data:
+        update_data["project_type"] = data["project_type"]
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.website_gallery.update_one(
+        {"id": item_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count > 0:
+        return {"success": True, "message": "Gallery item updated"}
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+@router.delete("/gallery/{item_id}")
+async def delete_gallery_item(item_id: str):
+    """Delete a gallery item"""
+    result = await db.website_gallery.delete_one({"id": item_id})
+    
+    if result.deleted_count > 0:
+        return {"success": True, "message": "Item deleted"}
+    else:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+@router.post("/gallery/manual")
+async def add_manual_gallery_item(request: Request):
+    """
+    Add a manual gallery item (not from Facebook sync).
+    """
+    data = await request.json()
+    
+    if not data.get("media_url"):
+        raise HTTPException(status_code=400, detail="Media URL is required")
+    
+    item = {
+        "id": str(uuid.uuid4()),
+        "facebook_post_id": None,  # Manual upload
+        "title": data.get("title", ""),
+        "caption": data.get("caption", ""),
+        "media_url": data.get("media_url"),
+        "media_type": data.get("media_type", "image"),
+        "permalink_url": data.get("permalink_url", ""),
+        "source": "manual",
+        "location": data.get("location", ""),
+        "project_type": data.get("project_type", ""),
+        # Admin controls
+        "show_on_gallery": data.get("show_on_gallery", True),
+        "show_on_latest_work": data.get("show_on_latest_work", False),
+        "featured": data.get("featured", False),
+        "hidden": False,
+        "sort_order": data.get("sort_order", 0),
+        # Metadata
+        "created_time": datetime.now(timezone.utc).isoformat(),
+        "synced_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.website_gallery.insert_one(item)
+    
+    # Return without _id
+    item_copy = {k: v for k, v in item.items() if k != "_id"}
+    
+    return {"success": True, "item": item_copy}
+
+@router.get("/gallery/public")
+async def get_public_gallery(type: str = "all", limit: int = 20):
+    """
+    Get public gallery items for website display.
+    Only returns items marked for display.
+    """
+    query = {"hidden": {"$ne": True}}
+    
+    if type == "gallery":
+        query["show_on_gallery"] = True
+    elif type == "latest_work":
+        query["show_on_latest_work"] = True
+    elif type == "featured":
+        query["featured"] = True
+    else:
+        # Default: show items marked for gallery OR latest work
+        query["$or"] = [
+            {"show_on_gallery": True},
+            {"show_on_latest_work": True}
+        ]
+    
+    items = await db.website_gallery.find(
+        query,
+        {"_id": 0}
+    ).sort([("featured", -1), ("sort_order", 1), ("created_time", -1)]).limit(limit).to_list(limit)
+    
+    return {"items": items, "count": len(items)}
+
+# ==================== IMPROVED POSTING WITH RETRY ====================
+
+@router.post("/posts/retry/{post_id}")
+async def retry_failed_post(post_id: str):
+    """Retry a failed post"""
+    post = await db.social_posts.find_one({"id": post_id}, {"_id": 0})
+    
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    if post.get("status") != "failed":
+        return {"success": False, "error": "Only failed posts can be retried"}
+    
+    settings = await get_social_settings()
+    
+    # Retry publishing
+    results = await publish_post_to_platforms(post, settings)
+    
+    new_status = "published" if any(r.get("success") for r in results.values()) else "failed"
+    
+    await db.social_posts.update_one(
+        {"id": post_id},
+        {"$set": {
+            "status": new_status,
+            "results": results,
+            "retried_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "success": new_status == "published",
+        "message": f"Post {'published successfully' if new_status == 'published' else 'still failed'}",
+        "results": results
+    }

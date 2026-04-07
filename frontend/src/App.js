@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight, ChevronUp,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram, MessageCircle
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -1116,7 +1116,7 @@ const HomePage = () => {
       }
     } catch (err) {
       console.error("Booking error:", err);
-      alert(err.response?.data?.detail || "Unable to process booking. Please call 8877896889.");
+      alert(err.response?.data?.detail || "Unable to process booking. Please call 9296389097.");
     } finally {
       setVerifyLoading(false);
     }
@@ -1266,6 +1266,34 @@ const HomePage = () => {
         )}
       </nav>
 
+      {/* Premium Top Announcement Bar - Below Navbar */}
+      <div className="bg-gradient-to-r from-[#071A2E] via-[#0B3C5D] to-[#071A2E] py-3 px-4 shadow-lg" data-testid="announcement-bar">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-2 text-white text-sm sm:text-base">
+            <span className="text-amber-400">☀</span>
+            <span className="font-medium">Get up to <span className="text-amber-400 font-bold">₹78,000 Subsidy</span> under PM Surya Ghar Yojana</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="tel:9296389097"
+              className="flex items-center gap-1.5 bg-[#00C389] hover:bg-[#00A372] text-white px-4 py-2 rounded-full text-sm font-semibold transition shadow-md"
+            >
+              <Phone className="w-4 h-4" />
+              <span className="hidden sm:inline">Call Now:</span> 9296389097
+            </a>
+            <a
+              href="https://wa.me/919296389097?text=Hi!%20I%20want%20to%20know%20about%20PM%20Surya%20Ghar%20subsidy%20for%20solar%20installation"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-2 rounded-full text-sm font-semibold transition shadow-md"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">WhatsApp for</span> Quote
+            </a>
+          </div>
+        </div>
+      </div>
+
       {/* Festive Banner - Auto-display from Admin Panel */}
       {festiveBanner && (
         <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 py-4 px-4 text-center shadow-lg" data-testid="festive-banner">
@@ -1307,34 +1335,6 @@ const HomePage = () => {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 relative z-10">
           <div className="text-center">
-            {/* Premium Running Banner */}
-            <div className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] py-3 rounded-2xl mb-10 relative overflow-hidden shadow-2xl">
-              <a
-                href="https://wa.me/919296389097?text=Hi!%20I%20saw%20your%20flash%20offer%20and%20I'm%20interested%20in%20solar%20installation!"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <div className="animate-marquee whitespace-nowrap flex items-center">
-                  <span className="mx-8 text-[#071A2E] font-bold text-sm md:text-base flex items-center">
-                    Switch to Solar & Make Your Electricity Bill ZERO!
-                  </span>
-                  <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
-                    💰 Save ₹8,500/Month on Electricity Bills - 25 Year Warranty!
-                  </span>
-                  <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
-                    🛠️ 5 Year FREE Maintenance Included!
-                  </span>
-                  <span className="mx-8 text-[#071A2E] font-bold text-sm md:text-base flex items-center">
-                    📞 Call Now: 8877896889 | WhatsApp for Instant Quote!
-                  </span>
-                  <span className="mx-8 text-[#0B3C5D] font-bold text-sm md:text-base flex items-center">
-                    Switch to Solar & Make Your Electricity Bill ZERO!
-                  </span>
-                </div>
-              </a>
-            </div>
-
             {/* Corporate Tagline */}
             <p className="text-lg md:text-xl text-green-400 italic mb-4 max-w-3xl mx-auto font-light tracking-wide">
               "Powering Bihar's Future with Clean, Affordable Solar Energy"
@@ -1364,13 +1364,13 @@ const HomePage = () => {
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
               <a
-                href="tel:8877896889"
+                href="tel:9296389097"
                 className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
                 data-testid="call-now-btn"
                 onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Hero Section' }); }}
               >
                 <Phone className="w-5 h-5" />
-                <span>Call: 8877896889</span>
+                <span>Call: 9296389097</span>
               </a>
               <a
                 href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
@@ -1619,9 +1619,9 @@ const HomePage = () => {
           <div className="text-center">
             <p className="text-[#0a355e] text-xl font-bold mb-4">Get Started Today!</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href="tel:8877896889" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white px-8 py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg text-lg">
+              <a href="tel:9296389097" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white px-8 py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg text-lg">
                 <Phone className="w-5 h-5" />
-                Call: 8877896889
+                Call: 9296389097
               </a>
               <button onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })} className="bg-[#f87f2b] text-white px-8 py-4 rounded-lg font-bold hover:bg-orange-600 transition shadow-lg">
                 Get Free Consultation →
@@ -2023,7 +2023,7 @@ const HomePage = () => {
                 <div className="flex items-start space-x-2">
                   <Phone className="w-4 h-4 mt-1 flex-shrink-0 text-[#00C389]" />
                   <div>
-                    <a href="tel:8877896889" className="hover:text-[#FFD166] transition">8877896889</a>
+                    <a href="tel:9296389097" className="hover:text-[#FFD166] transition">9296389097</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
@@ -2104,14 +2104,14 @@ const HomePage = () => {
 
         {/* Call Icon */}
         <a
-          href="tel:8877896889"
+          href="tel:9296389097"
           className="bg-blue-500 text-white p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative"
           data-testid="call-float-btn"
           onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Floating Button' }); }}
         >
           <Phone className="w-5 h-5" />
           <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-            Call: 8877896889
+            Call: 9296389097
           </span>
         </a>
         

@@ -91,10 +91,10 @@ Thank you!`)}`;
                 <span>Book Solar Service</span>
               </a>
               <a
-                href="tel:8877896889"
+                href="tel:9296389097"
                 className="border-2 border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"
               >
-                <span>Call: 8877896889</span>
+                <span>Call: 9296389097</span>
               </a>
             </div>
           </div>

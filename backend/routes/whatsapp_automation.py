@@ -130,7 +130,7 @@ Or reply with:
 4 for Price
 5 for Site Visit
 
-We'll assist you first thing. 📞 8298389097"""
+We'll assist you first thing. 📞 9296389097"""
 
 FOLLOW_UP_MESSAGE = """Hello 👋
 Just checking in regarding your rooftop solar inquiry.

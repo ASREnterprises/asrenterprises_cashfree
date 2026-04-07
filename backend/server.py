@@ -549,7 +549,7 @@ ASR_SOLAR_EXPERT_PROMPT = """You are the "ASR Solar Expert," the official AI ass
 - Credentials: MNRE Bihar Registered Vendor & PM Surya Ghar Partner.
 - Location: Shop 10, Aman SKS Complex, Khagaul Saguna Road, Patna.
 - Services: Design, supply, installation, and 5-year free maintenance.
-- Phone: 8877896889
+- Phone: 9296389097
 - Experience: 25+ verified installations across Bihar
 
 ### 2. SOLAR PANEL COSTS & INSTALLATION (Updated Pricing)
@@ -813,7 +813,7 @@ async def send_otp_email(email: str, otp: str, user_type: str = "Admin") -> bool
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
         <p style="color: #999; font-size: 12px; text-align: center;">
             ASR Enterprises - Bihar's Trusted Solar Rooftop Installation Company<br>
-            📞 8877896889 | ✉️ asrenterprisespatna@gmail.com
+            📞 9296389097 | ✉️ asrenterprisespatna@gmail.com
         </p>
     </div>
     """
@@ -1547,7 +1547,7 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         response = await chat.send_message(
             model="gpt-4o-mini",
             messages=[UserMessage(text=f"""You are AI assistant for ASR ENTERPRISES, Patna, Bihar.
-            Phone: 8877896889, Email: asrenterprisespatna@gmail.com
+            Phone: 9296389097, Email: asrenterprisespatna@gmail.com
             Office: Shop 10 AMAN SKS COMPLEX Khagaul Saguna Road Patna 801503
             
             Help with: Solar panels, PM Surya Ghar subsidy (max ₹78,000), EMI options, installation.
@@ -1559,17 +1559,24 @@ async def generate_whatsapp_response(user_message: str, session_id: str) -> str:
         )
         return response
     except:
-        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 8877896889 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
+        return "Thank you for contacting ASR ENTERPRISES! For solar installation inquiry, call 9296389097 or email asrenterprisespatna@gmail.com. We offer PM Surya Ghar subsidy up to ₹78,000!"
 
 # API Routes
 
 # ==================== GEMINI AI CHAT ENDPOINTS ====================
 @api_router.post("/ai/chat/public")
 async def public_ai_chat(request: Request, data: Dict[str, Any]):
-    """Public AI chat for website visitors - ASR Solar Expert"""
+    """
+    Public AI chat for website visitors - ASR Solar Expert
+    Features:
+    - Creates/updates CRM leads
+    - Detects human handover triggers
+    - Stores conversations for WhatsApp CRM flow
+    """
     try:
         session_id = data.get("session_id", str(uuid.uuid4()))
         message = data.get("message", "").strip()
+        visitor_info = data.get("visitor_info", {})  # Optional: name, phone, location
         
         if not message:
             raise HTTPException(status_code=400, detail="Message is required")
@@ -1585,7 +1592,10 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
             chat_sessions[session_id] = {
                 "messages": [],
                 "created_at": datetime.now(timezone.utc).isoformat(),
-                "lead_captured": False
+                "lead_captured": False,
+                "lead_id": None,
+                "human_handover_requested": False,
+                "visitor_info": visitor_info
             }
         
         session = chat_sessions[session_id]
@@ -1597,17 +1607,171 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
+        # ==================== HUMAN HANDOVER DETECTION ====================
+        handover_triggers = [
+            "price", "quotation", "quote", "cost", "rate", "kitna lagega",
+            "subsidy", "pm surya", "yojana", "government",
+            "site visit", "visit karo", "ghar aao", "survey",
+            "install", "installation", "lagwana",
+            "home solar", "ghar ka solar", "residential",
+            "shop solar", "office solar", "commercial", "dukan",
+            "monthly bill", "bijli bill", "upload bill",
+            "talk to human", "agent", "executive", "sales", "expert",
+            "callback", "call me", "call back", "urgent"
+        ]
+        
+        message_lower = message.lower()
+        needs_human = any(trigger in message_lower for trigger in handover_triggers)
+        
+        # ==================== LEAD CAPTURE ====================
+        # Extract phone number from message
+        phone_pattern = r'(?:\+91)?[6-9]\d{9}'
+        phone_match = re.search(phone_pattern, message)
+        captured_phone = phone_match.group() if phone_match else None
+        
+        # Create or update lead if phone detected OR if human handover needed
+        lead_id = session.get("lead_id")
+        
+        if captured_phone or needs_human:
+            lead_data = {
+                "source": "website_chatbot",
+                "stage": "new",
+                "chat_session_id": session_id,
+                "chat_messages": session["messages"],
+                "last_interaction": datetime.now(timezone.utc).isoformat()
+            }
+            
+            if captured_phone:
+                # Clean phone number
+                clean_phone = captured_phone.replace("+91", "")
+                if len(clean_phone) == 10:
+                    clean_phone = f"91{clean_phone}"
+                
+                # Check if lead exists
+                existing_lead = await db.crm_leads.find_one(
+                    {"$or": [
+                        {"phone": clean_phone},
+                        {"phone": clean_phone[-10:]}
+                    ]},
+                    {"_id": 0}
+                )
+                
+                if existing_lead:
+                    lead_id = existing_lead["id"]
+                    # Update existing lead
+                    await db.crm_leads.update_one(
+                        {"id": lead_id},
+                        {
+                            "$set": {
+                                "chat_session_id": session_id,
+                                "last_interaction": datetime.now(timezone.utc).isoformat()
+                            },
+                            "$push": {
+                                "activities": {
+                                    "id": str(uuid.uuid4()),
+                                    "type": "website_chat",
+                                    "title": "Website Chatbot Conversation",
+                                    "description": f"Customer chatted via website: {message[:100]}",
+                                    "timestamp": datetime.now(timezone.utc).isoformat()
+                                }
+                            }
+                        }
+                    )
+                else:
+                    # Create new lead
+                    lead_id = str(uuid.uuid4())
+                    new_lead = {
+                        "id": lead_id,
+                        "name": visitor_info.get("name", f"Website Chat {clean_phone[-4:]}"),
+                        "phone": clean_phone,
+                        "email": visitor_info.get("email", ""),
+                        "source": "website_chatbot",
+                        "stage": "new",
+                        "tags": ["whatsapp_lead", "new_inquiry", "website_chat"],
+                        "chat_session_id": session_id,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "activities": [{
+                            "id": str(uuid.uuid4()),
+                            "type": "lead_created",
+                            "title": "Lead Created from Website Chat",
+                            "description": f"Customer initiated chat: {message[:100]}",
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        }]
+                    }
+                    await db.crm_leads.insert_one(new_lead)
+                    session["lead_captured"] = True
+                
+                session["lead_id"] = lead_id
+        
+        # ==================== MARK HUMAN REQUIRED ====================
+        if needs_human and lead_id and not session.get("human_handover_requested"):
+            session["human_handover_requested"] = True
+            
+            # Determine intent for tagging
+            intent_tags = []
+            if any(t in message_lower for t in ["price", "quotation", "quote", "cost", "rate", "kitna"]):
+                intent_tags.append("quotation_requested")
+            if any(t in message_lower for t in ["subsidy", "pm surya", "yojana"]):
+                intent_tags.append("subsidy_interest")
+            if any(t in message_lower for t in ["site visit", "visit", "survey"]):
+                intent_tags.append("site_visit_requested")
+            if any(t in message_lower for t in ["home solar", "ghar"]):
+                intent_tags.append("home_solar")
+            if any(t in message_lower for t in ["shop", "office", "commercial", "dukan"]):
+                intent_tags.append("commercial_solar")
+            if any(t in message_lower for t in ["talk to", "agent", "executive", "sales", "callback"]):
+                intent_tags.append("sales_call_requested")
+            
+            # Update lead with human_required flag
+            await db.crm_leads.update_one(
+                {"id": lead_id},
+                {
+                    "$set": {
+                        "human_required": True,
+                        "human_required_at": datetime.now(timezone.utc).isoformat(),
+                        "human_required_reason": message[:200],
+                        "assigned_to": None,  # Unassigned queue
+                        "stage": "contacted"
+                    },
+                    "$addToSet": {"tags": {"$each": intent_tags + ["human_required", "hot_lead"]}},
+                    "$push": {
+                        "activities": {
+                            "id": str(uuid.uuid4()),
+                            "type": "human_handover",
+                            "title": "Human Handover Requested",
+                            "description": f"Customer requested human assistance. Trigger: {message[:100]}",
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                }
+            )
+            
+            logger.info(f"Human handover requested for lead {lead_id} from session {session_id}")
+        
+        # ==================== BUILD RESPONSE ====================
         # Build conversation history for context
         history_text = ""
         for msg in session["messages"][-10:]:  # Last 10 messages for context
             role = "Customer" if msg["role"] == "user" else "ASR Expert"
             history_text += f"{role}: {msg['content']}\n"
         
+        # If human handover requested, add special instruction to AI
+        handover_instruction = ""
+        if needs_human and session.get("human_handover_requested"):
+            handover_instruction = """
+IMPORTANT: The customer needs human assistance. In your response:
+1. Acknowledge their request warmly
+2. Tell them our team will contact them shortly
+3. Ask for their phone number if not already provided
+4. Provide the contact number: 9296389097
+5. Do NOT try to handle complex pricing or technical details yourself
+"""
+        
         # Create Gemini chat instance using Emergent key
         chat = LlmChat(
             api_key=api_key,
             session_id=session_id,
-            system_message=ASR_SOLAR_EXPERT_PROMPT
+            system_message=ASR_SOLAR_EXPERT_PROMPT + handover_instruction
         ).with_model("gemini", "gemini-2.5-flash")
         
         # Send message with context
@@ -1621,18 +1785,31 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
-        # Check if lead info was captured (phone number pattern)
-        phone_pattern = r'(?:\+91)?[6-9]\d{9}'
-        if re.search(phone_pattern, message) and not session["lead_captured"]:
-            session["lead_captured"] = True
-            # Log potential lead
-            logger.info(f"AI Chat potential lead captured in session {session_id}")
+        # Store chat in database for CRM reference
+        await db.website_chat_sessions.update_one(
+            {"session_id": session_id},
+            {
+                "$set": {
+                    "messages": session["messages"],
+                    "lead_id": lead_id,
+                    "human_handover_requested": session.get("human_handover_requested", False),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                },
+                "$setOnInsert": {
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "source": "website_chatbot"
+                }
+            },
+            upsert=True
+        )
         
         return {
             "success": True,
             "session_id": session_id,
             "response": response,
-            "message_count": len(session["messages"])
+            "message_count": len(session["messages"]),
+            "lead_id": lead_id,
+            "human_handover": session.get("human_handover_requested", False)
         }
         
     except HTTPException:
@@ -1641,7 +1818,7 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
         logger.error(f"Public AI chat error: {e}")
         return {
             "success": False,
-            "response": "I apologize, but I'm having trouble connecting. Please call us at 8877896889 for immediate assistance with your solar inquiry!",
+            "response": "I apologize, but I'm having trouble connecting. Please call us at 9296389097 for immediate assistance with your solar inquiry!",
             "error": str(e)
         }
 
@@ -2146,7 +2323,7 @@ ASR Enterprises Patna में आपका स्वागत है! 🌞
 🎁 *FREE Site Survey Available!*
 हमारी टीम आपके घर आकर exact quotation देगी।
 
-📞 अभी call करें: *8877896889*
+📞 अभी call करें: *9296389097*
 
 _आपको 5 मिनट में हमारी team का call आएगा!_
 
@@ -3242,7 +3419,7 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     
     # ONLY admin email allowed for admin login
     ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
-    ADMIN_REGISTERED_MOBILE = "8877896889"
+    ADMIN_REGISTERED_MOBILE = "9296389097"
     
     # Check if this is admin login
     if user_id == ADMIN_REGISTERED_EMAIL:
@@ -3309,7 +3486,7 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     raise HTTPException(status_code=401, detail="Invalid email or password. Only registered admin/staff can login.")
 
 # Registered admin credentials - ONLY these can access admin panel
-ADMIN_REGISTERED_MOBILE = "8877896889"
+ADMIN_REGISTERED_MOBILE = "9296389097"
 ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
 
 @api_router.post("/admin/login-otp")
@@ -3317,7 +3494,7 @@ ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
 async def admin_login_otp(request: Request, data: Dict[str, Any]):
     """Login with mobile OTP for admin and staff (MSG91 verified)
     
-    Admin: Only 8877896889 is allowed
+    Admin: Only 9296389097 is allowed
     Staff: Only registered staff mobile numbers are allowed
     """
     client_ip = get_real_ip(request)
@@ -3767,10 +3944,10 @@ async def generate_social_post(request: Dict[str, Any]):
         )
         
         prompts = {
-            "promotion": "Create a promotional social media post for ASR Enterprises, a solar installation company in Bihar. Mention PM Surya Ghar Yojana subsidy up to ₹78,000, 25-year warranty, and contact number 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
-            "project": "Create a social media post celebrating a successful solar installation project by ASR Enterprises in Bihar. Mention energy savings, professional installation, and invite others to contact 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
-            "festival": "Create a festive greeting social media post for ASR Enterprises, Bihar's trusted solar company. Make it warm, add solar energy reference, and mention contact 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
-            "scheme": "Create an informative social media post about PM Surya Ghar Muft Bijli Yojana government scheme for solar rooftop. Mention subsidy details (up to ₹78,000), how ASR Enterprises can help, and contact 8877896889 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags."
+            "promotion": "Create a promotional social media post for ASR Enterprises, a solar installation company in Bihar. Mention PM Surya Ghar Yojana subsidy up to ₹78,000, 25-year warranty, and contact number 9296389097 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
+            "project": "Create a social media post celebrating a successful solar installation project by ASR Enterprises in Bihar. Mention energy savings, professional installation, and invite others to contact 9296389097 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
+            "festival": "Create a festive greeting social media post for ASR Enterprises, Bihar's trusted solar company. Make it warm, add solar energy reference, and mention contact 9296389097 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags.",
+            "scheme": "Create an informative social media post about PM Surya Ghar Muft Bijli Yojana government scheme for solar rooftop. Mention subsidy details (up to ₹78,000), how ASR Enterprises can help, and contact 9296389097 (Call) / 9296389097 (WhatsApp). Use emojis and hashtags."
         }
         
         prompt = prompts.get(post_type, prompts["promotion"])
@@ -3784,10 +3961,10 @@ async def generate_social_post(request: Dict[str, Any]):
         logger.error(f"Error generating social post: {e}")
         # Return fallback content
         fallback = {
-            "promotion": "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy. 25-year warranty + 5 years FREE maintenance! 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #SolarPower #BiharSolar",
-            "project": "✨ Another successful installation! Our team completed a rooftop solar system in Bihar. Save 90% on bills! 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #SolarInstallation",
+            "promotion": "🌞 Switch to Solar with ASR Enterprises! Get up to ₹78,000 govt subsidy. 25-year warranty + 5 years FREE maintenance! 📞 Call: 9296389097 | 💬 WhatsApp: 9296389097 #SolarPower #BiharSolar",
+            "project": "✨ Another successful installation! Our team completed a rooftop solar system in Bihar. Save 90% on bills! 📞 Call: 9296389097 | 💬 WhatsApp: 9296389097 #SolarInstallation",
             "festival": "🎉 Warm wishes from ASR Enterprises! Go solar, save money, protect the environment! 🌞 #GreenEnergy #SolarBihar",
-            "scheme": "📢 PM Surya Ghar Yojana: Up to ₹78,000 subsidy for rooftop solar! ASR Enterprises can help you apply. 📞 Call: 8877896889 | 💬 WhatsApp: 9296389097 #GovtScheme"
+            "scheme": "📢 PM Surya Ghar Yojana: Up to ₹78,000 subsidy for rooftop solar! ASR Enterprises can help you apply. 📞 Call: 9296389097 | 💬 WhatsApp: 9296389097 #GovtScheme"
         }
         return {"success": True, "suggestions": [fallback.get(post_type, fallback["promotion"])]}
 
@@ -5329,7 +5506,7 @@ Please let us know a convenient time to discuss.
 
 Best regards,
 ASR Enterprises
-📞 8877896889"""
+📞 9296389097"""
         
         customer_whatsapp_url = get_whatsapp_url(lead.get("phone", ""), customer_message) if lead else None
         
@@ -5386,7 +5563,7 @@ Thank you for your interest in solar rooftop installation!
 
 Ready to go solar? Reply YES or call us!
 
-📞 *8877896889*
+📞 *9296389097*
 📧 asrenterprisespatna@gmail.com
 
 _ASR Enterprises - Bihar's Trusted Solar Partner_"""
@@ -6208,7 +6385,7 @@ Your service booking has been confirmed!
 Our team will contact you within 24 hours to schedule your service appointment.
 
 *Need Help?*
-Call: 8877896889
+Call: 9296389097
 WhatsApp: 9296389097
 
 _Thank you for choosing ASR Enterprises!_
@@ -6217,7 +6394,7 @@ _Powering Bihar's future with clean energy_"""
     customer_whatsapp_url = get_whatsapp_url(customer_phone, customer_whatsapp_msg)
     
     # ===== WHATSAPP NOTIFICATION TO ADMIN =====
-    admin_phone = "8877896889"
+    admin_phone = "9296389097"
     admin_whatsapp_msg = f"""*NEW SERVICE BOOKING*
 
 *Booking #:* {booking_number}
@@ -6262,7 +6439,7 @@ _Please contact the customer within 24 hours to schedule the service!_"""
                         <p style="color: #666; font-size: 13px; margin: 0;">Our service team will call you at <strong>{customer_phone}</strong> within 24 hours to schedule your appointment.</p>
                     </div>
                     
-                    <p style="color: #666; font-size: 13px;">Need immediate help? Call us at <strong>8877896889</strong> | WhatsApp: <strong>9296389097</strong></p>
+                    <p style="color: #666; font-size: 13px;">Need immediate help? Call us at <strong>9296389097</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
                     <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
@@ -6418,7 +6595,7 @@ async def book_solar_service(request: Request, data: Dict[str, Any]):
         if len(phone_for_sms) == 10:
             phone_for_sms = "91" + phone_for_sms
         
-        sms_message = f"Dear {customer_name}, Your Solar Service booking {booking_number} is received. Amount: Rs.{price}. Our team will verify payment & call you within 24hrs. ASR Enterprises 8877896889"
+        sms_message = f"Dear {customer_name}, Your Solar Service booking {booking_number} is received. Amount: Rs.{price}. Our team will verify payment & call you within 24hrs. ASR Enterprises 9296389097"
         
         # MSG91 SMS API
         async with httpx.AsyncClient() as client:
@@ -6494,7 +6671,7 @@ async def book_solar_service(request: Request, data: Dict[str, Any]):
                         <p style="color: #666; font-size: 13px; margin: 0;">Our team will verify your payment and call you at <strong>{customer_phone}</strong> within 24 hours to confirm your booking.</p>
                     </div>
                     
-                    <p style="color: #666; font-size: 13px;">Need help? Call: <strong>8877896889</strong> | WhatsApp: <strong>9296389097</strong></p>
+                    <p style="color: #666; font-size: 13px;">Need help? Call: <strong>9296389097</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
                     <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
@@ -6534,7 +6711,7 @@ async def book_solar_service(request: Request, data: Dict[str, Any]):
         logger.error(f"Failed to create CRM notification: {e}")
     
     # ===== ADMIN WHATSAPP NOTIFICATION =====
-    admin_phone = "8877896889"
+    admin_phone = "9296389097"
     admin_message = f"🔔 NEW BOOKING\n\n#{booking_number}\n{customer_name}\n📱 {customer_phone}\n💰 Rs.{price}\n🔢 TXN: {transaction_id}\n\n⚠️ VERIFY PAYMENT"
     admin_whatsapp_url = f"https://wa.me/91{admin_phone}?text={quote(admin_message)}"
     
@@ -6845,7 +7022,7 @@ Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FRE
 {("Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503" if order.delivery_type == "pickup" else order.delivery_address)}
 
 📞 *Need Help?*
-Call: 8877896889
+Call: 9296389097
 WhatsApp: 9296389097
 
 ⏰ *{"Pickup" if order.delivery_type == "pickup" else "Delivery"} Time:*
@@ -6914,7 +7091,7 @@ async def create_order(order_data: Dict[str, Any]):
         )
     
     # Generate WhatsApp notification URL for admin (business number: 9296389097)
-    admin_phone = "8877896889"
+    admin_phone = "9296389097"
     whatsapp_message = generate_order_whatsapp_message(order)
     whatsapp_notification_url = get_whatsapp_url(admin_phone, whatsapp_message)
     
@@ -7179,7 +7356,7 @@ async def verify_razorpay_payment(order_id: str, data: Dict[str, Any]):
     invalidate_cache("orders")
     
     # Generate WhatsApp payment confirmation notification for admin
-    admin_phone = "8877896889"
+    admin_phone = "9296389097"
     payment_message = f"""✅ *PAYMENT CONFIRMED - ASR Solar Shop*
 
 📦 Order #: {order.get('order_number', 'N/A')}
@@ -7222,7 +7399,7 @@ Your payment has been confirmed! ✅
 {"Visit our store during business hours (9 AM - 7 PM)" if order.get('delivery_type') == "pickup" else "Within 2-3 business days"}
 
 📞 *Need Help?*
-Call: 8877896889
+Call: 9296389097
 WhatsApp: 9296389097
 
 _Thank you for choosing ASR Enterprises!_
@@ -7289,7 +7466,7 @@ _Powering Bihar's future with clean energy_ ☀️"""
                         <p style="color: #666; font-size: 13px; margin: 0;">{delivery_time}</p>
                     </div>
                     
-                    <p style="color: #666; font-size: 13px;">Need help? Call us at <strong>8877896889</strong> | WhatsApp: <strong>9296389097</strong></p>
+                    <p style="color: #666; font-size: 13px;">Need help? Call us at <strong>9296389097</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
                     <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
@@ -9184,7 +9361,7 @@ Your order has been received! 🎉
 
 📍 *Delivery:* {delivery_info}
 
-📞 *Support:* 8877896889 | WhatsApp: 9296389097
+📞 *Support:* 9296389097 | WhatsApp: 9296389097
 
 _Thank you for choosing ASR Enterprises!_
 _Powering Bihar with clean energy_ ☀️"""
@@ -9235,7 +9412,7 @@ Please share your details:
 
 We will calculate your PM Surya Ghar subsidy (up to ₹78,000) instantly! ☀️
 
-📞 Call: 8877896889
+📞 Call: 9296389097
 💬 WhatsApp: 9296389097
 📍 Office: Shop 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna"""
         else:
@@ -9244,7 +9421,7 @@ We will calculate your PM Surya Ghar subsidy (up to ₹78,000) instantly! ☀️
 Our team will get back to you shortly.
 
 For immediate assistance:
-📞 Call: 8877896889
+📞 Call: 9296389097
 💬 WhatsApp: 9296389097"""
         
         async with httpx.AsyncClient() as client:

@@ -286,7 +286,7 @@ export const BiharInstallationMap = () => {
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <a
-                    href="tel:8877896889"
+                    href="tel:9296389097"
                     className="flex items-center justify-center space-x-2 bg-[#0a355e] text-white px-4 py-3 rounded-xl font-semibold hover:bg-[#0c4270] transition"
                   >
                     <Phone className="w-4 h-4" />

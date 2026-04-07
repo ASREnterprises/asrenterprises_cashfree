@@ -57,8 +57,8 @@ export const ContactPage = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-[#0B3C5D] mb-1">Phone</h3>
-                  <a href="tel:8877896889" className="text-[#00C389] hover:text-[#00A372] text-lg font-medium transition">
-                    8877896889
+                  <a href="tel:9296389097" className="text-[#00C389] hover:text-[#00A372] text-lg font-medium transition">
+                    9296389097
                   </a>
                   <p className="text-sm text-gray-500 mt-1">Available 9 AM - 7 PM</p>
                 </div>

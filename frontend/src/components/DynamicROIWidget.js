@@ -29,7 +29,7 @@ I'm interested in a FREE site survey for solar installation.
 Please schedule a FREE site survey at my location.
 
 Thank you!`;
-    return `https://wa.me/919296389097?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/918298389097?text=${encodeURIComponent(message)}`;
   };
 
   // Solar system configurations for different bill ranges

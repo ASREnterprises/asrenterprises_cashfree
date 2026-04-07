@@ -203,7 +203,7 @@ const InteractiveROISlider = ({ onBookSurvey }) => {
   const metrics = calculateMetrics(monthlyBill);
 
   // Generate WhatsApp URL for FREE site survey
-  const whatsappSurveyUrl = `https://wa.me/919296389097?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
+  const whatsappSurveyUrl = `https://wa.me/918298389097?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
 
 I'm interested in a FREE site survey for solar installation.
 
@@ -1282,7 +1282,7 @@ const HomePage = () => {
               <span className="hidden sm:inline">Call Now:</span> 9296389097
             </a>
             <a
-              href="https://wa.me/919296389097?text=Hi!%20I%20want%20to%20know%20about%20PM%20Surya%20Ghar%20subsidy%20for%20solar%20installation"
+              href="https://wa.me/918298389097?text=Hi!%20I%20want%20to%20know%20about%20PM%20Surya%20Ghar%20subsidy%20for%20solar%20installation"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-2 rounded-full text-sm font-semibold transition shadow-md"
@@ -1306,7 +1306,7 @@ const HomePage = () => {
               <p className="text-pink-100 text-sm">{festiveBanner.message}</p>
             </div>
             <a
-              href="https://wa.me/919296389097?text=Happy%20Festive%20Season!%20I%20want%20to%20know%20about%20solar%20offers"
+              href="https://wa.me/918298389097?text=Happy%20Festive%20Season!%20I%20want%20to%20know%20about%20solar%20offers"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-amber-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-600 transition text-sm"
@@ -1373,7 +1373,7 @@ const HomePage = () => {
                 <span>Call: 9296389097</span>
               </a>
               <a
-                href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
+                href="https://wa.me/918298389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
@@ -1979,7 +1979,7 @@ const HomePage = () => {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://wa.me/919296389097"
+                  href="https://wa.me/918298389097"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-green-500 p-2 rounded-full hover:scale-110 hover:shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all"
@@ -2014,7 +2014,7 @@ const HomePage = () => {
               <div className="space-y-2 text-gray-400">
                 <div><Link to="/chat" className="hover:text-[#FFD166] transition">WhatsApp Support</Link></div>
                 <div><Link to="/gallery" className="hover:text-[#FFD166] transition">Our Work</Link></div>
-                <div><a href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I%20want%20a%20FREE%20quote%20for%20solar%20rooftop%20installation.%20Please%20share%20details%20about%20pricing%20and%20subsidy." target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Get Quote</a></div>
+                <div><a href="https://wa.me/918298389097?text=Hi%20ASR%20Enterprises!%20I%20want%20a%20FREE%20quote%20for%20solar%20rooftop%20installation.%20Please%20share%20details%20about%20pricing%20and%20subsidy." target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">Get Quote</a></div>
               </div>
             </div>
             <div>
@@ -2029,7 +2029,7 @@ const HomePage = () => {
                 <div className="flex items-start space-x-2">
                   <MessageSquare className="w-4 h-4 mt-1 flex-shrink-0 text-green-500" />
                   <div>
-                    <a href="https://wa.me/919296389097" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">9296389097 (WhatsApp)</a>
+                    <a href="https://wa.me/918298389097" target="_blank" rel="noopener noreferrer" className="hover:text-[#FFD166] transition">9296389097 (WhatsApp)</a>
                   </div>
                 </div>
                 <div className="flex items-start space-x-2">
@@ -2698,7 +2698,7 @@ const LeadCapturePage = () => {
       
       // Open WhatsApp notification (for business owner)
       setTimeout(() => {
-        window.open(`https://wa.me/919296389097?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+        window.open(`https://wa.me/918298389097?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
       }, 2000);
       
       // Reset form

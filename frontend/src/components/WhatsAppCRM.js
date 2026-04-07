@@ -76,6 +76,7 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [syncing, setSyncing] = useState(false);
   
   useEffect(() => {
     if (isOpen) {
@@ -98,23 +99,53 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
     }
   };
   
+  const syncTemplates = async () => {
+    setSyncing(true);
+    try {
+      await axios.post(`${API}/api/whatsapp/templates/sync`);
+      await fetchTemplates();
+      setError('');
+    } catch (err) {
+      setError('Failed to sync templates');
+    }
+    setSyncing(false);
+  };
+  
   const initVariables = (template) => {
-    if (template.has_variables && template.variable_count > 0) {
+    // Only initialize variables if template actually needs them
+    const varCount = template.variable_count || 0;
+    const hasVars = template.has_variables === true;
+    
+    if (hasVars && varCount > 0) {
       const vars = [];
-      for (let i = 0; i < template.variable_count; i++) {
+      for (let i = 0; i < varCount; i++) {
+        // Pre-fill first variable with lead name
         vars.push(i === 0 && lead?.name ? lead.name : '');
       }
       setVariables(vars);
     } else {
+      // Template doesn't need variables - set empty array
       setVariables([]);
     }
   };
   
   const handleTemplateChange = (templateName) => {
     setSelectedTemplate(templateName);
+    setError(''); // Clear previous errors
     const template = templates.find(t => t.template_name === templateName);
     if (template) {
       initVariables(template);
+    }
+  };
+  
+  const addVariable = () => {
+    setVariables([...variables, '']);
+  };
+  
+  const removeVariable = (index) => {
+    if (variables.length > 1) {
+      const newVars = variables.filter((_, i) => i !== index);
+      setVariables(newVars);
     }
   };
   
@@ -128,10 +159,19 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
     setError('');
     
     try {
-      const res = await axios.post(`${API}/api/whatsapp/send-to-lead/${lead.id}`, {
+      // Only send variables if the template actually needs them
+      const templateNeedsVariables = selectedTpl?.has_variables && selectedTpl?.variable_count > 0;
+      const filledVariables = variables.filter(v => v && v.trim() !== '');
+      
+      const payload = {
         template_name: selectedTemplate,
-        variables: variables.filter(v => v.trim() !== '')
-      });
+        // Only include variables if template needs them AND we have filled values
+        variables: templateNeedsVariables ? 
+          (filledVariables.length > 0 ? filledVariables : [lead?.name || 'Customer']) : 
+          []
+      };
+      
+      const res = await axios.post(`${API}/api/whatsapp/send-to-lead/${lead.id}`, payload);
       
       if (res.data.success) {
         setSuccess('WhatsApp message sent successfully!');
@@ -140,10 +180,21 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
           onClose();
         }, 1500);
       } else {
-        setError(res.data.error || 'Failed to send message');
+        // Parse Meta API error
+        const errorMsg = res.data.error || 'Failed to send message';
+        if (errorMsg.includes('132000') || errorMsg.includes('parameters')) {
+          setError('Template parameter mismatch. Try clicking "Sync Templates" to update template info.');
+        } else {
+          setError(errorMsg);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to send message');
+      const errorDetail = err.response?.data?.detail || err.response?.data?.error || 'Failed to send message';
+      if (errorDetail.includes('132000') || errorDetail.includes('parameters')) {
+        setError('Template parameter mismatch. Try clicking "Sync Templates" to update template info.');
+      } else {
+        setError(errorDetail);
+      }
     }
     
     setSending(false);
@@ -152,6 +203,7 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
   if (!isOpen) return null;
   
   const selectedTpl = templates.find(t => t.template_name === selectedTemplate);
+  const showVariableInputs = selectedTpl?.has_variables || selectedTpl?.variable_count > 0 || variables.length > 0;
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -177,7 +229,17 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
         
         {/* Template Selection */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Template</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">Select Template</label>
+            <button
+              onClick={syncTemplates}
+              disabled={syncing}
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync Templates'}
+            </button>
+          </div>
           <select
             value={selectedTemplate}
             onChange={(e) => handleTemplateChange(e.target.value)}
@@ -185,7 +247,7 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
           >
             {templates.map((t) => (
               <option key={t.template_name} value={t.template_name}>
-                {t.display_name || t.template_name}
+                {t.display_name || t.template_name} {t.variable_count > 0 ? `(${t.variable_count} vars)` : ''}
               </option>
             ))}
           </select>
@@ -194,24 +256,54 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
           )}
         </div>
         
-        {/* Variables */}
+        {/* Variables - Only show if template needs them */}
         {selectedTpl?.has_variables && selectedTpl?.variable_count > 0 && (
           <div className="mb-4 space-y-3">
-            <label className="block text-sm font-medium text-gray-700">Template Variables</label>
-            {[...Array(selectedTpl.variable_count)].map((_, i) => (
-              <input
-                key={i}
-                type="text"
-                value={variables[i] || ''}
-                onChange={(e) => {
-                  const newVars = [...variables];
-                  newVars[i] = e.target.value;
-                  setVariables(newVars);
-                }}
-                placeholder={`Variable ${i + 1} ${i === 0 ? '(e.g., Customer Name)' : ''}`}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">
+                Template Variables <span className="text-red-500">*</span>
+              </label>
+              <button
+                onClick={addVariable}
+                className="text-xs text-green-600 hover:text-green-700 flex items-center gap-1"
+              >
+                <Plus className="w-3 h-3" />
+                Add Variable
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Fill in values to replace {'{{1}}'}, {'{{2}}'}, etc. in the template.
+            </p>
+            {variables.map((val, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  type="text"
+                  value={val}
+                  onChange={(e) => {
+                    const newVars = [...variables];
+                    newVars[i] = e.target.value;
+                    setVariables(newVars);
+                  }}
+                  placeholder={i === 0 ? 'Customer Name' : `Variable ${i + 1}`}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                {variables.length > 1 && (
+                  <button
+                    onClick={() => removeVariable(i)}
+                    className="px-2 text-red-500 hover:text-red-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             ))}
+          </div>
+        )}
+        
+        {/* Info message for templates without variables */}
+        {(!selectedTpl?.has_variables || selectedTpl?.variable_count === 0) && (
+          <div className="mb-4 bg-blue-50 text-blue-600 px-4 py-3 rounded-xl text-sm">
+            <p>This template doesn't require any variables. Click Send to deliver the message.</p>
           </div>
         )}
         

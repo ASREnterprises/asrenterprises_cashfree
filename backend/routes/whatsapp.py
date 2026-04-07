@@ -424,12 +424,53 @@ async def sync_templates():
                 count = 0
                 for t in templates:
                     if t.get("status") == "APPROVED":
+                        # Extract variable count from template components
+                        variable_count = 0
+                        has_variables = False
+                        
+                        # Parse components to find variables like {{1}}, {{2}}, etc.
+                        components = t.get("components", [])
+                        for comp in components:
+                            comp_type = comp.get("type", "")
+                            
+                            # Check HEADER for variables
+                            if comp_type == "HEADER":
+                                header_format = comp.get("format", "")
+                                if header_format in ["TEXT"]:
+                                    text = comp.get("text", "")
+                                    # Count {{1}}, {{2}}, etc.
+                                    import re
+                                    vars_in_header = re.findall(r'\{\{\d+\}\}', text)
+                                    variable_count += len(vars_in_header)
+                            
+                            # Check BODY for variables (most common place)
+                            if comp_type == "BODY":
+                                text = comp.get("text", "")
+                                import re
+                                vars_in_body = re.findall(r'\{\{\d+\}\}', text)
+                                variable_count += len(vars_in_body)
+                            
+                            # Check BUTTONS for variables
+                            if comp_type == "BUTTONS":
+                                buttons = comp.get("buttons", [])
+                                for btn in buttons:
+                                    if btn.get("type") == "URL":
+                                        url = btn.get("url", "")
+                                        import re
+                                        vars_in_url = re.findall(r'\{\{\d+\}\}', url)
+                                        variable_count += len(vars_in_url)
+                        
+                        has_variables = variable_count > 0
+                        
                         template_data = {
                             "template_name": t.get("name"),
                             "display_name": t.get("name", "").replace("_", " ").title(),
                             "language_code": t.get("language", "en"),
                             "category": t.get("category", "MARKETING"),
                             "status": t.get("status"),
+                            "has_variables": has_variables,
+                            "variable_count": variable_count,
+                            "components": components,  # Store original components for reference
                             "is_active": True,
                             "synced_at": datetime.now(timezone.utc).isoformat()
                         }
@@ -488,6 +529,19 @@ async def send_single_message(data: Dict[str, Any]):
         if lead and not phone:
             phone = lead.get("phone", "")
     
+    # Get template info to check if it needs variables
+    template = await db.whatsapp_templates.find_one(
+        {"template_name": template_name},
+        {"_id": 0, "has_variables": 1, "variable_count": 1}
+    )
+    
+    # Determine if we should send variables
+    needs_variables = template and template.get("has_variables", False) and template.get("variable_count", 0) > 0
+    
+    if not needs_variables:
+        # Template doesn't need variables - send empty list
+        variables = []
+    
     result = await send_whatsapp_template(
         phone=phone,
         template_name=template_name,
@@ -513,11 +567,24 @@ async def send_to_lead(lead_id: str, data: Dict[str, Any]):
     if not template_name:
         raise HTTPException(status_code=400, detail="Template name is required")
     
-    # Auto-fill variables with lead data
+    # Get template info to check if it needs variables
+    template = await db.whatsapp_templates.find_one(
+        {"template_name": template_name},
+        {"_id": 0, "has_variables": 1, "variable_count": 1}
+    )
+    
+    # Determine if we should send variables
     variables = data.get("variables", [])
-    if not variables:
-        # Default: use lead name as first variable
-        variables = [lead.get("name", "Customer")]
+    needs_variables = template and template.get("has_variables", False) and template.get("variable_count", 0) > 0
+    
+    if needs_variables:
+        # Template needs variables - fill them
+        if not variables:
+            # Default: use lead name as first variable
+            variables = [lead.get("name", "Customer")]
+    else:
+        # Template doesn't need variables - send empty list
+        variables = []
     
     result = await send_whatsapp_template(
         phone=phone,

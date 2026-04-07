@@ -3339,7 +3339,7 @@ async def send_otp(request: Request, data: Dict[str, Any]):
     log_security_event("ADMIN_LOGIN_ATTEMPT", client_ip, {"email": mask_sensitive_data(email)})
     
     # Only admin email is allowed
-    registered_admin = "support@asrenterprises.in"
+    registered_admin = "asrenterprisespatna@gmail.com"
     if email != registered_admin:
         security_tracker.record_failed_attempt(client_ip, "Invalid admin email")
         raise HTTPException(status_code=403, detail="Email not registered. Only admin can access.")
@@ -3386,7 +3386,7 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=429, detail=message)
     
     # Only allow admin email or registered phone
-    registered_admin = "support@asrenterprises.in"
+    registered_admin = "asrenterprisespatna@gmail.com"
     if email and email != registered_admin:
         record_failed_login(client_ip, email)
         logger.warning(f"Unauthorized login attempt for email: {email} from IP: {client_ip}")
@@ -3418,8 +3418,8 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=429, detail=message)
     
     # ONLY admin email allowed for admin login
-    ADMIN_REGISTERED_EMAIL = "support@asrenterprises.in"
-    ADMIN_REGISTERED_MOBILE = "9296389097"
+    ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
+    ADMIN_REGISTERED_MOBILE = "8877896889"
     
     # Check if this is admin login
     if user_id == ADMIN_REGISTERED_EMAIL:
@@ -3486,8 +3486,8 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     raise HTTPException(status_code=401, detail="Invalid email or password. Only registered admin/staff can login.")
 
 # Registered admin credentials - ONLY these can access admin panel
-ADMIN_REGISTERED_MOBILE = "9296389097"
-ADMIN_REGISTERED_EMAIL = "support@asrenterprises.in"
+ADMIN_REGISTERED_MOBILE = "8877896889"
+ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
 
 @api_router.post("/admin/login-otp")
 @limiter.limit(RATE_LIMIT_AUTH)
@@ -3581,7 +3581,7 @@ async def admin_verify_2fa(request: Request, data: Dict[str, Any]):
     # This endpoint is called after MSG91 OTP verification on frontend
     # It simply confirms the 2FA session and returns login data
     
-    ADMIN_REGISTERED_EMAIL = "support@asrenterprises.in"
+    ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
     
     if email == ADMIN_REGISTERED_EMAIL:
         logger.info(f"2FA verified for admin {email} from IP: {client_ip}")

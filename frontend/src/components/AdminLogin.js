@@ -365,7 +365,7 @@ export const AdminLogin = ({ onLogin }) => {
         setError(response.data.message || "Invalid credentials.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid email or password. Only registered admin (support@asrenterprises.in) can login.");
+      setError(err.response?.data?.detail || "Invalid email or password. Only registered admin (asrenterprisespatna@gmail.com) can login.");
     } finally {
       setLoading(false);
     }
@@ -669,7 +669,7 @@ export const AdminLogin = ({ onLogin }) => {
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:border-transparent placeholder-gray-400"
-                    placeholder="support@asrenterprises.in"
+                    placeholder="asrenterprisespatna@gmail.com"
                     required
                     data-testid="admin-email"
                   />

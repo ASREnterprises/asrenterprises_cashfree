@@ -228,6 +228,23 @@ Please share your:
 
 Our sales team will assist you shortly.""",
         "next_question": "name"
+    },
+    "0": {
+        "tag": "human_handover",
+        "tags": ["whatsapp_lead", "human_required", "priority_escalation"],
+        "stage": "contacted",
+        "lead_type": "Human Handover",
+        "response": """Understood 👍
+I'm connecting you with our customer support team.
+
+A representative will message you shortly (usually within 15 minutes during business hours: 10 AM - 6 PM).
+
+Meanwhile, please share:
+- Your name
+- Your query/concern
+
+Thank you for your patience! 🙏""",
+        "next_question": "human_handover"
     }
 }
 
@@ -239,7 +256,10 @@ KEYWORD_MAPPINGS = {
     "4": ["price", "quotation", "quote", "cost", "rate", "kitna", "कीमत", "4️⃣", "kitna lagega", "price kya hai", "kharcha"],
     "5": ["site visit", "visit", "free visit", "survey", "देखना", "5️⃣", "ghar aao", "dekhne aao", "inspection"],
     "6": ["service", "support", "repair", "problem", "issue", "समस्या", "6️⃣", "complaint", "kharab", "not working"],
-    "7": ["call", "talk", "sales", "baat", "बात", "7️⃣", "call karo", "baat karna hai", "contact"]
+    "7": ["call", "talk", "sales", "baat", "बात", "7️⃣", "call karo", "baat karna hai", "contact"],
+    "0": ["human", "agent", "person", "real person", "talk to someone", "speak to", "customer service", 
+          "executive", "manager", "इंसान", "आदमी", "connect me", "operator", "help desk", 
+          "representative", "not bot", "real human", "talk to a person", "0️⃣"]
 }
 
 # Source tag mappings - Maps internal source values to display tags
@@ -727,6 +747,49 @@ async def update_lead_source(phone: str, source: str, source_tag: str):
         }
     )
 
+
+async def trigger_human_handover(phone: str, lead_id: str = None):
+    """
+    Mark lead for human handover and create an alert in CRM.
+    This is triggered when customer explicitly requests to talk to a human.
+    """
+    phone_suffix = phone[-10:] if len(phone) >= 10 else phone
+    
+    # Update lead with human_required flag and high priority
+    result = await db.crm_leads.update_one(
+        {
+            "$or": [
+                {"phone": phone},
+                {"phone": phone_suffix},
+                {"phone": {"$regex": phone_suffix}}
+            ]
+        },
+        {
+            "$set": {
+                "human_required": True,
+                "ai_priority": "high",
+                "human_handover_requested_at": datetime.now(timezone.utc).isoformat(),
+                "follow_up_notes": "⚠️ HUMAN HANDOVER REQUESTED - Customer wants to speak with a real person"
+            },
+            "$addToSet": {"tags": {"$each": ["human_required", "priority_escalation"]}}
+        }
+    )
+    
+    # Create a notification/alert for the team
+    await db.crm_notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "type": "human_handover",
+        "priority": "high",
+        "phone": phone,
+        "lead_id": lead_id,
+        "message": f"🚨 Customer {phone} requested human assistance via WhatsApp",
+        "status": "unread",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    logger.info(f"Human handover triggered for {phone}")
+    return result.modified_count > 0
+
 async def send_text_message(
     phone: str, 
     text: str, 
@@ -913,6 +976,10 @@ async def process_auto_reply(
         
         # Update lead stage
         await update_lead_stage(phone, reply_config["stage"], selected_option, reply_config["tag"])
+        
+        # Trigger human handover if option "0" selected
+        if selected_option == "0":
+            await trigger_human_handover(phone, lead_id)
         
         # Update lead source if detected from payload
         if source_key != "whatsapp_direct":

@@ -3,7 +3,7 @@ CRM Management Router
 Handles core CRM endpoints: leads, tasks, dashboard, widgets, and staff management
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field, ConfigDict
@@ -45,6 +45,8 @@ class CRMLead(BaseModel):
     roof_area: Optional[int] = None
     source: str = "manual"
     stage: str = "new"
+    lead_status: str = "new"  # 'new', 'in_progress', 'follow_up', 'closed'
+    is_new: bool = True  # Visual flag for "NEW" badge
     lead_score: int = 50
     ai_priority: str = "medium"
     assigned_to: Optional[str] = None
@@ -56,6 +58,7 @@ class CRMLead(BaseModel):
     advance_paid: float = 0
     pending_amount: float = 0
     status_history: List[Dict[str, Any]] = []
+    first_contact_at: Optional[datetime] = None  # When staff first interacted
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -90,6 +93,93 @@ class CRMEmployee(BaseModel):
     leads_converted: int = 0
     total_revenue: float = 0
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+
+# ==================== NEW LEADS MANAGEMENT ENDPOINTS ====================
+
+@router.get("/new-leads")
+async def get_new_leads(limit: int = 50, page: int = 1):
+    """
+    Get leads with is_new=True flag.
+    These are leads that haven't been interacted with by staff yet.
+    """
+    skip = (page - 1) * limit
+    
+    # Count total new leads
+    total_count = await db.crm_leads.count_documents({"is_new": True})
+    
+    # Fetch new leads sorted by newest first
+    leads = await db.crm_leads.find(
+        {"is_new": True},
+        {"_id": 0}
+    ).sort([("timestamp", -1)]).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "total_count": total_count,
+        "page": page,
+        "per_page": limit,
+        "has_more": (page * limit) < total_count
+    }
+
+
+@router.post("/leads/{lead_id}/mark-contacted")
+async def mark_lead_contacted(lead_id: str):
+    """
+    Mark a lead as contacted - removes the NEW badge.
+    Called when staff first interacts with the lead.
+    """
+    lead = await db.crm_leads.find_one({"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    update_data = {
+        "is_new": False,
+        "lead_status": "in_progress",
+        "first_contact_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Only update stage if it's still 'new'
+    if lead.get("stage") == "new":
+        update_data["stage"] = "contacted"
+    
+    await db.crm_leads.update_one({"id": lead_id}, {"$set": update_data})
+    
+    return {"success": True, "message": "Lead marked as contacted"}
+
+
+@router.post("/leads/bulk-mark-contacted")
+async def bulk_mark_leads_contacted(request: Request):
+    """Bulk mark multiple leads as contacted"""
+    data = await request.json()
+    lead_ids = data.get("lead_ids", [])
+    
+    if not lead_ids:
+        return {"success": False, "error": "No lead IDs provided"}
+    
+    result = await db.crm_leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$set": {
+            "is_new": False,
+            "lead_status": "in_progress",
+            "first_contact_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "success": True,
+        "modified_count": result.modified_count,
+        "message": f"{result.modified_count} leads marked as contacted"
+    }
+
+
+@router.get("/new-leads/count")
+async def get_new_leads_count():
+    """Quick count of new leads for badge display"""
+    count = await db.crm_leads.count_documents({"is_new": True})
+    return {"count": count}
+
 
 
 # ==================== WIDGET ENDPOINTS ====================
@@ -366,7 +456,6 @@ async def update_crm_lead(lead_id: str, data: Dict[str, Any]):
 async def assign_lead(lead_id: str, data: Dict[str, Any]):
     """Assign lead to staff member"""
     employee_id = data.get("employee_id")
-    assigned_by = data.get("assigned_by", "admin")
     
     # Get lead details
     lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
@@ -559,11 +648,11 @@ async def get_monthly_report():
     # Count leads created this month
     all_leads = await db.crm_leads.find({}, {"_id": 0}).to_list(1000)
     
-    monthly_leads = [l for l in all_leads if l.get("timestamp", "") >= month_start.isoformat()]
-    converted = [l for l in all_leads if l.get("stage") in ["converted", "completed"]]
+    monthly_leads = [lead for lead in all_leads if lead.get("timestamp", "") >= month_start.isoformat()]
+    converted = [lead for lead in all_leads if lead.get("stage") in ["converted", "completed"]]
     
     # Revenue calculation
-    total_revenue = sum(l.get("total_amount", 0) for l in converted)
+    total_revenue = sum(lead.get("total_amount", 0) for lead in converted)
     
     # Source breakdown
     source_breakdown = {}

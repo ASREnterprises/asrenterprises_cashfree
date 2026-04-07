@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronRight, X, Play, MapPin, Calendar, Award, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, X, Play, MapPin, Calendar, Award, Loader2, RefreshCw, Facebook } from "lucide-react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 
@@ -53,7 +53,9 @@ const LazyImage = ({ src, alt, className, onClick }) => {
 export const GalleryPage = () => {
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [dynamicPhotos, setDynamicPhotos] = useState([]);
+  const [facebookPhotos, setFacebookPhotos] = useState([]); // Facebook synced posts
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'uploads', 'facebook'
 
   // Static gallery items (original photos)
   const staticGalleryItems = [
@@ -95,31 +97,62 @@ export const GalleryPage = () => {
   ];
 
   useEffect(() => {
-    fetchGalleryPhotos();
+    fetchAllGalleryPhotos();
   }, []);
 
-  const fetchGalleryPhotos = async () => {
+  const fetchAllGalleryPhotos = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/photos`);
-      // Convert backend photos to gallery format
-      const crmPhotos = (res.data || []).map(photo => ({
+      // Fetch both CRM photos and Facebook synced posts in parallel
+      const [crmRes, fbRes] = await Promise.all([
+        axios.get(`${API}/photos`).catch(() => ({ data: [] })),
+        axios.get(`${API}/social/gallery/public?type=all&limit=50`).catch(() => ({ data: { items: [] } }))
+      ]);
+      
+      // Convert CRM photos to gallery format
+      const crmPhotos = (crmRes.data || []).map(photo => ({
         type: "image",
         url: photo.image_url || photo.imageUrl,
         title: photo.title,
         location: photo.location || "Bihar, India",
         date: photo.timestamp ? new Date(photo.timestamp).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : undefined,
-        systemSize: photo.system_size
+        systemSize: photo.system_size,
+        source: "upload"
       }));
       setDynamicPhotos(crmPhotos);
+      
+      // Convert Facebook posts to gallery format  
+      const fbPhotos = (fbRes.data?.items || []).map(item => ({
+        type: item.media_type === 'video' ? 'video' : 'image',
+        url: item.media_url,
+        thumbnail: item.media_url, // For videos
+        title: item.title || item.caption?.substring(0, 60) || "Solar Installation",
+        location: item.location || "Bihar, India",
+        date: item.created_time ? new Date(item.created_time).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : undefined,
+        permalink: item.permalink_url,
+        source: "facebook"
+      }));
+      setFacebookPhotos(fbPhotos);
     } catch (err) {
       console.error("Error fetching gallery photos:", err);
     }
     setLoading(false);
   };
 
-  // Combine dynamic CRM photos with static ones (CRM photos first)
-  const galleryItems = [...dynamicPhotos, ...staticGalleryItems];
+  const fetchGalleryPhotos = fetchAllGalleryPhotos; // Alias for backward compatibility
+
+  // Combine and filter gallery items based on active filter
+  const getFilteredItems = () => {
+    if (activeFilter === 'uploads') {
+      return [...dynamicPhotos, ...staticGalleryItems];
+    } else if (activeFilter === 'facebook') {
+      return facebookPhotos;
+    }
+    // 'all' - Combine everything (Facebook posts first, then uploads, then static)
+    return [...facebookPhotos, ...dynamicPhotos, ...staticGalleryItems];
+  };
+  
+  const galleryItems = getFilteredItems();
 
   const openModal = (item) => {
     setSelectedMedia(item);
@@ -199,8 +232,47 @@ export const GalleryPage = () => {
 
       {/* Gallery Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Refresh Button */}
-        <div className="flex justify-end mb-6">
+        {/* Filter Buttons and Refresh */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+          {/* Filter Tabs */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-xl p-1">
+            <button 
+              onClick={() => setActiveFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeFilter === 'all' 
+                  ? 'bg-white text-[#0B3C5D] shadow-sm' 
+                  : 'text-gray-600 hover:text-[#0B3C5D]'
+              }`}
+              data-testid="filter-all-btn"
+            >
+              All Projects ({facebookPhotos.length + dynamicPhotos.length + staticGalleryItems.length})
+            </button>
+            <button 
+              onClick={() => setActiveFilter('facebook')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5 ${
+                activeFilter === 'facebook' 
+                  ? 'bg-white text-blue-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-blue-600'
+              }`}
+              data-testid="filter-facebook-btn"
+            >
+              <Facebook className="w-4 h-4" />
+              Latest ({facebookPhotos.length})
+            </button>
+            <button 
+              onClick={() => setActiveFilter('uploads')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                activeFilter === 'uploads' 
+                  ? 'bg-white text-[#0B3C5D] shadow-sm' 
+                  : 'text-gray-600 hover:text-[#0B3C5D]'
+              }`}
+              data-testid="filter-uploads-btn"
+            >
+              Uploads ({dynamicPhotos.length + staticGalleryItems.length})
+            </button>
+          </div>
+
+          {/* Refresh Button */}
           <button 
             onClick={fetchGalleryPhotos} 
             className="flex items-center space-x-2 text-gray-500 hover:text-[#F5A623] transition"
@@ -212,15 +284,29 @@ export const GalleryPage = () => {
           </button>
         </div>
 
+        {/* Facebook Notice */}
+        {activeFilter === 'facebook' && facebookPhotos.length > 0 && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+            <Facebook className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <p className="text-sm text-blue-700">
+              Showing latest posts from our <strong>Facebook Page</strong>. Follow us for more updates!
+            </p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-10 h-10 text-[#F5A623] animate-spin" />
+          </div>
+        ) : galleryItems.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-gray-500">No projects to display in this category.</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {galleryItems.map((item, index) => (
               <div
-                key={index}
+                key={`${item.source || 'static'}-${index}`}
                 className="premium-card relative group cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 bg-white"
                 onClick={() => openModal(item)}
                 data-testid={`gallery-item-${index}`}
@@ -233,6 +319,14 @@ export const GalleryPage = () => {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Solar+Installation'; }}
                   />
+                  
+                  {/* Facebook Source Badge */}
+                  {item.source === 'facebook' && (
+                    <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                      <Facebook className="w-3 h-3" />
+                      <span>Facebook</span>
+                    </div>
+                  )}
                   
                   {/* Play button for video */}
                   {item.type === "video" && (

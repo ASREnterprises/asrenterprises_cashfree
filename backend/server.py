@@ -1285,6 +1285,10 @@ class CRMLead(BaseModel):
     source: str = "website"  # website, whatsapp, call, facebook, instagram
     # Pipeline stage - aligned with frontend CRMDashboard.js and StaffPortal.js
     stage: str = "new"  # new, contacted, site_visit, quotation, negotiation, converted, completed, lost
+    # New Leads Management System
+    lead_status: str = "new"  # 'new', 'in_progress', 'follow_up', 'closed'
+    is_new: bool = True  # Visual flag for "NEW" badge - auto-removed on first contact
+    first_contact_at: Optional[str] = None  # When staff first interacted
     # Assignment
     assigned_to: Optional[str] = None  # employee id
     assigned_by: Optional[str] = None
@@ -2167,6 +2171,8 @@ async def save_chat_lead(data: Dict[str, Any]):
             "district": district,
             "source": "ai_chat",
             "stage": "new",
+            "lead_status": "new",
+            "is_new": True,
             "notes": f"Captured via AI Chat. {notes}",
             "lead_category": "residential_solar",
             "ai_priority": "high",
@@ -2271,6 +2277,8 @@ async def create_secure_lead(request: Request, data: Dict[str, Any]):
             roof_area=lead_data.roof_area,
             source="website",
             stage="new",
+            lead_status="new",
+            is_new=True,
             lead_score=ai_result.get("lead_score", 50),
             ai_priority=ai_result.get("ai_priority", "medium"),
             next_follow_up=(datetime.now(timezone.utc) + timedelta(days=1)).strftime("%Y-%m-%d"),
@@ -2416,6 +2424,8 @@ async def create_lead(lead_data: LeadCreate):
             roof_area=lead_data.roof_area,
             source="website",
             stage="new",
+            lead_status="new",
+            is_new=True,
             lead_score=ai_result.get("lead_score", 50),
             ai_priority="high" if ai_result.get("lead_score", 50) >= 80 else "medium" if ai_result.get("lead_score", 50) >= 50 else "low",
             ai_suggestions=ai_result.get("ai_analysis", "")

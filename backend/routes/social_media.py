@@ -633,15 +633,31 @@ async def publish_to_facebook(post: dict, settings: dict, access_token: str):
                     }
                 )
             elif video_url:
-                # External video URL
+                # External video URL - use resumable upload for better reliability
+                # First, try the direct URL method
                 response = await http_client.post(
                     f"{FB_GRAPH_API}/{page_id}/videos",
                     data={
                         "file_url": video_url,
                         "description": post.get("caption", ""),
                         "access_token": page_access_token
-                    }
+                    },
+                    timeout=180.0  # Longer timeout for video uploads
                 )
+                
+                # Check if the direct URL method failed
+                if response.status_code not in [200, 201]:
+                    response_data = response.json()
+                    error = response_data.get("error", {})
+                    error_code = error.get("code", 0)
+                    
+                    # If it's a URL access error, provide specific guidance
+                    if error_code == 100 or "fetch" in str(error.get("message", "")).lower():
+                        return {
+                            "success": False,
+                            "error": "Facebook couldn't access the video URL. Please ensure:\n1. The URL is publicly accessible (not behind login)\n2. The video format is supported (MP4, MOV)\n3. Try uploading a direct video file instead of a URL",
+                            "error_code": error_code
+                        }
             else:
                 # Text-only post - use /feed endpoint
                 response = await http_client.post(
@@ -750,7 +766,37 @@ async def publish_to_instagram(post: dict, settings: dict, access_token: str):
             container_id = container_data.get("id")
             
             # Step 2: Wait for media to be ready (Instagram processes asynchronously)
-            await asyncio.sleep(2)
+            # For videos/reels, need to poll until ready
+            if video_url:
+                max_retries = 30  # Wait up to 60 seconds for video processing
+                for i in range(max_retries):
+                    await asyncio.sleep(2)
+                    status_response = await http_client.get(
+                        f"{FB_GRAPH_API}/{container_id}",
+                        params={
+                            "fields": "status_code,status",
+                            "access_token": page_access_token
+                        }
+                    )
+                    status_data = status_response.json()
+                    status_code = status_data.get("status_code", "")
+                    
+                    if status_code == "FINISHED":
+                        break
+                    elif status_code == "ERROR":
+                        return {
+                            "success": False,
+                            "error": f"Instagram video processing failed: {status_data.get('status', 'Unknown error')}"
+                        }
+                    # IN_PROGRESS - continue waiting
+                else:
+                    return {
+                        "success": False,
+                        "error": "Video processing timed out. Please try again with a shorter video."
+                    }
+            else:
+                # For images, a short wait is usually sufficient
+                await asyncio.sleep(3)
             
             # Step 3: Publish the container
             publish_response = await http_client.post(
@@ -1103,9 +1149,9 @@ async def sync_facebook_posts_to_gallery():
                 "permalink_url": post.get("permalink_url", ""),
                 "source": "facebook",
                 "created_time": post.get("created_time", ""),
-                # Admin controls
-                "show_on_gallery": False,
-                "show_on_latest_work": False,
+                # Admin controls - Auto-enable gallery display for newly synced posts
+                "show_on_gallery": True,
+                "show_on_latest_work": True,
                 "featured": False,
                 "hidden": False,
                 "sort_order": 0,
@@ -1264,10 +1310,10 @@ async def add_manual_gallery_item(request: Request):
     return {"success": True, "item": item_copy}
 
 @router.get("/gallery/public")
-async def get_public_gallery(type: str = "all", limit: int = 20):
+async def get_public_gallery(type: str = "all", limit: int = 50):
     """
     Get public gallery items for website display.
-    Only returns items marked for display.
+    For 'all' type, returns all non-hidden items (Facebook posts + manual uploads).
     """
     query = {"hidden": {"$ne": True}}
     
@@ -1277,12 +1323,8 @@ async def get_public_gallery(type: str = "all", limit: int = 20):
         query["show_on_latest_work"] = True
     elif type == "featured":
         query["featured"] = True
-    else:
-        # Default: show items marked for gallery OR latest work
-        query["$or"] = [
-            {"show_on_gallery": True},
-            {"show_on_latest_work": True}
-        ]
+    # For 'all' type - return all non-hidden items regardless of show_on_gallery status
+    # This allows Facebook synced posts to appear in website gallery
     
     items = await db.website_gallery.find(
         query,

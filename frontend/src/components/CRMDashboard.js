@@ -596,6 +596,10 @@ export const CRMDashboard = () => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   
+  // New Leads Management System
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
+  const [showNewLeadsOnly, setShowNewLeadsOnly] = useState(false);
+  
   // WhatsApp Cloud API Integration state
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppModalLead, setWhatsAppModalLead] = useState(null);
@@ -715,15 +719,78 @@ export const CRMDashboard = () => {
     fetchStaff(); // Load staff for assignment dropdowns
     fetchDistricts(); 
     fetchGalleryPhotos(); // Load gallery photos for admin
+    fetchNewLeadsCount(); // Fetch new leads count for badge
+  }, []);
+  
+  // Periodically refresh new leads count
+  useEffect(() => {
+    const interval = setInterval(fetchNewLeadsCount, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
   }, []);
   
   // Load tab-specific data when tab changes
   useEffect(() => {
     if (activeTab === "leads") fetchLeads();
+    if (activeTab === "new_leads") fetchNewLeads();
     if (activeTab === "tasks") fetchTasks();
     if (activeTab === "team") fetchStaff();
     if (activeTab === "messages") fetchMessages();
   }, [activeTab]);
+  
+  const fetchNewLeadsCount = async () => {
+    try {
+      const res = await axios.get(`${API}/crm/new-leads/count`);
+      setNewLeadsCount(res.data.count || 0);
+    } catch (err) {
+      console.error("New leads count error:", err);
+    }
+  };
+  
+  const fetchNewLeads = async () => {
+    setLeadsLoading(true);
+    try {
+      const res = await axios.get(`${API}/crm/new-leads?limit=100`);
+      setLeads(res.data.leads || []);
+      setLeadsPagination({
+        ...leadsPagination,
+        total_count: res.data.total_count || 0
+      });
+    } catch (err) {
+      console.error("New leads fetch error:", err);
+    }
+    setLeadsLoading(false);
+  };
+  
+  const markLeadContacted = async (leadId) => {
+    try {
+      await axios.post(`${API}/crm/leads/${leadId}/mark-contacted`);
+      // Refresh data
+      fetchNewLeadsCount();
+      if (activeTab === "new_leads") {
+        fetchNewLeads();
+      } else {
+        fetchLeads();
+      }
+    } catch (err) {
+      console.error("Mark contacted error:", err);
+    }
+  };
+  
+  const bulkMarkContacted = async () => {
+    if (selectedLeadIds.length === 0) return;
+    try {
+      await axios.post(`${API}/crm/leads/bulk-mark-contacted`, { lead_ids: selectedLeadIds });
+      setSelectedLeadIds([]);
+      fetchNewLeadsCount();
+      if (activeTab === "new_leads") {
+        fetchNewLeads();
+      } else {
+        fetchLeads();
+      }
+    } catch (err) {
+      console.error("Bulk mark contacted error:", err);
+    }
+  };
   
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -1408,7 +1475,8 @@ export const CRMDashboard = () => {
           <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-hide">
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
-              { id: "leads", label: "Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "new_leads", label: "🆕 New", icon: <Inbox className="w-4 h-4" />, badge: newLeadsCount },
+              { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "social", label: "Social Media", icon: <Activity className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
@@ -1422,8 +1490,18 @@ export const CRMDashboard = () => {
                 setActiveTab(tab.id); 
                 if (tab.id !== 'whatsapp') setOpenWhatsAppChatLeadId(null); 
               }}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${activeTab === tab.id ? "bg-blue-600 text-[#0a355e]" : "text-gray-600 hover:bg-gray-50 border border-gray-300"}`}>
-                {tab.icon}<span>{tab.label}</span>
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap relative ${
+                  activeTab === tab.id 
+                    ? tab.id === "new_leads" ? "bg-green-600 text-white" : "bg-blue-600 text-white" 
+                    : "text-gray-600 hover:bg-gray-50 border border-gray-300"
+                }`}>
+                {tab.icon}
+                <span>{tab.label}</span>
+                {tab.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1786,7 +1864,12 @@ export const CRMDashboard = () => {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-[#0a355e] font-medium">{lead.name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-[#0a355e] font-medium">{lead.name}</div>
+                          {lead.is_new && (
+                            <span className="px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded animate-pulse">NEW</span>
+                          )}
+                        </div>
                         <div className="text-gray-600 text-sm">{lead.district} • ₹{lead.monthly_bill}/mo</div>
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-sm">{lead.phone}</td>
@@ -1884,6 +1967,188 @@ export const CRMDashboard = () => {
                   >
                     Last
                   </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 🆕 New Leads Tab - Priority Inbox for Fresh Inquiries */}
+        {activeTab === "new_leads" && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <Inbox className="w-7 h-7" />
+                    New Leads Inbox
+                  </h2>
+                  <p className="text-green-100 mt-1">
+                    {newLeadsCount} fresh inquiries waiting for your response
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {selectedLeadIds.length > 0 && (
+                    <>
+                      <button 
+                        onClick={bulkMarkContacted}
+                        className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                        data-testid="bulk-mark-contacted-btn"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark {selectedLeadIds.length} Contacted
+                      </button>
+                      <button 
+                        onClick={() => setShowBulkAssignModal(true)}
+                        className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                        data-testid="bulk-assign-new-btn"
+                      >
+                        <Users className="w-4 h-4" />
+                        Assign Selected
+                      </button>
+                    </>
+                  )}
+                  <button 
+                    onClick={fetchNewLeads}
+                    className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                    data-testid="refresh-new-leads-btn"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${leadsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* New Leads List */}
+            {leadsLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
+              </div>
+            ) : leads.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-12 text-center">
+                <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-700 mb-2">All Caught Up!</h3>
+                <p className="text-gray-500">No new leads waiting. Great job staying on top of inquiries!</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+                {/* Select All */}
+                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedLeadIds.length === leads.length && leads.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLeadIds(leads.map(l => l.id));
+                        } else {
+                          setSelectedLeadIds([]);
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                    <span className="text-sm font-medium text-gray-600">
+                      Select All ({leads.length})
+                    </span>
+                  </label>
+                  <span className="text-sm text-gray-500">
+                    Click on a lead to view details & take action
+                  </span>
+                </div>
+                
+                {/* Leads Grid */}
+                <div className="divide-y divide-gray-100">
+                  {leads.map((lead) => (
+                    <div 
+                      key={lead.id} 
+                      className="p-4 hover:bg-green-50/50 transition cursor-pointer flex items-center gap-4"
+                      onClick={() => setSelectedLead(lead)}
+                      data-testid={`new-lead-${lead.id}`}
+                    >
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={selectedLeadIds.includes(lead.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          if (e.target.checked) {
+                            setSelectedLeadIds([...selectedLeadIds, lead.id]);
+                          } else {
+                            setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      
+                      {/* NEW Badge */}
+                      <div className="flex-shrink-0">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-500 text-white animate-pulse">
+                          🆕 NEW
+                        </span>
+                      </div>
+                      
+                      {/* Lead Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900 truncate">{lead.name}</h4>
+                          {lead.ai_priority === 'high' && (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">🔥 Hot</span>
+                          )}
+                          {lead.source && (
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">{lead.source}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3.5 h-3.5" />
+                            {lead.phone}
+                          </span>
+                          {lead.district && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5" />
+                              {lead.district}
+                            </span>
+                          )}
+                          {lead.monthly_bill && (
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3.5 h-3.5" />
+                              ₹{lead.monthly_bill}/mo
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Time & Actions */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">
+                          {lead.timestamp ? new Date(lead.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markLeadContacted(lead.id);
+                          }}
+                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition"
+                          data-testid={`mark-contacted-${lead.id}`}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Mark Contacted
+                        </button>
+                        <a
+                          href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}?text=Hi ${lead.name}, this is ASR Enterprises...`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -13,7 +13,42 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
-## Latest Updates (April 8, 2026 - Round 6)
+## Latest Updates (April 8, 2026 - Round 7)
+
+### 1. ✅ Removed "New" and "WhatsApp Inquiries" tabs from CRM Dashboard
+- Simplified the CRM Dashboard navigation
+- These tabs were causing confusion and mixing old/new leads
+- Leads management is now consolidated in the Professional Leads Management page
+
+### 2. ✅ Admin-Editable Marquee Header (Site Settings Tab)
+- **NEW Tab**: "Site Settings" added to CRM Dashboard
+- Admin can edit the running marquee text that appears on the website
+- Features:
+  - Live preview of marquee animation
+  - Toggle to enable/disable marquee
+  - Quick template buttons for common announcements
+  - Save settings persisted to database
+- **Backend**: New endpoints `GET/POST /api/site-settings`
+- **Frontend**: Homepage now fetches marquee content from backend API
+
+### 3. ✅ WhatsApp API Integration in Leads Management
+- WhatsApp buttons now open a modal for API-based messaging
+- Features:
+  - Select from approved WhatsApp templates
+  - Or type custom message
+  - Send via WhatsApp Business API
+  - Messages tracked in lead activity
+- Replaces old wa.me direct links
+
+### 4. ✅ Staff Login - Email + Password Option (2FA Optional)
+- **3 Login Methods** now available:
+  1. **Email + Password** (default, no 2FA) - Quick login for trusted staff
+  2. **Mobile OTP** - Login via registered mobile number
+  3. **Email + 2FA** - Email verification + Mobile OTP for extra security
+- 2FA is now optional based on staff preference/security needs
+- Password visibility toggle added
+
+## Previous Updates (April 8, 2026 - Round 6)
 
 ### 1. ✅ MAJOR: Professional Leads Management System
 Complete rebuild of the Leads Management module at `/admin/leads`:
@@ -147,9 +182,9 @@ Complete rebuild of the Leads Management module at `/admin/leads`:
 | `/api/service/bookings` | GET | List all bookings |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_78.json`
+- **Test Report**: `/app/test_reports/iteration_79.json`
 - **Backend Tests**: 100% passed
-- **Frontend Tests**: 100% passed
+- **Frontend Tests**: 100% passed (after fixing duplicate form bug)
 
 ## Database Schema
 

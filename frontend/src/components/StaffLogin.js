@@ -1096,55 +1096,6 @@ export const StaffLogin = () => {
             </>
           )}
 
-          {/* Email + Password Login (No OTP) */}
-          {loginMethod === "email_password" && (
-            <form onSubmit={handleEmailPasswordLogin} className="space-y-5">
-              <div className="text-center mb-2">
-                <p className="text-gray-500 text-sm">
-                  Login with your registered email and password
-                </p>
-              </div>
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your.email@company.com"
-                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-600 text-sm font-medium mb-2">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="password"
-                    value={emailPassword}
-                    onChange={(e) => setEmailPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
-                <span>{loading ? "Logging in..." : "Login"}</span>
-              </button>
-            </form>
-          )}
-
           {/* Email OTP Login */}
           {loginMethod === "email_otp" && (
             <form onSubmit={handleEmailOtpLogin} className="space-y-5">

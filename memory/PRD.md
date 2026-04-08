@@ -2,11 +2,10 @@
 
 ## Original Problem Statement
 Build a comprehensive Solar Business CRM with the following key features:
-1. **WhatsApp API Integration**: Route all website WhatsApp buttons to the API number (8298389097) and create CRM leads instantly
-2. **New Leads Management System**: NEW tags, visual badges, dedicated dashboard tab, filters, auto-remove logic
+1. **WhatsApp API Integration**: Route all website WhatsApp buttons to the API number (8298389097)
+2. **New Leads Management System**: WhatsApp inquiry inbox with full lead data
 3. **Gallery Facebook Sync**: Fetch Facebook page posts and display in website Gallery
-4. **Social Media Manager**: Facebook/Instagram publishing with better error handling
-5. **Human Handover Logic**: Detect when customer wants to talk to human and escalate to CRM
+4. **Book Solar Service Widget**: Flashing homepage widget with configurable pricing
 
 ## Critical Credentials (DO NOT CHANGE)
 - **Admin Login Mobile**: `8877896889`
@@ -14,103 +13,94 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
+## Latest Updates (April 7, 2026 - Round 3)
+
+### 1. ✅ New Leads Inbox - WhatsApp Only
+- Only fetches leads from WhatsApp source (`whatsapp, whatsapp_direct, whatsapp_reply, whatsapp_button`)
+- Full lead data display (Name, Contact, Location, Source, Stage, Date)
+- Desktop table view + Mobile card view
+- Bulk selection for assign and mark contacted
+
+### 2. ✅ Book Solar Service Widget (Homepage)
+- Flashing widget button on homepage with dynamic price
+- Price configurable via "Service Price" tab in CRM (currently ₹2,499)
+- QR code payment flow with transaction ID verification
+- Bookings viewable in new "Bookings" tab
+
+### 3. ✅ CRM Navigation Changes
+- **Removed**: Social Media tab from main CRM navigation
+- **Added**: Bookings tab for managing solar service bookings
+- Social Media Manager still accessible via `/admin/social-media` route
+
+### 4. ✅ Social Media Manager Updates
+- Added Back button for easy navigation
+- Mobile responsive layout
+- Tabs show icons only on mobile
+
+### 5. ✅ Mobile Responsiveness
+- New Leads Inbox fully mobile responsive
+- Bulk assign and WhatsApp campaign buttons visible on mobile
+- Bookings Manager with mobile card view
+
+### 6. ✅ WhatsApp Auto-Deletion
+- Changed from 48hr to 24hr auto-deletion
+- Bulk conversation delete feature added
+
+### ⚠️ Template Message Failures
+The bulk WhatsApp template campaigns are failing with error "Template name does not exist in the translation". This is caused by:
+1. **Expired Access Token**: Meta WhatsApp access tokens expire every 90 days
+2. **Action Required**: User needs to refresh the access token in Meta Business Manager
+
+**How to fix:**
+1. Go to [Meta Business Suite](https://business.facebook.com/settings/system-users)
+2. Select your System User
+3. Generate a new access token with permissions: `whatsapp_business_messaging`, `whatsapp_business_management`
+4. Update the token in ASR CRM → Credentials → WhatsApp Settings
+
 ## Current Architecture
 ```
 /app/
 ├── backend/
 │   ├── routes/
-│   │   ├── crm.py                 # CRM endpoints + New Leads Management
-│   │   ├── staff.py               # Staff portal
-│   │   ├── whatsapp.py            # WhatsApp API routes + 24hr auto-delete
-│   │   ├── whatsapp_automation.py # Bot logic + Human Handover
-│   │   └── social_media.py        # Meta Graph API + Gallery Sync
-│   └── server.py                  # Main application
+│   │   ├── crm.py                 # CRM + New Leads WhatsApp-only filter
+│   │   ├── whatsapp.py            # 24hr auto-delete, bulk conversation delete
+│   │   ├── social_media.py        # Gallery sync
+│   └── server.py                  # Service bookings API
 └── frontend/
     ├── src/
-    │   ├── App.js                 # Homepage - updated URL, removed call button
+    │   ├── App.js                 # Book Service flashing widget
     │   ├── components/
-    │   │   ├── CRMDashboard.js    # Admin CRM with mobile-responsive New Leads tab
-    │   │   ├── Gallery.js         # Gallery with Facebook Posts, Latest Work, Uploads tabs
-    │   │   ├── WhatsAppInbox.js   # Inbox with bulk delete feature
-    │   │   ├── ZeroBillHero.js    # Updated - removed Call button
-    │   │   └── SmartWhatsAppButton.js # Fixed to use 8298389097
-    └── .env
+    │   │   ├── CRMDashboard.js    # Bookings tab, no Social tab
+    │   │   ├── SocialMediaManager.js # Back button, mobile friendly
+    │   │   ├── Gallery.js         # Facebook Posts, Latest Work tabs
 ```
-
-## Completed Features
-
-### April 7, 2026 - Round 2 Updates
-
-#### 1. ✅ New Leads Inbox - Mobile Responsive & WhatsApp Only
-- Mobile-friendly layout with stacked elements
-- Only shows WhatsApp leads (`source: whatsapp, whatsapp_direct, whatsapp_reply, whatsapp_button`)
-- Responsive action buttons
-
-#### 2. ✅ Website Button Cleanup
-- Removed "Call: 9296389097" from "Get Started Today!" section
-- Removed "Book Solar Service" button from ZeroBillHero
-- Removed Call and WhatsApp buttons below "Our Mission"
-- Updated www.asrenterprisespatna.com → www.asrenterprises.in
-
-#### 3. ✅ Gallery Tab Renaming
-- "All Projects" → "Facebook Posts" (general FB posts)
-- "Latest" → "Latest Installation Work" (admin-selected posts)
-- "Uploads" remains unchanged
-
-#### 4. ✅ WhatsApp Auto-Deletion - 24hr
-- Changed from 48hr to 24hr
-- Endpoint: `DELETE /api/whatsapp/messages/auto-cleanup-24h`
-
-#### 5. ✅ Bulk Conversation Delete
-- Added bulk selection toggle in WhatsApp Inbox header
-- Checkbox on each conversation for selection
-- Bulk delete button with count indicator
-- Endpoint: `POST /api/whatsapp/conversations/bulk-delete`
-
-#### 6. ✅ WhatsApp Number Fix
-- All `wa.me` links now use `918298389097` (not 9296389097)
-- Fixed in: ZeroBillHero, AboutUs, Dashboard, BiharInstallationMap, Contact, ZeroBillComparison, SmartWhatsAppButton
-
-### April 7, 2026 - Round 1 Updates
-
-#### 1. ✅ Facebook Gallery Sync (P0)
-- Backend: `/api/social/gallery/public?type=all` returns synced Facebook posts
-- Frontend: Gallery.js displays FB posts with blue "Facebook" badge
-
-#### 2. ✅ New Leads Management System (P0)
-- Database Fields: `is_new`, `lead_status`, `first_contact_at`
-- API Endpoints: `/api/crm/new-leads`, `/api/crm/new-leads/count`, mark-contacted
-
-#### 3. ✅ Human Handover Logic (P1)
-- Detection Keywords: "human", "agent", "real person", etc.
-- Option 0 in WhatsApp bot menu
 
 ## Key API Endpoints
 
-### New Leads Management
+### Service Bookings
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/crm/new-leads?source=whatsapp` | GET | WhatsApp leads with is_new=True |
+| `/api/service/book-solar-config` | GET/PUT | Get/Update service price |
+| `/api/service/bookings` | GET | List all bookings |
+| `/api/service/book-solar` | POST | Create new booking |
+| `/api/service/bookings/{id}/status` | PUT | Update booking status |
+
+### New Leads (WhatsApp Only)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/crm/new-leads?source=whatsapp` | GET | WhatsApp leads only |
 | `/api/crm/new-leads/count?source=whatsapp` | GET | Count for badge |
-| `/api/crm/leads/{id}/mark-contacted` | POST | Remove NEW badge |
 
-### WhatsApp
+### WhatsApp Bulk Operations
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/whatsapp/messages/auto-cleanup-24h` | DELETE | Delete messages older than 24hr |
 | `/api/whatsapp/conversations/bulk-delete` | POST | Delete multiple conversations |
-| `/api/whatsapp/conversations/{phone}/clear` | DELETE | Clear single conversation |
-
-### Gallery
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/social/gallery/public?type=gallery` | GET | Facebook general posts |
-| `/api/social/gallery/public?type=latest_work` | GET | Admin-selected installation work |
+| `/api/whatsapp/messages/auto-cleanup-24h` | DELETE | Delete messages older than 24hr |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_74.json`
+- **Test Report**: `/app/test_reports/iteration_75.json`
 - **Backend Tests**: 100% passed
-- **Frontend**: Verified via code review and testing agent
+- **Frontend Tests**: 100% passed
 
 ## Backlog (P2)
 1. Advanced HR Features (AI task assignment, OCR)
@@ -120,7 +110,7 @@ Build a comprehensive Solar Business CRM with the following key features:
 ## 3rd Party Integrations
 - **Gemini AI**: Lead analysis (Emergent LLM Key)
 - **MSG91**: OTP/SMS (User API Key)
-- **Meta WhatsApp Cloud API**: Messaging (User API Key)
+- **Meta WhatsApp Cloud API**: Messaging (User API Key) - **TOKEN NEEDS REFRESH**
 - **Facebook/Instagram Graph API**: Publishing & Sync (User API Key)
 
 ---

@@ -420,7 +420,20 @@ export const ProfessionalLeadsManagement = () => {
         handleUpdateLead(selectedLead.id, { last_payment_link_sent: new Date().toISOString() });
       }
     } catch (err) {
-      alert(err.response?.data?.detail || "Failed to create payment link. Please try again.");
+      const errorMsg = err.response?.data?.detail || err.message || "";
+      // Handle Cashfree API not activated error gracefully
+      if (errorMsg.toLowerCase().includes("link_creation_api") || 
+          errorMsg.toLowerCase().includes("not enabled") ||
+          errorMsg.toLowerCase().includes("not approved")) {
+        setPaymentResult({
+          success: false,
+          error: true,
+          message: "Live payment links are awaiting Cashfree activation. Your merchant account is being verified. Please try again later or contact support.",
+          activation_pending: true
+        });
+      } else {
+        alert(errorMsg || "Failed to create payment link. Please try again.");
+      }
     }
     setPaymentLoading(false);
   };
@@ -1915,60 +1928,84 @@ export const ProfessionalLeadsManagement = () => {
               {/* Payment Result */}
               {paymentResult ? (
                 <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
-                    </div>
-                    <h3 className="font-bold text-green-800 mb-1">Payment Link Created!</h3>
-                    <p className="text-green-600 text-sm">Amount: {formatCurrency(paymentData.amount)}</p>
-                    {paymentResult.whatsapp_sent && (
-                      <p className="text-green-500 text-xs mt-1 flex items-center justify-center gap-1">
-                        <MessageSquare className="w-3 h-3" /> Sent via WhatsApp
+                  {/* Error/Activation Pending State */}
+                  {paymentResult.error || paymentResult.activation_pending ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                      <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <AlertCircle className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <h3 className="font-bold text-amber-800 mb-2">Live Payment Links Awaiting Activation</h3>
+                      <p className="text-amber-700 text-sm mb-3">{paymentResult.message}</p>
+                      <div className="bg-white border border-amber-200 rounded-lg p-3 text-left text-sm">
+                        <p className="font-medium text-slate-700 mb-2">What's happening?</p>
+                        <ul className="text-slate-600 space-y-1 text-xs">
+                          <li>• Your Cashfree merchant account is under verification</li>
+                          <li>• Payment Links API will be activated after approval</li>
+                          <li>• This typically takes 1-3 business days</li>
+                        </ul>
+                      </div>
+                      <p className="text-xs text-amber-600 mt-3">
+                        Need help? Contact support@asrenterprises.in
                       </p>
-                    )}
-                  </div>
-                  
-                  {/* Payment Link */}
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 mb-2">Payment Link</p>
-                    <div className="flex items-center gap-2">
-                      <input 
-                        type="text" 
-                        value={paymentResult.payment_link} 
-                        readOnly 
-                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-600 truncate"
-                      />
-                      <button 
-                        onClick={() => copyPaymentLink(paymentResult.payment_link)}
-                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                        title="Copy Link"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                      <a
-                        href={paymentResult.payment_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition"
-                        title="Open Link"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        </div>
+                        <h3 className="font-bold text-green-800 mb-1">Payment Link Created!</h3>
+                        <p className="text-green-600 text-sm">Amount: {formatCurrency(paymentData.amount)}</p>
+                        {paymentResult.whatsapp_sent && (
+                          <p className="text-green-500 text-xs mt-1 flex items-center justify-center gap-1">
+                            <MessageSquare className="w-3 h-3" /> Sent via WhatsApp
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Payment Link */}
+                      <div className="bg-slate-50 rounded-lg p-3">
+                        <p className="text-xs text-slate-500 mb-2">Payment Link</p>
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="text" 
+                            value={paymentResult.payment_link} 
+                            readOnly 
+                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-600 truncate"
+                          />
+                          <button 
+                            onClick={() => copyPaymentLink(paymentResult.payment_link)}
+                            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                            title="Copy Link"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <a
+                            href={paymentResult.payment_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition"
+                            title="Open Link"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   
                   <div className="flex gap-3">
                     <button
                       onClick={() => setPaymentResult(null)}
                       className="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
                     >
-                      <Plus className="w-4 h-4" /> Create Another
+                      <Plus className="w-4 h-4" /> {paymentResult.error ? 'Try Again' : 'Create Another'}
                     </button>
                     <button
                       onClick={() => { setShowPaymentModal(false); setPaymentResult(null); }}
                       className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition"
                     >
-                      Done
+                      Close
                     </button>
                   </div>
                 </div>

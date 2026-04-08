@@ -12,7 +12,7 @@ import hashlib
 import logging
 import asyncio
 from datetime import datetime, timezone, timedelta
-from typing import Dict, Any, List, Optional
+from typing import Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -503,7 +503,6 @@ async def create_payment_link(request: CreatePaymentLinkRequest, background_task
             raise HTTPException(status_code=400, detail="Invalid phone number")
         
         # Calculate expiry - must be at least 5 minutes in future and in IST
-        from datetime import timezone as tz
         import pytz
         
         # Use IST timezone for Cashfree

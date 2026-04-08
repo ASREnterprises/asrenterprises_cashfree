@@ -6,7 +6,8 @@ import {
   Loader2, Eye, Filter, ChevronDown, ChevronUp, Calendar, Clock, MessageSquare,
   Users, TrendingUp, Flame, Snowflake, ThermometerSun, Zap, History, 
   MoreVertical, Download, Archive, RotateCcw, AlertTriangle, ExternalLink,
-  Table, LayoutGrid, Settings, Bell, Target, Building2, Home, Factory
+  Table, LayoutGrid, Settings, Bell, Target, Building2, Home, Factory,
+  CreditCard, IndianRupee, Send, Copy, Wallet, Link as LinkIcon
 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
@@ -191,6 +192,7 @@ export const ProfessionalLeadsManagement = () => {
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [showBulkActionsMenu, setShowBulkActionsMenu] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   
   // WhatsApp API state
@@ -198,6 +200,18 @@ export const ProfessionalLeadsManagement = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [waMessage, setWaMessage] = useState("");
   const [waSending, setWaSending] = useState(false);
+  
+  // Payment state
+  const [paymentData, setPaymentData] = useState({
+    amount: "",
+    purpose: "Solar Service Payment",
+    send_via_whatsapp: true,
+    expiry_minutes: 1440
+  });
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentResult, setPaymentResult] = useState(null);
+  const [leadPayments, setLeadPayments] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
   
   // Forms
   const [newLead, setNewLead] = useState({
@@ -349,6 +363,115 @@ export const ProfessionalLeadsManagement = () => {
     setSelectedTemplate(null);
     setWaMessage("");
     fetchWhatsAppTemplates();
+  };
+
+  // ==================== PAYMENT FUNCTIONS ====================
+  
+  const openPaymentModal = (lead) => {
+    setSelectedLead(lead);
+    setShowPaymentModal(true);
+    setPaymentData({
+      amount: "",
+      purpose: "Solar Service Payment",
+      send_via_whatsapp: true,
+      expiry_minutes: 1440
+    });
+    setPaymentResult(null);
+    fetchLeadPayments(lead.id);
+  };
+
+  const fetchLeadPayments = async (leadId) => {
+    setPaymentsLoading(true);
+    try {
+      const res = await axios.get(`${API}/payments/lead/${leadId}/payments`);
+      setLeadPayments(res.data.payments || []);
+    } catch (err) {
+      console.error("Error fetching lead payments:", err);
+      setLeadPayments([]);
+    }
+    setPaymentsLoading(false);
+  };
+
+  const createPaymentLink = async () => {
+    if (!paymentData.amount || parseFloat(paymentData.amount) <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const res = await axios.post(`${API}/payments/create-link`, {
+        lead_id: selectedLead.id,
+        customer_name: selectedLead.name || "Customer",
+        customer_phone: selectedLead.phone,
+        customer_email: selectedLead.email || "",
+        amount: parseFloat(paymentData.amount),
+        purpose: paymentData.purpose,
+        send_via_whatsapp: paymentData.send_via_whatsapp,
+        expiry_minutes: paymentData.expiry_minutes,
+        source: "crm_link"
+      });
+
+      if (res.data.success) {
+        setPaymentResult(res.data);
+        // Refresh lead payments
+        fetchLeadPayments(selectedLead.id);
+        // Update lead to reflect payment sent
+        handleUpdateLead(selectedLead.id, { last_payment_link_sent: new Date().toISOString() });
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to create payment link. Please try again.");
+    }
+    setPaymentLoading(false);
+  };
+
+  const resendPaymentLink = async (linkId) => {
+    try {
+      await axios.post(`${API}/payments/link/${linkId}/resend`);
+      alert("Payment link resent via WhatsApp!");
+      fetchLeadPayments(selectedLead.id);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to resend payment link");
+    }
+  };
+
+  const copyPaymentLink = async (link) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      alert("Payment link copied to clipboard!");
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = link;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert("Payment link copied!");
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  const getPaymentStatusBadge = (status) => {
+    const statusConfig = {
+      link_created: { bg: "bg-blue-100", text: "text-blue-700", label: "Link Created" },
+      link_sent: { bg: "bg-purple-100", text: "text-purple-700", label: "Link Sent" },
+      pending: { bg: "bg-yellow-100", text: "text-yellow-700", label: "Pending" },
+      paid: { bg: "bg-green-100", text: "text-green-700", label: "Paid" },
+      failed: { bg: "bg-red-100", text: "text-red-700", label: "Failed" },
+      expired: { bg: "bg-gray-100", text: "text-gray-600", label: "Expired" },
+      cancelled: { bg: "bg-gray-100", text: "text-gray-500", label: "Cancelled" }
+    };
+    const config = statusConfig[status] || statusConfig.pending;
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>{config.label}</span>;
   };
 
   useEffect(() => {
@@ -1045,6 +1168,14 @@ export const ProfessionalLeadsManagement = () => {
                         <td className="px-3 py-3">
                           <div className="flex items-center justify-center gap-1">
                             <button
+                              onClick={() => openPaymentModal(lead)}
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg transition"
+                              title="Send Payment Link"
+                              data-testid={`payment-btn-${lead.id}`}
+                            >
+                              <IndianRupee className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => openWhatsAppModal(lead)}
                               className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition"
                               title="Send WhatsApp via API"
@@ -1177,6 +1308,13 @@ export const ProfessionalLeadsManagement = () => {
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openPaymentModal(lead)}
+                        className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition"
+                        title="Send Payment Link"
+                      >
+                        <IndianRupee className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => openWhatsAppModal(lead)}
                         className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
@@ -1732,6 +1870,237 @@ export const ProfessionalLeadsManagement = () => {
                   {waSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
                   Send via API
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Link Modal */}
+      {showPaymentModal && selectedLead && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-4 flex items-center justify-between rounded-t-2xl sticky top-0">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Send Payment Link
+              </h2>
+              <button 
+                onClick={() => { setShowPaymentModal(false); setSelectedLead(null); setPaymentResult(null); }} 
+                className="p-2 hover:bg-white/20 rounded-lg transition text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Lead Info */}
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-slate-800">{selectedLead.name || 'Unnamed Lead'}</div>
+                    <div className="text-sm text-slate-600">{selectedLead.phone}</div>
+                    {selectedLead.email && <div className="text-sm text-slate-500">{selectedLead.email}</div>}
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      selectedLead.stage === 'converted' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {selectedLead.stage}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Result */}
+              {paymentResult ? (
+                <div className="space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="font-bold text-green-800 mb-1">Payment Link Created!</h3>
+                    <p className="text-green-600 text-sm">Amount: {formatCurrency(paymentData.amount)}</p>
+                    {paymentResult.whatsapp_sent && (
+                      <p className="text-green-500 text-xs mt-1 flex items-center justify-center gap-1">
+                        <MessageSquare className="w-3 h-3" /> Sent via WhatsApp
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Payment Link */}
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 mb-2">Payment Link</p>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        value={paymentResult.payment_link} 
+                        readOnly 
+                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono text-slate-600 truncate"
+                      />
+                      <button 
+                        onClick={() => copyPaymentLink(paymentResult.payment_link)}
+                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                        title="Copy Link"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <a
+                        href={paymentResult.payment_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition"
+                        title="Open Link"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPaymentResult(null)}
+                      className="flex-1 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" /> Create Another
+                    </button>
+                    <button
+                      onClick={() => { setShowPaymentModal(false); setPaymentResult(null); }}
+                      className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Create Payment Link Form */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Amount (INR) *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
+                        <input
+                          type="number"
+                          value={paymentData.amount}
+                          onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})}
+                          className="w-full pl-8 pr-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-lg font-semibold"
+                          placeholder="0"
+                          min="1"
+                          data-testid="payment-amount-input"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Purpose</label>
+                      <input
+                        type="text"
+                        value={paymentData.purpose}
+                        onChange={(e) => setPaymentData({...paymentData, purpose: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        placeholder="Solar Service Payment"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Link Expiry</label>
+                      <select
+                        value={paymentData.expiry_minutes}
+                        onChange={(e) => setPaymentData({...paymentData, expiry_minutes: parseInt(e.target.value)})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      >
+                        <option value={60}>1 Hour</option>
+                        <option value={360}>6 Hours</option>
+                        <option value={720}>12 Hours</option>
+                        <option value={1440}>24 Hours</option>
+                        <option value={4320}>3 Days</option>
+                        <option value={10080}>7 Days</option>
+                      </select>
+                    </div>
+                    
+                    {/* WhatsApp Option */}
+                    <label className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl cursor-pointer hover:bg-green-100 transition">
+                      <input
+                        type="checkbox"
+                        checked={paymentData.send_via_whatsapp}
+                        onChange={(e) => setPaymentData({...paymentData, send_via_whatsapp: e.target.checked})}
+                        className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-green-600" />
+                        <div>
+                          <p className="font-medium text-green-800">Send via WhatsApp</p>
+                          <p className="text-xs text-green-600">Auto-send payment link to customer</p>
+                        </div>
+                      </div>
+                    </label>
+                    
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => { setShowPaymentModal(false); setSelectedLead(null); }}
+                        className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={createPaymentLink}
+                        disabled={paymentLoading || !paymentData.amount}
+                        className="flex-1 px-4 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                        data-testid="create-payment-btn"
+                      >
+                        {paymentLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        Create & Send Link
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Payment History */}
+                  {leadPayments.length > 0 && (
+                    <div className="border-t border-slate-200 pt-4 mt-4">
+                      <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                        <History className="w-4 h-4" />
+                        Payment History ({leadPayments.length})
+                      </h4>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {leadPayments.map((payment) => (
+                          <div key={payment.id} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-slate-800">{formatCurrency(payment.amount)}</span>
+                              {getPaymentStatusBadge(payment.status)}
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-slate-500">
+                              <span>{payment.purpose}</span>
+                              <span>{new Date(payment.created_at).toLocaleDateString()}</span>
+                            </div>
+                            {payment.status !== 'paid' && payment.status !== 'cancelled' && payment.payment_link && (
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  onClick={() => copyPaymentLink(payment.payment_link)}
+                                  className="flex-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 flex items-center justify-center gap-1"
+                                >
+                                  <Copy className="w-3 h-3" /> Copy
+                                </button>
+                                <button
+                                  onClick={() => resendPaymentLink(payment.link_id)}
+                                  className="flex-1 px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center justify-center gap-1"
+                                >
+                                  <MessageSquare className="w-3 h-3" /> Resend
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Support Info */}
+              <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+                Support: support@asrenterprises.in | 9296389097
               </div>
             </div>
           </div>

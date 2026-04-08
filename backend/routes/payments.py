@@ -256,27 +256,83 @@ async def send_payment_link_via_whatsapp(phone: str, customer_name: str, amount:
         if not cleaned_phone:
             return False
         
-        # Send template message with payment link
-        message_text = f"Dear {customer_name},\n\nYour payment link for *{purpose}* of *₹{amount}* is ready.\n\nPay here: {payment_link}\n\nFor support: {ASR_DISPLAY_PHONE}\n\n- {ASR_BUSINESS_NAME}"
+        access_token = wa_settings.get("access_token")
+        phone_number_id = wa_settings.get("phone_number_id")
         
-        # Log the WhatsApp message
-        msg_log = {
-            "id": str(uuid.uuid4()),
-            "phone": cleaned_phone,
-            "direction": "outgoing",
-            "type": "payment_link",
-            "content": message_text,
-            "payment_link": payment_link,
-            "amount": amount,
-            "status": "sent",
-            "created_at": datetime.now(timezone.utc).isoformat()
+        if not access_token or not phone_number_id:
+            logger.warning("WhatsApp credentials incomplete")
+            return False
+        
+        # Format message for payment link
+        message_text = f"""Dear {customer_name},
+
+Your payment link for *{purpose}* is ready.
+
+*Amount: ₹{amount:,.0f}*
+
+Click here to pay securely:
+{payment_link}
+
+For support:
+📞 {ASR_DISPLAY_PHONE}
+📧 {ASR_SUPPORT_EMAIL}
+
+Thank you,
+{ASR_BUSINESS_NAME}"""
+        
+        # Call WhatsApp Business API
+        wa_url = f"https://graph.facebook.com/v18.0/{phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
         }
-        await db.whatsapp_messages.insert_one(msg_log)
         
-        # Use existing WhatsApp send function (simplified for this integration)
-        # In production, this would call the actual WhatsApp API
-        logger.info(f"Payment link sent via WhatsApp to {cleaned_phone}")
-        return True
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": cleaned_phone,
+            "type": "text",
+            "text": {"body": message_text}
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(wa_url, json=payload, headers=headers)
+            
+            if response.status_code in [200, 201]:
+                response_data = response.json()
+                wa_message_id = response_data.get("messages", [{}])[0].get("id", "")
+                
+                # Log the WhatsApp message
+                msg_log = {
+                    "id": str(uuid.uuid4()),
+                    "wa_message_id": wa_message_id,
+                    "phone": cleaned_phone,
+                    "direction": "outgoing",
+                    "type": "payment_link",
+                    "content": message_text,
+                    "payment_link": payment_link,
+                    "amount": amount,
+                    "status": "sent",
+                    "api_response": response_data,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.whatsapp_messages.insert_one(msg_log)
+                
+                logger.info(f"Payment link sent via WhatsApp to {cleaned_phone}, msg_id: {wa_message_id}")
+                return True
+            else:
+                logger.error(f"WhatsApp API error: {response.status_code} - {response.text}")
+                # Still log the attempt
+                await db.whatsapp_messages.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "phone": cleaned_phone,
+                    "direction": "outgoing",
+                    "type": "payment_link",
+                    "content": message_text,
+                    "status": "failed",
+                    "error": response.text,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                return False
         
     except Exception as e:
         logger.error(f"Error sending WhatsApp payment link: {e}")
@@ -294,14 +350,69 @@ async def get_payment_settings():
             "message": "Cashfree payments not configured"
         }
     
+    # Check if it's production mode
+    is_production = not settings.get("is_sandbox", True)
+    env_mode = "PRODUCTION" if is_production else "SANDBOX"
+    api_url = "api.cashfree.com" if is_production else "sandbox.cashfree.com"
+    
     return {
         "configured": True,
-        "app_id": settings["app_id"][:8] + "..." if len(settings["app_id"]) > 8 else settings["app_id"],
+        "app_id": settings["app_id"][:12] + "..." if len(settings["app_id"]) > 12 else settings["app_id"],
         "is_sandbox": settings.get("is_sandbox", True),
         "is_active": settings.get("is_active", True),
+        "environment": env_mode,
+        "api_endpoint": f"https://{api_url}/pg",
+        "payment_url": "https://payments.cashfree.com" if is_production else "https://payments-test.cashfree.com",
         "webhook_configured": bool(settings.get("webhook_secret")),
         "support_email": ASR_SUPPORT_EMAIL,
         "support_phone": ASR_DISPLAY_PHONE
+    }
+
+@router.get("/status")
+async def get_payment_system_status():
+    """Get overall payment system status for dashboard"""
+    settings = await get_cashfree_settings()
+    
+    # Get WhatsApp status
+    wa_settings = await db.whatsapp_settings.find_one({}, {"_id": 0})
+    wa_configured = bool(wa_settings and wa_settings.get("access_token"))
+    
+    # Get today's stats
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today_pipeline = [
+        {"$match": {"created_at": {"$gte": today_start.isoformat()}}},
+        {"$group": {
+            "_id": None,
+            "total_links": {"$sum": 1},
+            "total_amount": {"$sum": "$amount"},
+            "paid_count": {"$sum": {"$cond": [{"$eq": ["$status", "paid"]}, 1, 0]}},
+            "paid_amount": {"$sum": {"$cond": [{"$eq": ["$status", "paid"]}, "$amount", 0]}}
+        }}
+    ]
+    today_stats = await db.payments.aggregate(today_pipeline).to_list(1)
+    today = today_stats[0] if today_stats else {"total_links": 0, "total_amount": 0, "paid_count": 0, "paid_amount": 0}
+    
+    return {
+        "cashfree": {
+            "configured": bool(settings),
+            "active": settings.get("is_active", False) if settings else False,
+            "environment": "PRODUCTION" if settings and not settings.get("is_sandbox", True) else "SANDBOX",
+            "payment_links_api": "pending_activation"  # Will be "active" once Cashfree enables it
+        },
+        "whatsapp": {
+            "configured": wa_configured,
+            "phone_number": ASR_WHATSAPP_API_PHONE
+        },
+        "support": {
+            "email": ASR_SUPPORT_EMAIL,
+            "phone": ASR_DISPLAY_PHONE
+        },
+        "today": {
+            "links_created": today.get("total_links", 0),
+            "amount_requested": today.get("total_amount", 0),
+            "payments_received": today.get("paid_count", 0),
+            "amount_collected": today.get("paid_amount", 0)
+        }
     }
 
 @router.post("/settings")

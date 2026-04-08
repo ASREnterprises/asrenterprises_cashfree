@@ -6,14 +6,108 @@ Build a comprehensive Solar Business CRM with the following key features:
 2. **New Leads Management System**: Inbox for all new inquiries with full lead data
 3. **Gallery Facebook Sync**: Fetch Facebook page posts and display in website Gallery
 4. **Book Solar Service Widget**: Prominent banner with configurable pricing
+5. **Cashfree Payments Integration**: Full payment collection system with links, webhooks, and tracking
 
 ## Critical Credentials (DO NOT CHANGE)
 - **Admin Login Mobile**: `8877896889`
 - **Admin Login Email**: `asrenterprisespatna@gmail.com`
+- **Admin Login Password**: `admin@asr123`
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
+- **Support Email**: `support@asrenterprises.in`
 
-## Latest Updates (April 8, 2026 - Round 10)
+## Latest Updates (April 8, 2026 - Round 11)
+
+### ✅ Cashfree Payments Integration (12 Phases Complete)
+
+**Phase 1-2: Foundation**
+- Created `/app/backend/routes/payments.py` with full Cashfree API integration
+- Settings management for App ID, Secret Key, Webhook Secret
+- Payment link creation with Cashfree Sandbox/Production support
+
+**Phase 3-4: WhatsApp Integration**
+- Payment links can be sent via WhatsApp API automatically
+- "Send via WhatsApp" option when creating payment links
+- Resend functionality for existing links
+
+**Phase 5-6: Webhooks & Tracking**
+- Webhook endpoint at `/api/payments/webhook` for Cashfree callbacks
+- Signature verification for webhook security
+- Auto-update lead stages on successful payment (→ converted)
+- Transaction history with filters (status, source, date, search)
+
+**Phase 7-8: Website Payment**
+- WebsitePayment component (`/app/frontend/src/components/WebsitePayment.js`)
+- Auto-lead creation from website payments
+- Service type selection with predefined amounts
+
+**Phase 9-10: Manual Payments**
+- Record cash/UPI/bank/cheque payments manually
+- Link payments to existing leads
+- Payment mode tracking
+
+**Phase 11-12: Dashboard & Analytics**
+- PaymentsDashboard component with statistics
+- Today/Week/Month collection summaries
+- Source-wise breakdown (CRM/WhatsApp/Website/Manual)
+- Pending/Paid/Failed status tracking
+
+**New Files Created:**
+- `/app/backend/routes/payments.py` - 1100+ lines, full Cashfree integration
+- `/app/frontend/src/components/PaymentsDashboard.js` - Admin payments UI
+- `/app/frontend/src/components/WebsitePayment.js` - Website payment form
+
+**CRM Tab Added:**
+- "Cashfree Payments" tab (emerald green highlight when active)
+- Position: After "All Leads", before "WhatsApp"
+
+**API Endpoints Created:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/payments/settings` | GET/POST | Manage Cashfree credentials |
+| `/api/payments/settings/test` | POST | Test Cashfree connection |
+| `/api/payments/create-link` | POST | Create payment link |
+| `/api/payments/create-link/bulk` | POST | Bulk create links for leads |
+| `/api/payments/link/{id}/status` | GET | Check link payment status |
+| `/api/payments/link/{id}/resend` | POST | Resend link via WhatsApp |
+| `/api/payments/link/{id}/cancel` | POST | Cancel payment link |
+| `/api/payments/webhook` | POST | Cashfree webhook handler |
+| `/api/payments/transactions` | GET | Paginated transaction list |
+| `/api/payments/transaction/{id}` | GET | Transaction details |
+| `/api/payments/dashboard/stats` | GET | Payment statistics |
+| `/api/payments/manual` | POST | Record manual payment |
+| `/api/payments/website/initiate` | POST | Initiate website payment |
+| `/api/payments/website/verify/{id}` | GET | Verify website payment |
+| `/api/payments/lead/{id}/payments` | GET | Lead's payment history |
+| `/api/payments/webhook-url` | GET | Webhook configuration URL |
+
+**Cashfree Sandbox Credentials:**
+- App ID: `TEST11045628c113bde30257854276e782654011`
+- Secret Key: `cfsk_ma_test_242162c934ca261ca601a894626087cb_801c971a`
+- Environment: Sandbox (is_sandbox=true)
+
+**Payment Sources:**
+- `crm_link` - CRM Payment Link
+- `crm_bulk` - Bulk CRM Links
+- `whatsapp` - WhatsApp Payment
+- `website` - Website Payment
+- `manual` - Manual Payment
+
+**Payment Statuses:**
+- `link_created` - Link created, not yet sent
+- `link_sent` - Link sent via WhatsApp
+- `pending` - Payment pending
+- `paid` - Payment completed
+- `failed` - Payment failed
+- `expired` - Link expired
+- `cancelled` - Link cancelled
+
+**Auto Lead Updates:**
+- On successful payment: stage → "converted", priority → "hot"
+- Payment history tracked per lead
+- Activity log updated with payment events
+
+## Previous Updates (April 8, 2026 - Round 10)
 
 ### 1. ✅ Social Media Link Preview Setup
 Complete implementation of rich link previews for https://www.asrenterprises.in

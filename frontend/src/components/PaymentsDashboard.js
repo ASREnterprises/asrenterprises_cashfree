@@ -1017,7 +1017,7 @@ export const PaymentsDashboard = ({ leads = [] }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="payments-dashboard">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -1039,6 +1039,7 @@ export const PaymentsDashboard = ({ leads = [] }) => {
           <button
             onClick={() => setShowManualModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition"
+            data-testid="manual-payment-btn"
           >
             <Wallet className="w-4 h-4" />
             <span className="hidden sm:inline">Manual Payment</span>
@@ -1046,6 +1047,7 @@ export const PaymentsDashboard = ({ leads = [] }) => {
           <button
             onClick={() => { setSelectedLead(null); setShowCreateModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+            data-testid="create-payment-link-btn"
           >
             <Plus className="w-4 h-4" />
             Create Link

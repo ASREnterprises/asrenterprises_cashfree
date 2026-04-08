@@ -19,211 +19,100 @@ import { PaymentsDashboard } from "@/components/PaymentsDashboard";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// ==================== LEAD MANAGEMENT SECTION ====================
+// ==================== LEAD MANAGEMENT SECTION (Contains Trash) ====================
 const LeadManagementSection = memo(({ 
-  leads, trashedLeads, leadsLoading, filterStage, setFilterStage, 
-  leadsSearch, setLeadsSearch, fetchLeads, fetchTrashedLeads,
-  autoSyncEnabled, setAutoSyncEnabled, selectedLeadIds, setSelectedLeadIds,
-  currentPage, totalPages, staffAccounts, deleteLeads, restoreLeads,
-  permanentlyDeleteLeads, handleBulkAssign, setSelectedLead, PIPELINE_STAGES
+  trashedLeads, fetchTrashedLeads, restoreLeads, permanentlyDeleteLeads
 }) => {
-  const [subTab, setSubTab] = useState("all_leads");
-  
   useEffect(() => {
-    if (subTab === "all_leads") fetchLeads();
-    if (subTab === "trash") fetchTrashedLeads();
-  }, [subTab, fetchLeads, fetchTrashedLeads]);
+    fetchTrashedLeads();
+  }, [fetchTrashedLeads]);
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 sm:p-6 text-white">
+      <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl p-4 sm:p-6 text-white">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <ClipboardList className="w-6 h-6 sm:w-7 sm:h-7" />
+              <Inbox className="w-6 h-6 sm:w-7 sm:h-7" />
               Lead Management
             </h2>
-            <p className="text-blue-100 mt-1 text-sm">
-              Manage all leads, move to trash, or restore deleted leads
+            <p className="text-indigo-100 mt-1 text-sm">
+              Manage deleted leads - Restore or permanently delete
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSubTab("all_leads")}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                subTab === "all_leads" ? "bg-white text-blue-600" : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              All Leads ({leads.length})
-            </button>
-            <button
-              onClick={() => setSubTab("trash")}
-              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
-                subTab === "trash" ? "bg-white text-gray-700" : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <Trash2 className="w-4 h-4" />
-              Trash ({trashedLeads.length})
-            </button>
-          </div>
+          <button 
+            onClick={fetchTrashedLeads}
+            className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
         </div>
       </div>
       
-      {/* All Leads SubTab */}
-      {subTab === "all_leads" && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center flex-wrap gap-2">
-            <div className="flex items-center space-x-3">
-              <select value={filterStage} onChange={(e) => { setFilterStage(e.target.value); fetchLeads(1, leadsSearch); }} className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
-                <option value="">All Stages</option>
-                {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
-              </select>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search name/phone..."
-                  value={leadsSearch}
-                  onChange={(e) => setLeadsSearch(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && fetchLeads(1, leadsSearch)}
-                  className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg pl-9 w-48"
-                />
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
-              </div>
-              <button onClick={() => fetchLeads(1, leadsSearch)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200" title="Refresh leads">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setAutoSyncEnabled(!autoSyncEnabled)} 
-                className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition ${autoSyncEnabled ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}
-                title={autoSyncEnabled ? 'Auto-sync ON (every 30s)' : 'Auto-sync OFF'}
-              >
-                <RefreshCw className={`w-4 h-4 ${autoSyncEnabled ? 'animate-spin' : ''}`} style={autoSyncEnabled ? { animationDuration: '3s' } : {}} />
-                <span className="hidden sm:inline">{autoSyncEnabled ? 'Sync ON' : 'Sync OFF'}</span>
-              </button>
-            </div>
+      {/* Trash Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Trash2 className="w-5 h-5 text-gray-500" />
+          <h3 className="text-lg font-semibold text-gray-800">Trash ({trashedLeads.length} deleted leads)</h3>
+        </div>
+        
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+          <AlertCircle className="w-4 h-4 inline mr-2" />
+          Deleted leads are kept for 30 days before permanent removal. You can restore them anytime.
+        </div>
+        
+        {trashedLeads.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
+            <Trash2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-700 mb-2">Trash is Empty</h3>
+            <p className="text-gray-500">No deleted leads</p>
           </div>
-          
-          {/* Leads count indicator */}
-          <div className="text-sm text-gray-600">
-            Showing {leads.length} leads • Page {currentPage} of {totalPages}
-          </div>
-          
-          {/* Lead cards would go here - using parent's leads rendering */}
-          {leadsLoading ? (
-            <div className="flex justify-center py-12">
-              <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
-            </div>
-          ) : leads.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-12 text-center">
-              <ClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-700 mb-2">No Leads Found</h3>
-              <p className="text-gray-500">No leads match your current filters</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
-              <div className="divide-y divide-gray-100">
-                {leads.map((lead) => (
-                  <div key={lead.id} className="p-4 hover:bg-gray-50 transition cursor-pointer" onClick={() => setSelectedLead(lead)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                          {(lead.name || 'U')[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-800">{lead.name || 'Unknown'}</p>
-                          <p className="text-sm text-gray-500">{lead.phone}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          lead.stage === 'converted' ? 'bg-green-100 text-green-700' :
-                          lead.stage === 'new' ? 'bg-blue-100 text-blue-700' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {lead.stage}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); deleteLeads([lead.id]); }}
-                          className="p-1 text-gray-400 hover:text-red-500"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {trashedLeads.map((lead) => (
+                <div key={lead.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
+                      {(lead.name || 'U')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800">{lead.name || 'Unknown'}</p>
+                      <p className="text-sm text-gray-500">{lead.phone}</p>
+                      <p className="text-xs text-gray-400">Deleted: {lead.deleted_at ? new Date(lead.deleted_at).toLocaleDateString() : 'Unknown'}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Trash SubTab */}
-      {subTab === "trash" && (
-        <div className="space-y-4">
-          <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 text-sm text-gray-600">
-            <AlertCircle className="w-4 h-4 inline mr-2" />
-            Deleted leads are kept for 30 days before permanent removal. You can restore them anytime.
-          </div>
-          
-          {trashedLeads.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
-              <Trash2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-700 mb-2">Trash is Empty</h3>
-              <p className="text-gray-500">No deleted leads</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">{trashedLeads.length} deleted leads</span>
-                <button onClick={fetchTrashedLeads} className="text-gray-500 hover:text-gray-700">
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {trashedLeads.map((lead) => (
-                  <div key={lead.id} className="p-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
-                        {(lead.name || 'U')[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-800">{lead.name || 'Unknown'}</p>
-                        <p className="text-sm text-gray-500">{lead.phone}</p>
-                        <p className="text-xs text-gray-400">Deleted: {new Date(lead.deleted_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => restoreLeads([lead.id])}
-                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200"
-                      >
-                        Restore
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Permanently delete this lead? This cannot be undone.')) {
-                            permanentlyDeleteLeads([lead.id]);
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
-                      >
-                        Delete Forever
-                      </button>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => restoreLeads([lead.id])}
+                      className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Permanently delete this lead? This cannot be undone.')) {
+                          permanentlyDeleteLeads([lead.id]);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                    >
+                      Delete Forever
+                    </button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 });
 
-// ==================== HR MANAGEMENT SECTION ====================
+// ==================== HR MANAGEMENT SECTION (Contains Team + Tasks) ====================
 const HRManagementSection = memo(({ 
   staffAccounts, tasks, tasksLoading, fetchStaff, fetchTasks, 
   handleCreateStaff, handleDeleteStaff, ownerInfo
@@ -233,6 +122,11 @@ const HRManagementSection = memo(({
   const [newStaff, setNewStaff] = useState({ name: '', phone: '', staff_id: '', email: '', password: '', designation: 'Sales Executive' });
   const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
   
+  useEffect(() => {
+    if (subTab === "team") fetchStaff();
+    if (subTab === "tasks") fetchTasks();
+  }, [subTab, fetchStaff, fetchTasks]);
+
   const createTask = async () => {
     if (!taskForm.title) return alert("Task title required");
     try {
@@ -460,10 +354,8 @@ const HRManagementSection = memo(({
   );
 });
 
-// ==================== SECURITY CENTRE SECTION ====================
+// ==================== SECURITY CENTRE SECTION (Contains Backups) ====================
 const SecurityCentreSection = memo(({ backups, fetchBackups, createBackup, downloadBackup, backupsLoading }) => {
-  const [subTab, setSubTab] = useState("backups");
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -478,68 +370,58 @@ const SecurityCentreSection = memo(({ backups, fetchBackups, createBackup, downl
               Manage backups and security settings
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setSubTab("backups")}
-              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
-                subTab === "backups" ? "bg-white text-red-600" : "bg-white/20 text-white hover:bg-white/30"
-              }`}
-            >
-              <Download className="w-4 h-4" />
-              Backups
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Backups SubTab */}
-      {subTab === "backups" && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
+      {/* Backups Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <Download className="w-5 h-5 text-gray-500" />
             <h3 className="text-lg font-semibold text-gray-800">Database Backups</h3>
-            <div className="flex gap-2">
-              <button onClick={fetchBackups} className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
-                <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
-              </button>
-              <button onClick={createBackup} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Create Backup
-              </button>
-            </div>
           </div>
-
-          {backups.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-700">No Backups Yet</h3>
-              <p className="text-gray-500 text-sm">Create your first backup to secure your data</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="divide-y divide-gray-100">
-                {backups.map((backup) => (
-                  <div key={backup.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-800">{backup.filename || backup.id}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(backup.created_at).toLocaleString()} • {backup.size_mb ? `${backup.size_mb} MB` : 'Size unknown'}
-                      </p>
-                    </div>
-                    <button onClick={() => downloadBackup(backup.id)} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 flex items-center gap-1">
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-            <strong>Note:</strong> Backups are automatically created daily. Manual backups are recommended before major changes.
+          <div className="flex gap-2">
+            <button onClick={fetchBackups} className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+              <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
+            </button>
+            <button onClick={createBackup} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Create Backup
+            </button>
           </div>
         </div>
-      )}
+
+        {backups.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-gray-700">No Backups Yet</h3>
+            <p className="text-gray-500 text-sm">Create your first backup to secure your data</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {backups.map((backup) => (
+                <div key={backup.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-800">{backup.filename || backup.id}</p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(backup.created_at).toLocaleString()} • {backup.size_mb ? `${backup.size_mb} MB` : 'Size unknown'}
+                    </p>
+                  </div>
+                  <button onClick={() => downloadBackup(backup.id)} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 flex items-center gap-1">
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+          <strong>Note:</strong> Backups are automatically created daily. Manual backups are recommended before major changes.
+        </div>
+      </div>
     </div>
   );
 });
@@ -1437,9 +1319,8 @@ export const CRMDashboard = () => {
   // Load tab-specific data when tab changes
   useEffect(() => {
     if (activeTab === "leads") fetchLeads();
-    if (activeTab === "trash") fetchTrashedLeads();
-    if (activeTab === "tasks") fetchTasks();
-    if (activeTab === "team") fetchStaff();
+    if (activeTab === "lead_management") fetchTrashedLeads();
+    if (activeTab === "hr_management") { fetchTasks(); fetchStaff(); }
     if (activeTab === "messages") fetchMessages();
     if (activeTab === "site_settings") fetchSiteSettings();
   }, [activeTab]);
@@ -2251,13 +2132,14 @@ export const CRMDashboard = () => {
           <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-hide">
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
-              { id: "lead_management", label: "Lead Management", icon: <ClipboardList className="w-4 h-4" />, isSection: true },
+              { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "cashfree_payments", label: "Cashfree Payments", icon: <Wallet className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
-              { id: "hr_management", label: "HR Management", icon: <Users className="w-4 h-4" />, isSection: true },
+              { id: "lead_management", label: "Lead Management", icon: <Inbox className="w-4 h-4" /> },
+              { id: "hr_management", label: "HR Management", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
               { id: "site_settings", label: "Site Settings", icon: <Settings className="w-4 h-4" /> },
-              { id: "security_centre", label: "Security Centre", icon: <Shield className="w-4 h-4" />, isSection: true },
+              { id: "security_centre", label: "Security Centre", icon: <Shield className="w-4 h-4" /> },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> }
             ].map((tab) => (
               <button key={tab.id} onClick={() => { 
@@ -2267,7 +2149,7 @@ export const CRMDashboard = () => {
                   activeTab === tab.id 
                     ? tab.id === "whatsapp" ? "bg-green-600 text-white" 
                     : tab.id === "cashfree_payments" ? "bg-emerald-600 text-white"
-                    : tab.id === "lead_management" ? "bg-blue-600 text-white"
+                    : tab.id === "lead_management" ? "bg-indigo-600 text-white"
                     : tab.id === "hr_management" ? "bg-purple-600 text-white"
                     : tab.id === "security_centre" ? "bg-red-600 text-white"
                     : "bg-blue-600 text-white" 
@@ -2409,35 +2291,17 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Lead Management Tab - Combines All Leads and Trash */}
+        {/* Lead Management Tab - Contains Trash */}
         {activeTab === "lead_management" && (
           <LeadManagementSection 
-            leads={leads}
             trashedLeads={trashedLeads}
-            leadsLoading={leadsLoading}
-            filterStage={filterStage}
-            setFilterStage={setFilterStage}
-            leadsSearch={leadsSearch}
-            setLeadsSearch={setLeadsSearch}
-            fetchLeads={fetchLeads}
             fetchTrashedLeads={fetchTrashedLeads}
-            autoSyncEnabled={autoSyncEnabled}
-            setAutoSyncEnabled={setAutoSyncEnabled}
-            selectedLeadIds={selectedLeadIds}
-            setSelectedLeadIds={setSelectedLeadIds}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            staffAccounts={staffAccounts}
-            deleteLeads={deleteLeads}
             restoreLeads={restoreLeads}
             permanentlyDeleteLeads={permanentlyDeleteLeads}
-            handleBulkAssign={handleBulkAssign}
-            setSelectedLead={setSelectedLead}
-            PIPELINE_STAGES={PIPELINE_STAGES}
           />
         )}
 
-        {/* Leads Tab - Redirects to Lead Management */}
+        {/* All Leads Tab - Original leads functionality */}
         {activeTab === "leads" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-2">

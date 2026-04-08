@@ -21,116 +21,101 @@ Build a comprehensive Solar Business CRM with the following key features:
 │   ├── routes/
 │   │   ├── crm.py                 # CRM endpoints + New Leads Management
 │   │   ├── staff.py               # Staff portal
-│   │   ├── whatsapp.py            # WhatsApp API routes
+│   │   ├── whatsapp.py            # WhatsApp API routes + 24hr auto-delete
 │   │   ├── whatsapp_automation.py # Bot logic + Human Handover
 │   │   └── social_media.py        # Meta Graph API + Gallery Sync
 │   └── server.py                  # Main application
 └── frontend/
     ├── src/
+    │   ├── App.js                 # Homepage - updated URL, removed call button
     │   ├── components/
-    │   │   ├── CRMDashboard.js    # Admin CRM with New Leads tab
-    │   │   ├── Gallery.js         # Public gallery with FB posts
-    │   │   ├── StaffPortal.js     # Staff interface
-    │   │   └── SocialMediaManager.js
+    │   │   ├── CRMDashboard.js    # Admin CRM with mobile-responsive New Leads tab
+    │   │   ├── Gallery.js         # Gallery with Facebook Posts, Latest Work, Uploads tabs
+    │   │   ├── WhatsAppInbox.js   # Inbox with bulk delete feature
+    │   │   ├── ZeroBillHero.js    # Updated - removed Call button
+    │   │   └── SmartWhatsAppButton.js # Fixed to use 8298389097
     └── .env
 ```
 
 ## Completed Features
 
-### 1. ✅ Facebook Gallery Sync (P0) - COMPLETED April 7, 2026
-- **Backend**: `/api/social/gallery/public?type=all` returns synced Facebook posts
-- **Frontend**: Gallery.js displays FB posts with blue "Facebook" badge
-- **Filter Tabs**: "All Projects", "Latest (Facebook)", "Uploads"
-- **Auto-sync**: Posts synced with `show_on_gallery: true` by default
-- **46 Facebook posts** currently synced and visible
+### April 7, 2026 - Round 2 Updates
 
-### 2. ✅ New Leads Management System (P0) - COMPLETED April 7, 2026
-- **Database Fields**: `is_new`, `lead_status`, `first_contact_at` added to leads
-- **API Endpoints**:
-  - `GET /api/crm/new-leads` - List leads with is_new=True
-  - `GET /api/crm/new-leads/count` - Quick count for badge
-  - `POST /api/crm/leads/{id}/mark-contacted` - Remove NEW badge
-  - `POST /api/crm/leads/bulk-mark-contacted` - Bulk operation
-- **CRM Dashboard**: "🆕 New" tab with green background and red count badge
-- **Visual Badge**: "NEW" pill on lead cards
-- **Auto-removal**: NEW flag removed when staff marks as contacted
+#### 1. ✅ New Leads Inbox - Mobile Responsive & WhatsApp Only
+- Mobile-friendly layout with stacked elements
+- Only shows WhatsApp leads (`source: whatsapp, whatsapp_direct, whatsapp_reply, whatsapp_button`)
+- Responsive action buttons
 
-### 3. ✅ Human Handover Logic (P1) - COMPLETED April 7, 2026
-- **Detection Keywords**: "human", "agent", "real person", "talk to someone", etc.
-- **Option 0**: Added to WhatsApp bot menu for human handover
-- **CRM Alert**: Creates notification in `crm_notifications` collection
-- **Lead Update**: Sets `human_required: true` and `ai_priority: high`
+#### 2. ✅ Website Button Cleanup
+- Removed "Call: 9296389097" from "Get Started Today!" section
+- Removed "Book Solar Service" button from ZeroBillHero
+- Removed Call and WhatsApp buttons below "Our Mission"
+- Updated www.asrenterprisespatna.com → www.asrenterprises.in
 
-### 4. ✅ WhatsApp Routing (P0) - VERIFIED
-- All `wa.me` links use `8298389097` (API number)
-- Bot creates CRM leads automatically
-- Conversational flow with lead scoring
+#### 3. ✅ Gallery Tab Renaming
+- "All Projects" → "Facebook Posts" (general FB posts)
+- "Latest" → "Latest Installation Work" (admin-selected posts)
+- "Uploads" remains unchanged
 
-### 5. ✅ Social Media Publishing Improvements (P1) - COMPLETED April 7, 2026
-- **Instagram**: Added polling for video container readiness
-- **Facebook Video**: Better error handling for URL access issues
-- **Error Messages**: Clear guidance for common errors
+#### 4. ✅ WhatsApp Auto-Deletion - 24hr
+- Changed from 48hr to 24hr
+- Endpoint: `DELETE /api/whatsapp/messages/auto-cleanup-24h`
 
-## Database Schema Updates
-```javascript
-// crm_leads collection
-{
-  id: String,
-  name: String,
-  phone: String,
-  stage: "new" | "contacted" | "site_visit" | "quotation" | "negotiation" | "converted" | "completed" | "lost",
-  // New Leads Management fields
-  lead_status: "new" | "in_progress" | "follow_up" | "closed",
-  is_new: Boolean,  // Visual flag for NEW badge
-  first_contact_at: DateTime,
-  human_required: Boolean,  // For human handover
-  // ... existing fields
-}
+#### 5. ✅ Bulk Conversation Delete
+- Added bulk selection toggle in WhatsApp Inbox header
+- Checkbox on each conversation for selection
+- Bulk delete button with count indicator
+- Endpoint: `POST /api/whatsapp/conversations/bulk-delete`
 
-// website_gallery collection
-{
-  id: String,
-  facebook_post_id: String,
-  source: "facebook" | "upload",
-  media_url: String,
-  caption: String,
-  show_on_gallery: Boolean,  // Default: true for synced posts
-  // ... other fields
-}
-```
+#### 6. ✅ WhatsApp Number Fix
+- All `wa.me` links now use `918298389097` (not 9296389097)
+- Fixed in: ZeroBillHero, AboutUs, Dashboard, BiharInstallationMap, Contact, ZeroBillComparison, SmartWhatsAppButton
+
+### April 7, 2026 - Round 1 Updates
+
+#### 1. ✅ Facebook Gallery Sync (P0)
+- Backend: `/api/social/gallery/public?type=all` returns synced Facebook posts
+- Frontend: Gallery.js displays FB posts with blue "Facebook" badge
+
+#### 2. ✅ New Leads Management System (P0)
+- Database Fields: `is_new`, `lead_status`, `first_contact_at`
+- API Endpoints: `/api/crm/new-leads`, `/api/crm/new-leads/count`, mark-contacted
+
+#### 3. ✅ Human Handover Logic (P1)
+- Detection Keywords: "human", "agent", "real person", etc.
+- Option 0 in WhatsApp bot menu
 
 ## Key API Endpoints
 
 ### New Leads Management
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/crm/new-leads` | GET | Get leads with is_new=True |
-| `/api/crm/new-leads/count` | GET | Quick count for badge |
+| `/api/crm/new-leads?source=whatsapp` | GET | WhatsApp leads with is_new=True |
+| `/api/crm/new-leads/count?source=whatsapp` | GET | Count for badge |
 | `/api/crm/leads/{id}/mark-contacted` | POST | Remove NEW badge |
-| `/api/crm/leads/bulk-mark-contacted` | POST | Bulk mark contacted |
+
+### WhatsApp
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/whatsapp/messages/auto-cleanup-24h` | DELETE | Delete messages older than 24hr |
+| `/api/whatsapp/conversations/bulk-delete` | POST | Delete multiple conversations |
+| `/api/whatsapp/conversations/{phone}/clear` | DELETE | Clear single conversation |
 
 ### Gallery
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/social/gallery/public?type=all` | GET | All gallery items |
-| `/api/social/gallery/public?type=gallery` | GET | Gallery-marked only |
-| `/api/social/gallery/public?type=latest_work` | GET | Latest work section |
+| `/api/social/gallery/public?type=gallery` | GET | Facebook general posts |
+| `/api/social/gallery/public?type=latest_work` | GET | Admin-selected installation work |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_73.json`
-- **Backend Tests**: 100% passed (15/15)
-- **Frontend**: Gallery verified, CRM requires 2FA
+- **Test Report**: `/app/test_reports/iteration_74.json`
+- **Backend Tests**: 100% passed
+- **Frontend**: Verified via code review and testing agent
 
 ## Backlog (P2)
-
-### Future Tasks
-1. Advanced HR Features (AI task assignment, OCR for expenses)
-2. Hyper-Local SEO Pages (district-specific landing pages)
-3. Refactor monolithic `server.py` into modular routers
-
-### Known Issues
-- CRM Dashboard requires 2FA for automated testing
-- `server.py` is still large (11,000+ lines)
+1. Advanced HR Features (AI task assignment, OCR)
+2. Hyper-Local SEO Pages
+3. Refactor monolithic server.py
 
 ## 3rd Party Integrations
 - **Gemini AI**: Lead analysis (Emergent LLM Key)

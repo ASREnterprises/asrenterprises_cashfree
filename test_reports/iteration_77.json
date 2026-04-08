@@ -1,0 +1,66 @@
+{
+  "summary": "Iteration 77 - Testing CRM and UI updates: Running marquee header, trash/restore system, bulk delete, New Inquiries WhatsApp-only filter, and Assign button. All features verified working.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter77_crm_features.py",
+    "/app/test_reports/pytest/pytest_iter77.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iter77_crm_features.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "Admin auth via localStorage: asrAdminAuth=true, asrAdminEmail=support@asrenterprises.in",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All requested features verified: 1) Running marquee header on homepage with exact text 'Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote' - WORKING, 2) GET /api/crm/leads returns correct pagination structure with leads array and pagination object - WORKING, 3) GET /api/crm/leads/trash returns soft-deleted leads - WORKING, 4) POST /api/crm/leads/restore restores leads from trash - WORKING, 5) POST /api/crm/leads/bulk-delete soft-deletes multiple leads - WORKING, 6) All Leads tab has bulk delete button (data-testid='bulk-delete-all-leads-btn') when leads are selected - WORKING, 7) Trash tab displays in CRM dashboard sidebar with restore functionality - WORKING, 8) New Inquiries tab shows Assign button instead of WhatsApp button (data-testid='assign-lead-{id}') - WORKING, 9) New Inquiries only fetches WhatsApp leads (source=whatsapp filter) - WORKING, 10) Auto-sync feature enabled for New Inquiries (every 15 seconds) - WORKING.",
+  "tests_passed": {
+    "backend": [
+      "GET /api/crm/leads - returns pagination structure with leads array",
+      "GET /api/crm/leads?page=1&limit=10 - pagination works correctly",
+      "GET /api/crm/leads/trash - returns soft-deleted leads",
+      "POST /api/crm/leads/restore - validates empty list, restores leads",
+      "POST /api/crm/leads/bulk-delete - validates empty list, soft-deletes leads",
+      "GET /api/crm/new-leads?source=whatsapp - returns only WhatsApp leads",
+      "GET /api/crm/new-leads/count?source=whatsapp - returns count of WhatsApp leads",
+      "GET /api/crm/dashboard - returns dashboard data"
+    ],
+    "frontend": [
+      "Running marquee header visible on homepage with data-testid='marquee-bar'",
+      "Marquee contains exact required text: 'Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote'",
+      "Marquee has orange/amber gradient background",
+      "All Leads tab has bulk delete button when leads selected",
+      "Trash tab displays in CRM sidebar with Trash2 icon",
+      "Trash tab shows restore button when leads selected",
+      "New Inquiries tab shows 'WhatsApp Inquiries' header",
+      "New Inquiries has Assign button per lead row",
+      "New Inquiries has auto-sync toggle (every 15 seconds)",
+      "New Inquiries fetches only WhatsApp source leads"
+    ]
+  },
+  "features_verified": {
+    "running_marquee_header": "WORKING - Visible on homepage with exact required text and orange gradient background",
+    "crm_leads_pagination": "WORKING - GET /api/crm/leads returns leads array with pagination object",
+    "trash_endpoint": "WORKING - GET /api/crm/leads/trash returns soft-deleted leads with 30-day retention",
+    "restore_endpoint": "WORKING - POST /api/crm/leads/restore restores leads from trash",
+    "bulk_delete_endpoint": "WORKING - POST /api/crm/leads/bulk-delete soft-deletes multiple leads",
+    "all_leads_bulk_delete_ui": "WORKING - Red delete button appears when leads are selected in All Leads tab",
+    "trash_tab_ui": "WORKING - Trash tab in sidebar with restore functionality",
+    "new_inquiries_assign_button": "WORKING - Assign button replaces WhatsApp button in New Inquiries tab",
+    "new_inquiries_whatsapp_only": "WORKING - New Inquiries only fetches WhatsApp source leads",
+    "auto_sync_feature": "WORKING - Auto-sync enabled for New Inquiries (15s interval)"
+  }
+}

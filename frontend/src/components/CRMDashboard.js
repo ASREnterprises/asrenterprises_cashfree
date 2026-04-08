@@ -992,13 +992,14 @@ export const CRMDashboard = () => {
   
   const bulkDeleteLeads = async () => {
     if (selectedLeadIds.length === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedLeadIds.length} leads? This action cannot be undone.`)) return;
+    if (!window.confirm(`Move ${selectedLeadIds.length} leads to Trash? They will be auto-deleted after 30 days if not restored.`)) return;
     
     try {
       const res = await axios.post(`${API}/crm/leads/bulk-delete`, { lead_ids: selectedLeadIds });
       if (res.data.success) {
         setSelectedLeadIds([]);
         fetchNewLeadsCount();
+        fetchTrashedLeads();
         if (activeTab === "new_leads") {
           fetchNewLeads();
         } else {
@@ -1895,6 +1896,16 @@ export const CRMDashboard = () => {
                 )}
                 {selectedLeadIds.length > 0 && (
                   <button 
+                    onClick={bulkDeleteLeads}
+                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 hover:from-red-600 hover:to-red-700 transition"
+                    data-testid="bulk-delete-all-leads-btn"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete ({selectedLeadIds.length})</span>
+                  </button>
+                )}
+                {selectedLeadIds.length > 0 && (
+                  <button 
                     onClick={() => { setSelectedLeadsForCampaign(selectedLeadIds); setShowBulkCampaignModal(true); }}
                     className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 hover:from-green-600 hover:to-green-700 transition"
                     data-testid="bulk-whatsapp-btn"
@@ -2361,27 +2372,30 @@ export const CRMDashboard = () => {
                           <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => markLeadContacted(lead.id)}
-                                className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Quick assign modal trigger
+                                  setSelectedLeadIds([lead.id]);
+                                  setShowBulkAssignModal(true);
+                                }}
+                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                                data-testid={`assign-lead-${lead.id}`}
                               >
-                                Mark Done
+                                <UserPlus className="w-3 h-3" /> Assign
                               </button>
                               <a
                                 href={`tel:+91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                                className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
                                 title="Call"
                               >
                                 <Phone className="w-3 h-3" />
                               </a>
-                              <a
-                                href={`https://wa.me/918298389097?text=Hi ${encodeURIComponent(lead.name || 'Customer')}, this is ASR Enterprises...`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
-                                title="WhatsApp"
+                              <button
+                                onClick={() => markLeadContacted(lead.id)}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium"
                               >
-                                <MessageSquare className="w-3 h-3" />
-                              </a>
+                                Done
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -2426,28 +2440,202 @@ export const CRMDashboard = () => {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <button
-                              onClick={(e) => { e.stopPropagation(); markLeadContacted(lead.id); }}
-                              className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLeadIds([lead.id]);
+                                setShowBulkAssignModal(true);
+                              }}
+                              className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
+                              data-testid={`assign-lead-mobile-${lead.id}`}
                             >
-                              <CheckCircle className="w-3 h-3" /> Done
+                              <UserPlus className="w-3 h-3" /> Assign
                             </button>
                             <a
                               href={`tel:+91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                              className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
                             >
                               <Phone className="w-3 h-3" /> Call
                             </a>
-                            <a
-                              href={`https://wa.me/918298389097?text=Hi ${encodeURIComponent(lead.name || 'Customer')}, this is ASR Enterprises...`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markLeadContacted(lead.id); }}
+                              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
                             >
-                              <MessageSquare className="w-3 h-3" /> WA
-                            </a>
+                              <CheckCircle className="w-3 h-3" /> Done
+                            </button>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Trash Tab - Soft Deleted Leads */}
+        {activeTab === "trash" && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-600 to-gray-700 rounded-xl p-4 sm:p-6 text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                    <Trash2 className="w-6 h-6 sm:w-7 sm:h-7" />
+                    Trash (Deleted Leads)
+                  </h2>
+                  <p className="text-gray-300 mt-1 text-sm">
+                    {trashedLeads.length} deleted leads • Auto-deleted after 30 days
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedLeadIds.length > 0 && (
+                    <button 
+                      onClick={() => restoreLeads(selectedLeadIds)}
+                      className="bg-green-500/80 hover:bg-green-500 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition"
+                      data-testid="restore-selected-btn"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Restore ({selectedLeadIds.length})
+                    </button>
+                  )}
+                  <button 
+                    onClick={fetchTrashedLeads}
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition"
+                    data-testid="refresh-trash-btn"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${leadsLoading ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            {/* Trashed Leads List */}
+            {trashedLeads.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-8 sm:p-12 text-center">
+                <Trash2 className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-700 mb-2">Trash is Empty</h3>
+                <p className="text-gray-500 text-sm sm:text-base">No deleted leads. Deleted leads are kept for 30 days before permanent removal.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+                {/* Select All Header */}
+                <div className="bg-gray-50 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedLeadIds.length === trashedLeads.length && trashedLeads.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLeadIds(trashedLeads.map(l => l.id));
+                        } else {
+                          setSelectedLeadIds([]);
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-gray-600 focus:ring-gray-500"
+                    />
+                    <span className="text-xs sm:text-sm font-medium text-gray-600">
+                      Select All ({trashedLeads.length})
+                    </span>
+                  </label>
+                </div>
+                
+                {/* Trashed Leads Table - Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left w-10"></th>
+                        <th className="px-4 py-3 text-left">Lead</th>
+                        <th className="px-4 py-3 text-left">Contact</th>
+                        <th className="px-4 py-3 text-left">Source</th>
+                        <th className="px-4 py-3 text-left">Deleted On</th>
+                        <th className="px-4 py-3 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {trashedLeads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedLeadIds.includes(lead.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedLeadIds([...selectedLeadIds, lead.id]);
+                                } else {
+                                  setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-gray-600"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-gray-700 line-through opacity-75">{lead.name || 'Unknown'}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-500">{lead.phone}</div>
+                            {lead.email && <div className="text-xs text-gray-400">{lead.email}</div>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
+                              {lead.source || 'manual'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {lead.deleted_at ? new Date(lead.deleted_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => restoreLeads([lead.id])}
+                              className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-xs font-medium flex items-center gap-1"
+                              data-testid={`restore-lead-${lead.id}`}
+                            >
+                              <RefreshCw className="w-3 h-3" /> Restore
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Trashed Leads Cards - Mobile */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {trashedLeads.map((lead) => (
+                    <div key={lead.id} className="p-3 hover:bg-gray-50/50 transition">
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.includes(lead.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedLeadIds([...selectedLeadIds, lead.id]);
+                            } else {
+                              setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
+                            }
+                          }}
+                          className="w-4 h-4 mt-1 rounded border-gray-300 text-gray-600 flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            <span className="font-semibold text-gray-700 text-sm line-through opacity-75 truncate">{lead.name || 'Unknown'}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
+                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</span>
+                            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded capitalize">{lead.source || 'manual'}</span>
+                          </div>
+                          <div className="text-xs text-gray-400 mb-2">
+                            Deleted: {lead.deleted_at ? new Date(lead.deleted_at).toLocaleDateString('en-IN') : '-'}
+                          </div>
+                          <button
+                            onClick={() => restoreLeads([lead.id])}
+                            className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded text-xs font-medium flex items-center gap-1"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Restore
+                          </button>
                         </div>
                       </div>
                     </div>

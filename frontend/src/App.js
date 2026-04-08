@@ -839,8 +839,12 @@ const ServiceRegistration = () => {
           });
         }
         
-        // Redirect to Razorpay payment link
-        window.location.href = RAZORPAY_PAYMENT_LINK;
+        // Redirect to WhatsApp to complete booking
+        const whatsappUrl = `https://wa.me/919296389097?text=${encodeURIComponent(
+          `Hi ASR Enterprises! I want to book Solar Service.\n\nName: ${formData.name}\nPhone: ${formData.phone}\nDistrict: ${formData.district}\n\nPlease share the payment details.`
+        )}`;
+        window.open(whatsappUrl, '_blank');
+        setStep('success');
       }
     } catch (err) {
       alert(err.response?.data?.detail || "Error saving registration details");
@@ -1266,7 +1270,29 @@ const HomePage = () => {
         )}
       </nav>
 
-      {/* Premium Top Announcement Bar - Below Navbar */}
+      {/* Running Marquee Announcement Bar */}
+      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2 overflow-hidden" data-testid="marquee-bar">
+        <div className="animate-marquee whitespace-nowrap flex items-center">
+          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+            <span className="text-yellow-200">☀</span>
+            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
+          </span>
+          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+            <span className="text-yellow-200">☀</span>
+            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
+          </span>
+          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+            <span className="text-yellow-200">☀</span>
+            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
+          </span>
+          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+            <span className="text-yellow-200">☀</span>
+            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
+          </span>
+        </div>
+      </div>
+
+      {/* Quick Action Bar - Below Marquee */}
       <div className="bg-gradient-to-r from-[#071A2E] via-[#0B3C5D] to-[#071A2E] py-3 px-4 shadow-lg" data-testid="announcement-bar">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
           <div className="flex items-center gap-2 text-white text-sm sm:text-base">

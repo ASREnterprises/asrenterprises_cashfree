@@ -391,8 +391,15 @@ async def create_payment_link(request: CreatePaymentLinkRequest, background_task
         if not customer_phone:
             raise HTTPException(status_code=400, detail="Invalid phone number")
         
-        # Calculate expiry
-        expiry_time = datetime.now(timezone.utc) + timedelta(minutes=request.expiry_minutes)
+        # Calculate expiry - must be at least 5 minutes in future and in IST
+        from datetime import timezone as tz
+        import pytz
+        
+        # Use IST timezone for Cashfree
+        ist = pytz.timezone('Asia/Kolkata')
+        now_ist = datetime.now(ist)
+        expiry_minutes = max(request.expiry_minutes, 10)  # Minimum 10 minutes
+        expiry_time = now_ist + timedelta(minutes=expiry_minutes)
         
         # Create payment link via Cashfree API
         link_payload = {

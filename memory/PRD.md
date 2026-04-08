@@ -16,7 +16,62 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Display Contact Number**: `9296389097`
 - **Support Email**: `support@asrenterprises.in`
 
-## Latest Updates (April 8, 2026 - Round 11)
+## Latest Updates (April 8, 2026 - Round 12)
+
+### ✅ Enhanced Cashfree Webhook Implementation
+
+**New Webhook Endpoint:** `/api/payments/cashfree/webhook`
+- Proper signature verification using x-webhook-signature header
+- Idempotency checking to prevent duplicate processing
+- Full webhook logging to `payment_webhook_logs` collection
+- Handles events: PAYMENT_SUCCESS, PAYMENT_FAILED, PAYMENT_USER_DROPPED, REFUND_SUCCESS, REFUND_FAILED
+
+**On PAYMENT_SUCCESS:**
+- Mark payment as PAID in database
+- Store order_id, payment_id, amount, payment_time
+- Update linked lead status to "converted" with payment_received=true
+- Auto-send WhatsApp confirmation message
+- Log activity in crm_activities
+
+**On PAYMENT_FAILED:**
+- Mark payment as FAILED
+- Store failure reason
+- Log to payment_failures collection
+
+**Webhook Security:**
+- Signature verification enabled when CASHFREE_WEBHOOK_SECRET is set
+- Returns 200 OK always (to prevent Cashfree retries)
+- Full audit trail in payment_webhook_logs
+
+### ✅ Book Solar Service → Cashfree Integration
+
+**Replaced QR Code Payment with Cashfree:**
+- Website "Book Solar Service" now uses Cashfree payment links
+- Flow: Fill form → Create payment link → Redirect to Cashfree → Verify payment
+- Auto-creates lead on successful payment
+- API endpoints used: POST /api/payments/website/initiate, GET /api/payments/website/verify/{order_id}
+
+### ✅ CRM Dashboard Tab Reorganization
+
+**New Tab Structure:**
+| Tab | Contents | Color |
+|-----|----------|-------|
+| Dashboard | Main CRM dashboard | Blue |
+| Lead Management | All Leads + Trash (with subtabs) | Blue |
+| Cashfree Payments | Payment links, transactions, stats | Emerald |
+| WhatsApp | WhatsApp inbox and messaging | Green |
+| HR Management | Team + Tasks (with subtabs) | Purple |
+| Service Price | Book Solar pricing config | Blue |
+| Site Settings | Marquee, OG settings | Blue |
+| Security Centre | Backups (with subtabs) | Red |
+| Credentials | API key management | Blue |
+
+**New Section Components:**
+- `LeadManagementSection` - Combines All Leads + Trash with subtab navigation
+- `HRManagementSection` - Combines Team + Tasks with subtab navigation
+- `SecurityCentreSection` - Contains Backups with subtab navigation
+
+## Previous Updates (April 8, 2026 - Round 11)
 
 ### ✅ Cashfree Payments Integration (12 Phases Complete)
 

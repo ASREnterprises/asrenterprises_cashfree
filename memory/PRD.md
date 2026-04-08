@@ -13,7 +13,38 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
-## Latest Updates (April 7, 2026 - Round 4)
+## Latest Updates (April 8, 2026 - Round 5)
+
+### 1. ✅ Running Marquee Header
+- Added prominent running/scrolling announcement bar at top of website
+- Text: "☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote"
+- Orange/amber gradient background with continuous scrolling animation
+- Visible on all pages below the navbar
+
+### 2. ✅ New Inquiries Tab Overhaul
+- **CHANGED**: Now fetches ONLY WhatsApp leads (source=whatsapp filter)
+- **ADDED**: Auto-sync feature (refreshes every 15 seconds when enabled)
+- **REPLACED**: WhatsApp action button with Assign button (blue, opens bulk assign modal)
+- Call button (green) and Done button (gray) retained
+- Desktop table + Mobile card responsive views
+
+### 3. ✅ Soft Delete / Trash System
+- **NEW**: Leads are now soft-deleted (moved to Trash instead of permanent delete)
+- 30-day retention period before auto-deletion
+- **NEW**: Trash tab in CRM dashboard with restore functionality
+- Admins can select and restore multiple leads at once
+- Shows deletion date for each trashed lead
+
+### 4. ✅ Bulk Delete at All Leads
+- **ADDED**: Red "Delete" button appears when leads are selected in All Leads tab
+- Confirmation dialog mentions leads will be moved to Trash
+- Works alongside existing Bulk Assign and WhatsApp Campaign buttons
+
+### 5. ✅ RAZORPAY Removal Complete
+- Fixed undefined RAZORPAY_PAYMENT_LINK error in ServiceRegistration component
+- Payment flow now redirects to WhatsApp for manual QR payment
+
+## Previous Updates (April 7, 2026 - Round 4)
 
 ### 1. ✅ Bulk Template Message Fix
 - **Problem**: Bulk campaigns failed while individual template sends worked
@@ -61,8 +92,10 @@ Build a comprehensive Solar Business CRM with the following key features:
 |----------|--------|-------------|
 | `/api/crm/new-leads?source=all` | GET | All new leads |
 | `/api/crm/new-leads?source=whatsapp` | GET | WhatsApp leads only |
-| `/api/crm/leads/bulk-delete` | POST | Bulk delete leads |
+| `/api/crm/leads/bulk-delete` | POST | Soft-delete leads (moves to Trash) |
 | `/api/crm/leads/bulk-mark-contacted` | POST | Bulk mark contacted |
+| `/api/crm/leads/trash` | GET | Get soft-deleted leads |
+| `/api/crm/leads/restore` | POST | Restore leads from Trash |
 
 ### WhatsApp
 | Endpoint | Method | Description |
@@ -77,7 +110,7 @@ Build a comprehensive Solar Business CRM with the following key features:
 | `/api/service/bookings` | GET | List all bookings |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_76.json`
+- **Test Report**: `/app/test_reports/iteration_77.json`
 - **Backend Tests**: 100% passed
 - **Frontend Tests**: 100% passed
 
@@ -92,6 +125,8 @@ Build a comprehensive Solar Business CRM with the following key features:
   source: String,  // 'website', 'whatsapp', 'bulk_import', 'manual'
   is_new: Boolean, // Flag for New Leads Inbox
   stage: String,   // 'new', 'contacted', 'site_visit', etc.
+  is_deleted: Boolean, // Soft delete flag (NEW)
+  deleted_at: DateTime, // Deletion timestamp (NEW)
   ...
 }
 ```
@@ -113,4 +148,4 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Facebook/Instagram Graph API**: Publishing & Sync (User API Key)
 
 ---
-*Last Updated: April 7, 2026*
+*Last Updated: April 8, 2026*

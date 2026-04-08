@@ -16,7 +16,47 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Display Contact Number**: `9296389097`
 - **Support Email**: `support@asrenterprises.in`
 
-## Latest Updates (April 8, 2026 - Round 12)
+## Latest Updates (April 8, 2026 - Round 13)
+
+### ✅ Payment UI Integration in Lead Cards (COMPLETE)
+
+**Payment Button in Lead Actions:**
+- Added "Create Payment Link" button (₹ icon) to lead cards in both Table and Card views
+- Button opens Payment Modal for quick payment link creation
+- Located in `ProfessionalLeadsManagement.js` (Table: line 1184, Card: line 1325)
+
+**Payment Modal Features:**
+- Amount input field with ₹ currency prefix
+- Purpose field (default: "Solar Service Payment")
+- Link expiry selector (1 hour to 7 days)
+- "Send via WhatsApp" checkbox for automatic delivery
+- Payment history section showing previous payments for the lead
+
+**Payment Status Labels:**
+- `link_created` - Blue badge "Link Created"
+- `link_sent` - Purple badge "Link Sent"
+- `pending` - Yellow badge "Pending"
+- `paid` - Green badge "Paid"
+- `failed` - Red badge "Failed"
+- `expired` - Gray badge "Expired"
+- `cancelled` - Gray badge "Cancelled"
+
+**Graceful Error Handling for Cashfree Activation:**
+- When Cashfree returns "link_creation_api is not enabled" error
+- Modal shows user-friendly message: "Live Payment Links Awaiting Activation"
+- Explains merchant account is under verification (1-3 business days)
+- Includes support contact information
+
+**Backend Verification (Testing Agent - 100% Pass Rate):**
+- GET /api/payments/status ✅
+- GET /api/payments/settings ✅
+- GET /api/payments/dashboard/stats ✅
+- POST /api/payments/create-link ✅ (Returns expected "not enabled" error)
+- GET /api/payments/lead/{lead_id}/payments ✅
+- POST /api/payments/webhook ✅
+- POST /api/payments/cashfree/webhook ✅
+
+## Previous Updates (April 8, 2026 - Round 12)
 
 ### ✅ Enhanced Cashfree Webhook Implementation
 

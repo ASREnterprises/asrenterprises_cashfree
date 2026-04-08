@@ -13,7 +13,44 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
-## Latest Updates (April 8, 2026 - Round 5)
+## Latest Updates (April 8, 2026 - Round 6)
+
+### 1. ✅ MAJOR: Professional Leads Management System
+Complete rebuild of the Leads Management module at `/admin/leads`:
+
+**New Features Implemented:**
+- **Professional Table View (default)**: Compact, powerful lead table with columns: Lead ID, Customer Name, Contact, Location, Source, Stage, Priority, Assigned Staff, Follow-up, Created Date, Actions
+- **Card View (optional toggle)**: Mobile-friendly card layout with all lead details
+- **8 Stats Dashboard Cards**: Total, Fresh, Today's, Follow-up Due, Hot, Unassigned, Converted, Lost - clickable for quick filtering
+- **Fresh Leads System**: Leads created within 48 hours marked with animated "NEW" badge
+- **Lead Priority/Temperature**: Hot (red), Warm (orange), Cold (blue), Low Quality (gray) with inline dropdown to change
+- **Solar-Specific Pipeline Stages** (12 stages):
+  1. New Lead → 2. Contacted → 3. Interested → 4. Documents Pending → 5. Site Survey → 6. Quotation Sent → 7. Subsidy Explained → 8. Negotiation → 9. Converted → 10. Installation Scheduled → 11. Completed → 12. Lost
+- **Advanced Lead Source Tracking**: Website, WhatsApp, Facebook, Instagram, Manual Entry, CSV Import, Old Database, Referral, Walk-in, Phone Call, Other - with colored badges
+- **Advanced Search**: Search by name, phone, email, district, lead ID
+- **Multi-Filter System**: Filter by Source, Stage, Priority, District, Property Type, Assigned Staff, Date Range
+- **Quick Filters**: Fresh Leads, Today's Leads, Follow-up Due, Unassigned, Hot Leads, Converted, Lost
+- **Sorting Options**: Newest, Oldest, Fresh First, Hot First, Follow-up Due First, Uncontacted First, Name A-Z/Z-A
+- **Bulk Actions**: Assign, Change Stage, Change Priority, Export CSV, Delete - with progress indicators
+- **Follow-up Management**: Add follow-up with date, time, type (call/visit/quotation/payment/whatsapp), notes
+- **Lead Details Modal**: Complete lead view with activity timeline, notes, status history
+- **Add Lead Modal**: Comprehensive form with all fields: Name, Phone, Alternate Phone, Email, District, Property Type, Roof Type, Monthly Bill, Required Capacity, Source, Priority, Address, Notes
+
+**New Backend Endpoints:**
+- `GET /api/crm/leads/advanced` - Paginated leads with filters, search, sorting, stats
+- `GET /api/crm/leads/stats` - Quick stats for dashboard cards
+- `POST /api/crm/leads/bulk-assign` - Bulk assign leads to staff
+- `POST /api/crm/leads/bulk-update` - Bulk update stage/priority
+- `POST /api/crm/leads/check-duplicate` - Duplicate detection by phone/email
+- `POST /api/crm/leads/{lead_id}/trash` - Soft delete single lead
+- `GET /api/crm/leads/{lead_id}/timeline` - Lead activity timeline
+
+**Files Created/Modified:**
+- NEW: `/app/frontend/src/components/ProfessionalLeadsManagement.js` (Complete professional CRM UI)
+- MODIFIED: `/app/backend/routes/crm.py` (Advanced endpoints)
+- MODIFIED: `/app/frontend/src/App.js` (Route updated to use new component)
+
+## Previous Updates (April 8, 2026 - Round 5)
 
 ### 1. ✅ Running Marquee Header
 - Added prominent running/scrolling announcement bar at top of website
@@ -110,7 +147,7 @@ Build a comprehensive Solar Business CRM with the following key features:
 | `/api/service/bookings` | GET | List all bookings |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_77.json`
+- **Test Report**: `/app/test_reports/iteration_78.json`
 - **Backend Tests**: 100% passed
 - **Frontend Tests**: 100% passed
 

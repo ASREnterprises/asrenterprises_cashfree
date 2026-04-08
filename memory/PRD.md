@@ -3,9 +3,9 @@
 ## Original Problem Statement
 Build a comprehensive Solar Business CRM with the following key features:
 1. **WhatsApp API Integration**: Route all website WhatsApp buttons to the API number (8298389097)
-2. **New Leads Management System**: WhatsApp inquiry inbox with full lead data
+2. **New Leads Management System**: Inbox for all new inquiries with full lead data
 3. **Gallery Facebook Sync**: Fetch Facebook page posts and display in website Gallery
-4. **Book Solar Service Widget**: Flashing homepage widget with configurable pricing
+4. **Book Solar Service Widget**: Prominent banner with configurable pricing
 
 ## Critical Credentials (DO NOT CHANGE)
 - **Admin Login Mobile**: `8877896889`
@@ -13,104 +13,103 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
-## Latest Updates (April 7, 2026 - Round 3)
+## Latest Updates (April 7, 2026 - Round 4)
 
-### 1. ✅ New Leads Inbox - WhatsApp Only
-- Only fetches leads from WhatsApp source (`whatsapp, whatsapp_direct, whatsapp_reply, whatsapp_button`)
-- Full lead data display (Name, Contact, Location, Source, Stage, Date)
+### 1. ✅ Bulk Template Message Fix
+- **Problem**: Bulk campaigns failed while individual template sends worked
+- **Root Cause**: Templates with `variable_count=0` (like `promote_asr_enterprises`) were receiving variables array
+- **Fix**: Now checks template's `variable_count` before sending - only sends variables if template needs them
+- **Added**: 500ms delay between messages to avoid rate limiting
+
+### 2. ✅ New Leads Inbox - All Sources + Actions
+- Now shows ALL new leads (not just WhatsApp)
+- **Added**: Call button (tel: link) for direct calling
+- **Added**: Bulk Delete button with confirmation
 - Desktop table view + Mobile card view
-- Bulk selection for assign and mark contacted
+- Bulk Assign and Mark Contacted buttons
 
-### 2. ✅ Book Solar Service Widget (Homepage)
-- Flashing widget button on homepage with dynamic price
-- Price configurable via "Service Price" tab in CRM (currently ₹2,499)
-- QR code payment flow with transaction ID verification
-- Bookings viewable in new "Bookings" tab
+### 3. ✅ Book Service Banner - Repositioned
+- Moved to TOP of hero section (above "Make Your Electricity Bill ZERO")
+- Prominent flashing banner with shimmer animation
+- Shows dynamic price (currently ₹2,499)
+- Click triggers Book Solar Service modal
 
-### 3. ✅ CRM Navigation Changes
-- **Removed**: Social Media tab from main CRM navigation
-- **Added**: Bookings tab for managing solar service bookings
-- Social Media Manager still accessible via `/admin/social-media` route
+## Key Features Summary
 
-### 4. ✅ Social Media Manager Updates
-- Added Back button for easy navigation
-- Mobile responsive layout
-- Tabs show icons only on mobile
+### New Leads Inbox
+- Shows all new inquiries from: Website, WhatsApp, Bulk Import, Manual Entry
+- Call button (blue phone icon) - direct tel: link
+- WhatsApp button - opens wa.me link
+- Bulk Actions: Mark Contacted, Assign to Staff, Delete
+- Desktop table + Mobile card views
 
-### 5. ✅ Mobile Responsiveness
-- New Leads Inbox fully mobile responsive
-- Bulk assign and WhatsApp campaign buttons visible on mobile
-- Bookings Manager with mobile card view
+### Book Solar Service
+- Prominent banner at top of hero section
+- Price: ₹2,499 (configurable via CRM → Service Price)
+- QR code payment flow with transaction verification
+- Bookings managed in CRM → Bookings tab
 
-### 6. ✅ WhatsApp Auto-Deletion
-- Changed from 48hr to 24hr auto-deletion
-- Bulk conversation delete feature added
-
-### ⚠️ Template Message Failures
-The bulk WhatsApp template campaigns are failing with error "Template name does not exist in the translation". This is caused by:
-1. **Expired Access Token**: Meta WhatsApp access tokens expire every 90 days
-2. **Action Required**: User needs to refresh the access token in Meta Business Manager
-
-**How to fix:**
-1. Go to [Meta Business Suite](https://business.facebook.com/settings/system-users)
-2. Select your System User
-3. Generate a new access token with permissions: `whatsapp_business_messaging`, `whatsapp_business_management`
-4. Update the token in ASR CRM → Credentials → WhatsApp Settings
-
-## Current Architecture
-```
-/app/
-├── backend/
-│   ├── routes/
-│   │   ├── crm.py                 # CRM + New Leads WhatsApp-only filter
-│   │   ├── whatsapp.py            # 24hr auto-delete, bulk conversation delete
-│   │   ├── social_media.py        # Gallery sync
-│   └── server.py                  # Service bookings API
-└── frontend/
-    ├── src/
-    │   ├── App.js                 # Book Service flashing widget
-    │   ├── components/
-    │   │   ├── CRMDashboard.js    # Bookings tab, no Social tab
-    │   │   ├── SocialMediaManager.js # Back button, mobile friendly
-    │   │   ├── Gallery.js         # Facebook Posts, Latest Work tabs
-```
+### WhatsApp Bulk Campaigns
+- Templates with variables: Sends customer name
+- Templates without variables: Sends cleanly without variables array
+- 500ms delay between messages to avoid rate limiting
 
 ## Key API Endpoints
 
-### Service Bookings
+### Leads
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/service/book-solar-config` | GET/PUT | Get/Update service price |
-| `/api/service/bookings` | GET | List all bookings |
-| `/api/service/book-solar` | POST | Create new booking |
-| `/api/service/bookings/{id}/status` | PUT | Update booking status |
-
-### New Leads (WhatsApp Only)
-| Endpoint | Method | Description |
-|----------|--------|-------------|
+| `/api/crm/new-leads?source=all` | GET | All new leads |
 | `/api/crm/new-leads?source=whatsapp` | GET | WhatsApp leads only |
-| `/api/crm/new-leads/count?source=whatsapp` | GET | Count for badge |
+| `/api/crm/leads/bulk-delete` | POST | Bulk delete leads |
+| `/api/crm/leads/bulk-mark-contacted` | POST | Bulk mark contacted |
 
-### WhatsApp Bulk Operations
+### WhatsApp
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/whatsapp/conversations/bulk-delete` | POST | Delete multiple conversations |
-| `/api/whatsapp/messages/auto-cleanup-24h` | DELETE | Delete messages older than 24hr |
+| `/api/whatsapp/templates/bulk-send` | POST | Send to multiple leads |
+| `/api/whatsapp/campaign/create` | POST | Create new campaign |
+
+### Service
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/service/book-solar-config` | GET/PUT | Get/Update price |
+| `/api/service/bookings` | GET | List all bookings |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_75.json`
+- **Test Report**: `/app/test_reports/iteration_76.json`
 - **Backend Tests**: 100% passed
 - **Frontend Tests**: 100% passed
 
-## Backlog (P2)
-1. Advanced HR Features (AI task assignment, OCR)
-2. Hyper-Local SEO Pages
-3. Refactor monolithic server.py
+## Database Schema
+
+### crm_leads
+```javascript
+{
+  id: String,
+  name: String,
+  phone: String,
+  source: String,  // 'website', 'whatsapp', 'bulk_import', 'manual'
+  is_new: Boolean, // Flag for New Leads Inbox
+  stage: String,   // 'new', 'contacted', 'site_visit', etc.
+  ...
+}
+```
+
+### whatsapp_templates
+```javascript
+{
+  template_name: String,
+  language_code: String,  // 'en' or 'en_US'
+  variable_count: Number, // 0 = no variables, 1+ = needs variables
+  status: String          // 'APPROVED', 'PENDING', etc.
+}
+```
 
 ## 3rd Party Integrations
 - **Gemini AI**: Lead analysis (Emergent LLM Key)
 - **MSG91**: OTP/SMS (User API Key)
-- **Meta WhatsApp Cloud API**: Messaging (User API Key) - **TOKEN NEEDS REFRESH**
+- **Meta WhatsApp Cloud API**: Messaging (User API Key)
 - **Facebook/Instagram Graph API**: Publishing & Sync (User API Key)
 
 ---

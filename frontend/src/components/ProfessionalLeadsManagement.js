@@ -190,7 +190,14 @@ export const ProfessionalLeadsManagement = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showFollowUpModal, setShowFollowUpModal] = useState(false);
   const [showBulkActionsMenu, setShowBulkActionsMenu] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
+  
+  // WhatsApp API state
+  const [waTemplates, setWaTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [waMessage, setWaMessage] = useState("");
+  const [waSending, setWaSending] = useState(false);
   
   // Forms
   const [newLead, setNewLead] = useState({
@@ -287,6 +294,62 @@ export const ProfessionalLeadsManagement = () => {
       });
     }
   }, [leads]);
+
+  const fetchWhatsAppTemplates = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/whatsapp/templates`);
+      setWaTemplates(res.data.templates || []);
+    } catch (err) {
+      console.error("Error fetching templates:", err);
+    }
+  }, []);
+
+  const sendWhatsAppMessage = async () => {
+    if (!selectedLead) return;
+    setWaSending(true);
+    try {
+      if (selectedTemplate) {
+        // Send template message via API
+        const res = await axios.post(`${API}/whatsapp/send-template`, {
+          phone: selectedLead.phone,
+          template_name: selectedTemplate.name,
+          lead_id: selectedLead.id
+        });
+        if (res.data.success) {
+          alert("WhatsApp template sent successfully!");
+          setShowWhatsAppModal(false);
+          setSelectedTemplate(null);
+        } else {
+          alert("Error sending template: " + (res.data.error || "Unknown error"));
+        }
+      } else if (waMessage.trim()) {
+        // Send custom message via API
+        const res = await axios.post(`${API}/whatsapp/send-message`, {
+          phone: selectedLead.phone,
+          message: waMessage,
+          lead_id: selectedLead.id
+        });
+        if (res.data.success) {
+          alert("WhatsApp message sent successfully!");
+          setShowWhatsAppModal(false);
+          setWaMessage("");
+        } else {
+          alert("Error sending message: " + (res.data.error || "Unknown error"));
+        }
+      }
+    } catch (err) {
+      alert("Error: " + (err.response?.data?.detail || err.message));
+    }
+    setWaSending(false);
+  };
+
+  const openWhatsAppModal = (lead) => {
+    setSelectedLead(lead);
+    setShowWhatsAppModal(true);
+    setSelectedTemplate(null);
+    setWaMessage("");
+    fetchWhatsAppTemplates();
+  };
 
   useEffect(() => {
     fetchLeads(1);
@@ -981,15 +1044,13 @@ export const ProfessionalLeadsManagement = () => {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            <a
-                              href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}?text=Hi ${encodeURIComponent(lead.name || 'Customer')}, this is ASR Enterprises...`}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => openWhatsAppModal(lead)}
                               className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition"
-                              title="WhatsApp"
+                              title="Send WhatsApp via API"
                             >
                               <MessageSquare className="w-4 h-4" />
-                            </a>
+                            </button>
                             <a
                               href={`tel:${lead.phone}`}
                               className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"
@@ -1116,15 +1177,13 @@ export const ProfessionalLeadsManagement = () => {
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <div className="flex items-center gap-1">
-                      <a
-                        href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => openWhatsAppModal(lead)}
                         className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-                        title="WhatsApp"
+                        title="Send WhatsApp via API"
                       >
                         <MessageSquare className="w-4 h-4" />
-                      </a>
+                      </button>
                       <a
                         href={`tel:${lead.phone}`}
                         className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
@@ -1594,6 +1653,86 @@ export const ProfessionalLeadsManagement = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp API Modal */}
+      {showWhatsAppModal && selectedLead && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Send WhatsApp Message
+              </h2>
+              <button onClick={() => { setShowWhatsAppModal(false); setSelectedLead(null); }} className="p-2 hover:bg-white/20 rounded-lg transition text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Lead Info */}
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <div className="font-medium text-slate-800">{selectedLead.name || 'Unnamed Lead'}</div>
+                <div className="text-sm text-slate-600">{selectedLead.phone}</div>
+              </div>
+              
+              {/* Template Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Select Template (Recommended)</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-2">
+                  {waTemplates.length > 0 ? waTemplates.map((template) => (
+                    <button
+                      key={template.name}
+                      onClick={() => { setSelectedTemplate(template); setWaMessage(""); }}
+                      className={`w-full text-left p-3 rounded-lg border transition ${
+                        selectedTemplate?.name === template.name 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-slate-200 hover:border-green-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="font-medium text-slate-800 text-sm">{template.name.replace(/_/g, ' ')}</div>
+                      <div className="text-xs text-slate-500 mt-1">{template.status || 'approved'}</div>
+                    </button>
+                  )) : (
+                    <div className="text-center text-slate-500 py-4 text-sm">
+                      No templates found. Configure WhatsApp templates in Meta Business Suite.
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Custom Message Option */}
+              <div className="border-t border-slate-200 pt-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Or Send Custom Message</label>
+                <textarea
+                  value={waMessage}
+                  onChange={(e) => { setWaMessage(e.target.value); setSelectedTemplate(null); }}
+                  placeholder="Type your message here..."
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition h-24"
+                />
+                <p className="text-xs text-slate-500 mt-1">Note: Custom messages may have delivery limitations compared to approved templates.</p>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowWhatsAppModal(false); setSelectedLead(null); }}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={sendWhatsAppMessage}
+                  disabled={waSending || (!selectedTemplate && !waMessage.trim())}
+                  className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {waSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                  Send via API
+                </button>
+              </div>
             </div>
           </div>
         </div>

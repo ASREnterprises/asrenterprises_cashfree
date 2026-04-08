@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { User, Lock, LogIn, Loader2, ArrowLeft, Mail, KeyRound, Phone, Send, CheckCircle, RefreshCw, Key } from "lucide-react";
+import { User, Lock, LogIn, Loader2, ArrowLeft, Mail, KeyRound, Phone, Send, CheckCircle, RefreshCw, Key, Eye, EyeOff } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -20,13 +20,14 @@ export const StaffLogin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [loginMethod, setLoginMethod] = useState("email_2fa"); // email_2fa or mobile_otp
+  const [loginMethod, setLoginMethod] = useState("email_password"); // email_password, mobile_otp, or email_2fa
   const [otpSent, setOtpSent] = useState(false);
   const [step, setStep] = useState("email"); // email, otp_verify
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [pendingStaffData, setPendingStaffData] = useState(null); // Store staff data for 2FA
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const timerRef = useRef(null);
 
@@ -753,10 +754,10 @@ export const StaffLogin = () => {
           <div className="flex bg-gray-100 rounded-xl p-1.5 mb-6 overflow-x-auto">
             <button
               type="button"
-              onClick={() => { setLoginMethod("email_2fa"); setOtpSent(false); setError(""); setSuccess(""); setStep("email"); resetMobileOTPFlow(); }}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "email_2fa" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+              onClick={() => { setLoginMethod("email_password"); setOtpSent(false); setError(""); setSuccess(""); setStep("email"); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "email_password" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
             >
-              <Mail className="w-3.5 h-3.5" />Email + OTP
+              <Lock className="w-3.5 h-3.5" />Email + Password
             </button>
             <button
               type="button"
@@ -764,6 +765,13 @@ export const StaffLogin = () => {
               className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "mobile_otp" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
             >
               <Phone className="w-3.5 h-3.5" />Mobile OTP
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMethod("email_2fa"); setOtpSent(false); setError(""); setSuccess(""); setStep("email"); resetMobileOTPFlow(); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "email_2fa" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+            >
+              <Mail className="w-3.5 h-3.5" />Email + 2FA
             </button>
           </div>
 
@@ -778,6 +786,65 @@ export const StaffLogin = () => {
               <CheckCircle className="w-4 h-4 mr-2" />
               {success}
             </div>
+          )}
+
+          {/* Email + Password Login (No 2FA) */}
+          {loginMethod === "email_password" && (
+            <form onSubmit={handleEmailPasswordLogin} className="space-y-5">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-bold text-[#0B3C5D]">Email + Password Login</h2>
+                <p className="text-gray-500 text-sm">Login with your registered email and password</p>
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your.email@company.com"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-4 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
+                    required
+                    data-testid="staff-email-input"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-600 text-sm font-medium mb-2">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full bg-gray-50 border border-gray-300 text-[#0B3C5D] pl-10 pr-12 py-3 rounded-xl focus:ring-2 focus:ring-[#F5A623] focus:outline-none"
+                    required
+                    data-testid="staff-password-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center space-x-2"
+                data-testid="staff-login-submit"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+                <span>{loading ? "Logging in..." : "Login"}</span>
+              </button>
+              <p className="text-center text-sm text-gray-500">
+                Contact admin if you need to reset your password
+              </p>
+            </form>
           )}
 
           {/* Email + Mobile OTP 2FA Login */}

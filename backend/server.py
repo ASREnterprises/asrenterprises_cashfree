@@ -8682,6 +8682,43 @@ async def report_suspicious(request: Request, data: Dict[str, Any]):
     
     return {"success": True, "message": "Report received"}
 
+# ==================== SITE SETTINGS ====================
+
+@api_router.get("/site-settings")
+async def get_site_settings():
+    """Get current site settings including marquee text"""
+    settings = await db.site_settings.find_one({"type": "general"}, {"_id": 0})
+    if not settings:
+        # Return default settings
+        return {
+            "marquee_text": "☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote",
+            "marquee_enabled": True
+        }
+    return settings
+
+@api_router.post("/site-settings")
+async def update_site_settings(request: Request):
+    """Update site settings (admin only)"""
+    data = await request.json()
+    
+    # Sanitize inputs
+    marquee_text = sanitize_input(data.get("marquee_text", ""))[:500]  # Limit to 500 chars
+    marquee_enabled = bool(data.get("marquee_enabled", True))
+    
+    # Upsert settings
+    await db.site_settings.update_one(
+        {"type": "general"},
+        {"$set": {
+            "type": "general",
+            "marquee_text": marquee_text,
+            "marquee_enabled": marquee_enabled,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    
+    return {"success": True, "message": "Site settings updated"}
+
 # ==================== BUSINESS BOOST FEATURES ====================
 
 # 1. Staff Performance Leaderboard

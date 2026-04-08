@@ -1049,6 +1049,10 @@ const HomePage = () => {
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [servicePrice, setServicePrice] = useState(1500);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  // Marquee state from backend
+  const [marqueeText, setMarqueeText] = useState("☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote");
+  const [marqueeEnabled, setMarqueeEnabled] = useState(true);
 
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
@@ -1072,6 +1076,13 @@ const HomePage = () => {
 
   useEffect(() => {
     axios.get(`${API}/service/book-solar-config`).then(res => setServicePrice(res.data.price)).catch(() => setServicePrice(2499));
+    // Fetch marquee settings
+    axios.get(`${API}/site-settings`).then(res => {
+      if (res.data) {
+        setMarqueeText(res.data.marquee_text || "☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote");
+        setMarqueeEnabled(res.data.marquee_enabled !== false);
+      }
+    }).catch(() => {});
   }, []);
 
   // QR Payment modal state
@@ -1271,26 +1282,28 @@ const HomePage = () => {
       </nav>
 
       {/* Running Marquee Announcement Bar */}
-      <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2 overflow-hidden" data-testid="marquee-bar">
-        <div className="animate-marquee whitespace-nowrap flex items-center">
-          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-            <span className="text-yellow-200">☀</span>
-            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
-          </span>
-          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-            <span className="text-yellow-200">☀</span>
-            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
-          </span>
-          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-            <span className="text-yellow-200">☀</span>
-            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
-          </span>
-          <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-            <span className="text-yellow-200">☀</span>
-            Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote
-          </span>
+      {marqueeEnabled && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2 overflow-hidden" data-testid="marquee-bar">
+          <div className="animate-marquee whitespace-nowrap flex items-center">
+            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+              <span className="text-yellow-200">☀</span>
+              {marqueeText}
+            </span>
+            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+              <span className="text-yellow-200">☀</span>
+              {marqueeText}
+            </span>
+            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+              <span className="text-yellow-200">☀</span>
+              {marqueeText}
+            </span>
+            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
+              <span className="text-yellow-200">☀</span>
+              {marqueeText}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quick Action Bar - Below Marquee */}
       <div className="bg-gradient-to-r from-[#071A2E] via-[#0B3C5D] to-[#071A2E] py-3 px-4 shadow-lg" data-testid="announcement-bar">

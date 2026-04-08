@@ -8,7 +8,7 @@ import {
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2,
-  User, X, History, Inbox
+  User, X, History, Inbox, Save, Settings, Megaphone
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
@@ -776,6 +776,13 @@ export const CRMDashboard = () => {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
+  // Site Settings State
+  const [siteSettings, setSiteSettings] = useState({
+    marquee_text: "☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote",
+    marquee_enabled: true
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+  
   // Handle scroll to show/hide scroll-to-top button
   useEffect(() => {
     const handleScroll = () => {
@@ -881,7 +888,7 @@ export const CRMDashboard = () => {
     fetchStaff(); // Load staff for assignment dropdowns
     fetchDistricts(); 
     fetchGalleryPhotos(); // Load gallery photos for admin
-    fetchNewLeadsCount(); // Fetch new leads count for badge
+    fetchSiteSettings(); // Load site settings for marquee editor
   }, []);
   
   // Periodically refresh new leads count
@@ -904,11 +911,11 @@ export const CRMDashboard = () => {
   // Load tab-specific data when tab changes
   useEffect(() => {
     if (activeTab === "leads") fetchLeads();
-    if (activeTab === "new_leads") fetchNewLeads();
     if (activeTab === "trash") fetchTrashedLeads();
     if (activeTab === "tasks") fetchTasks();
     if (activeTab === "team") fetchStaff();
     if (activeTab === "messages") fetchMessages();
+    if (activeTab === "site_settings") fetchSiteSettings();
   }, [activeTab]);
   
   const fetchNewLeadsCount = async () => {
@@ -1042,6 +1049,29 @@ export const CRMDashboard = () => {
       });
     }
     setLoading(false);
+  };
+  
+  // Site Settings Functions
+  const fetchSiteSettings = async () => {
+    try {
+      const res = await axios.get(`${API}/site-settings`);
+      if (res.data) {
+        setSiteSettings(prev => ({ ...prev, ...res.data }));
+      }
+    } catch (err) {
+      console.error("Error fetching site settings:", err);
+    }
+  };
+  
+  const saveSiteSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await axios.post(`${API}/site-settings`, siteSettings);
+      alert("Site settings saved successfully!");
+    } catch (err) {
+      alert("Error saving settings: " + (err.response?.data?.detail || err.message));
+    }
+    setSavingSettings(false);
   };
   
   const fetchLeads = async (page = 1, search = '') => {
@@ -1695,25 +1725,23 @@ export const CRMDashboard = () => {
           <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-hide">
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
-              { id: "new_leads", label: "🆕 New", icon: <Inbox className="w-4 h-4" />, badge: newLeadsCount },
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "trash", label: "Trash", icon: <Trash2 className="w-4 h-4" /> },
-              { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
               { id: "bookings", label: "Bookings", icon: <Calendar className="w-4 h-4" /> },
+              { id: "site_settings", label: "Site Settings", icon: <Settings className="w-4 h-4" /> },
               { id: "backups", label: "Backups", icon: <Shield className="w-4 h-4" /> },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> },
               { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
             ].map((tab) => (
               <button key={tab.id} onClick={() => { 
                 setActiveTab(tab.id); 
-                if (tab.id !== 'whatsapp') setOpenWhatsAppChatLeadId(null); 
               }}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap relative ${
                   activeTab === tab.id 
-                    ? tab.id === "new_leads" ? "bg-green-600 text-white" : "bg-blue-600 text-white" 
+                    ? "bg-blue-600 text-white" 
                     : "text-gray-600 hover:bg-gray-50 border border-gray-300"
                 }`}>
                 {tab.icon}
@@ -3068,6 +3096,108 @@ export const CRMDashboard = () => {
         {activeTab === "google_reviews" && (
           <div className="space-y-6">
             <GoogleReviewsTab />
+          </div>
+        )}
+
+        {/* Site Settings Tab */}
+        {activeTab === "site_settings" && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <Settings className="w-7 h-7" />
+                Site Settings
+              </h2>
+              <p className="text-purple-200 mt-1">Manage website appearance and content</p>
+            </div>
+            
+            {/* Marquee Settings */}
+            <div className="bg-white rounded-xl shadow-lg border border-purple-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between">
+                <div className="text-white">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Megaphone className="w-5 h-5" />
+                    Running Marquee Header
+                  </h3>
+                  <p className="text-amber-100 text-sm">This text scrolls across the top of your website</p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-white text-sm">Enabled</span>
+                  <input
+                    type="checkbox"
+                    checked={siteSettings.marquee_enabled}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, marquee_enabled: e.target.checked })}
+                    className="w-5 h-5 rounded"
+                  />
+                </label>
+              </div>
+              <div className="p-6 space-y-4">
+                {/* Preview */}
+                <div className="mb-4">
+                  <label className="text-sm font-medium text-gray-600 mb-2 block">Live Preview:</label>
+                  <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2 overflow-hidden rounded-lg">
+                    <div className="animate-marquee whitespace-nowrap flex items-center">
+                      <span className="mx-8 text-white font-semibold text-sm flex items-center gap-2">
+                        <span className="text-yellow-200">☀</span>
+                        {siteSettings.marquee_text || "Enter your marquee text above"}
+                      </span>
+                      <span className="mx-8 text-white font-semibold text-sm flex items-center gap-2">
+                        <span className="text-yellow-200">☀</span>
+                        {siteSettings.marquee_text || "Enter your marquee text above"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Text Input */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Marquee Text:</label>
+                  <textarea
+                    value={siteSettings.marquee_text}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, marquee_text: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent transition"
+                    rows={3}
+                    placeholder="Enter the scrolling announcement text..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Tip: Include call-to-action like phone numbers, offers, or promotions
+                  </p>
+                </div>
+                
+                {/* Quick Templates */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Quick Templates:</label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote",
+                      "🔥 Limited Time Offer! Get FREE Installation on 3kW+ Solar Systems. Call: 9296389097",
+                      "💡 Switch to Solar & Save 90% on Electricity Bills! Contact ASR Enterprises Today",
+                      "🌞 Bihar's #1 Solar Company | 10,000+ Happy Customers | Call: 9296389097"
+                    ].map((template, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSiteSettings({ ...siteSettings, marquee_text: template })}
+                        className="text-xs bg-gray-100 hover:bg-orange-100 text-gray-700 px-3 py-2 rounded-lg transition border border-gray-200 hover:border-orange-300"
+                      >
+                        {template.slice(0, 40)}...
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Save Button */}
+                <div className="flex justify-end pt-4 border-t border-gray-200">
+                  <button
+                    onClick={saveSiteSettings}
+                    disabled={savingSettings}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2.5 rounded-lg font-medium hover:from-green-600 hover:to-emerald-700 transition disabled:opacity-50 shadow-md"
+                  >
+                    {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save Marquee Settings
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

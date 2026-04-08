@@ -494,6 +494,65 @@ async def startup_event():
     # Start automated cleanup scheduler
     cleanup_task = asyncio.create_task(cleanup_scheduler())
     
+    # ==================== OWNER ACCOUNT INITIALIZATION ====================
+    # Ensure ABHIJEET KUMAR (ASR1001) owner account exists with full privileges
+    owner_account = await db.crm_staff_accounts.find_one({"staff_id": "ASR1001"})
+    if not owner_account:
+        # Create owner account
+        owner_data = {
+            "id": str(uuid.uuid4()),
+            "staff_id": "ASR1001",
+            "name": "ABHIJEET KUMAR",
+            "email": "asrenterprisespatna@gmail.com",
+            "mobile": "8877896889",
+            "role": "super_admin",
+            "department": "admin",
+            "designation": "Owner & Managing Director",
+            "is_active": True,
+            "is_owner": True,
+            "is_super_admin": True,
+            "can_delete": False,  # Cannot be deleted
+            "permissions": {
+                "full_access": True,
+                "manage_staff": True,
+                "manage_leads": True,
+                "manage_settings": True,
+                "manage_whatsapp": True,
+                "view_analytics": True,
+                "manage_backups": True,
+                "manage_credentials": True
+            },
+            "password_hash": hashlib.sha256("ASR@2024#Owner".encode()).hexdigest(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "notes": "Owner and first employee of ASR ENTERPRISES. Cannot be deleted."
+        }
+        await db.crm_staff_accounts.insert_one(owner_data)
+        logger.info("✅ Owner account ABHIJEET KUMAR (ASR1001) created")
+    else:
+        # Update owner account to ensure all privileges
+        await db.crm_staff_accounts.update_one(
+            {"staff_id": "ASR1001"},
+            {"$set": {
+                "name": "ABHIJEET KUMAR",
+                "role": "super_admin",
+                "is_owner": True,
+                "is_super_admin": True,
+                "can_delete": False,
+                "permissions": {
+                    "full_access": True,
+                    "manage_staff": True,
+                    "manage_leads": True,
+                    "manage_settings": True,
+                    "manage_whatsapp": True,
+                    "view_analytics": True,
+                    "manage_backups": True,
+                    "manage_credentials": True
+                },
+                "notes": "Owner and first employee of ASR ENTERPRISES. Cannot be deleted."
+            }}
+        )
+        logger.info("✅ Owner account ABHIJEET KUMAR (ASR1001) verified and updated")
+    
     logger.info("🚀 Application started with database optimizations and automated cleanup")
 
 @app.on_event("shutdown")
@@ -3762,6 +3821,10 @@ async def update_staff(staff_id: str, staff_data: Dict[str, Any]):
 
 @api_router.delete("/admin/staff/{staff_id}")
 async def delete_staff(staff_id: str):
+    # PROTECTION: Cannot delete owner
+    staff = await db.staff.find_one({"id": staff_id}, {"_id": 0})
+    if staff and (staff.get("is_owner") or staff.get("staff_id") == "ASR1001"):
+        raise HTTPException(status_code=403, detail="Cannot delete owner account")
     await db.staff.delete_one({"id": staff_id})
     return {"success": True}
 
@@ -4766,9 +4829,17 @@ async def update_staff_account(staff_id: str, data: Dict[str, Any]):
 @api_router.delete("/admin/staff-accounts/{staff_id}")
 async def delete_staff_account(staff_id: str):
     """Admin deletes staff account permanently"""
+    # PROTECTION: Cannot delete the owner account (ASR1001)
+    if staff_id == "ASR1001":
+        raise HTTPException(status_code=403, detail="Cannot delete owner account. ABHIJEET KUMAR (ASR1001) is the owner and has permanent access.")
+    
     # First unassign all leads from this staff
     staff = await db.crm_staff_accounts.find_one({"staff_id": staff_id}, {"_id": 0})
     if staff:
+        # Also protect by checking is_owner flag
+        if staff.get("is_owner") or staff.get("is_super_admin"):
+            raise HTTPException(status_code=403, detail="Cannot delete owner/super admin account")
+        
         await db.crm_leads.update_many(
             {"assigned_to": staff.get("id")},
             {"$set": {"assigned_to": None, "assigned_by": None}}
@@ -8718,6 +8789,33 @@ async def update_site_settings(request: Request):
     )
     
     return {"success": True, "message": "Site settings updated"}
+
+@api_router.get("/owner-info")
+async def get_owner_info():
+    """Get owner/main admin information"""
+    owner = await db.crm_staff_accounts.find_one(
+        {"$or": [{"staff_id": "ASR1001"}, {"is_owner": True}]},
+        {"_id": 0, "password_hash": 0}
+    )
+    if owner:
+        return {
+            "name": owner.get("name", "ABHIJEET KUMAR"),
+            "staff_id": owner.get("staff_id", "ASR1001"),
+            "email": owner.get("email"),
+            "mobile": owner.get("mobile"),
+            "role": owner.get("role", "super_admin"),
+            "designation": owner.get("designation", "Owner & Managing Director"),
+            "is_owner": True,
+            "company": "ASR ENTERPRISES"
+        }
+    return {
+        "name": "ABHIJEET KUMAR",
+        "staff_id": "ASR1001",
+        "role": "super_admin",
+        "designation": "Owner & Managing Director",
+        "is_owner": True,
+        "company": "ASR ENTERPRISES"
+    }
 
 # ==================== BUSINESS BOOST FEATURES ====================
 

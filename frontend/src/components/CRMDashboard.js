@@ -2745,6 +2745,36 @@ export const CRMDashboard = () => {
               </a>
             </div>
             
+            {/* Owner Card - ABHIJEET KUMAR */}
+            <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 rounded-xl p-5 shadow-lg border-2 border-amber-400">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-amber-600 font-bold text-2xl shadow-md">
+                    AK
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold text-xl">ABHIJEET KUMAR</span>
+                      <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">OWNER</span>
+                    </div>
+                    <div className="text-amber-100 text-sm font-mono">ASR1001</div>
+                    <div className="text-amber-100 text-sm">Owner & Managing Director</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-white/80 text-xs mb-1">PROTECTED ACCOUNT</div>
+                  <div className="bg-white/20 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                    <Shield className="w-3 h-3" /> Super Admin
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-amber-400/50">
+                <div className="text-amber-100 text-xs">
+                  First employee and owner of ASR ENTERPRISES. Full control of website and CRM. Cannot be deleted.
+                </div>
+              </div>
+            </div>
+            
             {/* Info Banner */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start space-x-3">
               <div className="bg-blue-100 p-2 rounded-full">
@@ -2837,13 +2867,26 @@ export const CRMDashboard = () => {
                       <Edit className="w-3 h-3" /><span>Edit</span>
                     </button>
                     <button onClick={async () => {
-                      if(window.confirm(`Delete staff member "${staff.name}" (${staff.staff_id})? This cannot be undone.`)) {
-                        await axios.delete(`${API}/admin/staff-accounts/${staff.staff_id}`);
-                        alert('Staff deleted!');
-                        fetchAllData();
+                      // PROTECTION: Cannot delete owner account
+                      if (staff.staff_id === "ASR1001" || staff.is_owner) {
+                        alert("Cannot delete owner account. ABHIJEET KUMAR (ASR1001) is the owner and has permanent access.");
+                        return;
                       }
-                    }} className="flex-1 bg-red-600 text-[#0a355e] py-2 rounded-lg text-sm flex items-center justify-center space-x-1">
-                      <Trash2 className="w-3 h-3" /><span>Delete</span>
+                      if(window.confirm(`Delete staff member "${staff.name}" (${staff.staff_id})? This cannot be undone.`)) {
+                        try {
+                          await axios.delete(`${API}/admin/staff-accounts/${staff.staff_id}`);
+                          alert('Staff deleted!');
+                          fetchAllData();
+                        } catch (err) {
+                          alert(err.response?.data?.detail || 'Error deleting staff');
+                        }
+                      }
+                    }} className={`flex-1 py-2 rounded-lg text-sm flex items-center justify-center space-x-1 ${
+                      staff.staff_id === "ASR1001" || staff.is_owner 
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                        : 'bg-red-600 text-white hover:bg-red-700'
+                    }`} disabled={staff.staff_id === "ASR1001" || staff.is_owner}>
+                      <Trash2 className="w-3 h-3" /><span>{staff.staff_id === "ASR1001" ? 'Protected' : 'Delete'}</span>
                     </button>
                   </div>
                 </div>
@@ -2865,22 +2908,50 @@ export const CRMDashboard = () => {
         {/* Credentials Management Tab */}
         {activeTab === "credentials" && (
           <div className="space-y-6">
+            {/* Owner Credentials - ABHIJEET KUMAR */}
+            <div className="bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 rounded-xl p-5 shadow-lg border-2 border-amber-400">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-amber-600 font-bold text-2xl shadow-md">AK</div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold text-lg">ABHIJEET KUMAR</span>
+                      <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">OWNER</span>
+                    </div>
+                    <div className="text-amber-100 text-sm font-mono">ASR1001 - Super Admin</div>
+                    <div className="text-amber-100 text-sm">asrenterprisespatna@gmail.com | 8877896889</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="bg-white/20 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                    <Shield className="w-3 h-3" /> Full Access
+                  </div>
+                  <div className="bg-white/20 text-white text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                    <Key className="w-3 h-3" /> Protected
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-amber-400/50 text-amber-100 text-xs">
+                Owner and first employee of ASR ENTERPRISES. Cannot be deleted or removed. Has full control of website and CRM.
+              </div>
+            </div>
+
             {/* Admin Credentials */}
             <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
               <div className="p-4 border-b bg-gradient-to-r from-amber-50 to-orange-50">
                 <h3 className="font-bold text-[#0a355e] flex items-center">
                   <Shield className="w-5 h-5 mr-2 text-amber-500" />
-                  Admin Credentials
+                  Admin Account
                 </h3>
-                <p className="text-gray-500 text-sm mt-1">Manage admin login access</p>
+                <p className="text-gray-500 text-sm mt-1">Primary admin login for ABHIJEET KUMAR</p>
               </div>
               <div className="p-5">
                 <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
                   <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">A</div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">AK</div>
                     <div>
-                      <div className="font-bold text-[#0a355e]">Admin Account</div>
-                      <div className="text-gray-500 text-sm">support@asrenterprises.in</div>
+                      <div className="font-bold text-[#0a355e]">ABHIJEET KUMAR (Owner)</div>
+                      <div className="text-gray-500 text-sm">Mobile: 8877896889 | Email: asrenterprisespatna@gmail.com</div>
                     </div>
                   </div>
                   <button
@@ -2889,7 +2960,7 @@ export const CRMDashboard = () => {
                       if (newPass && newPass.length >= 6) {
                         try {
                           await axios.post(`${API}/admin/set-password`, { 
-                            user_id: 'support@asrenterprises.in', 
+                            user_id: 'asrenterprisespatna@gmail.com', 
                             password: newPass,
                             role: 'admin'
                           });

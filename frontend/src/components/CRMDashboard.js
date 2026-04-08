@@ -1726,22 +1726,21 @@ export const CRMDashboard = () => {
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "trash", label: "Trash", icon: <Trash2 className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
-              { id: "bookings", label: "Bookings", icon: <Calendar className="w-4 h-4" /> },
               { id: "site_settings", label: "Site Settings", icon: <Settings className="w-4 h-4" /> },
               { id: "backups", label: "Backups", icon: <Shield className="w-4 h-4" /> },
-              { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> },
-              { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
+              { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> }
             ].map((tab) => (
               <button key={tab.id} onClick={() => { 
                 setActiveTab(tab.id); 
               }}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap relative ${
                   activeTab === tab.id 
-                    ? "bg-blue-600 text-white" 
+                    ? tab.id === "whatsapp" ? "bg-green-600 text-white" : "bg-blue-600 text-white" 
                     : "text-gray-600 hover:bg-gray-50 border border-gray-300"
                 }`}>
                 {tab.icon}

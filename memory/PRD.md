@@ -13,7 +13,33 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
-## Latest Updates (April 8, 2026 - Round 8)
+## Latest Updates (April 8, 2026 - Round 9)
+
+### 1. ✅ ABHIJEET KUMAR as Main Admin/Owner
+- **Staff ID**: ASR1001 (permanent, protected)
+- **Role**: Super Admin / Owner
+- **Email**: asrenterprisespatna@gmail.com
+- **Mobile**: 8877896889
+- **Designation**: Owner & Managing Director
+- **Status**: PROTECTED - Cannot be deleted or removed
+
+### 2. ✅ Owner Account Protection
+- Backend startup automatically creates/verifies owner account
+- DELETE /api/admin/staff-accounts/ASR1001 returns 403 Forbidden
+- Delete button shows "Protected" and is disabled for ASR1001
+- Owner has is_owner=true, is_super_admin=true, can_delete=false flags
+
+### 3. ✅ Owner UI Visibility
+- **Team Tab**: Golden owner card at top with OWNER badge, PROTECTED ACCOUNT label
+- **Credentials Tab**: Owner card with Full Access and Protected badges
+- Owner account displayed prominently across CRM
+
+### 4. ✅ CRM Tabs Finalized
+Final tab list: Dashboard, All Leads, WhatsApp, Trash, Tasks, Team, Service Price, Site Settings, Backups, Credentials
+- Removed duplicate Bookings and Messages tabs
+- WhatsApp tab restored with green highlight
+
+## Previous Updates (April 8, 2026 - Round 8)
 
 ### 1. ✅ WhatsApp Tab Restored in CRM Dashboard
 - WhatsApp tab is back in the CRM navigation with green highlight when active
@@ -199,7 +225,7 @@ Complete rebuild of the Leads Management module at `/admin/leads`:
 | `/api/service/bookings` | GET | List all bookings |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_80.json`
+- **Test Report**: `/app/test_reports/iteration_81.json`
 - **Backend Tests**: 100% passed
 - **Frontend Tests**: 100% passed
 

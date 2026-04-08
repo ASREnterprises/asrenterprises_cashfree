@@ -1095,7 +1095,7 @@ const HomePage = () => {
       // Create booking with QR payment details
       const res = await axios.post(`${API}/service/book-solar`, {
         ...bookingData,
-        amount: 2999,
+        amount: servicePrice,
         payment_method: 'qr_code',
         transaction_id: transactionId.trim()
       });
@@ -2035,6 +2035,24 @@ const HomePage = () => {
         <SmartWhatsAppButton variant="floating" />
       </Suspense>
 
+      {/* Book Solar Service - Flashing Widget */}
+      <button
+        onClick={() => setShowBookService(true)}
+        className="fixed bottom-44 right-6 z-40 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 rounded-full shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all hover:scale-105 flex items-center gap-2"
+        style={{
+          animation: 'pulse 2s infinite',
+          boxShadow: '0 0 20px rgba(245, 166, 35, 0.5), 0 0 40px rgba(245, 166, 35, 0.3)'
+        }}
+        data-testid="book-service-float-btn"
+      >
+        <Zap className="w-5 h-5" />
+        <span className="font-bold text-sm whitespace-nowrap">Book Service ₹{servicePrice.toLocaleString()}</span>
+        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+        </span>
+      </button>
+
       {/* Floating Action Buttons - Positioned above WhatsApp */}
       <div className="fixed bottom-24 right-6 z-40 flex flex-col space-y-3">
         {/* Facebook */}
@@ -2145,7 +2163,7 @@ const HomePage = () => {
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Service Amount</span>
-                    <span className="text-2xl font-bold text-amber-400">₹2,999</span>
+                    <span className="text-2xl font-bold text-amber-400">₹{servicePrice.toLocaleString()}</span>
                   </div>
                   <p className="text-gray-500 text-xs mt-1">Pay via Paytm / PhonePe / Google Pay / UPI</p>
                 </div>
@@ -2168,7 +2186,7 @@ const HomePage = () => {
                     <img src="https://customer-assets.emergentagent.com/job_b700bab2-c38d-4ea1-a31b-e9f9d5c6fcd7/artifacts/c9hd4gjy_5423.jpg" alt="Paytm QR Code - ₹2999" className="w-56 h-auto mx-auto object-contain" />
                   </div>
                   <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-3">
-                    <p className="text-amber-300 font-bold text-xl">₹2,999</p>
+                    <p className="text-amber-300 font-bold text-xl">₹{servicePrice.toLocaleString()}</p>
                     <p className="text-amber-200 text-sm">Pay to: ASR Enterprises</p>
                   </div>
                   <div className="text-left bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
@@ -2176,7 +2194,7 @@ const HomePage = () => {
                     <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
                       <li>Open Paytm/PhonePe/GPay</li>
                       <li>Scan the QR code above</li>
-                      <li>Pay ₹2,999</li>
+                      <li>Pay ₹{servicePrice.toLocaleString()}</li>
                       <li>Note down the Transaction ID/UTR</li>
                       <li>Enter below to confirm booking</li>
                     </ol>

@@ -406,6 +406,166 @@ const ServicePriceConfig = memo(() => {
   );
 });
 
+// Bookings Manager Component - Mobile Friendly
+const BookingsManager = memo(() => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchBookings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/service/bookings`);
+      setBookings(res.data?.bookings || []);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchBookings(); }, [fetchBookings]);
+
+  const updateBookingStatus = async (id, status, paymentStatus) => {
+    try {
+      await axios.put(`${API}/service/bookings/${id}/status`, {
+        status: status,
+        payment_status: paymentStatus
+      });
+      fetchBookings();
+    } catch (err) { alert("Error updating booking"); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <CreditCard className="w-6 h-6" />
+              Solar Service Bookings
+            </h2>
+            <p className="text-amber-100 text-sm mt-1">{bookings.length} total bookings</p>
+          </div>
+          <button 
+            onClick={fetchBookings} 
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Bookings List */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+        </div>
+      ) : bookings.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-8 text-center">
+          <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-gray-700 mb-2">No Bookings Yet</h3>
+          <p className="text-gray-500 text-sm">Bookings from the Book Solar Service widget will appear here</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Booking</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Customer</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Amount</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Transaction ID</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((b) => (
+                  <tr key={b.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-[#0a355e]">{b.booking_number}</div>
+                      <div className="text-xs text-gray-500">{new Date(b.created_at).toLocaleDateString()}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{b.customer_name}</div>
+                      <div className="text-xs text-gray-500">{b.customer_phone}</div>
+                    </td>
+                    <td className="px-4 py-3 font-bold text-green-600">₹{b.amount}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{b.transaction_id || '-'}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        b.payment_status === 'verified' ? 'bg-green-100 text-green-700' :
+                        b.payment_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {b.payment_status === 'pending_verification' ? 'Pending' : b.payment_status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => updateBookingStatus(b.id, 'confirmed', 'verified')}
+                          className="px-2 py-1 bg-green-100 text-green-600 rounded text-xs hover:bg-green-200"
+                        >✓ Verify</button>
+                        <button
+                          onClick={() => updateBookingStatus(b.id, 'cancelled', 'rejected')}
+                          className="px-2 py-1 bg-red-100 text-red-600 rounded text-xs hover:bg-red-200"
+                        >✗ Reject</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {bookings.map((b) => (
+              <div key={b.id} className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="font-bold text-[#0a355e]">{b.booking_number}</div>
+                    <div className="text-xs text-gray-500">{new Date(b.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    b.payment_status === 'verified' ? 'bg-green-100 text-green-700' :
+                    b.payment_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>
+                    {b.payment_status === 'pending_verification' ? 'Pending' : b.payment_status}
+                  </span>
+                </div>
+                <div className="text-sm mb-2">
+                  <p><strong>{b.customer_name}</strong></p>
+                  <p className="text-gray-500">{b.customer_phone}</p>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-lg font-bold text-green-600">₹{b.amount}</span>
+                  <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{b.transaction_id || '-'}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => updateBookingStatus(b.id, 'confirmed', 'verified')}
+                    className="flex-1 px-3 py-2 bg-green-100 text-green-600 rounded text-sm font-medium hover:bg-green-200"
+                  >✓ Verify</button>
+                  <button
+                    onClick={() => updateBookingStatus(b.id, 'cancelled', 'rejected')}
+                    className="flex-1 px-3 py-2 bg-red-100 text-red-600 rounded text-sm font-medium hover:bg-red-200"
+                  >✗ Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 // Backups Tab Component
 const BackupsTab = memo(() => {
   const [backups, setBackups] = useState([]);
@@ -1478,10 +1638,10 @@ export const CRMDashboard = () => {
               { id: "new_leads", label: "🆕 New", icon: <Inbox className="w-4 h-4" />, badge: newLeadsCount },
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
-              { id: "social", label: "Social Media", icon: <Activity className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
+              { id: "bookings", label: "Bookings", icon: <Calendar className="w-4 h-4" /> },
               { id: "backups", label: "Backups", icon: <Shield className="w-4 h-4" /> },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> },
               { id: "messages", label: "Messages", icon: <MessageCircle className="w-4 h-4" /> }
@@ -1973,49 +2133,50 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* 🆕 New Leads Tab - Priority Inbox for Fresh Inquiries */}
+        {/* 🆕 New Leads Tab - Priority Inbox for Fresh WhatsApp Inquiries */}
         {activeTab === "new_leads" && (
           <div className="space-y-4">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-              <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Header - Mobile Friendly */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl p-4 sm:p-6 text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <Inbox className="w-7 h-7" />
-                    New Leads Inbox
+                  <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                    <Inbox className="w-6 h-6 sm:w-7 sm:h-7" />
+                    New WhatsApp Inquiries
                   </h2>
-                  <p className="text-green-100 mt-1">
-                    {newLeadsCount} fresh inquiries waiting for your response
+                  <p className="text-green-100 mt-1 text-sm">
+                    {newLeadsCount} fresh messages waiting for your response
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                {/* Action Buttons - Always visible on mobile */}
+                <div className="flex flex-wrap items-center gap-2">
                   {selectedLeadIds.length > 0 && (
                     <>
                       <button 
                         onClick={bulkMarkContacted}
-                        className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                        className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition"
                         data-testid="bulk-mark-contacted-btn"
                       >
                         <CheckCircle className="w-4 h-4" />
-                        Mark {selectedLeadIds.length} Contacted
+                        <span className="hidden xs:inline">Mark</span> ({selectedLeadIds.length})
                       </button>
                       <button 
                         onClick={() => setShowBulkAssignModal(true)}
-                        className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                        className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition"
                         data-testid="bulk-assign-new-btn"
                       >
                         <Users className="w-4 h-4" />
-                        Assign Selected
+                        <span className="hidden xs:inline">Assign</span> ({selectedLeadIds.length})
                       </button>
                     </>
                   )}
                   <button 
                     onClick={fetchNewLeads}
-                    className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition"
+                    className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition"
                     data-testid="refresh-new-leads-btn"
                   >
                     <RefreshCw className={`w-4 h-4 ${leadsLoading ? 'animate-spin' : ''}`} />
-                    Refresh
+                    <span className="hidden sm:inline">Refresh</span>
                   </button>
                 </div>
               </div>
@@ -2027,15 +2188,15 @@ export const CRMDashboard = () => {
                 <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
               </div>
             ) : leads.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-12 text-center">
-                <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-700 mb-2">All Caught Up!</h3>
-                <p className="text-gray-500">No new leads waiting. Great job staying on top of inquiries!</p>
+              <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-8 sm:p-12 text-center">
+                <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-green-400 mx-auto mb-4" />
+                <h3 className="text-lg sm:text-xl font-bold text-gray-700 mb-2">All Caught Up!</h3>
+                <p className="text-gray-500 text-sm sm:text-base">No new WhatsApp inquiries. Great job staying on top!</p>
               </div>
             ) : (
               <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
-                {/* Select All */}
-                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+                {/* Select All Header */}
+                <div className="bg-gray-50 border-b border-gray-200 px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -2049,27 +2210,107 @@ export const CRMDashboard = () => {
                       }}
                       className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
                     />
-                    <span className="text-sm font-medium text-gray-600">
+                    <span className="text-xs sm:text-sm font-medium text-gray-600">
                       Select All ({leads.length})
                     </span>
                   </label>
-                  <span className="text-sm text-gray-500">
-                    Click on a lead to view details & take action
-                  </span>
                 </div>
                 
-                {/* Leads Grid - Mobile Responsive */}
-                <div className="divide-y divide-gray-100">
+                {/* Leads Table - Desktop */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left w-10"></th>
+                        <th className="px-4 py-3 text-left">Lead</th>
+                        <th className="px-4 py-3 text-left">Contact</th>
+                        <th className="px-4 py-3 text-left">Location</th>
+                        <th className="px-4 py-3 text-left">Source</th>
+                        <th className="px-4 py-3 text-left">Stage</th>
+                        <th className="px-4 py-3 text-left">Date</th>
+                        <th className="px-4 py-3 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {leads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-green-50/50 cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedLeadIds.includes(lead.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedLeadIds([...selectedLeadIds, lead.id]);
+                                } else {
+                                  setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
+                                }
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-green-600"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded">NEW</span>
+                              <span className="font-medium text-gray-900">{lead.name || 'Unknown'}</span>
+                              {lead.ai_priority === 'high' && <span className="text-xs">🔥</span>}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm">{lead.phone}</div>
+                            {lead.email && <div className="text-xs text-gray-400">{lead.email}</div>}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{lead.district || '-'}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full capitalize">
+                              {lead.source || 'whatsapp'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              lead.stage === 'new' ? 'bg-blue-100 text-blue-700' :
+                              lead.stage === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {lead.stage || 'new'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {lead.timestamp ? new Date(lead.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+                          </td>
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => markLeadContacted(lead.id)}
+                                className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium"
+                              >
+                                Mark Done
+                              </button>
+                              <a
+                                href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Leads Cards - Mobile */}
+                <div className="md:hidden divide-y divide-gray-100">
                   {leads.map((lead) => (
                     <div 
                       key={lead.id} 
-                      className="p-3 sm:p-4 hover:bg-green-50/50 transition cursor-pointer"
+                      className="p-3 hover:bg-green-50/50 transition cursor-pointer"
                       onClick={() => setSelectedLead(lead)}
                       data-testid={`new-lead-${lead.id}`}
                     >
-                      {/* Mobile Layout: Stack vertically */}
-                      <div className="flex items-start gap-2 sm:gap-4">
-                        {/* Checkbox */}
+                      <div className="flex items-start gap-2">
                         <input
                           type="checkbox"
                           checked={selectedLeadIds.includes(lead.id)}
@@ -2081,61 +2322,34 @@ export const CRMDashboard = () => {
                               setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
                             }
                           }}
-                          className="w-4 h-4 mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500 flex-shrink-0"
+                          className="w-4 h-4 mt-1 rounded border-gray-300 text-green-600 flex-shrink-0"
                         />
-                        
-                        {/* Lead Content */}
                         <div className="flex-1 min-w-0">
-                          {/* Top Row: Name, Badge, Source */}
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-500 text-white">
-                              NEW
-                            </span>
-                            <h4 className="font-semibold text-gray-900 truncate text-sm sm:text-base">{lead.name || 'Unknown'}</h4>
-                            {lead.ai_priority === 'high' && (
-                              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">🔥</span>
-                            )}
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            <span className="px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded">NEW</span>
+                            <span className="font-semibold text-gray-900 text-sm truncate">{lead.name || 'Unknown'}</span>
+                            {lead.ai_priority === 'high' && <span className="text-xs">🔥</span>}
                           </div>
-                          
-                          {/* Middle Row: Phone & Location */}
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-2">
-                            <span className="flex items-center gap-1">
-                              <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                              {lead.phone}
-                            </span>
-                            {lead.district && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                {lead.district}
-                              </span>
-                            )}
-                            <span className="text-gray-400 text-xs">
-                              {lead.timestamp ? new Date(lead.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
-                            </span>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-2">
+                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</span>
+                            {lead.district && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{lead.district}</span>}
+                            <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded capitalize">{lead.source || 'whatsapp'}</span>
                           </div>
-                          
-                          {/* Bottom Row: Actions - Responsive */}
                           <div className="flex flex-wrap gap-2">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                markLeadContacted(lead.id);
-                              }}
-                              className="bg-green-100 hover:bg-green-200 text-green-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition"
-                              data-testid={`mark-contacted-${lead.id}`}
+                              onClick={(e) => { e.stopPropagation(); markLeadContacted(lead.id); }}
+                              className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
                             >
-                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span className="hidden sm:inline">Mark</span> Contacted
+                              <CheckCircle className="w-3 h-3" /> Mark Done
                             </button>
                             <a
-                              href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}?text=Hi ${lead.name}, this is ASR Enterprises...`}
+                              href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="bg-green-500 hover:bg-green-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition"
+                              className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
                             >
-                              <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-                              WhatsApp
+                              <MessageSquare className="w-3 h-3" /> WhatsApp
                             </a>
                           </div>
                         </div>
@@ -2330,6 +2544,11 @@ export const CRMDashboard = () => {
         {/* Service Price Config Tab */}
         {activeTab === "service_config" && (
           <ServicePriceConfig />
+        )}
+
+        {/* Bookings Tab */}
+        {activeTab === "bookings" && (
+          <BookingsManager />
         )}
 
         {/* Credentials Management Tab */}

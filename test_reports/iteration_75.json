@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 75 - ASR Solar CRM Multiple Fixes Testing. All backend APIs working correctly. Frontend features verified: Book Service widget with dynamic price, Bookings tab in CRM, Social Media tab removed from main tabs, Back button in Social Media Manager.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter75_fixes.py",
+    "/app/test_reports/pytest/pytest_iter75.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_iter75_fixes.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": "Admin auth via localStorage: asrAdminAuth=true, asrAdminEmail=support@asrenterprises.in",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All requested fixes verified: 1) GET /api/service/book-solar-config returns price ₹2499, 2) GET /api/crm/new-leads returns WhatsApp leads, 3) GET /api/service/bookings endpoint exists, 4) CRM Dashboard has Bookings tab (no Social Media tab in main tabs), 5) Homepage has Book Service flashing widget with dynamic price, 6) Social Media Manager has Back button and is mobile friendly.",
+  "tests_passed": {
+    "backend": [
+      "GET /api/service/book-solar-config - returns dynamic price ₹2499",
+      "GET /api/crm/new-leads - returns WhatsApp leads with full data",
+      "GET /api/crm/new-leads/count - returns count",
+      "GET /api/service/bookings - endpoint exists and returns bookings",
+      "GET /api/crm/dashboard - returns dashboard data"
+    ],
+    "frontend": [
+      "Homepage Book Service flashing widget visible with price ₹2,499",
+      "CRM Dashboard has Bookings tab",
+      "Social Media tab NOT in main CRM tabs (correctly removed)",
+      "Social Media Manager has Back button",
+      "Social Media Manager mobile responsive",
+      "CRM Dashboard mobile responsive"
+    ]
+  }
+}

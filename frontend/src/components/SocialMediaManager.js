@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3, Plus, Calendar, CheckCircle, XCircle, Clock, Settings,
   Facebook, Instagram, Image, Video, Send, RefreshCw, Trash2, Edit,
-  AlertTriangle, Link, Eye, Upload, X, FileText
+  AlertTriangle, Link, Eye, Upload, X, FileText, ArrowLeft
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
@@ -1232,6 +1233,7 @@ const GalleryTab = ({ onRefresh }) => {
 
 // Main Social Media Manager Component
 export const SocialMediaManager = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState({});
   const [settings, setSettings] = useState({});
@@ -1267,61 +1269,76 @@ export const SocialMediaManager = () => {
   ];
   
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Social Media Manager</h2>
-          <p className="text-gray-600">Manage Facebook & Instagram posts</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-3 sm:p-6">
+      {/* Mobile Header with Back Button */}
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3 flex-wrap">
+          {/* Back Button - Always visible */}
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition text-gray-700"
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+          
+          {/* Title */}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-800 truncate">Social Media Manager</h2>
+            <p className="text-gray-600 text-xs sm:text-sm hidden sm:block">Manage Facebook & Instagram posts</p>
+          </div>
+          
+          {/* Refresh Button */}
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-      
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+        
+        {/* Tabs - Mobile Scrollable */}
+        <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 -mx-1 px-1">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium whitespace-nowrap transition ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl font-medium whitespace-nowrap transition text-sm sm:text-base ${
               activeTab === tab.id
                 ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
             }`}
           >
             <tab.icon className="w-4 h-4" />
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
-      </div>
+        </div>
       
-      {/* Tab Content */}
-      <div className="min-h-[400px]">
-        {activeTab === 'dashboard' && (
-          <DashboardTab stats={stats} onRefresh={fetchData} loading={loading} />
-        )}
-        {activeTab === 'create' && (
-          <CreatePostTab settings={settings} onPostCreated={fetchData} />
-        )}
-        {activeTab === 'gallery' && (
-          <GalleryTab onRefresh={fetchData} />
-        )}
-        {activeTab === 'scheduled' && (
-          <ScheduledTab onRefresh={fetchData} />
-        )}
-        {activeTab === 'published' && (
-          <PublishedTab />
-        )}
-        {activeTab === 'settings' && (
-          <SettingsTab settings={settings} onRefresh={fetchData} />
-        )}
+        {/* Tab Content */}
+        <div className="min-h-[400px]">
+          {activeTab === 'dashboard' && (
+            <DashboardTab stats={stats} onRefresh={fetchData} loading={loading} />
+          )}
+          {activeTab === 'create' && (
+            <CreatePostTab settings={settings} onPostCreated={fetchData} />
+          )}
+          {activeTab === 'gallery' && (
+            <GalleryTab onRefresh={fetchData} />
+          )}
+          {activeTab === 'scheduled' && (
+            <ScheduledTab onRefresh={fetchData} />
+          )}
+          {activeTab === 'published' && (
+            <PublishedTab />
+          )}
+          {activeTab === 'settings' && (
+            <SettingsTab settings={settings} onRefresh={fetchData} />
+          )}
+        </div>
       </div>
     </div>
   );

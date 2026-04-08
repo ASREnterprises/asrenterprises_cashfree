@@ -99,19 +99,19 @@ class CRMEmployee(BaseModel):
 # ==================== NEW LEADS MANAGEMENT ENDPOINTS ====================
 
 @router.get("/new-leads")
-async def get_new_leads(limit: int = 50, page: int = 1, source: str = "whatsapp"):
+async def get_new_leads(limit: int = 50, page: int = 1, source: str = "all"):
     """
-    Get fresh WhatsApp inquiries with is_new=True flag.
-    Only returns leads from WhatsApp source (fresh customer inquiries).
+    Get all fresh inquiries with is_new=True flag.
+    Returns leads from all sources by default.
+    Use source=whatsapp to filter only WhatsApp leads.
     """
     skip = (page - 1) * limit
     
-    # Build query - only WhatsApp leads by default
+    # Build query
     query = {"is_new": True}
     if source == "whatsapp":
         query["source"] = {"$in": ["whatsapp", "whatsapp_direct", "whatsapp_reply", "whatsapp_button"]}
-    elif source == "all":
-        pass  # No source filter
+    # For 'all' - no source filter, show all new leads
     
     # Count total new leads
     total_count = await db.crm_leads.count_documents(query)
@@ -128,6 +128,24 @@ async def get_new_leads(limit: int = 50, page: int = 1, source: str = "whatsapp"
         "page": page,
         "per_page": limit,
         "has_more": (page * limit) < total_count
+    }
+
+
+@router.post("/leads/bulk-delete")
+async def bulk_delete_leads(request: Request):
+    """Bulk delete multiple leads"""
+    data = await request.json()
+    lead_ids = data.get("lead_ids", [])
+    
+    if not lead_ids:
+        return {"success": False, "error": "No lead IDs provided"}
+    
+    result = await db.crm_leads.delete_many({"id": {"$in": lead_ids}})
+    
+    return {
+        "success": True,
+        "deleted_count": result.deleted_count,
+        "message": f"{result.deleted_count} leads deleted"
     }
 
 
@@ -182,11 +200,12 @@ async def bulk_mark_leads_contacted(request: Request):
 
 
 @router.get("/new-leads/count")
-async def get_new_leads_count(source: str = "whatsapp"):
-    """Quick count of new WhatsApp leads for badge display"""
+async def get_new_leads_count(source: str = "all"):
+    """Quick count of new leads for badge display"""
     query = {"is_new": True}
     if source == "whatsapp":
         query["source"] = {"$in": ["whatsapp", "whatsapp_direct", "whatsapp_reply", "whatsapp_button"]}
+    # For 'all' - count all new leads regardless of source
     count = await db.crm_leads.count_documents(query)
     return {"count": count}
 

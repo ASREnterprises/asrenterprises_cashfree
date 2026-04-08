@@ -1397,7 +1397,7 @@ const HomePage = () => {
 
       {/* NEW: Zero Bill Hero Section with Before/After Visual */}
       <Suspense fallback={null}>
-        <ZeroBillHero onBookSurvey={() => setShowBookService(true)} />
+        <ZeroBillHero onBookSurvey={() => setShowBookService(true)} servicePrice={servicePrice} />
       </Suspense>
 
       {/* NEW: Dynamic ROI Widget with Visual Subsidy Breakdown */}
@@ -2034,24 +2034,6 @@ const HomePage = () => {
       <Suspense fallback={null}>
         <SmartWhatsAppButton variant="floating" />
       </Suspense>
-
-      {/* Book Solar Service - Flashing Widget */}
-      <button
-        onClick={() => setShowBookService(true)}
-        className="fixed bottom-44 right-6 z-40 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 rounded-full shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all hover:scale-105 flex items-center gap-2"
-        style={{
-          animation: 'pulse 2s infinite',
-          boxShadow: '0 0 20px rgba(245, 166, 35, 0.5), 0 0 40px rgba(245, 166, 35, 0.3)'
-        }}
-        data-testid="book-service-float-btn"
-      >
-        <Zap className="w-5 h-5" />
-        <span className="font-bold text-sm whitespace-nowrap">Book Service ₹{servicePrice.toLocaleString()}</span>
-        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-        </span>
-      </button>
 
       {/* Floating Action Buttons - Positioned above WhatsApp */}
       <div className="fixed bottom-24 right-6 z-40 flex flex-col space-y-3">

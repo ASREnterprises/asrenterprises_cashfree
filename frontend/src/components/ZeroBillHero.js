@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { Zap, ArrowRight, CheckCircle, TrendingDown, Sun, MessageSquare } from "lucide-react";
 
-export const ZeroBillHero = ({ onBookSurvey }) => {
+export const ZeroBillHero = ({ onBookSurvey, servicePrice = 2999 }) => {
   const [isHovering, setIsHovering] = useState(false);
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
+  const [showServicePulse, setShowServicePulse] = useState(true);
 
   // Before/After bill values
   const beforeBill = 5000;
@@ -43,6 +44,46 @@ Thank you!`)}`;
   return (
     <div className="bg-gradient-to-br from-[#071A2E] via-[#0B3C5D] to-[#071A2E] py-12 md:py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Book Solar Service - Flashing Banner */}
+        <div 
+          onClick={onBookSurvey}
+          className="mb-8 cursor-pointer bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 sm:p-6 shadow-2xl transform hover:scale-[1.02] transition-all duration-300 relative overflow-hidden"
+          style={{
+            boxShadow: '0 0 30px rgba(245, 166, 35, 0.4), 0 0 60px rgba(245, 166, 35, 0.2)'
+          }}
+          data-testid="book-service-hero-banner"
+        >
+          {/* Animated Background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/20 to-amber-400/0 animate-shimmer" 
+               style={{ backgroundSize: '200% 100%', animation: 'shimmer 2s infinite' }} />
+          
+          <div className="relative flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <Zap className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              </div>
+              <div className="text-center sm:text-left">
+                <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 justify-center sm:justify-start">
+                  Book Solar Service
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+                  </span>
+                </h3>
+                <p className="text-amber-100 text-sm sm:text-base">Expert installation & consultation</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-3xl sm:text-4xl font-extrabold text-white">₹{servicePrice.toLocaleString()}</div>
+                <div className="text-amber-100 text-xs sm:text-sm">Click to Book Now</div>
+              </div>
+              <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 text-white animate-pulse" />
+            </div>
+          </div>
+        </div>
+        
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Left: Text Content */}
           <div className="text-center lg:text-left">

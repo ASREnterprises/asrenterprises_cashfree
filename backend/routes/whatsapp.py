@@ -701,18 +701,27 @@ async def process_campaign_batch(campaign_id: str, template_name: str, batch_siz
             {"_id": 0}
         ).to_list(5000)
         
+        # Get template to check variable count
+        template = await db.whatsapp_templates.find_one(
+            {"$or": [{"template_name": template_name}, {"name": template_name}]},
+            {"_id": 0}
+        )
+        variable_count = template.get("variable_count", 0) if template else 0
+        
         sent = 0
         failed = 0
         
         for i, recipient in enumerate(recipients):
-            # Send message
-            lead = await db.crm_leads.find_one({"id": recipient["lead_id"]}, {"_id": 0, "name": 1})
-            variables = [lead.get("name", "Customer")] if lead else ["Customer"]
+            # Only get variables if template needs them
+            variables = None
+            if variable_count > 0:
+                lead = await db.crm_leads.find_one({"id": recipient["lead_id"]}, {"_id": 0, "name": 1})
+                variables = [lead.get("name", "Customer")] if lead else ["Customer"]
             
             result = await send_whatsapp_template(
                 phone=recipient["phone"],
                 template_name=template_name,
-                variables=variables,
+                variables=variables,  # Will be None if template has no variables
                 lead_id=recipient["lead_id"],
                 campaign_id=campaign_id
             )
@@ -740,7 +749,10 @@ async def process_campaign_batch(campaign_id: str, template_name: str, batch_siz
                 {"$set": {"total_sent": sent, "total_failed": failed}}
             )
             
-            # Batch delay
+            # Batch delay - add small delay between each message to avoid rate limiting
+            await asyncio.sleep(0.5)  # 500ms delay between messages
+            
+            # Additional delay every batch_size messages
             if (i + 1) % batch_size == 0:
                 await asyncio.sleep(batch_delay)
         
@@ -1260,6 +1272,17 @@ async def send_template_bulk(request: Request, background_tasks: BackgroundTasks
     settings = await db.whatsapp_settings.find_one({}, {"_id": 0})
     if not settings or not settings.get("access_token"):
         raise HTTPException(status_code=400, detail="WhatsApp API not configured")
+    
+    # Get template to check variable count
+    template = await db.whatsapp_templates.find_one(
+        {"$or": [{"template_name": template_name}, {"name": template_name}]},
+        {"_id": 0}
+    )
+    variable_count = template.get("variable_count", 0) if template else 0
+    
+    # Only use variables if template requires them
+    if variable_count == 0:
+        variables = None  # Don't send variables for templates without placeholders
     
     # Collect all phone numbers
     all_phones = []

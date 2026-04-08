@@ -952,6 +952,27 @@ export const CRMDashboard = () => {
     }
   };
   
+  const bulkDeleteLeads = async () => {
+    if (selectedLeadIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedLeadIds.length} leads? This action cannot be undone.`)) return;
+    
+    try {
+      const res = await axios.post(`${API}/crm/leads/bulk-delete`, { lead_ids: selectedLeadIds });
+      if (res.data.success) {
+        setSelectedLeadIds([]);
+        fetchNewLeadsCount();
+        if (activeTab === "new_leads") {
+          fetchNewLeads();
+        } else {
+          fetchLeads();
+        }
+      }
+    } catch (err) {
+      console.error("Bulk delete error:", err);
+      alert("Error deleting leads");
+    }
+  };
+  
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
@@ -2133,7 +2154,7 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* 🆕 New Leads Tab - Priority Inbox for Fresh WhatsApp Inquiries */}
+        {/* 🆕 New Leads Tab - Priority Inbox for Fresh Inquiries */}
         {activeTab === "new_leads" && (
           <div className="space-y-4">
             {/* Header - Mobile Friendly */}
@@ -2142,10 +2163,10 @@ export const CRMDashboard = () => {
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                     <Inbox className="w-6 h-6 sm:w-7 sm:h-7" />
-                    New WhatsApp Inquiries
+                    New Inquiries
                   </h2>
                   <p className="text-green-100 mt-1 text-sm">
-                    {newLeadsCount} fresh messages waiting for your response
+                    {newLeadsCount} fresh inquiries waiting for your response
                   </p>
                 </div>
                 {/* Action Buttons - Always visible on mobile */}
@@ -2167,6 +2188,14 @@ export const CRMDashboard = () => {
                       >
                         <Users className="w-4 h-4" />
                         <span className="hidden xs:inline">Assign</span> ({selectedLeadIds.length})
+                      </button>
+                      <button 
+                        onClick={bulkDeleteLeads}
+                        className="bg-red-500/80 hover:bg-red-500 text-white px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition"
+                        data-testid="bulk-delete-btn"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="hidden xs:inline">Delete</span> ({selectedLeadIds.length})
                       </button>
                     </>
                   )}
@@ -2286,10 +2315,18 @@ export const CRMDashboard = () => {
                                 Mark Done
                               </button>
                               <a
-                                href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
+                                href={`tel:+91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs"
+                                title="Call"
+                              >
+                                <Phone className="w-3 h-3" />
+                              </a>
+                              <a
+                                href={`https://wa.me/918298389097?text=Hi ${encodeURIComponent(lead.name || 'Customer')}, this is ASR Enterprises...`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs"
+                                title="WhatsApp"
                               >
                                 <MessageSquare className="w-3 h-3" />
                               </a>
@@ -2340,16 +2377,23 @@ export const CRMDashboard = () => {
                               onClick={(e) => { e.stopPropagation(); markLeadContacted(lead.id); }}
                               className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded text-xs font-medium flex items-center gap-1"
                             >
-                              <CheckCircle className="w-3 h-3" /> Mark Done
+                              <CheckCircle className="w-3 h-3" /> Done
                             </button>
                             <a
-                              href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
+                              href={`tel:+91${lead.phone?.replace(/\D/g, '').slice(-10)}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                            >
+                              <Phone className="w-3 h-3" /> Call
+                            </a>
+                            <a
+                              href={`https://wa.me/918298389097?text=Hi ${encodeURIComponent(lead.name || 'Customer')}, this is ASR Enterprises...`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
                             >
-                              <MessageSquare className="w-3 h-3" /> WhatsApp
+                              <MessageSquare className="w-3 h-3" /> WA
                             </a>
                           </div>
                         </div>

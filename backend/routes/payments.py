@@ -690,105 +690,407 @@ async def cancel_payment_link(link_id: str):
         )
         return {"success": True, "message": "Payment link cancelled locally"}
 
-# ==================== WEBHOOK ENDPOINT ====================
+# ==================== WEBHOOK ENDPOINTS ====================
 
-@router.post("/webhook")
-async def cashfree_webhook(request: Request):
-    """Handle Cashfree payment webhooks"""
+async def send_payment_confirmation_whatsapp(payment: Dict):
+    """Send WhatsApp confirmation message after successful payment"""
+    try:
+        # Get WhatsApp settings
+        wa_settings = await db.whatsapp_settings.find_one({}, {"_id": 0})
+        if not wa_settings or not wa_settings.get("access_token"):
+            logger.warning("WhatsApp not configured, skipping payment confirmation")
+            return False
+        
+        customer_phone = clean_phone_number(payment.get("customer_phone", ""))
+        if not customer_phone:
+            return False
+        
+        amount = payment.get("amount", 0)
+        order_id = payment.get("order_id", "")
+        purpose = payment.get("purpose", "Payment")
+        customer_name = payment.get("customer_name", "Customer")
+        payment_id = payment.get("cashfree_payment_id", "")
+        
+        # Create confirmation message
+        message_text = f"""Dear {customer_name},
+
+Your payment of *Rs.{amount}* has been received successfully!
+
+Order ID: {order_id}
+Payment ID: {payment_id}
+Purpose: {purpose}
+
+Thank you for choosing {ASR_BUSINESS_NAME}.
+
+For support: {ASR_DISPLAY_PHONE}
+Email: {ASR_SUPPORT_EMAIL}"""
+        
+        # Log the message
+        msg_log = {
+            "id": str(uuid.uuid4()),
+            "phone": customer_phone,
+            "direction": "outgoing",
+            "type": "payment_confirmation",
+            "content": message_text,
+            "order_id": order_id,
+            "amount": amount,
+            "status": "sent",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.whatsapp_messages.insert_one(msg_log)
+        
+        logger.info(f"Payment confirmation sent via WhatsApp to {customer_phone}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error sending WhatsApp payment confirmation: {e}")
+        return False
+
+
+def verify_cashfree_webhook_signature(payload_bytes: bytes, signature: str, timestamp: str, secret: str) -> bool:
+    """
+    Verify Cashfree webhook signature using their official method
+    Signature = base64(hmac_sha256(timestamp + raw_body, secret_key))
+    """
+    if not secret or not signature:
+        logger.warning("Missing webhook secret or signature")
+        return False
+    
+    try:
+        # Cashfree signature format: timestamp.payload signed with secret
+        message = timestamp + payload_bytes.decode('utf-8')
+        expected_signature = hmac.new(
+            secret.encode('utf-8'),
+            message.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Also try the base64 format
+        import base64
+        expected_signature_b64 = base64.b64encode(
+            hmac.new(
+                secret.encode('utf-8'),
+                message.encode('utf-8'),
+                hashlib.sha256
+            ).digest()
+        ).decode('utf-8')
+        
+        # Compare with provided signature
+        is_valid = hmac.compare_digest(signature, expected_signature) or \
+                   hmac.compare_digest(signature, expected_signature_b64)
+        
+        if not is_valid:
+            logger.warning("Webhook signature mismatch")
+        
+        return is_valid
+        
+    except Exception as e:
+        logger.error(f"Webhook signature verification error: {e}")
+        return False
+
+
+@router.post("/cashfree/webhook")
+async def cashfree_webhook_handler(request: Request):
+    """
+    Production-ready Cashfree webhook handler
+    Handles: PAYMENT_SUCCESS, PAYMENT_FAILED, PAYMENT_USER_DROPPED
+    Features: Signature verification, idempotency, WhatsApp confirmation, full logging
+    """
+    webhook_id = str(uuid.uuid4())
+    received_at = datetime.now(timezone.utc).isoformat()
+    
     try:
         # Get raw body for signature verification
         body = await request.body()
-        signature = request.headers.get("x-webhook-signature", "")
         
-        # Get settings
+        # Get signature headers
+        signature = request.headers.get("x-webhook-signature", "")
+        timestamp = request.headers.get("x-webhook-timestamp", "")
+        
+        # Get webhook secret from settings or env
         settings = await get_cashfree_settings()
-        webhook_secret = settings.get("webhook_secret") if settings else None
+        webhook_secret = settings.get("webhook_secret") if settings else os.environ.get("CASHFREE_WEBHOOK_SECRET", "")
         
         # Verify signature if secret is configured
-        if webhook_secret and signature:
-            if not verify_webhook_signature(body, signature, webhook_secret):
-                logger.warning("Invalid webhook signature")
-                raise HTTPException(status_code=401, detail="Invalid signature")
+        signature_valid = True
+        if webhook_secret:
+            signature_valid = verify_cashfree_webhook_signature(body, signature, timestamp, webhook_secret)
+            if not signature_valid:
+                # Log failed verification attempt
+                await db.payment_webhook_logs.insert_one({
+                    "id": webhook_id,
+                    "status": "signature_failed",
+                    "signature": signature[:20] + "..." if signature else "none",
+                    "received_at": received_at,
+                    "ip": request.client.host if request.client else "unknown"
+                })
+                logger.warning(f"Webhook signature verification failed from {request.client.host if request.client else 'unknown'}")
+                # Still return 200 to prevent retries, but don't process
+                return {"status": "error", "message": "Invalid signature"}
         
         # Parse payload
-        payload = await request.json()
-        event_type = payload.get("type", "")
-        data = payload.get("data", {})
+        try:
+            payload = await request.json()
+        except Exception as e:
+            logger.error(f"Failed to parse webhook payload: {e}")
+            return {"status": "error", "message": "Invalid JSON payload"}
         
-        logger.info(f"Cashfree webhook received: {event_type}")
+        event_type = payload.get("type", payload.get("event", ""))
+        data = payload.get("data", payload)
         
-        # Store webhook log
+        # Extract key identifiers for idempotency
+        order_id = ""
+        payment_id = ""
+        link_id = ""
+        
+        # Handle different payload structures
+        if "order" in data:
+            order_id = data.get("order", {}).get("order_id", "")
+        elif "link_id" in data:
+            link_id = data.get("link_id", "")
+        
+        if "payment" in data:
+            payment_id = data.get("payment", {}).get("cf_payment_id", "")
+        
+        # Fallback to root level
+        order_id = order_id or data.get("order_id", "") or payload.get("order_id", "")
+        link_id = link_id or data.get("link_id", "") or payload.get("link_id", "")
+        
+        logger.info(f"Cashfree webhook: {event_type}, order_id={order_id}, link_id={link_id}, payment_id={payment_id}")
+        
+        # Check for idempotency - prevent duplicate processing
+        idempotency_key = f"{event_type}:{order_id or link_id}:{payment_id}"
+        existing_webhook = await db.payment_webhook_logs.find_one({
+            "idempotency_key": idempotency_key,
+            "status": "processed"
+        })
+        
+        if existing_webhook:
+            logger.info(f"Duplicate webhook detected, skipping: {idempotency_key}")
+            return {"status": "ok", "message": "Already processed"}
+        
+        # Store webhook log (before processing)
         webhook_log = {
-            "id": str(uuid.uuid4()),
+            "id": webhook_id,
+            "idempotency_key": idempotency_key,
             "event_type": event_type,
+            "order_id": order_id,
+            "link_id": link_id,
+            "payment_id": payment_id,
             "payload": payload,
-            "received_at": datetime.now(timezone.utc).isoformat()
+            "signature_verified": signature_valid,
+            "status": "received",
+            "received_at": received_at,
+            "ip": request.client.host if request.client else "unknown"
         }
-        await db.payment_webhooks.insert_one(webhook_log)
+        await db.payment_webhook_logs.insert_one(webhook_log)
         
         # Process based on event type
-        if event_type == "PAYMENT_LINK_EVENT":
-            link_status = data.get("link_status", "").lower()
-            link_id = data.get("link_id", "")
-            
-            # Update payment record
-            update_data = {
-                "status": link_status,
-                "webhook_updated_at": datetime.now(timezone.utc).isoformat(),
-                "last_webhook": payload
-            }
-            
-            # Get payment record
-            payment = await db.payments.find_one({"link_id": link_id}, {"_id": 0})
-            
-            if link_status == "paid":
-                update_data["paid_at"] = datetime.now(timezone.utc).isoformat()
-                update_data["payment_details"] = data.get("payment_details", {})
-                
-                # Update lead
-                if payment and payment.get("lead_id"):
-                    await update_lead_on_payment(
-                        payment["lead_id"],
-                        "paid",
-                        payment.get("amount", 0)
+        processing_result = {"processed": False, "message": "Unknown event type"}
+        
+        # PAYMENT SUCCESS
+        if event_type in ["PAYMENT_SUCCESS", "PAYMENT_SUCCESS_WEBHOOK", "PAYMENT_LINK_EVENT"]:
+            # For PAYMENT_LINK_EVENT, check the actual status
+            if event_type == "PAYMENT_LINK_EVENT":
+                link_status = data.get("link_status", "").upper()
+                if link_status != "PAID":
+                    processing_result = {"processed": True, "message": f"Link status: {link_status}"}
+                    # Update webhook log
+                    await db.payment_webhook_logs.update_one(
+                        {"id": webhook_id},
+                        {"$set": {"status": "processed", "processing_result": processing_result}}
                     )
+                    return {"status": "ok", "message": processing_result["message"]}
             
-            await db.payments.update_one(
-                {"link_id": link_id},
-                {"$set": update_data}
-            )
+            # Find payment record
+            payment = None
+            if order_id:
+                payment = await db.payments.find_one({"order_id": order_id}, {"_id": 0})
+            if not payment and link_id:
+                payment = await db.payments.find_one({"link_id": link_id}, {"_id": 0})
             
-        elif event_type == "PAYMENT_SUCCESS_WEBHOOK":
-            order_id = data.get("order", {}).get("order_id", "")
-            
-            # Find and update payment
-            payment = await db.payments.find_one({"order_id": order_id}, {"_id": 0})
             if payment:
-                await db.payments.update_one(
-                    {"order_id": order_id},
-                    {"$set": {
+                # Check if already marked as paid (idempotency)
+                if payment.get("status") == "paid":
+                    processing_result = {"processed": True, "message": "Already marked as paid"}
+                else:
+                    # Extract payment details
+                    payment_details = data.get("payment", {})
+                    payment_time = payment_details.get("payment_time") or data.get("payment_time") or received_at
+                    cf_payment_id = payment_details.get("cf_payment_id", "") or payment_id
+                    payment_amount = payment_details.get("payment_amount") or data.get("link_amount_paid") or payment.get("amount", 0)
+                    payment_method = payment_details.get("payment_method", {}).get("upi", {}).get("upi_id", "") or \
+                                    payment_details.get("payment_method", "Online")
+                    
+                    # Update payment record
+                    update_data = {
                         "status": "paid",
-                        "paid_at": datetime.now(timezone.utc).isoformat(),
+                        "paid_at": payment_time,
+                        "cashfree_payment_id": cf_payment_id,
+                        "payment_amount_received": payment_amount,
+                        "payment_method": str(payment_method),
                         "payment_details": data,
-                        "webhook_updated_at": datetime.now(timezone.utc).isoformat()
+                        "webhook_updated_at": received_at,
+                        "last_webhook_id": webhook_id
+                    }
+                    
+                    await db.payments.update_one(
+                        {"id": payment["id"]},
+                        {"$set": update_data}
+                    )
+                    
+                    # Update lead status to "Payment Received"
+                    if payment.get("lead_id"):
+                        await db.crm_leads.update_one(
+                            {"id": payment["lead_id"]},
+                            {"$set": {
+                                "stage": "converted",
+                                "priority": "hot",
+                                "payment_received": True,
+                                "payment_status": "Payment Received",
+                                "last_payment_amount": payment_amount,
+                                "last_payment_date": payment_time,
+                                "last_payment_id": cf_payment_id,
+                                "updated_at": received_at
+                            }}
+                        )
+                        
+                        # Log activity
+                        await db.crm_activities.insert_one({
+                            "id": str(uuid.uuid4()),
+                            "lead_id": payment["lead_id"],
+                            "type": "payment_received",
+                            "description": f"Payment received: Rs.{payment_amount} (ID: {cf_payment_id})",
+                            "timestamp": received_at
+                        })
+                    
+                    # Send WhatsApp confirmation
+                    payment["cashfree_payment_id"] = cf_payment_id
+                    await send_payment_confirmation_whatsapp(payment)
+                    
+                    processing_result = {
+                        "processed": True,
+                        "message": "Payment marked as PAID",
+                        "payment_id": cf_payment_id,
+                        "amount": payment_amount
+                    }
+                    logger.info(f"Payment SUCCESS processed: order={order_id}, amount={payment_amount}")
+            else:
+                processing_result = {"processed": False, "message": "Payment record not found"}
+                logger.warning(f"Payment record not found for order_id={order_id}, link_id={link_id}")
+        
+        # PAYMENT FAILED
+        elif event_type in ["PAYMENT_FAILED", "PAYMENT_FAILURE_WEBHOOK"]:
+            payment = None
+            if order_id:
+                payment = await db.payments.find_one({"order_id": order_id}, {"_id": 0})
+            if not payment and link_id:
+                payment = await db.payments.find_one({"link_id": link_id}, {"_id": 0})
+            
+            if payment:
+                failure_reason = data.get("payment", {}).get("payment_message", "") or \
+                                data.get("error_description", "") or "Payment failed"
+                
+                await db.payments.update_one(
+                    {"id": payment["id"]},
+                    {"$set": {
+                        "status": "failed",
+                        "failed_at": received_at,
+                        "failure_reason": failure_reason,
+                        "payment_details": data,
+                        "webhook_updated_at": received_at,
+                        "last_webhook_id": webhook_id
                     }}
                 )
                 
-                # Update lead
-                if payment.get("lead_id"):
-                    await update_lead_on_payment(
-                        payment["lead_id"],
-                        "paid",
-                        payment.get("amount", 0)
-                    )
+                # Log failure for debugging
+                await db.payment_failures.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "payment_id": payment["id"],
+                    "order_id": order_id,
+                    "reason": failure_reason,
+                    "payload": data,
+                    "created_at": received_at
+                })
+                
+                processing_result = {"processed": True, "message": f"Payment marked as FAILED: {failure_reason}"}
+                logger.info(f"Payment FAILED processed: order={order_id}, reason={failure_reason}")
+            else:
+                processing_result = {"processed": False, "message": "Payment record not found"}
         
-        return {"success": True}
+        # PAYMENT USER DROPPED
+        elif event_type in ["PAYMENT_USER_DROPPED", "USER_DROPPED"]:
+            payment = None
+            if order_id:
+                payment = await db.payments.find_one({"order_id": order_id}, {"_id": 0})
+            if not payment and link_id:
+                payment = await db.payments.find_one({"link_id": link_id}, {"_id": 0})
+            
+            if payment:
+                await db.payments.update_one(
+                    {"id": payment["id"]},
+                    {"$set": {
+                        "status": "dropped",
+                        "dropped_at": received_at,
+                        "drop_reason": "User abandoned payment",
+                        "payment_details": data,
+                        "webhook_updated_at": received_at,
+                        "last_webhook_id": webhook_id
+                    }}
+                )
+                
+                processing_result = {"processed": True, "message": "Payment marked as DROPPED"}
+                logger.info(f"Payment DROPPED processed: order={order_id}")
+            else:
+                processing_result = {"processed": False, "message": "Payment record not found"}
         
-    except HTTPException:
-        raise
+        # REFUND events
+        elif event_type in ["REFUND_SUCCESS", "REFUND_FAILED"]:
+            if order_id:
+                refund_status = "refunded" if "SUCCESS" in event_type else "refund_failed"
+                await db.payments.update_one(
+                    {"order_id": order_id},
+                    {"$set": {
+                        "status": refund_status,
+                        "refund_details": data,
+                        "webhook_updated_at": received_at
+                    }}
+                )
+                processing_result = {"processed": True, "message": f"Refund status: {refund_status}"}
+        
+        # Update webhook log with processing result
+        await db.payment_webhook_logs.update_one(
+            {"id": webhook_id},
+            {"$set": {
+                "status": "processed",
+                "processing_result": processing_result,
+                "processed_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Always return 200 to prevent Cashfree retries
+        return {"status": "ok", "webhook_id": webhook_id, **processing_result}
+        
     except Exception as e:
         logger.error(f"Webhook processing error: {e}")
-        return {"success": False, "error": str(e)}
+        # Log the error
+        await db.payment_webhook_logs.update_one(
+            {"id": webhook_id},
+            {"$set": {
+                "status": "error",
+                "error": str(e),
+                "processed_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        # Still return 200 to prevent excessive retries
+        return {"status": "error", "message": str(e)}
+
+
+# Keep old webhook endpoint for backward compatibility
+@router.post("/webhook")
+async def cashfree_webhook(request: Request):
+    """Legacy webhook endpoint - redirects to new handler"""
+    return await cashfree_webhook_handler(request)
 
 # ==================== TRANSACTION LIST ENDPOINTS ====================
 

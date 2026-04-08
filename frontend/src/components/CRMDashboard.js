@@ -19,6 +19,531 @@ import { PaymentsDashboard } from "@/components/PaymentsDashboard";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+// ==================== LEAD MANAGEMENT SECTION ====================
+const LeadManagementSection = memo(({ 
+  leads, trashedLeads, leadsLoading, filterStage, setFilterStage, 
+  leadsSearch, setLeadsSearch, fetchLeads, fetchTrashedLeads,
+  autoSyncEnabled, setAutoSyncEnabled, selectedLeadIds, setSelectedLeadIds,
+  currentPage, totalPages, staffAccounts, deleteLeads, restoreLeads,
+  permanentlyDeleteLeads, handleBulkAssign, setSelectedLead, PIPELINE_STAGES
+}) => {
+  const [subTab, setSubTab] = useState("all_leads");
+  
+  useEffect(() => {
+    if (subTab === "all_leads") fetchLeads();
+    if (subTab === "trash") fetchTrashedLeads();
+  }, [subTab, fetchLeads, fetchTrashedLeads]);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <ClipboardList className="w-6 h-6 sm:w-7 sm:h-7" />
+              Lead Management
+            </h2>
+            <p className="text-blue-100 mt-1 text-sm">
+              Manage all leads, move to trash, or restore deleted leads
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSubTab("all_leads")}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                subTab === "all_leads" ? "bg-white text-blue-600" : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              All Leads ({leads.length})
+            </button>
+            <button
+              onClick={() => setSubTab("trash")}
+              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                subTab === "trash" ? "bg-white text-gray-700" : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <Trash2 className="w-4 h-4" />
+              Trash ({trashedLeads.length})
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* All Leads SubTab */}
+      {subTab === "all_leads" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center space-x-3">
+              <select value={filterStage} onChange={(e) => { setFilterStage(e.target.value); fetchLeads(1, leadsSearch); }} className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg">
+                <option value="">All Stages</option>
+                {PIPELINE_STAGES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
+              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search name/phone..."
+                  value={leadsSearch}
+                  onChange={(e) => setLeadsSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchLeads(1, leadsSearch)}
+                  className="bg-gray-50 border border-gray-300 text-[#0a355e] px-4 py-2 rounded-lg pl-9 w-48"
+                />
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              </div>
+              <button onClick={() => fetchLeads(1, leadsSearch)} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200" title="Refresh leads">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setAutoSyncEnabled(!autoSyncEnabled)} 
+                className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition ${autoSyncEnabled ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}
+                title={autoSyncEnabled ? 'Auto-sync ON (every 30s)' : 'Auto-sync OFF'}
+              >
+                <RefreshCw className={`w-4 h-4 ${autoSyncEnabled ? 'animate-spin' : ''}`} style={autoSyncEnabled ? { animationDuration: '3s' } : {}} />
+                <span className="hidden sm:inline">{autoSyncEnabled ? 'Sync ON' : 'Sync OFF'}</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* Leads count indicator */}
+          <div className="text-sm text-gray-600">
+            Showing {leads.length} leads • Page {currentPage} of {totalPages}
+          </div>
+          
+          {/* Lead cards would go here - using parent's leads rendering */}
+          {leadsLoading ? (
+            <div className="flex justify-center py-12">
+              <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+          ) : leads.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg border border-sky-200 p-12 text-center">
+              <ClipboardList className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-700 mb-2">No Leads Found</h3>
+              <p className="text-gray-500">No leads match your current filters</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg border border-sky-200 overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {leads.map((lead) => (
+                  <div key={lead.id} className="p-4 hover:bg-gray-50 transition cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                          {(lead.name || 'U')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800">{lead.name || 'Unknown'}</p>
+                          <p className="text-sm text-gray-500">{lead.phone}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          lead.stage === 'converted' ? 'bg-green-100 text-green-700' :
+                          lead.stage === 'new' ? 'bg-blue-100 text-blue-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {lead.stage}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteLeads([lead.id]); }}
+                          className="p-1 text-gray-400 hover:text-red-500"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Trash SubTab */}
+      {subTab === "trash" && (
+        <div className="space-y-4">
+          <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 text-sm text-gray-600">
+            <AlertCircle className="w-4 h-4 inline mr-2" />
+            Deleted leads are kept for 30 days before permanent removal. You can restore them anytime.
+          </div>
+          
+          {trashedLeads.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
+              <Trash2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-700 mb-2">Trash is Empty</h3>
+              <p className="text-gray-500">No deleted leads</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-600">{trashedLeads.length} deleted leads</span>
+                <button onClick={fetchTrashedLeads} className="text-gray-500 hover:text-gray-700">
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {trashedLeads.map((lead) => (
+                  <div key={lead.id} className="p-4 flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold">
+                        {(lead.name || 'U')[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">{lead.name || 'Unknown'}</p>
+                        <p className="text-sm text-gray-500">{lead.phone}</p>
+                        <p className="text-xs text-gray-400">Deleted: {new Date(lead.deleted_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => restoreLeads([lead.id])}
+                        className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Permanently delete this lead? This cannot be undone.')) {
+                            permanentlyDeleteLeads([lead.id]);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200"
+                      >
+                        Delete Forever
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ==================== HR MANAGEMENT SECTION ====================
+const HRManagementSection = memo(({ 
+  staffAccounts, tasks, tasksLoading, fetchStaff, fetchTasks, 
+  handleCreateStaff, handleDeleteStaff, ownerInfo
+}) => {
+  const [subTab, setSubTab] = useState("team");
+  const [showAddStaff, setShowAddStaff] = useState(false);
+  const [newStaff, setNewStaff] = useState({ name: '', phone: '', staff_id: '', email: '', password: '', designation: 'Sales Executive' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+  
+  const createTask = async () => {
+    if (!taskForm.title) return alert("Task title required");
+    try {
+      await axios.post(`${API}/crm/tasks`, taskForm);
+      fetchTasks();
+      setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+    } catch (err) { alert("Error creating task"); }
+  };
+
+  const updateTaskStatus = async (taskId, status) => {
+    try {
+      await axios.patch(`${API}/crm/tasks/${taskId}`, { status });
+      fetchTasks();
+    } catch (err) { alert("Error updating task"); }
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!window.confirm('Delete this task?')) return;
+    try {
+      await axios.delete(`${API}/crm/tasks/${taskId}`);
+      fetchTasks();
+    } catch (err) { alert("Error deleting task"); }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <Users className="w-6 h-6 sm:w-7 sm:h-7" />
+              HR Management
+            </h2>
+            <p className="text-purple-100 mt-1 text-sm">
+              Manage team members and assign tasks
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSubTab("team")}
+              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                subTab === "team" ? "bg-white text-purple-600" : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Team ({staffAccounts.length})
+            </button>
+            <button
+              onClick={() => setSubTab("tasks")}
+              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                subTab === "tasks" ? "bg-white text-purple-600" : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <ListTodo className="w-4 h-4" />
+              Tasks ({tasks.length})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Team SubTab */}
+      {subTab === "team" && (
+        <div className="space-y-4">
+          {/* Owner Card */}
+          {ownerInfo && (
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                    {ownerInfo.name ? ownerInfo.name[0].toUpperCase() : 'O'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-800 text-lg">{ownerInfo.name}</h3>
+                      <span className="px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded">OWNER</span>
+                    </div>
+                    <p className="text-gray-600 text-sm">{ownerInfo.designation || 'Owner & MD'}</p>
+                    <p className="text-gray-500 text-xs">{ownerInfo.email}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">PROTECTED</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Staff Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowAddStaff(!showAddStaff)}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <Plus className="w-4 h-4" />
+              Add Staff
+            </button>
+          </div>
+
+          {/* Add Staff Form */}
+          {showAddStaff && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+              <h4 className="font-semibold text-gray-800">Add New Staff Member</h4>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <input type="text" placeholder="Full Name *" value={newStaff.name} onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+                <input type="tel" placeholder="Phone *" value={newStaff.phone} onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+                <input type="text" placeholder="Staff ID (e.g., ASR1002)" value={newStaff.staff_id} onChange={(e) => setNewStaff({...newStaff, staff_id: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+                <input type="email" placeholder="Email" value={newStaff.email} onChange={(e) => setNewStaff({...newStaff, email: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+                <input type="password" placeholder="Password" value={newStaff.password} onChange={(e) => setNewStaff({...newStaff, password: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+                <select value={newStaff.designation} onChange={(e) => setNewStaff({...newStaff, designation: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2">
+                  <option>Sales Executive</option>
+                  <option>Site Engineer</option>
+                  <option>Technician</option>
+                  <option>Manager</option>
+                </select>
+              </div>
+              <button onClick={() => { handleCreateStaff(newStaff); setShowAddStaff(false); setNewStaff({ name: '', phone: '', staff_id: '', email: '', password: '', designation: 'Sales Executive' }); }} className="px-4 py-2 bg-green-600 text-white rounded-lg">Create Staff</button>
+            </div>
+          )}
+
+          {/* Staff List */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {staffAccounts.filter(s => !s.is_owner).length === 0 ? (
+              <div className="p-12 text-center">
+                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-gray-700">No Staff Added</h3>
+                <p className="text-gray-500 text-sm">Add team members to assign leads and tasks</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {staffAccounts.filter(s => !s.is_owner).map((staff) => (
+                  <div key={staff.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold">
+                        {staff.name ? staff.name[0].toUpperCase() : 'S'}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">{staff.name}</p>
+                        <p className="text-sm text-gray-500">{staff.staff_id} • {staff.designation || 'Staff'}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => handleDeleteStaff(staff.staff_id)} className="text-red-500 hover:text-red-700">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tasks SubTab */}
+      {subTab === "tasks" && (
+        <div className="space-y-4">
+          {/* Create Task Form */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+            <h4 className="font-semibold text-gray-800">Create New Task</h4>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <input type="text" placeholder="Task Title *" value={taskForm.title} onChange={(e) => setTaskForm({...taskForm, title: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+              <select value={taskForm.assigned_to} onChange={(e) => setTaskForm({...taskForm, assigned_to: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2">
+                <option value="">Assign To (Optional)</option>
+                {staffAccounts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <select value={taskForm.priority} onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2">
+                <option value="low">Low Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="high">High Priority</option>
+              </select>
+              <input type="date" value={taskForm.due_date} onChange={(e) => setTaskForm({...taskForm, due_date: e.target.value})} className="border border-gray-300 rounded-lg px-4 py-2" />
+            </div>
+            <textarea placeholder="Description" value={taskForm.description} onChange={(e) => setTaskForm({...taskForm, description: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2" rows={2} />
+            <button onClick={createTask} className="px-4 py-2 bg-purple-600 text-white rounded-lg">Create Task</button>
+          </div>
+
+          {/* Tasks List */}
+          {tasksLoading ? (
+            <div className="flex justify-center py-12"><RefreshCw className="w-8 h-8 text-purple-500 animate-spin" /></div>
+          ) : tasks.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <ListTodo className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-700">No Tasks</h3>
+              <p className="text-gray-500 text-sm">Create tasks to track team activities</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {tasks.map((task) => (
+                  <div key={task.id} className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className={`font-semibold ${task.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>{task.title}</h4>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            task.priority === 'high' ? 'bg-red-100 text-red-700' :
+                            task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>{task.priority}</span>
+                        </div>
+                        {task.description && <p className="text-sm text-gray-500 mt-1">{task.description}</p>}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                          {task.due_date && <span>Due: {new Date(task.due_date).toLocaleDateString()}</span>}
+                          {task.assigned_to_name && <span>Assigned to: {task.assigned_to_name}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select value={task.status} onChange={(e) => updateTaskStatus(task.id, e.target.value)} className="text-xs border border-gray-300 rounded px-2 py-1">
+                          <option value="pending">Pending</option>
+                          <option value="in_progress">In Progress</option>
+                          <option value="completed">Completed</option>
+                        </select>
+                        <button onClick={() => deleteTask(task.id)} className="text-red-500 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+});
+
+// ==================== SECURITY CENTRE SECTION ====================
+const SecurityCentreSection = memo(({ backups, fetchBackups, createBackup, downloadBackup, backupsLoading }) => {
+  const [subTab, setSubTab] = useState("backups");
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-red-600 to-rose-600 rounded-xl p-4 sm:p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <Shield className="w-6 h-6 sm:w-7 sm:h-7" />
+              Security Centre
+            </h2>
+            <p className="text-red-100 mt-1 text-sm">
+              Manage backups and security settings
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSubTab("backups")}
+              className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 ${
+                subTab === "backups" ? "bg-white text-red-600" : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <Download className="w-4 h-4" />
+              Backups
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Backups SubTab */}
+      {subTab === "backups" && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-800">Database Backups</h3>
+            <div className="flex gap-2">
+              <button onClick={fetchBackups} className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200">
+                <RefreshCw className={`w-4 h-4 ${backupsLoading ? 'animate-spin' : ''}`} />
+              </button>
+              <button onClick={createBackup} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Create Backup
+              </button>
+            </div>
+          </div>
+
+          {backups.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-700">No Backups Yet</h3>
+              <p className="text-gray-500 text-sm">Create your first backup to secure your data</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {backups.map((backup) => (
+                  <div key={backup.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-800">{backup.filename || backup.id}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(backup.created_at).toLocaleString()} • {backup.size_mb ? `${backup.size_mb} MB` : 'Size unknown'}
+                      </p>
+                    </div>
+                    <button onClick={() => downloadBackup(backup.id)} className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 flex items-center gap-1">
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+            <strong>Note:</strong> Backups are automatically created daily. Manual backups are recommended before major changes.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
 // Memoized Testimonials Tab Component
 const TestimonialsTab = memo(() => {
   const [testimonials, setTestimonials] = useState([]);
@@ -1726,15 +2251,13 @@ export const CRMDashboard = () => {
           <div className="flex space-x-1 overflow-x-auto py-2 scrollbar-hide">
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
-              { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "lead_management", label: "Lead Management", icon: <ClipboardList className="w-4 h-4" />, isSection: true },
               { id: "cashfree_payments", label: "Cashfree Payments", icon: <Wallet className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
-              { id: "trash", label: "Trash", icon: <Trash2 className="w-4 h-4" /> },
-              { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
-              { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
+              { id: "hr_management", label: "HR Management", icon: <Users className="w-4 h-4" />, isSection: true },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
               { id: "site_settings", label: "Site Settings", icon: <Settings className="w-4 h-4" /> },
-              { id: "backups", label: "Backups", icon: <Shield className="w-4 h-4" /> },
+              { id: "security_centre", label: "Security Centre", icon: <Shield className="w-4 h-4" />, isSection: true },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> }
             ].map((tab) => (
               <button key={tab.id} onClick={() => { 
@@ -1744,6 +2267,9 @@ export const CRMDashboard = () => {
                   activeTab === tab.id 
                     ? tab.id === "whatsapp" ? "bg-green-600 text-white" 
                     : tab.id === "cashfree_payments" ? "bg-emerald-600 text-white"
+                    : tab.id === "lead_management" ? "bg-blue-600 text-white"
+                    : tab.id === "hr_management" ? "bg-purple-600 text-white"
+                    : tab.id === "security_centre" ? "bg-red-600 text-white"
                     : "bg-blue-600 text-white" 
                     : "text-gray-600 hover:bg-gray-50 border border-gray-300"
                 }`}>
@@ -1883,7 +2409,35 @@ export const CRMDashboard = () => {
           </div>
         )}
 
-        {/* Leads Tab */}
+        {/* Lead Management Tab - Combines All Leads and Trash */}
+        {activeTab === "lead_management" && (
+          <LeadManagementSection 
+            leads={leads}
+            trashedLeads={trashedLeads}
+            leadsLoading={leadsLoading}
+            filterStage={filterStage}
+            setFilterStage={setFilterStage}
+            leadsSearch={leadsSearch}
+            setLeadsSearch={setLeadsSearch}
+            fetchLeads={fetchLeads}
+            fetchTrashedLeads={fetchTrashedLeads}
+            autoSyncEnabled={autoSyncEnabled}
+            setAutoSyncEnabled={setAutoSyncEnabled}
+            selectedLeadIds={selectedLeadIds}
+            setSelectedLeadIds={setSelectedLeadIds}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            staffAccounts={staffAccounts}
+            deleteLeads={deleteLeads}
+            restoreLeads={restoreLeads}
+            permanentlyDeleteLeads={permanentlyDeleteLeads}
+            handleBulkAssign={handleBulkAssign}
+            setSelectedLead={setSelectedLead}
+            PIPELINE_STAGES={PIPELINE_STAGES}
+          />
+        )}
+
+        {/* Leads Tab - Redirects to Lead Management */}
         {activeTab === "leads" && (
           <div className="space-y-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
@@ -2696,7 +3250,48 @@ export const CRMDashboard = () => {
           <PaymentsDashboard leads={leads} />
         )}
 
-        {/* Tasks Tab */}
+        {/* HR Management Tab - Combines Tasks and Team */}
+        {activeTab === "hr_management" && (
+          <HRManagementSection
+            staffAccounts={staffAccounts}
+            tasks={tasks}
+            tasksLoading={false}
+            fetchStaff={fetchStaff}
+            fetchTasks={fetchTasks}
+            handleCreateStaff={async (staffData) => {
+              try {
+                await axios.post(`${API}/admin/staff-accounts`, staffData);
+                fetchStaff();
+              } catch (err) { alert(err.response?.data?.detail || "Error creating staff"); }
+            }}
+            handleDeleteStaff={async (staffId) => {
+              if (!window.confirm('Delete this staff member?')) return;
+              try {
+                await axios.delete(`${API}/admin/staff-accounts/${staffId}`);
+                fetchStaff();
+              } catch (err) { alert(err.response?.data?.detail || "Error deleting staff"); }
+            }}
+            ownerInfo={staffAccounts.find(s => s.is_owner)}
+          />
+        )}
+
+        {/* Security Centre Tab - Backups */}
+        {activeTab === "security_centre" && (
+          <SecurityCentreSection
+            backups={[]}
+            fetchBackups={() => {}}
+            createBackup={async () => {
+              try {
+                await axios.post(`${API}/admin/backup`);
+                alert("Backup created successfully");
+              } catch (err) { alert("Error creating backup"); }
+            }}
+            downloadBackup={() => {}}
+            backupsLoading={false}
+          />
+        )}
+
+        {/* Tasks Tab (Legacy - Redirect to HR) */}
         {activeTab === "tasks" && (
           <div className="space-y-4">
             <div className="flex justify-end">

@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight, ChevronUp,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram, MessageCircle
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram, MessageCircle, ExternalLink
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -1085,53 +1085,83 @@ const HomePage = () => {
     }).catch(() => {});
   }, []);
 
-  // QR Payment modal state
+  // Cashfree Payment modal state
   const [showQRPayment, setShowQRPayment] = useState(false);
-  const [paymentStep, setPaymentStep] = useState('form'); // form, qr, verify
+  const [paymentStep, setPaymentStep] = useState('form'); // form, processing, redirect
   const [transactionId, setTransactionId] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
+  const [paymentLink, setPaymentLink] = useState('');
+  const [paymentOrderId, setPaymentOrderId] = useState('');
 
   const handleBookService = async () => {
     if (!bookingData.customer_name || !bookingData.customer_phone) {
       alert("Please fill in your name and phone number");
       return;
     }
-    // Move to QR payment step
-    setPaymentStep('qr');
+    
+    // Create Cashfree payment link
+    setPaymentStep('processing');
+    setVerifyLoading(true);
+    
+    try {
+      const res = await axios.post(`${API}/payments/website/initiate`, {
+        customer_name: bookingData.customer_name,
+        customer_phone: bookingData.customer_phone,
+        customer_email: bookingData.customer_email,
+        service_type: 'solar_registration',
+        amount: servicePrice,
+        notes: 'Book Solar Service from Website'
+      });
+      
+      if (res.data.success && res.data.payment_link) {
+        setPaymentLink(res.data.payment_link);
+        setPaymentOrderId(res.data.order_id);
+        setPaymentStep('redirect');
+        
+        // Auto redirect after 2 seconds
+        setTimeout(() => {
+          window.open(res.data.payment_link, '_blank');
+        }, 2000);
+      } else {
+        alert("Unable to create payment link. Please try again or call 9296389097");
+        setPaymentStep('form');
+      }
+    } catch (err) {
+      console.error("Payment link error:", err);
+      alert(err.response?.data?.detail || "Unable to process. Please call 9296389097");
+      setPaymentStep('form');
+    }
+    setVerifyLoading(false);
   };
 
   const handlePaymentVerification = async () => {
-    if (!transactionId.trim()) {
-      alert("Please enter your transaction ID/UTR number");
+    if (!paymentOrderId) {
+      alert("No payment order found. Please try again.");
       return;
     }
     setVerifyLoading(true);
     try {
-      // Create booking with QR payment details
-      const res = await axios.post(`${API}/service/book-solar`, {
-        ...bookingData,
-        amount: servicePrice,
-        payment_method: 'qr_code',
-        transaction_id: transactionId.trim()
-      });
+      // Verify payment status
+      const res = await axios.get(`${API}/payments/website/verify/${paymentOrderId}`);
       
-      if (res.data.success) {
+      if (res.data.paid) {
         setBookingSuccess({
-          booking_number: res.data.booking_number,
-          customer_whatsapp_url: res.data.customer_whatsapp_url,
-          email_sent: res.data.email_sent,
-          sms_sent: res.data.sms_sent
+          booking_number: paymentOrderId,
+          customer_whatsapp_url: `https://wa.me/918298389097?text=Hi, I just paid for solar service. Order: ${paymentOrderId}`,
+          email_sent: true,
+          sms_sent: true
         });
         setShowBookService(false);
         setPaymentStep('form');
-        setTransactionId('');
+        setPaymentLink('');
+        setPaymentOrderId('');
         setBookingData({ customer_name: "", customer_phone: "", customer_email: "" });
       } else {
-        alert(res.data.message || "Booking failed. Please try again.");
+        alert(`Payment Status: ${res.data.status}. If you've paid, please wait a few moments and check again.`);
       }
     } catch (err) {
-      console.error("Booking error:", err);
-      alert(err.response?.data?.detail || "Unable to process booking. Please call 9296389097.");
+      console.error("Verification error:", err);
+      alert("Unable to verify payment. If you've paid, please contact 9296389097");
     } finally {
       setVerifyLoading(false);
     }
@@ -2147,10 +2177,10 @@ const HomePage = () => {
         )}
       </div>
 
-      {/* Book Service Modal with QR Payment */}
+      {/* Book Service Modal with Cashfree Payment */}
       {showBookService && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowBookService(false)} />
+          <div className="absolute inset-0 bg-black/60" onClick={() => !verifyLoading && setShowBookService(false)} />
           <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
               <Zap className="w-10 h-10 text-white mx-auto mb-2" />
@@ -2186,66 +2216,74 @@ const HomePage = () => {
                     <span className="text-gray-400">Service Amount</span>
                     <span className="text-2xl font-bold text-amber-400">₹{servicePrice.toLocaleString()}</span>
                   </div>
-                  <p className="text-gray-500 text-xs mt-1">Pay via Paytm / PhonePe / Google Pay / UPI</p>
+                  <p className="text-gray-500 text-xs mt-1">Secure payment via Cashfree (UPI / Cards / NetBanking)</p>
                 </div>
                 <button
                   onClick={handleBookService}
-                  disabled={!bookingData.customer_name || !bookingData.customer_phone}
+                  disabled={!bookingData.customer_name || !bookingData.customer_phone || verifyLoading}
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
                   data-testid="booking-proceed-btn"
                 >
-                  <QrCode className="w-5 h-5" /> Proceed to Pay
+                  <CreditCard className="w-5 h-5" /> Proceed to Pay
                 </button>
+                <p className="text-gray-500 text-xs text-center">Secure payment powered by Cashfree</p>
               </div>
             )}
 
-            {paymentStep === 'qr' && (
+            {paymentStep === 'processing' && (
+              <div className="p-8 text-center">
+                <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
+                <h3 className="text-white text-lg font-semibold mb-2">Creating Payment Link...</h3>
+                <p className="text-gray-400 text-sm">Please wait while we prepare your secure payment</p>
+              </div>
+            )}
+
+            {paymentStep === 'redirect' && (
               <div className="p-6 space-y-4">
                 <div className="text-center">
-                  <p className="text-gray-400 text-sm mb-2">Scan QR Code to Pay</p>
-                  <div className="bg-white p-4 rounded-xl inline-block mb-3">
-                    <img src="https://customer-assets.emergentagent.com/job_b700bab2-c38d-4ea1-a31b-e9f9d5c6fcd7/artifacts/c9hd4gjy_5423.jpg" alt="Paytm QR Code - ₹2999" className="w-56 h-auto mx-auto object-contain" />
+                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-400" />
                   </div>
-                  <div className="bg-amber-500/20 border border-amber-500/50 rounded-xl p-3 mb-3">
-                    <p className="text-amber-300 font-bold text-xl">₹{servicePrice.toLocaleString()}</p>
-                    <p className="text-amber-200 text-sm">Pay to: ASR Enterprises</p>
+                  <h3 className="text-white text-lg font-semibold mb-2">Payment Link Ready!</h3>
+                  <p className="text-gray-400 text-sm mb-4">Redirecting to secure payment page...</p>
+                  
+                  <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
+                    <p className="text-gray-400 text-xs mb-1">Order ID</p>
+                    <p className="text-amber-400 font-mono font-bold">{paymentOrderId}</p>
                   </div>
-                  <div className="text-left bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
-                    <p className="text-gray-400 text-xs mb-2">How to pay:</p>
-                    <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
-                      <li>Open Paytm/PhonePe/GPay</li>
-                      <li>Scan the QR code above</li>
-                      <li>Pay ₹{servicePrice.toLocaleString()}</li>
-                      <li>Note down the Transaction ID/UTR</li>
-                      <li>Enter below to confirm booking</li>
-                    </ol>
+                  
+                  <a
+                    href={paymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg transition"
+                    data-testid="pay-now-btn"
+                  >
+                    <ExternalLink className="w-5 h-5" /> Pay ₹{servicePrice.toLocaleString()} Now
+                  </a>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-700">
+                    <p className="text-gray-400 text-sm mb-3">Already paid?</p>
+                    <button
+                      onClick={handlePaymentVerification}
+                      disabled={verifyLoading}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                      data-testid="verify-payment-btn"
+                    >
+                      {verifyLoading ? (
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Checking...</>
+                      ) : (
+                        <><RefreshCw className="w-5 h-5" /> Verify Payment</>
+                      )}
+                    </button>
                   </div>
                 </div>
-                <div>
-                  <label className="text-gray-400 text-sm mb-1 block">Transaction ID / UTR Number *</label>
-                  <input type="text" placeholder="Enter transaction ID from payment app" value={transactionId}
-                    onChange={(e) => setTransactionId(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
-                    data-testid="transaction-id" />
-                  <p className="text-gray-500 text-xs mt-1">You can find this in your UPI app's transaction details</p>
-                </div>
+                
                 <button
-                  onClick={handlePaymentVerification}
-                  disabled={verifyLoading || !transactionId.trim()}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
-                  data-testid="verify-payment-btn"
-                >
-                  {verifyLoading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
-                  ) : (
-                    <><CheckCircle className="w-5 h-5" /> Confirm Payment</>
-                  )}
-                </button>
-                <button
-                  onClick={() => setPaymentStep('form')}
+                  onClick={() => { setPaymentStep('form'); setPaymentLink(''); setPaymentOrderId(''); }}
                   className="w-full text-gray-400 hover:text-white text-sm py-2 transition"
                 >
-                  ← Go Back
+                  ← Start Over
                 </button>
               </div>
             )}

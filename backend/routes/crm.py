@@ -825,3 +825,339 @@ async def get_leaderboard():
         entry["rank"] = i + 1
     
     return {"leaderboard": leaderboard}
+
+
+
+# ==================== ADVANCED LEADS MANAGEMENT ENDPOINTS ====================
+
+@router.get("/leads/advanced")
+async def get_leads_advanced(
+    page: int = 1,
+    limit: int = 50,
+    search: str = None,
+    source: str = None,
+    stage: str = None,
+    priority: str = None,
+    assigned_to: str = None,
+    district: str = None,
+    property_type: str = None,
+    quick_filter: str = None,
+    sort: str = "newest"
+):
+    """
+    Advanced leads endpoint with comprehensive filtering, sorting, and stats.
+    Supports search by name, phone, email, district, and lead ID.
+    """
+    skip = (page - 1) * limit
+    
+    # Build base query - exclude deleted
+    query = {"$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}
+    
+    # Apply filters
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$and"] = query.get("$and", [])
+        query["$and"].append({
+            "$or": [
+                {"name": search_regex},
+                {"phone": search_regex},
+                {"email": search_regex},
+                {"district": search_regex},
+                {"id": search_regex}
+            ]
+        })
+    
+    if source:
+        # Handle multiple source types for whatsapp
+        if source == "whatsapp":
+            query["source"] = {"$in": ["whatsapp", "whatsapp_direct", "whatsapp_reply", "whatsapp_button"]}
+        else:
+            query["source"] = source
+    
+    if stage:
+        query["stage"] = stage
+    
+    if priority:
+        query["priority"] = priority
+    
+    if district:
+        query["district"] = district
+    
+    if property_type:
+        query["property_type"] = property_type
+    
+    if assigned_to:
+        if assigned_to == "unassigned":
+            query["$or"] = [{"assigned_to": None}, {"assigned_to": {"$exists": False}}, {"assigned_to": ""}]
+        else:
+            query["assigned_to"] = assigned_to
+    
+    # Quick filters
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    two_days_ago = (now - timedelta(hours=48)).isoformat()
+    
+    if quick_filter == "fresh":
+        query["timestamp"] = {"$gte": two_days_ago}
+        query["is_new"] = True
+    elif quick_filter == "today":
+        query["timestamp"] = {"$gte": today_start}
+    elif quick_filter == "follow_up_due":
+        today_str = now.strftime("%Y-%m-%d")
+        query["next_follow_up"] = {"$lte": today_str}
+    elif quick_filter == "unassigned":
+        query["$or"] = [{"assigned_to": None}, {"assigned_to": {"$exists": False}}, {"assigned_to": ""}]
+    elif quick_filter == "hot_leads":
+        query["priority"] = "hot"
+    elif quick_filter == "converted":
+        query["stage"] = {"$in": ["converted", "completed"]}
+    elif quick_filter == "lost":
+        query["stage"] = "lost"
+    
+    # Sorting
+    sort_field = [("timestamp", -1)]  # Default: newest first
+    if sort == "oldest":
+        sort_field = [("timestamp", 1)]
+    elif sort == "name_asc":
+        sort_field = [("name", 1)]
+    elif sort == "name_desc":
+        sort_field = [("name", -1)]
+    elif sort == "recently_updated":
+        sort_field = [("updated_at", -1), ("timestamp", -1)]
+    
+    # Get total count and leads
+    total_count = await db.crm_leads.count_documents(query)
+    leads = await db.crm_leads.find(query, {"_id": 0}).sort(sort_field).skip(skip).limit(limit).to_list(limit)
+    
+    # Calculate stats
+    base_query = {"$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}
+    
+    stats_results = await asyncio.gather(
+        db.crm_leads.count_documents(base_query),  # total
+        db.crm_leads.count_documents({**base_query, "timestamp": {"$gte": two_days_ago}, "is_new": True}),  # fresh
+        db.crm_leads.count_documents({**base_query, "timestamp": {"$gte": today_start}}),  # today
+        db.crm_leads.count_documents({**base_query, "next_follow_up": {"$lte": now.strftime("%Y-%m-%d")}}),  # follow_up_due
+        db.crm_leads.count_documents({**base_query, "priority": "hot"}),  # hot
+        db.crm_leads.count_documents({**base_query, "stage": {"$in": ["converted", "completed"]}}),  # converted
+        db.crm_leads.count_documents({**base_query, "stage": "lost"}),  # lost
+        db.crm_leads.count_documents({**base_query, "$or": [{"assigned_to": None}, {"assigned_to": {"$exists": False}}, {"assigned_to": ""}]}),  # unassigned
+    )
+    
+    stats = {
+        "total": stats_results[0],
+        "fresh": stats_results[1],
+        "today": stats_results[2],
+        "follow_up_due": stats_results[3],
+        "hot": stats_results[4],
+        "converted": stats_results[5],
+        "lost": stats_results[6],
+        "unassigned": stats_results[7]
+    }
+    
+    return {
+        "leads": leads,
+        "pagination": {
+            "current_page": page,
+            "total_pages": (total_count + limit - 1) // limit,
+            "total_count": total_count,
+            "per_page": limit,
+            "has_next": (page * limit) < total_count,
+            "has_prev": page > 1
+        },
+        "stats": stats
+    }
+
+
+@router.get("/leads/stats")
+async def get_leads_stats():
+    """Get comprehensive lead statistics"""
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    two_days_ago = (now - timedelta(hours=48)).isoformat()
+    
+    base_query = {"$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}
+    
+    results = await asyncio.gather(
+        db.crm_leads.count_documents(base_query),
+        db.crm_leads.count_documents({**base_query, "timestamp": {"$gte": two_days_ago}, "is_new": True}),
+        db.crm_leads.count_documents({**base_query, "timestamp": {"$gte": today_start}}),
+        db.crm_leads.count_documents({**base_query, "next_follow_up": {"$lte": now.strftime("%Y-%m-%d")}}),
+        db.crm_leads.count_documents({**base_query, "priority": "hot"}),
+        db.crm_leads.count_documents({**base_query, "stage": {"$in": ["converted", "completed"]}}),
+        db.crm_leads.count_documents({**base_query, "stage": "lost"}),
+        db.crm_leads.count_documents({**base_query, "$or": [{"assigned_to": None}, {"assigned_to": {"$exists": False}}, {"assigned_to": ""}]}),
+    )
+    
+    return {
+        "total": results[0],
+        "fresh": results[1],
+        "today": results[2],
+        "follow_up_due": results[3],
+        "hot": results[4],
+        "converted": results[5],
+        "lost": results[6],
+        "unassigned": results[7]
+    }
+
+
+@router.post("/leads/bulk-assign")
+async def bulk_assign_leads(request: Request):
+    """Bulk assign leads to a staff member"""
+    data = await request.json()
+    lead_ids = data.get("lead_ids", [])
+    staff_id = data.get("staff_id")
+    
+    if not lead_ids or not staff_id:
+        return {"success": False, "error": "Lead IDs and staff ID are required"}
+    
+    # Get staff details
+    staff = await db.crm_staff_accounts.find_one({"id": staff_id}, {"_id": 0})
+    staff_name = staff.get("name", "Unknown") if staff else "Unknown"
+    
+    result = await db.crm_leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$set": {
+            "assigned_to": staff_id,
+            "assigned_to_name": staff_name,
+            "assigned_date": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update staff lead count
+    if staff:
+        await db.crm_staff_accounts.update_one(
+            {"id": staff_id},
+            {"$inc": {"leads_assigned": result.modified_count}}
+        )
+    
+    return {
+        "success": True,
+        "assigned_count": result.modified_count,
+        "message": f"{result.modified_count} leads assigned to {staff_name}"
+    }
+
+
+@router.post("/leads/bulk-update")
+async def bulk_update_leads(request: Request):
+    """Bulk update leads with specified fields"""
+    data = await request.json()
+    lead_ids = data.get("lead_ids", [])
+    updates = data.get("updates", {})
+    
+    if not lead_ids or not updates:
+        return {"success": False, "error": "Lead IDs and updates are required"}
+    
+    # Add timestamp for updates
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.crm_leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$set": updates}
+    )
+    
+    return {
+        "success": True,
+        "modified_count": result.modified_count,
+        "message": f"{result.modified_count} leads updated"
+    }
+
+
+@router.post("/leads/{lead_id}/trash")
+async def trash_single_lead(lead_id: str):
+    """Soft delete a single lead"""
+    result = await db.crm_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "is_deleted": True,
+            "deleted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    return {"success": True, "message": "Lead moved to trash"}
+
+
+@router.get("/leads/{lead_id}/timeline")
+async def get_lead_timeline(lead_id: str):
+    """Get complete activity timeline for a lead"""
+    # Get lead data
+    lead = await db.crm_leads.find_one({"id": lead_id}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    activities = []
+    
+    # Add status history
+    for entry in lead.get("status_history", []):
+        activities.append({
+            "type": "status_change",
+            "title": f"Stage changed to {entry.get('stage', 'unknown')}",
+            "notes": entry.get("notes", ""),
+            "timestamp": entry.get("timestamp", "")
+        })
+    
+    # Get follow-ups
+    followups = await db.crm_followups.find({"lead_id": lead_id}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    for fu in followups:
+        activities.append({
+            "type": "followup",
+            "title": f"Follow-up: {fu.get('followup_type', 'call')}",
+            "notes": fu.get("notes", ""),
+            "status": fu.get("status", "scheduled"),
+            "timestamp": fu.get("timestamp", "")
+        })
+    
+    # Get activities
+    lead_activities = await db.crm_activities.find({"lead_id": lead_id}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    for act in lead_activities:
+        activities.append({
+            "type": act.get("activity_type", "note"),
+            "title": act.get("description", ""),
+            "notes": "",
+            "timestamp": act.get("timestamp", "")
+        })
+    
+    # Sort all by timestamp
+    activities.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    return {"lead_id": lead_id, "activities": activities[:100]}
+
+
+@router.post("/leads/check-duplicate")
+async def check_duplicate_lead(request: Request):
+    """Check for duplicate leads by phone or email"""
+    data = await request.json()
+    phone = data.get("phone", "")
+    email = data.get("email", "")
+    
+    if not phone and not email:
+        return {"duplicates": [], "is_duplicate": False}
+    
+    # Clean phone number
+    clean_phone = phone.replace("+91", "").replace(" ", "").replace("-", "")[-10:] if phone else None
+    
+    query_conditions = []
+    if clean_phone:
+        query_conditions.append({"phone": {"$regex": clean_phone}})
+    if email:
+        query_conditions.append({"email": {"$regex": email, "$options": "i"}})
+    
+    if not query_conditions:
+        return {"duplicates": [], "is_duplicate": False}
+    
+    duplicates = await db.crm_leads.find(
+        {
+            "$and": [
+                {"$or": query_conditions},
+                {"$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}
+            ]
+        },
+        {"_id": 0, "id": 1, "name": 1, "phone": 1, "email": 1, "source": 1, "stage": 1, "timestamp": 1}
+    ).limit(5).to_list(5)
+    
+    return {
+        "duplicates": duplicates,
+        "is_duplicate": len(duplicates) > 0
+    }

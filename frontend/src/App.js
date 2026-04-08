@@ -30,7 +30,7 @@ const ReviewsManagement = lazy(() => import("@/components/ReviewsManagement").th
 const FestivalsManagement = lazy(() => import("@/components/FestivalsManagement").then(m => ({ default: m.FestivalsManagement })));
 const GovtNewsManagement = lazy(() => import("@/components/GovtNewsManagement").then(m => ({ default: m.GovtNewsManagement })));
 const SecurityCenter = lazy(() => import("@/components/SecurityCenter").then(m => ({ default: m.SecurityCenter })));
-const LeadsManagement = lazy(() => import("@/components/LeadsManagement").then(m => ({ default: m.LeadsManagement })));
+const LeadsManagement = lazy(() => import("@/components/ProfessionalLeadsManagement").then(m => ({ default: m.ProfessionalLeadsManagement })));
 const AnalyticsPage = lazy(() => import("@/components/AnalyticsPage").then(m => ({ default: m.AnalyticsPage })));
 const SocialMediaIntegration = lazy(() => import("@/components/SocialMediaIntegration").then(m => ({ default: m.SocialMediaIntegration })));
 const SocialMediaManager = lazy(() => import("@/components/SocialMediaManager").then(m => ({ default: m.default })));

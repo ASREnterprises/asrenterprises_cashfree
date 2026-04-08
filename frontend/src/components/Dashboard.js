@@ -173,7 +173,7 @@ export const DashboardPage = () => {
             <p className="text-sm text-blue-100">AI-powered lead forms</p>
           </Link>
 
-          <a href="https://wa.me/919296389097" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
+          <a href="https://wa.me/918298389097" target="_blank" rel="noopener noreferrer" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1">
             <Calendar className="w-8 h-8 mb-3" />
             <h3 className="font-bold mb-1">Book Service</h3>
             <p className="text-sm text-amber-100">Schedule solar consultation</p>

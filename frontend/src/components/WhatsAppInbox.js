@@ -43,7 +43,7 @@ const StatusBadge = ({ status, direction }) => {
 };
 
 // Conversation List Item
-const ConversationItem = ({ conversation, isActive, onClick }) => {
+const ConversationItem = ({ conversation, isActive, onClick, selectionMode, isSelected, onToggleSelect }) => {
   const { phone, lead, last_message, unread_count, last_activity, within_24h_window } = conversation;
   
   const formatTime = (dateStr) => {
@@ -66,15 +66,35 @@ const ConversationItem = ({ conversation, isActive, onClick }) => {
   const displayName = lead?.name || phone;
   const preview = last_message?.content || last_message?.template_name || '';
   
+  const handleClick = () => {
+    if (selectionMode) {
+      onToggleSelect && onToggleSelect(phone);
+    } else {
+      onClick();
+    }
+  };
+  
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       data-testid={`conversation-item-${phone}`}
       className={`p-4 cursor-pointer border-b border-gray-100 hover:bg-gray-50 transition ${
         isActive ? 'bg-green-50 border-l-4 border-l-green-500' : ''
-      }`}
+      } ${isSelected ? 'bg-red-50' : ''}`}
     >
       <div className="flex items-start gap-3">
+        {/* Selection Checkbox */}
+        {selectionMode && (
+          <div className="flex items-center justify-center pt-3" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onToggleSelect && onToggleSelect(phone)}
+              className="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500"
+            />
+          </div>
+        )}
+        
         {/* Avatar */}
         <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
           lead ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-600'
@@ -344,6 +364,11 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const [deleting, setDeleting] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  
+  // Conversation bulk selection state
+  const [conversationSelectionMode, setConversationSelectionMode] = useState(false);
+  const [selectedConversations, setSelectedConversations] = useState(new Set());
+  const [deletingConversations, setDeletingConversations] = useState(false);
   
   // Media upload state
   const [showMediaUpload, setShowMediaUpload] = useState(false);
@@ -719,6 +744,51 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
     setChatThread(null);
   };
   
+  // Toggle conversation selection
+  const toggleConversationSelection = (phone) => {
+    setSelectedConversations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(phone)) {
+        newSet.delete(phone);
+      } else {
+        newSet.add(phone);
+      }
+      return newSet;
+    });
+  };
+  
+  // Select/Deselect all conversations
+  const toggleAllConversations = () => {
+    if (selectedConversations.size === filteredConversations.length) {
+      setSelectedConversations(new Set());
+    } else {
+      setSelectedConversations(new Set(filteredConversations.map(c => c.phone)));
+    }
+  };
+  
+  // Bulk delete selected conversations
+  const bulkDeleteConversations = async () => {
+    if (selectedConversations.size === 0) return;
+    
+    setDeletingConversations(true);
+    try {
+      const res = await axios.post(`${API}/api/whatsapp/conversations/bulk-delete`, {
+        phone_numbers: Array.from(selectedConversations)
+      });
+      
+      if (res.data.success) {
+        setSelectedConversations(new Set());
+        setConversationSelectionMode(false);
+        await fetchConversations();
+      }
+    } catch (err) {
+      console.error('Error deleting conversations:', err);
+      setError('Failed to delete conversations');
+    } finally {
+      setDeletingConversations(false);
+    }
+  };
+  
   const handleMobileSelectConversation = (conv) => {
     handleSelectConversation(conv);
     setShowMobileChat(true);
@@ -747,6 +817,17 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                     {unreadCount}
                   </span>
                 )}
+                {/* Bulk Delete Toggle */}
+                <button
+                  onClick={() => {
+                    setConversationSelectionMode(!conversationSelectionMode);
+                    setSelectedConversations(new Set());
+                  }}
+                  className={`p-2 rounded-full transition ${conversationSelectionMode ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'}`}
+                  title={conversationSelectionMode ? "Cancel Selection" : "Select Chats to Delete"}
+                >
+                  {conversationSelectionMode ? <X className="w-5 h-5" /> : <Trash2 className="w-5 h-5" />}
+                </button>
                 <button
                   onClick={fetchConversations}
                   className="p-2 text-white hover:bg-white/20 rounded-full transition"
@@ -756,6 +837,33 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                 </button>
               </div>
             </div>
+            
+            {/* Bulk Selection Controls */}
+            {conversationSelectionMode && (
+              <div className="mt-3 flex items-center justify-between bg-white/20 rounded-lg p-2">
+                <button
+                  onClick={toggleAllConversations}
+                  className="flex items-center gap-2 text-white text-sm"
+                >
+                  {selectedConversations.size === filteredConversations.length ? (
+                    <CheckSquare className="w-4 h-4" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                  <span>Select All ({selectedConversations.size}/{filteredConversations.length})</span>
+                </button>
+                {selectedConversations.size > 0 && (
+                  <button
+                    onClick={bulkDeleteConversations}
+                    disabled={deletingConversations}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium flex items-center gap-1"
+                  >
+                    {deletingConversations ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Delete ({selectedConversations.size})
+                  </button>
+                )}
+              </div>
+            )}
             
             {/* Search - Compact for mobile */}
             <div className="relative mt-3">
@@ -788,6 +896,9 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                   conversation={conv}
                   isActive={selectedConversation === conv.phone}
                   onClick={() => handleMobileSelectConversation(conv)}
+                  selectionMode={conversationSelectionMode}
+                  isSelected={selectedConversations.has(conv.phone)}
+                  onToggleSelect={toggleConversationSelection}
                 />
               ))
             )}

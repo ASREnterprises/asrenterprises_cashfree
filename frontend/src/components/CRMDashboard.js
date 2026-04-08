@@ -2058,94 +2058,87 @@ export const CRMDashboard = () => {
                   </span>
                 </div>
                 
-                {/* Leads Grid */}
+                {/* Leads Grid - Mobile Responsive */}
                 <div className="divide-y divide-gray-100">
                   {leads.map((lead) => (
                     <div 
                       key={lead.id} 
-                      className="p-4 hover:bg-green-50/50 transition cursor-pointer flex items-center gap-4"
+                      className="p-3 sm:p-4 hover:bg-green-50/50 transition cursor-pointer"
                       onClick={() => setSelectedLead(lead)}
                       data-testid={`new-lead-${lead.id}`}
                     >
-                      {/* Checkbox */}
-                      <input
-                        type="checkbox"
-                        checked={selectedLeadIds.includes(lead.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          if (e.target.checked) {
-                            setSelectedLeadIds([...selectedLeadIds, lead.id]);
-                          } else {
-                            setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
-                      
-                      {/* NEW Badge */}
-                      <div className="flex-shrink-0">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-500 text-white animate-pulse">
-                          🆕 NEW
-                        </span>
-                      </div>
-                      
-                      {/* Lead Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-gray-900 truncate">{lead.name}</h4>
-                          {lead.ai_priority === 'high' && (
-                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">🔥 Hot</span>
-                          )}
-                          {lead.source && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">{lead.source}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Phone className="w-3.5 h-3.5" />
-                            {lead.phone}
-                          </span>
-                          {lead.district && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5" />
-                              {lead.district}
-                            </span>
-                          )}
-                          {lead.monthly_bill && (
-                            <span className="flex items-center gap-1">
-                              <DollarSign className="w-3.5 h-3.5" />
-                              ₹{lead.monthly_bill}/mo
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Time & Actions */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400">
-                          {lead.timestamp ? new Date(lead.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                        <button
-                          onClick={(e) => {
+                      {/* Mobile Layout: Stack vertically */}
+                      <div className="flex items-start gap-2 sm:gap-4">
+                        {/* Checkbox */}
+                        <input
+                          type="checkbox"
+                          checked={selectedLeadIds.includes(lead.id)}
+                          onChange={(e) => {
                             e.stopPropagation();
-                            markLeadContacted(lead.id);
+                            if (e.target.checked) {
+                              setSelectedLeadIds([...selectedLeadIds, lead.id]);
+                            } else {
+                              setSelectedLeadIds(selectedLeadIds.filter(id => id !== lead.id));
+                            }
                           }}
-                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition"
-                          data-testid={`mark-contacted-${lead.id}`}
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Mark Contacted
-                        </button>
-                        <a
-                          href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}?text=Hi ${lead.name}, this is ASR Enterprises...`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1 transition"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          WhatsApp
-                        </a>
+                          className="w-4 h-4 mt-1 rounded border-gray-300 text-green-600 focus:ring-green-500 flex-shrink-0"
+                        />
+                        
+                        {/* Lead Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Top Row: Name, Badge, Source */}
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-500 text-white">
+                              NEW
+                            </span>
+                            <h4 className="font-semibold text-gray-900 truncate text-sm sm:text-base">{lead.name || 'Unknown'}</h4>
+                            {lead.ai_priority === 'high' && (
+                              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">🔥</span>
+                            )}
+                          </div>
+                          
+                          {/* Middle Row: Phone & Location */}
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mb-2">
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              {lead.phone}
+                            </span>
+                            {lead.district && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                {lead.district}
+                              </span>
+                            )}
+                            <span className="text-gray-400 text-xs">
+                              {lead.timestamp ? new Date(lead.timestamp).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}
+                            </span>
+                          </div>
+                          
+                          {/* Bottom Row: Actions - Responsive */}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                markLeadContacted(lead.id);
+                              }}
+                              className="bg-green-100 hover:bg-green-200 text-green-700 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition"
+                              data-testid={`mark-contacted-${lead.id}`}
+                            >
+                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline">Mark</span> Contacted
+                            </button>
+                            <a
+                              href={`https://wa.me/91${lead.phone?.replace(/\D/g, '').slice(-10)}?text=Hi ${lead.name}, this is ASR Enterprises...`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="bg-green-500 hover:bg-green-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1 transition"
+                            >
+                              <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
+                              WhatsApp
+                            </a>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}

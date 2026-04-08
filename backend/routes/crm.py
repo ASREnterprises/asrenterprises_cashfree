@@ -99,19 +99,26 @@ class CRMEmployee(BaseModel):
 # ==================== NEW LEADS MANAGEMENT ENDPOINTS ====================
 
 @router.get("/new-leads")
-async def get_new_leads(limit: int = 50, page: int = 1):
+async def get_new_leads(limit: int = 50, page: int = 1, source: str = "whatsapp"):
     """
-    Get leads with is_new=True flag.
-    These are leads that haven't been interacted with by staff yet.
+    Get fresh WhatsApp inquiries with is_new=True flag.
+    Only returns leads from WhatsApp source (fresh customer inquiries).
     """
     skip = (page - 1) * limit
     
+    # Build query - only WhatsApp leads by default
+    query = {"is_new": True}
+    if source == "whatsapp":
+        query["source"] = {"$in": ["whatsapp", "whatsapp_direct", "whatsapp_reply", "whatsapp_button"]}
+    elif source == "all":
+        pass  # No source filter
+    
     # Count total new leads
-    total_count = await db.crm_leads.count_documents({"is_new": True})
+    total_count = await db.crm_leads.count_documents(query)
     
     # Fetch new leads sorted by newest first
     leads = await db.crm_leads.find(
-        {"is_new": True},
+        query,
         {"_id": 0}
     ).sort([("timestamp", -1)]).skip(skip).limit(limit).to_list(limit)
     
@@ -175,9 +182,12 @@ async def bulk_mark_leads_contacted(request: Request):
 
 
 @router.get("/new-leads/count")
-async def get_new_leads_count():
-    """Quick count of new leads for badge display"""
-    count = await db.crm_leads.count_documents({"is_new": True})
+async def get_new_leads_count(source: str = "whatsapp"):
+    """Quick count of new WhatsApp leads for badge display"""
+    query = {"is_new": True}
+    if source == "whatsapp":
+        query["source"] = {"$in": ["whatsapp", "whatsapp_direct", "whatsapp_reply", "whatsapp_button"]}
+    count = await db.crm_leads.count_documents(query)
     return {"count": count}
 
 

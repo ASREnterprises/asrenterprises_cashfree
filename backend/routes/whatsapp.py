@@ -855,21 +855,21 @@ async def get_conversations(page: int = 1, limit: int = 50, background_tasks: Ba
     Get all conversations grouped by phone number.
     Returns list of conversations with last message, unread count, and lead info.
     Sorted by last activity (most recent first).
-    Auto-deletes messages older than 48 hours.
+    Auto-deletes messages older than 24 hours.
     """
     skip = (page - 1) * limit
     
-    # Auto-cleanup: Delete messages older than 48 hours (run in background)
-    cutoff_48h = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
+    # Auto-cleanup: Delete messages older than 24 hours (run in background)
+    cutoff_24h = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
     
     # Run cleanup in background to not block the request
     async def cleanup_old_messages():
         try:
             result = await db.whatsapp_messages.delete_many({
-                "created_at": {"$lt": cutoff_48h}
+                "created_at": {"$lt": cutoff_24h}
             })
             if result.deleted_count > 0:
-                logger.info(f"Auto-cleanup: Deleted {result.deleted_count} messages older than 48 hours")
+                logger.info(f"Auto-cleanup: Deleted {result.deleted_count} messages older than 24 hours")
         except Exception as e:
             logger.error(f"Auto-cleanup error: {e}")
     
@@ -1382,25 +1382,25 @@ async def get_conversation_by_lead(lead_id: str):
 
 # ==================== MESSAGE DELETE ENDPOINTS ====================
 
-# NOTE: auto-cleanup-48h must be defined BEFORE {message_id} to avoid route conflict
-@router.delete("/messages/auto-cleanup-48h")
-async def auto_cleanup_48h_messages():
+# NOTE: auto-cleanup-24h must be defined BEFORE {message_id} to avoid route conflict
+@router.delete("/messages/auto-cleanup-24h")
+async def auto_cleanup_24h_messages():
     """
-    Auto-cleanup messages older than 48 hours.
+    Auto-cleanup messages older than 24 hours.
     This endpoint can be called by a scheduler or manually.
     """
-    cutoff_date = datetime.now(timezone.utc) - timedelta(hours=48)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(hours=24)
     
     result = await db.whatsapp_messages.delete_many({
         "created_at": {"$lt": cutoff_date.isoformat()}
     })
     
-    logger.info(f"Auto-cleanup: Deleted {result.deleted_count} messages older than 48 hours")
+    logger.info(f"Auto-cleanup: Deleted {result.deleted_count} messages older than 24 hours")
     
     return {
         "success": True,
         "deleted_count": result.deleted_count,
-        "message": f"Auto-deleted {result.deleted_count} messages older than 48 hours",
+        "message": f"Auto-deleted {result.deleted_count} messages older than 24 hours",
         "cutoff_time": cutoff_date.isoformat()
     }
 
@@ -1450,6 +1450,36 @@ async def clear_conversation(phone: str):
         "message": f"Cleared conversation - deleted {result.deleted_count} messages"
     }
 
+
+@router.post("/conversations/bulk-delete")
+async def bulk_delete_conversations(request: Request):
+    """Delete multiple conversations at once (bulk selection)"""
+    data = await request.json()
+    phone_numbers = data.get("phone_numbers", [])
+    
+    if not phone_numbers:
+        raise HTTPException(status_code=400, detail="No phone numbers provided")
+    
+    total_deleted = 0
+    for phone in phone_numbers:
+        clean_phone = clean_phone_number(phone)
+        result = await db.whatsapp_messages.delete_many({
+            "$or": [
+                {"phone": phone},
+                {"phone": clean_phone},
+                {"phone": {"$regex": phone[-10:] if len(phone) >= 10 else phone}}
+            ]
+        })
+        total_deleted += result.deleted_count
+    
+    return {
+        "success": True,
+        "deleted_count": total_deleted,
+        "conversations_cleared": len(phone_numbers),
+        "message": f"Cleared {len(phone_numbers)} conversations - deleted {total_deleted} messages"
+    }
+
+
 @router.delete("/conversations/old")
 async def delete_old_conversations(request: Request):
     """Delete conversations older than specified days"""
@@ -1476,34 +1506,28 @@ async def get_cleanup_status():
     # Count messages by age
     counts = {
         "within_24h": 0,
-        "24h_to_48h": 0,
-        "older_than_48h": 0,
+        "older_than_24h": 0,
         "total": 0
     }
     
     cutoff_24h = (now - timedelta(hours=24)).isoformat()
-    cutoff_48h = (now - timedelta(hours=48)).isoformat()
     
     counts["within_24h"] = await db.whatsapp_messages.count_documents({
         "created_at": {"$gte": cutoff_24h}
     })
     
-    counts["24h_to_48h"] = await db.whatsapp_messages.count_documents({
-        "created_at": {"$gte": cutoff_48h, "$lt": cutoff_24h}
+    counts["older_than_24h"] = await db.whatsapp_messages.count_documents({
+        "created_at": {"$lt": cutoff_24h}
     })
     
-    counts["older_than_48h"] = await db.whatsapp_messages.count_documents({
-        "created_at": {"$lt": cutoff_48h}
-    })
-    
-    counts["total"] = counts["within_24h"] + counts["24h_to_48h"] + counts["older_than_48h"]
+    counts["total"] = counts["within_24h"] + counts["older_than_24h"]
     
     return {
         "message_counts": counts,
         "auto_delete_enabled": True,
-        "auto_delete_threshold_hours": 48,
-        "messages_to_delete": counts["older_than_48h"],
-        "next_cleanup_info": "Messages older than 48 hours are automatically deleted on each conversation load"
+        "auto_delete_threshold_hours": 24,
+        "messages_to_delete": counts["older_than_24h"],
+        "next_cleanup_info": "Messages older than 24 hours are automatically deleted on each conversation load"
     }
 
 # ==================== MEDIA SENDING ENDPOINTS ====================

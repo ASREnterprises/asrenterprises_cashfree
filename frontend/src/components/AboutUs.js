@@ -261,7 +261,7 @@ export const AboutUsPage = () => {
                 Contact Us Today
               </Link>
               <a 
-                href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20booking%20a%20solar%20service."
+                href="https://wa.me/918298389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20booking%20a%20solar%20service."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center bg-white text-[#0B3C5D] px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition border-2 border-[#0B3C5D]/20 shadow-lg"
@@ -283,7 +283,7 @@ export const AboutUsPage = () => {
                 <Instagram className="w-6 h-6" />
               </a>
               <a
-                href="https://wa.me/919296389097"
+                href="https://wa.me/918298389097"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-green-500 text-white p-3 rounded-full hover:scale-110 transition-transform shadow-lg"

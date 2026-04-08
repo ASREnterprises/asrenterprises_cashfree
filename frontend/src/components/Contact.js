@@ -160,7 +160,7 @@ export const ContactPage = () => {
                   <span className="text-sm font-medium">Facebook</span>
                 </a>
                 <a
-                  href="https://wa.me/919296389097"
+                  href="https://wa.me/918298389097"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white px-5 py-3 rounded-full hover:scale-105 transition-transform shadow-lg"
@@ -250,7 +250,7 @@ export const ContactPage = () => {
               <h3 className="text-2xl font-bold text-[#0B3C5D] mb-4 font-[Poppins]">Quick Actions</h3>
               <div className="space-y-3">
                 <a
-                  href="https://wa.me/919296389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20installation."
+                  href="https://wa.me/918298389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20installation."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3 rounded-full font-bold text-center hover:shadow-lg transition shadow-md"

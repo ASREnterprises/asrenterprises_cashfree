@@ -289,7 +289,7 @@ export const ZeroBillComparison = ({ monthlyBill = 3000 }) => {
         {/* CTA */}
         <div className="text-center mt-8">
           <a
-            href={`https://wa.me/919296389097?text=${encodeURIComponent(`Hi ASR! I just saw the 25-year comparison. My current bill is ₹${monthlyBill}/month. I want to save ${formatLakh(costs.savings)} over 25 years. Please schedule a FREE site survey!`)}`}
+            href={`https://wa.me/918298389097?text=${encodeURIComponent(`Hi ASR! I just saw the 25-year comparison. My current bill is ₹${monthlyBill}/month. I want to save ${formatLakh(costs.savings)} over 25 years. Please schedule a FREE site survey!`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:from-green-600 hover:to-green-700 transition shadow-xl"

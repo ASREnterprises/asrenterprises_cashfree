@@ -12,7 +12,7 @@ export const ZeroBillHero = ({ onBookSurvey }) => {
   const savings = beforeBill - afterBill;
 
   // WhatsApp URL for FREE site survey
-  const whatsappSurveyUrl = `https://wa.me/919296389097?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
+  const whatsappSurveyUrl = `https://wa.me/918298389097?text=${encodeURIComponent(`Hi ASR Enterprises! 👋
 
 I want to make my electricity bill ZERO like shown on your website!
 
@@ -84,17 +84,11 @@ Thank you!`)}`;
                 href={whatsappSurveyUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
+                className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold text-lg hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2 shadow-xl"
                 data-testid="hero-book-survey-btn"
               >
                 <MessageSquare className="w-5 h-5" />
-                <span>Book Solar Service</span>
-              </a>
-              <a
-                href="tel:9296389097"
-                className="border-2 border-white/30 text-white px-8 py-4 rounded-full font-semibold hover:bg-white/10 transition flex items-center justify-center space-x-2"
-              >
-                <span>Call: 9296389097</span>
+                <span>Get Free Consultation</span>
               </a>
             </div>
           </div>

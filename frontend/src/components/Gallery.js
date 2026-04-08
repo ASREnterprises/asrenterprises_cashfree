@@ -53,7 +53,8 @@ const LazyImage = ({ src, alt, className, onClick }) => {
 export const GalleryPage = () => {
   const [selectedMedia, setSelectedMedia] = useState(null);
   const [dynamicPhotos, setDynamicPhotos] = useState([]);
-  const [facebookPhotos, setFacebookPhotos] = useState([]); // Facebook synced posts
+  const [facebookPhotos, setFacebookPhotos] = useState([]); // Facebook general posts
+  const [latestWorkPhotos, setLatestWorkPhotos] = useState([]); // Admin-selected installation work
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'uploads', 'facebook'
 
@@ -103,10 +104,11 @@ export const GalleryPage = () => {
   const fetchAllGalleryPhotos = async () => {
     setLoading(true);
     try {
-      // Fetch both CRM photos and Facebook synced posts in parallel
-      const [crmRes, fbRes] = await Promise.all([
+      // Fetch CRM photos, Facebook general posts, and admin-selected latest work in parallel
+      const [crmRes, fbRes, latestRes] = await Promise.all([
         axios.get(`${API}/photos`).catch(() => ({ data: [] })),
-        axios.get(`${API}/social/gallery/public?type=all&limit=50`).catch(() => ({ data: { items: [] } }))
+        axios.get(`${API}/social/gallery/public?type=gallery&limit=50`).catch(() => ({ data: { items: [] } })),
+        axios.get(`${API}/social/gallery/public?type=latest_work&limit=50`).catch(() => ({ data: { items: [] } }))
       ]);
       
       // Convert CRM photos to gallery format
@@ -121,18 +123,31 @@ export const GalleryPage = () => {
       }));
       setDynamicPhotos(crmPhotos);
       
-      // Convert Facebook posts to gallery format  
+      // Convert Facebook general posts to gallery format
       const fbPhotos = (fbRes.data?.items || []).map(item => ({
         type: item.media_type === 'video' ? 'video' : 'image',
         url: item.media_url,
-        thumbnail: item.media_url, // For videos
-        title: item.title || item.caption?.substring(0, 60) || "Solar Installation",
+        thumbnail: item.media_url,
+        title: item.title || item.caption?.substring(0, 60) || "Facebook Post",
         location: item.location || "Bihar, India",
         date: item.created_time ? new Date(item.created_time).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : undefined,
         permalink: item.permalink_url,
         source: "facebook"
       }));
       setFacebookPhotos(fbPhotos);
+      
+      // Convert admin-selected latest work posts to gallery format
+      const latestPhotos = (latestRes.data?.items || []).map(item => ({
+        type: item.media_type === 'video' ? 'video' : 'image',
+        url: item.media_url,
+        thumbnail: item.media_url,
+        title: item.title || item.caption?.substring(0, 60) || "Solar Installation",
+        location: item.location || "Bihar, India",
+        date: item.created_time ? new Date(item.created_time).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : undefined,
+        permalink: item.permalink_url,
+        source: "latest_work"
+      }));
+      setLatestWorkPhotos(latestPhotos);
     } catch (err) {
       console.error("Error fetching gallery photos:", err);
     }
@@ -146,10 +161,11 @@ export const GalleryPage = () => {
     if (activeFilter === 'uploads') {
       return [...dynamicPhotos, ...staticGalleryItems];
     } else if (activeFilter === 'facebook') {
-      return facebookPhotos;
+      // Latest Installation Work - admin selected posts
+      return latestWorkPhotos;
     }
-    // 'all' - Combine everything (Facebook posts first, then uploads, then static)
-    return [...facebookPhotos, ...dynamicPhotos, ...staticGalleryItems];
+    // 'all' - Facebook Posts (general posts only)
+    return facebookPhotos;
   };
   
   const galleryItems = getFilteredItems();
@@ -245,7 +261,7 @@ export const GalleryPage = () => {
               }`}
               data-testid="filter-all-btn"
             >
-              All Projects ({facebookPhotos.length + dynamicPhotos.length + staticGalleryItems.length})
+              Facebook Posts ({facebookPhotos.length})
             </button>
             <button 
               onClick={() => setActiveFilter('facebook')}
@@ -257,7 +273,7 @@ export const GalleryPage = () => {
               data-testid="filter-facebook-btn"
             >
               <Facebook className="w-4 h-4" />
-              Latest ({facebookPhotos.length})
+              Latest Installation Work ({latestWorkPhotos.length})
             </button>
             <button 
               onClick={() => setActiveFilter('uploads')}

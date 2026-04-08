@@ -1362,44 +1362,13 @@ const HomePage = () => {
               Our mission: Making solar energy <strong className="text-white">affordable and accessible</strong> across Bihar with customized solutions that deliver long-term savings and sustainable value.
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
-              <a
-                href="tel:9296389097"
-                className="bg-[#00C389] text-white px-8 py-4 rounded-full font-bold hover:bg-[#00A372] transition flex items-center justify-center space-x-2 shadow-xl hover:shadow-[0_0_30px_rgba(0,195,137,0.5)]"
-                data-testid="call-now-btn"
-                onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Hero Section' }); }}
-              >
-                <Phone className="w-5 h-5" />
-                <span>Call: 9296389097</span>
-              </a>
-              <a
-                href="https://wa.me/918298389097?text=Hi%20ASR%20Enterprises!%20I'm%20interested%20in%20solar%20rooftop%20installation."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
-                data-testid="whatsapp-btn"
-                onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'WhatsApp Chat', content_category: 'Hero Section' }); }}
-              >
-                <MessageSquare className="w-5 h-5" />
-                <span>WhatsApp Us</span>
-              </a>
-            </div>
-            
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10">
               <button
                 onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-[#0B3C5D] text-white px-8 py-4 rounded-full font-semibold hover:bg-[#0a3450] transition shadow-lg border border-white/20"
+                className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
                 data-testid="free-consultation-btn"
               >
-                Request Free Consultation
-              </button>
-              <button
-                onClick={() => setShowBookService(true)}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-4 rounded-full font-bold hover:from-amber-600 hover:to-orange-600 transition shadow-lg flex items-center justify-center gap-2"
-                data-testid="book-solar-service-btn"
-              >
-                <QrCode className="w-5 h-5" />
-                Book Solar Service - ₹2999
+                <span>Get Free Consultation →</span>
               </button>
             </div>
 
@@ -1619,15 +1588,11 @@ const HomePage = () => {
           <div className="text-center">
             <p className="text-[#0a355e] text-xl font-bold mb-4">Get Started Today!</p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a href="tel:9296389097" className="inline-flex items-center justify-center gap-2 bg-[#4CAF50] text-white px-8 py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg text-lg">
-                <Phone className="w-5 h-5" />
-                Call: 9296389097
-              </a>
               <button onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })} className="bg-[#f87f2b] text-white px-8 py-4 rounded-lg font-bold hover:bg-orange-600 transition shadow-lg">
                 Get Free Consultation →
               </button>
             </div>
-            <p className="text-gray-500 text-sm mt-4">www.asrenterprisespatna.com</p>
+            <p className="text-gray-500 text-sm mt-4">www.asrenterprises.in</p>
           </div>
         </div>
       </div>

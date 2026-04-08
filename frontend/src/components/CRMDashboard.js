@@ -759,6 +759,8 @@ export const CRMDashboard = () => {
   // New Leads Management System
   const [newLeadsCount, setNewLeadsCount] = useState(0);
   const [showNewLeadsOnly, setShowNewLeadsOnly] = useState(false);
+  const [trashedLeads, setTrashedLeads] = useState([]);
+  const [showTrashTab, setShowTrashTab] = useState(false);
   
   // WhatsApp Cloud API Integration state
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -888,10 +890,22 @@ export const CRMDashboard = () => {
     return () => clearInterval(interval);
   }, []);
   
+  // Auto-sync New Inquiries every 15 seconds when on new_leads tab
+  useEffect(() => {
+    if (activeTab === "new_leads" && autoSyncEnabled) {
+      const interval = setInterval(() => {
+        fetchNewLeads();
+        setLastSyncTime(new Date());
+      }, 15000); // Every 15 seconds
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, autoSyncEnabled]);
+  
   // Load tab-specific data when tab changes
   useEffect(() => {
     if (activeTab === "leads") fetchLeads();
     if (activeTab === "new_leads") fetchNewLeads();
+    if (activeTab === "trash") fetchTrashedLeads();
     if (activeTab === "tasks") fetchTasks();
     if (activeTab === "team") fetchStaff();
     if (activeTab === "messages") fetchMessages();
@@ -899,7 +913,8 @@ export const CRMDashboard = () => {
   
   const fetchNewLeadsCount = async () => {
     try {
-      const res = await axios.get(`${API}/crm/new-leads/count`);
+      // Fetch count for WhatsApp leads only
+      const res = await axios.get(`${API}/crm/new-leads/count?source=whatsapp`);
       setNewLeadsCount(res.data.count || 0);
     } catch (err) {
       console.error("New leads count error:", err);
@@ -909,16 +924,39 @@ export const CRMDashboard = () => {
   const fetchNewLeads = async () => {
     setLeadsLoading(true);
     try {
-      const res = await axios.get(`${API}/crm/new-leads?limit=100`);
+      // Only fetch WhatsApp leads for New Inquiries
+      const res = await axios.get(`${API}/crm/new-leads?source=whatsapp&limit=100`);
       setLeads(res.data.leads || []);
       setLeadsPagination({
         ...leadsPagination,
         total_count: res.data.total_count || 0
       });
+      setLastSyncTime(new Date());
     } catch (err) {
       console.error("New leads fetch error:", err);
     }
     setLeadsLoading(false);
+  };
+  
+  const fetchTrashedLeads = async () => {
+    try {
+      const res = await axios.get(`${API}/crm/leads/trash?limit=100`);
+      setTrashedLeads(res.data.leads || []);
+    } catch (err) {
+      console.error("Trashed leads fetch error:", err);
+    }
+  };
+  
+  const restoreLeads = async (leadIds) => {
+    try {
+      await axios.post(`${API}/crm/leads/restore`, { lead_ids: leadIds });
+      fetchTrashedLeads();
+      fetchLeads();
+      fetchNewLeadsCount();
+    } catch (err) {
+      console.error("Restore error:", err);
+      alert("Error restoring leads");
+    }
   };
   
   const markLeadContacted = async (leadId) => {
@@ -1658,6 +1696,7 @@ export const CRMDashboard = () => {
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "new_leads", label: "🆕 New", icon: <Inbox className="w-4 h-4" />, badge: newLeadsCount },
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "trash", label: "Trash", icon: <Trash2 className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
               { id: "team", label: "Team", icon: <Users className="w-4 h-4" /> },
@@ -2163,14 +2202,27 @@ export const CRMDashboard = () => {
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                     <Inbox className="w-6 h-6 sm:w-7 sm:h-7" />
-                    New Inquiries
+                    WhatsApp Inquiries
                   </h2>
                   <p className="text-green-100 mt-1 text-sm">
-                    {newLeadsCount} fresh inquiries waiting for your response
+                    {newLeadsCount} fresh WhatsApp messages waiting
+                    {lastSyncTime && <span className="ml-2 text-xs opacity-75">• Synced {new Date(lastSyncTime).toLocaleTimeString()}</span>}
                   </p>
                 </div>
                 {/* Action Buttons - Always visible on mobile */}
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Auto Sync Toggle */}
+                  <button 
+                    onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}
+                    className={`px-3 py-2 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-1.5 transition ${
+                      autoSyncEnabled ? 'bg-white/30 text-white' : 'bg-white/10 text-white/70'
+                    }`}
+                    data-testid="auto-sync-toggle"
+                    title={autoSyncEnabled ? "Auto-sync ON (every 15s)" : "Auto-sync OFF"}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${autoSyncEnabled ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Auto</span>
+                  </button>
                   {selectedLeadIds.length > 0 && (
                     <>
                       <button 

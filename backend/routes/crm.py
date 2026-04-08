@@ -99,19 +99,22 @@ class CRMEmployee(BaseModel):
 # ==================== NEW LEADS MANAGEMENT ENDPOINTS ====================
 
 @router.get("/new-leads")
-async def get_new_leads(limit: int = 50, page: int = 1, source: str = "all"):
+async def get_new_leads(limit: int = 50, page: int = 1, source: str = "whatsapp"):
     """
-    Get all fresh inquiries with is_new=True flag.
-    Returns leads from all sources by default.
-    Use source=whatsapp to filter only WhatsApp leads.
+    Get fresh WhatsApp inquiries with is_new=True flag.
+    Only returns leads from WhatsApp source (new customer messages).
+    Excludes deleted leads.
     """
     skip = (page - 1) * limit
     
-    # Build query
-    query = {"is_new": True}
+    # Build query - only WhatsApp leads by default, exclude deleted
+    query = {
+        "is_new": True,
+        "$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]
+    }
     if source == "whatsapp":
         query["source"] = {"$in": ["whatsapp", "whatsapp_direct", "whatsapp_reply", "whatsapp_button"]}
-    # For 'all' - no source filter, show all new leads
+    # For 'all' - no source filter
     
     # Count total new leads
     total_count = await db.crm_leads.count_documents(query)
@@ -133,7 +136,79 @@ async def get_new_leads(limit: int = 50, page: int = 1, source: str = "all"):
 
 @router.post("/leads/bulk-delete")
 async def bulk_delete_leads(request: Request):
-    """Bulk delete multiple leads"""
+    """Soft delete - Move leads to trash (kept for 30 days)"""
+    data = await request.json()
+    lead_ids = data.get("lead_ids", [])
+    
+    if not lead_ids:
+        return {"success": False, "error": "No lead IDs provided"}
+    
+    # Soft delete - set deleted_at timestamp and is_deleted flag
+    result = await db.crm_leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$set": {
+            "is_deleted": True,
+            "deleted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "success": True,
+        "deleted_count": result.modified_count,
+        "message": f"{result.modified_count} leads moved to trash (will be permanently deleted after 30 days)"
+    }
+
+
+@router.get("/leads/trash")
+async def get_deleted_leads(limit: int = 50, page: int = 1):
+    """Get leads in trash (soft-deleted leads)"""
+    skip = (page - 1) * limit
+    
+    # Also clean up leads older than 30 days
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    await db.crm_leads.delete_many({
+        "is_deleted": True,
+        "deleted_at": {"$lt": thirty_days_ago}
+    })
+    
+    total_count = await db.crm_leads.count_documents({"is_deleted": True})
+    leads = await db.crm_leads.find(
+        {"is_deleted": True},
+        {"_id": 0}
+    ).sort([("deleted_at", -1)]).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "total_count": total_count,
+        "page": page,
+        "per_page": limit
+    }
+
+
+@router.post("/leads/restore")
+async def restore_leads(request: Request):
+    """Restore leads from trash"""
+    data = await request.json()
+    lead_ids = data.get("lead_ids", [])
+    
+    if not lead_ids:
+        return {"success": False, "error": "No lead IDs provided"}
+    
+    result = await db.crm_leads.update_many(
+        {"id": {"$in": lead_ids}},
+        {"$unset": {"is_deleted": "", "deleted_at": ""}}
+    )
+    
+    return {
+        "success": True,
+        "restored_count": result.modified_count,
+        "message": f"{result.modified_count} leads restored"
+    }
+
+
+@router.delete("/leads/permanent-delete")
+async def permanent_delete_leads(request: Request):
+    """Permanently delete leads (no recovery)"""
     data = await request.json()
     lead_ids = data.get("lead_ids", [])
     
@@ -145,7 +220,7 @@ async def bulk_delete_leads(request: Request):
     return {
         "success": True,
         "deleted_count": result.deleted_count,
-        "message": f"{result.deleted_count} leads deleted"
+        "message": f"{result.deleted_count} leads permanently deleted"
     }
 
 
@@ -402,15 +477,31 @@ async def delete_crm_employee(employee_id: str):
 # ==================== LEAD MANAGEMENT ====================
 
 @router.get("/leads")
-async def get_crm_leads(stage: Optional[str] = None, assigned_to: Optional[str] = None):
-    """Get all CRM leads with optional filters"""
-    query = {}
+async def get_crm_leads(stage: Optional[str] = None, assigned_to: Optional[str] = None, page: int = 1, limit: int = 100):
+    """Get all CRM leads with optional filters (excludes deleted leads)"""
+    # Base query excludes deleted leads
+    query = {"$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}
+    
     if stage:
         query["stage"] = stage
     if assigned_to:
         query["assigned_to"] = assigned_to
-    leads = await db.crm_leads.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
-    return leads
+    
+    skip = (page - 1) * limit
+    total_count = await db.crm_leads.count_documents(query)
+    leads = await db.crm_leads.find(query, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "pagination": {
+            "current_page": page,
+            "total_pages": (total_count + limit - 1) // limit,
+            "total_count": total_count,
+            "per_page": limit,
+            "has_next": (page * limit) < total_count,
+            "has_prev": page > 1
+        }
+    }
 
 
 @router.post("/leads")

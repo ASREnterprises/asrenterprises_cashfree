@@ -59,16 +59,20 @@ export const LeadsManagement = () => {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/crm/leads`);
-      setLeads(res.data);
+      const res = await axios.get(`${API}/crm/leads?limit=100`);
+      // Handle both old format (array) and new format (object with leads array)
+      const leadsData = Array.isArray(res.data) ? res.data : (res.data.leads || []);
+      setLeads(leadsData);
     } catch (err) {
       console.error("Error fetching leads:", err);
       // Fallback to admin leads endpoint
       try {
         const res = await axios.get(`${API}/leads`);
-        setLeads(res.data);
+        const leadsData = Array.isArray(res.data) ? res.data : (res.data.leads || []);
+        setLeads(leadsData);
       } catch (e) {
         console.error("Fallback error:", e);
+        setLeads([]);
       }
     }
     setLoading(false);

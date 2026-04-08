@@ -73,6 +73,7 @@ from routes.crm import router as crm_router, init_router as init_crm_router
 from routes.staff import router as staff_router, init_router as init_staff_router
 from routes.whatsapp import router as whatsapp_router
 from routes.social_media import router as social_media_router
+from routes.payments import router as payments_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -11373,6 +11374,9 @@ api_router.include_router(whatsapp_router)
 
 # Include Social Media router under /api prefix
 api_router.include_router(social_media_router)
+
+# Include Payments router under /api prefix (Cashfree Integration)
+api_router.include_router(payments_router)
 
 app.include_router(api_router)
 

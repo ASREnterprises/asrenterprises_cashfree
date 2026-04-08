@@ -8,13 +8,14 @@ import {
   UserPlus, PhoneCall, FileText, Wrench, CreditCard, BarChart3,
   Send, ChevronRight, ChevronUp, Edit, Trash2, Eye, MessageSquare, Key, Copy,
   Image, Upload, Camera, ListTodo, MessageCircle, Activity, Zap, FileSpreadsheet, Download, Star, Shield, Loader2,
-  User, X, History, Inbox, Save, Settings, Megaphone
+  User, X, History, Inbox, Save, Settings, Megaphone, Wallet
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import { AdminAIAssistant } from "@/components/AdminAIAssistant";
 import { WhatsAppModule, SendWhatsAppModal, BulkCampaignModal } from "@/components/WhatsAppCRM";
 import { WhatsAppInbox } from "@/components/WhatsAppInbox";
 import { SocialMediaManager } from "@/components/SocialMediaManager";
+import { PaymentsDashboard } from "@/components/PaymentsDashboard";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1726,6 +1727,7 @@ export const CRMDashboard = () => {
             {[
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
+              { id: "cashfree_payments", label: "Cashfree Payments", icon: <Wallet className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "trash", label: "Trash", icon: <Trash2 className="w-4 h-4" /> },
               { id: "tasks", label: "Tasks", icon: <ListTodo className="w-4 h-4" /> },
@@ -1740,7 +1742,9 @@ export const CRMDashboard = () => {
               }}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap relative ${
                   activeTab === tab.id 
-                    ? tab.id === "whatsapp" ? "bg-green-600 text-white" : "bg-blue-600 text-white" 
+                    ? tab.id === "whatsapp" ? "bg-green-600 text-white" 
+                    : tab.id === "cashfree_payments" ? "bg-emerald-600 text-white"
+                    : "bg-blue-600 text-white" 
                     : "text-gray-600 hover:bg-gray-50 border border-gray-300"
                 }`}>
                 {tab.icon}
@@ -2685,6 +2689,11 @@ export const CRMDashboard = () => {
         {/* Social Media Manager Tab */}
         {activeTab === "social" && (
           <SocialMediaManager />
+        )}
+
+        {/* Cashfree Payments Tab */}
+        {activeTab === "cashfree_payments" && (
+          <PaymentsDashboard leads={leads} />
         )}
 
         {/* Tasks Tab */}

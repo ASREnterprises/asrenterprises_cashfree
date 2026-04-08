@@ -13,7 +13,24 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 
-## Latest Updates (April 8, 2026 - Round 7)
+## Latest Updates (April 8, 2026 - Round 8)
+
+### 1. ✅ WhatsApp Tab Restored in CRM Dashboard
+- WhatsApp tab is back in the CRM navigation with green highlight when active
+- Full WhatsApp inbox functionality restored for admin
+
+### 2. ✅ Staff WhatsApp Chat for Assigned Leads
+- Staff Portal WhatsApp tab shows "Only your assigned leads" filter
+- Staff can view WhatsApp conversations only for leads assigned to them
+- Staff can send WhatsApp templates to their assigned leads
+- Staff can start new WhatsApp conversations with assigned leads
+
+### 3. ✅ Removed Duplicate Bookings Tab
+- Removed redundant "Bookings" and "Messages" tabs
+- Service Price tab handles booking/service configuration
+- CRM tabs now: Dashboard, All Leads, WhatsApp, Trash, Tasks, Team, Service Price, Site Settings, Backups, Credentials
+
+## Previous Updates (April 8, 2026 - Round 7)
 
 ### 1. ✅ Removed "New" and "WhatsApp Inquiries" tabs from CRM Dashboard
 - Simplified the CRM Dashboard navigation
@@ -182,9 +199,9 @@ Complete rebuild of the Leads Management module at `/admin/leads`:
 | `/api/service/bookings` | GET | List all bookings |
 
 ## Testing Status
-- **Test Report**: `/app/test_reports/iteration_79.json`
+- **Test Report**: `/app/test_reports/iteration_80.json`
 - **Backend Tests**: 100% passed
-- **Frontend Tests**: 100% passed (after fixing duplicate form bug)
+- **Frontend Tests**: 100% passed
 
 ## Database Schema
 

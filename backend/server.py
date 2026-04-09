@@ -3477,7 +3477,7 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
 @api_router.post("/admin/login-password")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def admin_login_password(request: Request, data: Dict[str, Any]):
-    """Step 1 of 2FA: Verify email/password, then require OTP verification"""
+    """Step 1 of 2FA: Verify email/password - ONLY ADMIN OWNER ALLOWED"""
     client_ip = get_real_ip(request)
     user_id = data.get("user_id", "").strip()
     password = data.get("password", "").strip()
@@ -3488,73 +3488,60 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
         security_tracker.record_failed_attempt(client_ip, "Login lockout active")
         raise HTTPException(status_code=429, detail=message)
     
-    # ONLY admin email allowed for admin login
+    # ========== SECURITY: ONLY ADMIN OWNER CREDENTIALS ALLOWED ==========
+    # ONLY Abhijeet Kumar (ASR1001) with email asrenterprisespatna@gmail.com 
+    # and mobile 8877896889 can access admin panel
     ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
     ADMIN_REGISTERED_MOBILE = "8877896889"
+    ADMIN_STAFF_ID = "ASR1001"
+    ADMIN_NAME = "ABHIJEET KUMAR"
     
-    # Check if this is admin login
-    if user_id == ADMIN_REGISTERED_EMAIL:
-        # Try to find in admin_credentials collection
-        admin_cred = await db.admin_credentials.find_one({"user_id": user_id}, {"_id": 0})
-        
-        if admin_cred:
-            # Verify password
-            import hashlib
-            hashed = hashlib.sha256((password + admin_cred.get("salt", "")).encode()).hexdigest()
-            if hashed == admin_cred.get("password_hash"):
-                reset_failed_login(client_ip, user_id)
-                logger.info(f"Admin password verified for {user_id} - awaiting OTP from IP: {client_ip}")
-                # Return success but require OTP verification
-                return {
-                    "success": True, 
-                    "require_otp": True,
-                    "role": "admin", 
-                    "email": ADMIN_REGISTERED_EMAIL,
-                    "mobile_last4": ADMIN_REGISTERED_MOBILE[-4:],
-                    "message": "Password verified. Please verify OTP sent to your registered mobile."
-                }
-        
-        # Default admin fallback (for initial setup)
-        if password == "admin@asr123":
+    # STRICT CHECK: Only allow the registered admin email
+    if user_id.lower() != ADMIN_REGISTERED_EMAIL.lower():
+        record_failed_login(client_ip, user_id)
+        logger.warning(f"Unauthorized admin login attempt with non-admin email '{user_id}' from IP: {client_ip}")
+        raise HTTPException(
+            status_code=401, 
+            detail="Access Denied. Only the registered admin can login here. Staff members should use the Staff Portal."
+        )
+    
+    # Check admin credentials in database
+    admin_cred = await db.admin_credentials.find_one({"user_id": user_id.lower()}, {"_id": 0})
+    
+    if admin_cred:
+        # Verify password
+        import hashlib
+        hashed = hashlib.sha256((password + admin_cred.get("salt", "")).encode()).hexdigest()
+        if hashed == admin_cred.get("password_hash"):
             reset_failed_login(client_ip, user_id)
+            logger.info(f"Admin password verified for {user_id} - awaiting OTP from IP: {client_ip}")
             return {
                 "success": True, 
                 "require_otp": True,
                 "role": "admin", 
                 "email": ADMIN_REGISTERED_EMAIL,
                 "mobile_last4": ADMIN_REGISTERED_MOBILE[-4:],
+                "name": ADMIN_NAME,
+                "staff_id": ADMIN_STAFF_ID,
                 "message": "Password verified. Please verify OTP sent to your registered mobile."
             }
-        
-        record_failed_login(client_ip, user_id)
-        raise HTTPException(status_code=401, detail="Invalid password")
     
-    # For non-admin emails, check if it's a staff member
-    staff = await db.crm_staff_accounts.find_one({
-        "$or": [{"email": user_id}, {"staff_id": user_id}]
-    }, {"_id": 0})
-    
-    if staff:
-        import hashlib
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        # Check both hashed and plain password for backwards compatibility
-        if staff.get("password_hash") == password_hash or staff.get("password") == password:
-            reset_failed_login(client_ip, user_id)
-            staff_phone = staff.get("phone", "")
-            return {
-                "success": True, 
-                "require_otp": True,
-                "role": staff.get("role", "staff"), 
-                "email": staff.get("email"), 
-                "staff_id": staff.get("staff_id"),
-                "name": staff.get("name"),
-                "mobile_last4": staff_phone[-4:] if staff_phone else "****",
-                "message": "Password verified. Please verify OTP sent to your registered mobile."
-            }
+    # Default admin fallback (for initial setup)
+    if password == "admin@asr123":
+        reset_failed_login(client_ip, user_id)
+        return {
+            "success": True, 
+            "require_otp": True,
+            "role": "admin", 
+            "email": ADMIN_REGISTERED_EMAIL,
+            "mobile_last4": ADMIN_REGISTERED_MOBILE[-4:],
+            "name": ADMIN_NAME,
+            "staff_id": ADMIN_STAFF_ID,
+            "message": "Password verified. Please verify OTP sent to your registered mobile."
+        }
     
     record_failed_login(client_ip, user_id)
-    logger.warning(f"Failed password login for {user_id} from IP: {client_ip}")
-    raise HTTPException(status_code=401, detail="Invalid email or password. Only registered admin/staff can login.")
+    raise HTTPException(status_code=401, detail="Invalid password")
 
 # Registered admin credentials - ONLY these can access admin panel
 ADMIN_REGISTERED_MOBILE = "8877896889"
@@ -3643,45 +3630,37 @@ async def admin_login_otp(request: Request, data: Dict[str, Any]):
 @api_router.post("/admin/verify-2fa")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def admin_verify_2fa(request: Request, data: Dict[str, Any]):
-    """Step 2 of 2FA: Verify OTP and complete login"""
+    """Step 2 of 2FA: Verify OTP and complete login - ADMIN ONLY"""
     client_ip = get_real_ip(request)
     email = data.get("email", "").strip()
     role = data.get("role", "")
     staff_id = data.get("staff_id", "")
     
-    # This endpoint is called after MSG91 OTP verification on frontend
-    # It simply confirms the 2FA session and returns login data
+    # SECURITY: This endpoint is for ADMIN login only
+    # Staff should use /staff/verify-2fa endpoint
     
     ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
+    ADMIN_REGISTERED_MOBILE = "8877896889"
+    ADMIN_STAFF_ID = "ASR1001"
+    ADMIN_NAME = "ABHIJEET KUMAR"
     
-    if email == ADMIN_REGISTERED_EMAIL:
-        logger.info(f"2FA verified for admin {email} from IP: {client_ip}")
-        return {
-            "success": True,
-            "role": "admin",
-            "email": ADMIN_REGISTERED_EMAIL,
-            "name": "Admin",
-            "message": "2FA verification successful"
-        }
-    
-    # For staff, verify they exist
-    if staff_id:
-        staff = await db.crm_staff_accounts.find_one(
-            {"staff_id": staff_id, "is_active": True},
-            {"_id": 0}
+    # STRICT CHECK: Only allow admin email
+    if email.lower() != ADMIN_REGISTERED_EMAIL.lower():
+        logger.warning(f"Unauthorized 2FA attempt with email '{email}' from IP: {client_ip}")
+        raise HTTPException(
+            status_code=401, 
+            detail="Access Denied. Only the registered admin can complete this verification."
         )
-        if staff:
-            logger.info(f"2FA verified for staff {staff.get('name')} from IP: {client_ip}")
-            return {
-                "success": True,
-                "role": staff.get("role", "staff"),
-                "email": staff.get("email"),
-                "name": staff.get("name"),
-                "staff_id": staff.get("staff_id"),
-                "message": "2FA verification successful"
-            }
     
-    raise HTTPException(status_code=401, detail="2FA verification failed. Please login again.")
+    logger.info(f"2FA verified for admin {email} from IP: {client_ip}")
+    return {
+        "success": True,
+        "role": "admin",
+        "email": ADMIN_REGISTERED_EMAIL,
+        "name": ADMIN_NAME,
+        "staff_id": ADMIN_STAFF_ID,
+        "message": "2FA verification successful"
+    }
 
 @api_router.post("/admin/register-otp-mobile")
 async def register_otp_mobile(data: Dict[str, Any]):

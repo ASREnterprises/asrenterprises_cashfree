@@ -472,6 +472,23 @@ async def create_cashfree_order(request: CreateOrderRequest):
             
             # Extract payment session URL - CRITICAL: This must be present
             payment_session_id = response_data.get("payment_session_id", "")
+            
+            # CRITICAL: Clean the payment_session_id - remove any corruption
+            # Some old code was appending "paymentpayment" to the end
+            if payment_session_id:
+                # Remove known corruption patterns
+                while payment_session_id.endswith("payment"):
+                    payment_session_id = payment_session_id[:-7]  # Remove "payment" (7 chars)
+                    logger.warning(f"Cleaned corrupted payment_session_id - removed 'payment' suffix")
+                
+                # Trim to valid Cashfree session ID length (typically 132 chars)
+                if len(payment_session_id) > 140:
+                    logger.warning(f"payment_session_id too long ({len(payment_session_id)} chars), may be corrupted")
+                    # Keep only first 132 chars if it starts with session_
+                    if payment_session_id.startswith("session_"):
+                        payment_session_id = payment_session_id[:132]
+                        logger.info(f"Trimmed to 132 chars: {payment_session_id[:50]}...")
+            
             cf_order_id = response_data.get("cf_order_id", "")
             order_status = response_data.get("order_status", "ACTIVE")
             
@@ -1180,7 +1197,16 @@ async def direct_checkout_page(order_id: str):
     
     payment_session_id = order.get("payment_session_id")
     
-    if not payment_session_id:
+    # CRITICAL FIX: Clean corrupted payment_session_id
+    # Some old orders have "paymentpayment" appended to the end
+    if payment_session_id:
+        original_length = len(payment_session_id)
+        while payment_session_id.endswith("payment"):
+            payment_session_id = payment_session_id[:-7]  # Remove "payment" (7 chars)
+        if len(payment_session_id) != original_length:
+            logger.warning(f"Cleaned corrupted session_id for order {order_id}: {original_length} -> {len(payment_session_id)} chars")
+    
+    if not payment_session_id or len(payment_session_id) < 50:
         return HTMLResponse(content=f"""
         <!DOCTYPE html>
         <html>
@@ -1480,3 +1506,52 @@ async def direct_checkout_page(order_id: str):
     """
     
     return HTMLResponse(content=html_content)
+
+
+
+# ==================== FIX CORRUPTED ORDERS ====================
+
+@router.post("/fix-corrupted-sessions")
+async def fix_corrupted_payment_sessions():
+    """
+    Utility endpoint to fix all corrupted payment_session_id values in the database.
+    These have "paymentpayment" appended to the end due to a bug in old code.
+    """
+    try:
+        # Find all orders with corrupted session IDs
+        corrupted_orders = await db.cashfree_orders.find({
+            "payment_session_id": {"$regex": "payment$"}
+        }).to_list(1000)
+        
+        fixed_count = 0
+        for order in corrupted_orders:
+            session_id = order.get("payment_session_id", "")
+            original = session_id
+            
+            # Remove all trailing "payment" strings
+            while session_id.endswith("payment"):
+                session_id = session_id[:-7]
+            
+            if session_id != original:
+                # Update the order
+                await db.cashfree_orders.update_one(
+                    {"order_id": order.get("order_id")},
+                    {"$set": {"payment_session_id": session_id}}
+                )
+                # Also update in payments collection
+                await db.payments.update_one(
+                    {"order_id": order.get("order_id")},
+                    {"$set": {"payment_session_id": session_id}}
+                )
+                fixed_count += 1
+                logger.info(f"Fixed order {order.get('order_id')}: {len(original)} -> {len(session_id)} chars")
+        
+        return {
+            "success": True,
+            "corrupted_found": len(corrupted_orders),
+            "fixed_count": fixed_count,
+            "message": f"Fixed {fixed_count} corrupted payment sessions"
+        }
+    except Exception as e:
+        logger.error(f"Error fixing corrupted sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

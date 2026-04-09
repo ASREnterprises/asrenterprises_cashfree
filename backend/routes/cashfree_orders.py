@@ -616,6 +616,7 @@ async def get_order_status(order_id: str):
         "paid": order.get("status") == "paid",
         "paid_at": order.get("paid_at"),
         "payment_url": order.get("payment_url"),
+        "payment_session_id": order.get("payment_session_id"),  # IMPORTANT: Include session ID
         "created_at": order.get("created_at")
     }
 

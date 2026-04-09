@@ -4,6 +4,7 @@ import { Loader2, CreditCard, Shield, AlertCircle, Phone, MessageCircle } from '
 import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
+const API_BASE = `${API}/api`;  // API routes require /api prefix
 const ASR_SUPPORT_PHONE = "9296389097";
 const ASR_WHATSAPP_PHONE = "8298389097";
 
@@ -55,7 +56,7 @@ const CashfreeCheckout = () => {
   
   const fetchOrderAndInitialize = async () => {
     try {
-      const res = await axios.get(`${API}/cashfree/order/${orderId}`);
+      const res = await axios.get(`${API_BASE}/cashfree/order/${orderId}`);
       if (res.data.payment_session_id) {
         setOrderDetails(res.data);
         await initializeCheckoutWithSession(res.data.payment_session_id);
@@ -74,23 +75,36 @@ const CashfreeCheckout = () => {
   };
   
   const initializeCheckoutWithSession = async (paymentSessionId) => {
+    // CRITICAL: Validate payment_session_id before proceeding
+    if (!paymentSessionId || paymentSessionId === 'null' || paymentSessionId === 'undefined') {
+      console.error('INVALID payment_session_id:', paymentSessionId);
+      setError('Invalid payment session. Please try again or contact support.');
+      setLoading(false);
+      return;
+    }
+    
+    console.log('Initializing Cashfree checkout with session:', paymentSessionId.substring(0, 30) + '...');
+    
     try {
       // Load Cashfree SDK
       const Cashfree = await loadCashfreeSDK();
+      console.log('Cashfree SDK loaded successfully');
       
       // Initialize Cashfree in PRODUCTION mode
       const cashfree = Cashfree({
         mode: "production"  // IMPORTANT: Production mode
       });
+      console.log('Cashfree initialized in PRODUCTION mode');
       
       setLoading(false);
       
       // Auto-redirect to payment page
       setProcessingPayment(true);
       
-      // Use redirect checkout
+      // Use redirect checkout with CORRECT field name
+      console.log('Launching Cashfree checkout...');
       cashfree.checkout({
-        paymentSessionId: paymentSessionId,
+        paymentSessionId: paymentSessionId,  // MUST be paymentSessionId (camelCase)
         redirectTarget: "_self"  // Redirect in same tab
       });
       

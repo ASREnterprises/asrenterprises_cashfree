@@ -187,10 +187,15 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                                  order_id: str = ""):
     """
     Send payment notification via WhatsApp API.
-    Uses Meta-approved templates for outbound messages outside 24hr window.
+    Uses Meta-approved template for outbound messages outside 24hr window.
     
-    IMPORTANT: Template 'payment_sucess_confirm' must be APPROVED in Meta Business Manager.
-    Template variables (based on user's template):
+    PRODUCTION-READY FEATURES:
+    - Idempotency: Prevents duplicate messages for same order
+    - Detailed logging: All attempts logged to database
+    - Status tracking: Success/failure saved with error details
+    - Template-based: Uses approved 'payment_sucess_confirm' template
+    
+    Template Variables (as per user's approved template):
       - {{1}} = Order Status (e.g., "Confirmed")
       - {{2}} = Customer Name
       - {{3}} = Order ID
@@ -199,21 +204,32 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
       - {{6}} = Payment Date
     """
     try:
+        # IDEMPOTENCY CHECK: Don't send duplicate payment success messages
+        if msg_type == "payment_success" and order_id:
+            already_sent = await check_whatsapp_already_sent(order_id, "payment_success")
+            if already_sent:
+                logger.info(f"[WhatsApp] SKIP - Already sent for order {order_id} (idempotency)")
+                return True  # Return True as message was already sent successfully before
+        
+        # Get WhatsApp settings from database
         wa_settings = await db.whatsapp_settings.find_one({}, {"_id": 0})
         if not wa_settings or not wa_settings.get("access_token"):
-            logger.warning("WhatsApp not configured - missing access_token")
+            logger.warning(f"[WhatsApp] Not configured - missing access_token. Order: {order_id}")
+            await log_whatsapp_attempt(order_id, phone, msg_type, "failed", "WhatsApp not configured - missing access_token")
             return False
         
         cleaned_phone = clean_phone_with_country(phone)
         if not cleaned_phone:
-            logger.warning(f"Invalid phone number for WhatsApp: {phone}")
+            logger.warning(f"[WhatsApp] Invalid phone: {phone}, Order: {order_id}")
+            await log_whatsapp_attempt(order_id, phone, msg_type, "failed", "Invalid phone number")
             return False
         
         access_token = wa_settings.get("access_token")
         phone_number_id = wa_settings.get("phone_number_id")
         
         if not access_token or not phone_number_id:
-            logger.warning("WhatsApp missing phone_number_id or access_token")
+            logger.warning(f"[WhatsApp] Missing credentials. Order: {order_id}")
+            await log_whatsapp_attempt(order_id, phone, msg_type, "failed", "Missing phone_number_id or access_token")
             return False
         
         # Get current date/time in IST
@@ -228,30 +244,27 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
             "Content-Type": "application/json"
         }
         
-        # For payment success - USE APPROVED TEMPLATE
-        # Template name: payment_sucess_confirm (note: typo in original template name)
+        # PAYMENT SUCCESS - Use approved template
         if msg_type == "payment_success":
-            # Build template payload with body parameters
-            # The template has 6 variables based on user's screenshot:
-            # {{1}} Order Status, {{2}} customer_name, {{3}} order_id, 
-            # {{4}} amount, {{5}} payment_purpose, {{6}} payment_date
+            # Template: payment_sucess_confirm (note: typo in original template name)
+            # 6 body parameters matching user's approved template
             
             template_payload = {
                 "messaging_product": "whatsapp",
                 "to": cleaned_phone,
                 "type": "template",
                 "template": {
-                    "name": "payment_sucess_confirm",  # User's template name (with typo)
+                    "name": "payment_sucess_confirm",  # User's approved template name
                     "language": {"code": "en"},
                     "components": [
                         {
                             "type": "body",
                             "parameters": [
                                 {"type": "text", "text": "Confirmed"},  # {{1}} Order Status
-                                {"type": "text", "text": customer_name[:60] if customer_name else "Customer"},  # {{2}} customer_name
-                                {"type": "text", "text": order_id or "N/A"},  # {{3}} order_id
-                                {"type": "text", "text": f"{amount:,.0f}"},  # {{4}} amount (number only, ₹ is in template)
-                                {"type": "text", "text": (purpose[:100] if purpose else "Solar Service")},  # {{5}} payment_purpose
+                                {"type": "text", "text": (customer_name[:60] if customer_name else "Customer")},  # {{2}} customer_name
+                                {"type": "text", "text": (order_id or "N/A")},  # {{3}} order_id
+                                {"type": "text", "text": f"{amount:,.0f}"},  # {{4}} amount
+                                {"type": "text", "text": (purpose[:100] if purpose else "Solar Service Payment")},  # {{5}} payment_purpose
                                 {"type": "text", "text": payment_date}  # {{6}} payment_date
                             ]
                         }
@@ -259,8 +272,8 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                 }
             }
             
-            logger.info(f"Sending WhatsApp template 'payment_sucess_confirm' to {cleaned_phone}")
-            logger.info(f"Template params: Order={order_id}, Name={customer_name}, Amount={amount}")
+            logger.info(f"[WhatsApp] Sending template 'payment_sucess_confirm' to {cleaned_phone}")
+            logger.info(f"[WhatsApp] Params - Order: {order_id}, Name: {customer_name}, Amount: ₹{amount:,.0f}")
             
             async with httpx.AsyncClient(timeout=30.0) as http_client:
                 response = await http_client.post(wa_url, json=template_payload, headers=headers)
@@ -270,49 +283,60 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                     response_data = response.json()
                     wa_message_id = response_data.get("messages", [{}])[0].get("id", "")
                     
-                    # Log successful message
+                    # Log successful message with full details
                     await db.whatsapp_messages.insert_one({
                         "id": str(uuid.uuid4()),
                         "wa_message_id": wa_message_id,
                         "phone": cleaned_phone,
+                        "customer_name": customer_name,
                         "direction": "outgoing",
                         "type": "payment_success_template",
                         "template_name": "payment_sucess_confirm",
                         "order_id": order_id,
                         "amount": amount,
+                        "purpose": purpose,
                         "status": "sent",
-                        "created_at": datetime.now(timezone.utc).isoformat()
+                        "delivery_status": "submitted",
+                        "meta_response": response_data,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "sent_at": datetime.now(timezone.utc).isoformat()
                     })
                     
-                    logger.info(f"WhatsApp payment confirmation template sent successfully to {cleaned_phone}, msg_id={wa_message_id}")
+                    logger.info(f"[WhatsApp] ✅ SUCCESS - Order: {order_id}, Phone: {cleaned_phone}, MsgID: {wa_message_id}")
                     return True
                 else:
-                    # Log the error for debugging
+                    # Parse error details
                     error_detail = "Unknown error"
+                    error_code = None
                     try:
                         error_json = response.json()
-                        error_detail = error_json.get("error", {}).get("message", response_text)
-                    except:
+                        error_obj = error_json.get("error", {})
+                        error_detail = error_obj.get("message", response_text)
+                        error_code = error_obj.get("code")
+                    except Exception:
                         error_detail = response_text
                     
-                    logger.error(f"WhatsApp template API error ({response.status_code}): {error_detail}")
+                    logger.error(f"[WhatsApp] ❌ FAILED - Order: {order_id}, HTTP: {response.status_code}, Code: {error_code}, Error: {error_detail}")
                     
-                    # Log failed attempt
+                    # Log failed attempt with error details
                     await db.whatsapp_messages.insert_one({
                         "id": str(uuid.uuid4()),
                         "phone": cleaned_phone,
+                        "customer_name": customer_name,
                         "direction": "outgoing",
                         "type": "payment_success_template",
                         "template_name": "payment_sucess_confirm",
                         "order_id": order_id,
+                        "amount": amount,
                         "status": "failed",
-                        "error": error_detail,
+                        "error_code": error_code,
+                        "error_message": error_detail,
+                        "http_status": response.status_code,
                         "created_at": datetime.now(timezone.utc).isoformat()
                     })
                     
-                    # If template fails (likely "In review"), try fallback text message
-                    # This only works if customer messaged within last 24 hours
-                    logger.info("Trying fallback text message (requires 24hr window)...")
+                    # Try fallback text message (only works within 24-hour conversation window)
+                    logger.info("[WhatsApp] Trying fallback text message (requires 24hr window)...")
                     
                     fallback_message = f"""✅ *Payment Received Successfully*
 
@@ -343,13 +367,29 @@ ASR ENTERPRISES | Patna"""
                     
                     response2 = await http_client.post(wa_url, json=text_payload, headers=headers)
                     if response2.status_code in [200, 201]:
-                        logger.info(f"WhatsApp fallback text sent to {cleaned_phone}")
+                        resp2_data = response2.json()
+                        fallback_msg_id = resp2_data.get("messages", [{}])[0].get("id", "")
+                        
+                        # Log fallback success
+                        await db.whatsapp_messages.insert_one({
+                            "id": str(uuid.uuid4()),
+                            "wa_message_id": fallback_msg_id,
+                            "phone": cleaned_phone,
+                            "direction": "outgoing",
+                            "type": "payment_success_fallback",
+                            "order_id": order_id,
+                            "content": fallback_message,
+                            "status": "sent",
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        })
+                        
+                        logger.info(f"[WhatsApp] ✅ Fallback text sent to {cleaned_phone}")
                         return True
                     else:
-                        logger.error(f"WhatsApp fallback text also failed: {response2.text}")
+                        logger.error(f"[WhatsApp] ❌ Fallback also failed: {response2.text}")
                         return False
         
-        # For payment_request and other types - use text messages (requires 24hr window or user-initiated)
+        # For non-payment-success types - use text messages (requires 24hr window)
         if msg_type == "payment_request":
             message = f"""Dear {customer_name},
 
@@ -361,19 +401,17 @@ Your payment request from *{ASR_BUSINESS_NAME}* is ready.
 Pay securely here:
 {payment_url}
 
-Need help? Reply on WhatsApp or call {ASR_DISPLAY_PHONE}
+Need help? Call {ASR_DISPLAY_PHONE}
 
-Thank you,
 {ASR_BUSINESS_NAME}
 {ASR_WEBSITE}"""
         
         elif msg_type == "payment_reminder":
             message = f"""Dear {customer_name},
 
-Gentle reminder: Your payment of ₹{amount:,.0f} for *{purpose}* is pending.
+Reminder: Your payment of ₹{amount:,.0f} for *{purpose}* is pending.
 
-Complete payment here:
-{payment_url}
+Pay here: {payment_url}
 
 Questions? Call {ASR_DISPLAY_PHONE}
 
@@ -404,203 +442,126 @@ Contact: {ASR_DISPLAY_PHONE}
                 response_data = response.json()
                 wa_message_id = response_data.get("messages", [{}])[0].get("id", "")
                 
-                # Log the message
                 await db.whatsapp_messages.insert_one({
                     "id": str(uuid.uuid4()),
                     "wa_message_id": wa_message_id,
                     "phone": cleaned_phone,
                     "direction": "outgoing",
                     "type": msg_type,
+                    "order_id": order_id,
                     "content": message,
                     "status": "sent",
                     "created_at": datetime.now(timezone.utc).isoformat()
                 })
                 
-                logger.info(f"WhatsApp {msg_type} sent to {cleaned_phone}")
+                logger.info(f"[WhatsApp] ✅ {msg_type} sent to {cleaned_phone}")
                 return True
             else:
-                logger.error(f"WhatsApp API error: {response.status_code} - {response.text}")
+                logger.error(f"[WhatsApp] ❌ {msg_type} failed: {response.status_code} - {response.text}")
                 return False
                 
     except Exception as e:
-        logger.error(f"Error sending WhatsApp: {e}")
+        logger.error(f"[WhatsApp] Exception: {e}")
         import traceback
         logger.error(traceback.format_exc())
+        await log_whatsapp_attempt(order_id, phone, msg_type, "error", str(e))
         return False
 
 
 async def send_payment_sms(phone: str, order_id: str, amount: float, purpose: str):
     """
-    Send payment confirmation SMS via MSG91 Flow API (v5).
+    Send payment confirmation SMS via MSG91 Flow API.
     
-    IMPORTANT: User must create a Flow in MSG91 dashboard:
-    1. Go to MSG91 > One API > Add Flow
-    2. Create a transactional SMS flow with DLT-approved template
-    3. Add variables: ##order_id##, ##amount##, ##purpose##
-    4. Note the flow_id and set MSG91_FLOW_ID in .env
+    CURRENTLY DISABLED: DLT registration pending.
+    Will be enabled after DLT approval.
     
-    Fallback: Uses direct sendhttp.php API if flow fails
+    MSG91_AUTH_KEY is saved in .env for future use.
     """
-    try:
-        # Get MSG91 credentials from environment
-        msg91_api_key = os.environ.get("MSG91_AUTH_KEY", "")
-        msg91_flow_id = os.environ.get("MSG91_FLOW_ID", "")  # Optional: for Flow API
-        
-        if not msg91_api_key:
-            logger.warning("MSG91_AUTH_KEY not configured in .env, skipping SMS")
-            return False
-        
-        # Clean phone number (ensure 10 digits)
-        cleaned_phone = clean_phone_number(phone)
-        if not cleaned_phone or len(cleaned_phone) != 10:
-            logger.warning(f"Invalid phone for SMS: {phone}")
-            return False
-        
-        # Full international format for MSG91
-        full_phone = f"91{cleaned_phone}"
-        
-        logger.info(f"Attempting to send payment SMS to {full_phone} for order {order_id}")
-        
-        # Method 1: Try Flow API if flow_id is configured
-        if msg91_flow_id:
-            logger.info(f"Using MSG91 Flow API with flow_id: {msg91_flow_id}")
-            
-            flow_url = "https://control.msg91.com/api/v5/flow"
-            
-            headers = {
-                "accept": "application/json",
-                "content-type": "application/json",
-                "authkey": msg91_api_key
-            }
-            
-            # Flow payload with variables matching the flow template
-            flow_payload = {
-                "flow_id": msg91_flow_id,
-                "recipients": [
-                    {
-                        "mobiles": full_phone,
-                        "order_id": order_id,
-                        "amount": f"{amount:,.0f}",
-                        "purpose": purpose[:50] if purpose else "Payment"
-                    }
-                ]
-            }
-            
-            async with httpx.AsyncClient(timeout=30.0) as http_client:
-                response = await http_client.post(flow_url, json=flow_payload, headers=headers)
-                response_text = response.text
-                
-                logger.info(f"MSG91 Flow API response: {response.status_code} - {response_text}")
-                
-                if response.status_code in [200, 201]:
-                    # Log successful SMS
-                    await db.sms_logs.insert_one({
-                        "id": str(uuid.uuid4()),
-                        "phone": full_phone,
-                        "order_id": order_id,
-                        "method": "flow_api",
-                        "flow_id": msg91_flow_id,
-                        "type": "payment_confirmation",
-                        "status": "sent",
-                        "sent_at": datetime.now(timezone.utc).isoformat(),
-                        "response": response_text
-                    })
-                    logger.info(f"Payment SMS sent successfully via Flow API to {full_phone}")
-                    return True
-                else:
-                    logger.warning(f"Flow API failed, trying legacy API...")
-        
-        # Method 2: Legacy SendHTTP API (fallback)
-        # This requires DLT registration in India
-        legacy_url = "https://api.msg91.com/api/sendhttp.php"
-        
-        # Build SMS message (must match DLT-approved template exactly)
-        sms_message = f"ASR ENTERPRISES: Payment of Rs {amount:,.0f} received. Order: {order_id}. Purpose: {purpose[:30] if purpose else 'Payment'}. Support: {ASR_DISPLAY_PHONE}"
-        
-        params = {
-            "authkey": msg91_api_key,
-            "mobiles": full_phone,
-            "message": sms_message,
-            "sender": "ASRENT",  # 6-char DLT-approved sender ID
-            "route": "4",  # Transactional route
-            "country": "91"
-        }
-        
-        async with httpx.AsyncClient(timeout=30.0) as http_client:
-            response = await http_client.get(legacy_url, params=params)
-            response_text = response.text
-            
-            logger.info(f"MSG91 Legacy API response: {response.status_code} - {response_text}")
-            
-            # MSG91 returns request_id on success, or error message
-            if response.status_code == 200 and "error" not in response_text.lower():
-                # Log successful SMS
-                await db.sms_logs.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "phone": full_phone,
-                    "order_id": order_id,
-                    "message": sms_message,
-                    "method": "legacy_api",
-                    "type": "payment_confirmation",
-                    "status": "sent",
-                    "sent_at": datetime.now(timezone.utc).isoformat(),
-                    "response": response_text
-                })
-                logger.info(f"Payment SMS sent via Legacy API to {full_phone}")
-                return True
-            else:
-                # Log failed attempt
-                await db.sms_logs.insert_one({
-                    "id": str(uuid.uuid4()),
-                    "phone": full_phone,
-                    "order_id": order_id,
-                    "message": sms_message,
-                    "method": "legacy_api",
-                    "type": "payment_confirmation",
-                    "status": "failed",
-                    "sent_at": datetime.now(timezone.utc).isoformat(),
-                    "response": response_text,
-                    "error": f"HTTP {response.status_code}: {response_text}"
-                })
-                logger.error(f"MSG91 SMS failed: {response_text}")
-                return False
-                
-    except Exception as e:
-        logger.error(f"Error sending payment SMS: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+    # Check if SMS is enabled (disabled by default until DLT is approved)
+    sms_enabled = os.environ.get("SMS_ENABLED", "false").lower() == "true"
+    
+    if not sms_enabled:
+        logger.info(f"[SMS] Disabled (DLT pending). Skipping SMS for order {order_id}")
         return False
+    
+    # SMS logic will be enabled after DLT registration
+    logger.info(f"[SMS] Would send to {phone} for order {order_id} (currently disabled)")
+    return False
+
+
+async def check_whatsapp_already_sent(order_id: str, msg_type: str = "payment_success") -> bool:
+    """
+    Check if WhatsApp message was already sent for this order.
+    Prevents duplicate messages (idempotency).
+    """
+    existing = await db.whatsapp_messages.find_one({
+        "order_id": order_id,
+        "type": {"$regex": f"^{msg_type}"},
+        "status": "sent"
+    })
+    return existing is not None
+
+
+async def log_whatsapp_attempt(order_id: str, phone: str, msg_type: str, status: str, error: str = None):
+    """Helper to log WhatsApp send attempts for debugging"""
+    try:
+        await db.whatsapp_messages.insert_one({
+            "id": str(uuid.uuid4()),
+            "phone": phone,
+            "direction": "outgoing",
+            "type": msg_type,
+            "order_id": order_id,
+            "status": status,
+            "error_message": error,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Failed to log WhatsApp attempt: {e}")
 
 
 async def send_payment_confirmations(order: Dict, order_id: str, amount: float):
     """
-    Send both SMS and WhatsApp confirmation after successful payment.
-    This ensures customers always receive confirmation.
+    Send payment confirmation after successful Cashfree payment.
+    
+    PRODUCTION FLOW:
+    1. WhatsApp template message (primary) - uses approved 'payment_sucess_confirm' template
+    2. SMS is DISABLED until DLT registration is complete
+    
+    Features:
+    - Idempotency: Won't send duplicate messages for same order
+    - Detailed logging: All attempts logged with status
+    - Error handling: Failures don't crash the webhook
     """
     customer_phone = order.get("customer_phone", "")
     customer_name = order.get("customer_name", "Customer")
     purpose = order.get("purpose", "Payment")
     
+    logger.info(f"[Confirmations] Starting for order {order_id}, phone: ****{customer_phone[-4:] if customer_phone else 'N/A'}")
+    
     results = {
         "whatsapp_sent": False,
-        "sms_sent": False
+        "sms_sent": False,  # Always false - SMS disabled
+        "sms_disabled": True,
+        "order_id": order_id
     }
     
-    # Send WhatsApp confirmation (primary)
+    # PRIMARY: Send WhatsApp confirmation using approved template
     try:
         results["whatsapp_sent"] = await send_payment_whatsapp(
             phone=customer_phone,
             customer_name=customer_name,
             amount=amount,
-            payment_url="",
+            payment_url="",  # Not needed for payment_success type
             purpose=purpose,
             msg_type="payment_success",
             order_id=order_id
         )
     except Exception as e:
-        logger.error(f"WhatsApp confirmation error: {e}")
+        logger.error(f"[Confirmations] WhatsApp error for {order_id}: {e}")
+        results["whatsapp_error"] = str(e)
     
-    # Send SMS confirmation (backup)
+    # SMS is disabled until DLT registration
+    # This call will immediately return False and log the skip
     try:
         results["sms_sent"] = await send_payment_sms(
             phone=customer_phone,
@@ -609,9 +570,12 @@ async def send_payment_confirmations(order: Dict, order_id: str, amount: float):
             purpose=purpose
         )
     except Exception as e:
-        logger.error(f"SMS confirmation error: {e}")
+        logger.error(f"[Confirmations] SMS error for {order_id}: {e}")
     
-    logger.info(f"Payment confirmations for {order_id}: WhatsApp={results['whatsapp_sent']}, SMS={results['sms_sent']}")
+    # Log final results
+    status_emoji = "✅" if results["whatsapp_sent"] else "⚠️"
+    logger.info(f"[Confirmations] {status_emoji} Order {order_id} - WhatsApp: {results['whatsapp_sent']}, SMS: disabled")
+    
     return results
 
 
@@ -719,7 +683,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
             "x-api-version": CASHFREE_API_VERSION
         }
         
-        logger.info(f"Creating Cashfree order with HARDCODED PRODUCTION credentials")
+        logger.info("Creating Cashfree order with HARDCODED PRODUCTION credentials")
         logger.info(f"API URL: {base_url}")
         logger.info(f"App ID: {CASHFREE_PRODUCTION_APP_ID[:10]}...")
         
@@ -791,7 +755,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 # Remove known corruption patterns
                 while payment_session_id.endswith("payment"):
                     payment_session_id = payment_session_id[:-7]  # Remove "payment" (7 chars)
-                    logger.warning(f"Cleaned corrupted payment_session_id - removed 'payment' suffix")
+                    logger.warning("Cleaned corrupted payment_session_id - removed 'payment' suffix")
                 
                 # Trim to valid Cashfree session ID length (typically 132 chars)
                 if len(payment_session_id) > 140:

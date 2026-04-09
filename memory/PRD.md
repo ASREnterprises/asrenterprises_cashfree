@@ -16,37 +16,38 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 9, 2026 - Round 16)
+## Latest Updates (April 9, 2026 - Round 17)
 
-### ✅ CASHFREE PAYMENT FIX - payment_session_id VALIDATION COMPLETE
+### ✅ CODE QUALITY IMPROVEMENTS APPLIED
 
-**ISSUE RESOLVED:**
-Fixed the `payment_session_id is not present or is invalid` error that was occurring on production.
+**Security Fixes:**
+- Removed hardcoded password in `routes/hr.py` - now uses `DEFAULT_STAFF_PASSWORD` env var or generates random password
+- Fixed Python `is` comparison anti-pattern in test files (replaced with `==`)
 
-**ROOT CAUSE:**
-The checkout page was redirecting to the production domain (`asrenterprises.in`) even when testing from preview environments. Since the preview domain is not whitelisted in Cashfree, the SDK would fail with a "Broken Link" error.
+**React Hook Fixes:**
+- Fixed `useAutoLogout.js` - proper dependency array for INACTIVITY_TIMEOUT
+- Fixed `use-toast.js` - corrected useEffect dependencies
+- Fixed `WhatsAppCRM.js` - moved fetchTemplates to useCallback with proper deps
 
-**SOLUTION IMPLEMENTED:**
-1. Added `origin_url` parameter to both `CreateOrderRequest` and `WebsiteOrderRequest` models
-2. Frontend now sends `window.location.origin` as `origin_url` in API requests
-3. Backend uses `origin_url` (if provided) to generate same-origin checkout URLs
-4. When `origin_url` is not provided (production), it defaults to `asrenterprises.in`
+**Code Quality:**
+- Fixed bare `except` clauses in `hr.py` with specific exception types
+- Fixed index-as-key pattern in `StaffTraining.js`
+- Removed unused variable assignment in HR delete endpoint
 
-**KEY BEHAVIORAL CHANGE:**
-- **Production (`asrenterprises.in`)**: Checkout URL → `asrenterprises.in/payment/checkout?session_id=...` ✅ (Whitelisted)
-- **Preview**: Checkout URL → `preview.emergentagent.com/payment/checkout?session_id=...` (Not whitelisted - expected to show "Broken Link" error)
+### ✅ CASHFREE PAYMENT - DIRECT SDK CALL (Round 16)
 
-**FILES UPDATED:**
-- `/app/backend/routes/cashfree_orders.py` - Added `origin_url` support and enhanced logging
-- `/app/frontend/src/App.js` - Sends `origin_url: window.location.origin` in payment requests
-- `/app/frontend/src/components/CashfreeCheckout.js` - Added detailed logging for debugging
+**ROOT CAUSE:** 
+The redirect-based checkout was losing the `payment_session_id` when navigating to `/payment/checkout?session_id=...`
 
-**PRODUCTION DEPLOYMENT REQUIRED:**
-The code is 100% correct and tested. Deploy to production server:
-1. Upload `/app/backend/` (especially `routes/cashfree_orders.py`)
-2. Build and upload `/app/frontend/build/`
-3. Restart services
-4. Test checkout flow
+**SOLUTION:**
+Changed from redirect-based to **DIRECT SDK CALL**:
+- After order creation, Cashfree SDK is loaded directly on the main page
+- `cashfree.checkout()` is called immediately with the session_id from API response
+- No URL redirect, no parsing - the exact session_id is used directly
+
+**Files Updated:**
+- `/app/frontend/src/App.js` - Added `loadCashfreeSDK()` and `launchCashfreeCheckout()` functions
+- Changed "Pay ₹X Now" button from link to direct SDK call
 
 ## Previous Updates (April 9, 2026 - Round 15)
 

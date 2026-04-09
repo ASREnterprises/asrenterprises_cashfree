@@ -10,7 +10,7 @@ export const useAutoLogout = (isAuthenticated, logoutCallback, userType = 'admin
   const timeoutRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   
-  // Use different timeout based on user type
+  // Use different timeout based on user type - memoized to avoid dependency issues
   const INACTIVITY_TIMEOUT = userType === 'staff' ? STAFF_INACTIVITY_TIMEOUT : ADMIN_INACTIVITY_TIMEOUT;
 
   const handleLogout = useCallback(() => {
@@ -46,8 +46,9 @@ export const useAutoLogout = (isAuthenticated, logoutCallback, userType = 'admin
       clearTimeout(timeoutRef.current);
     }
     
+    const timeout = userType === 'staff' ? STAFF_INACTIVITY_TIMEOUT : ADMIN_INACTIVITY_TIMEOUT;
     if (isAuthenticated) {
-      timeoutRef.current = setTimeout(handleLogout, INACTIVITY_TIMEOUT);
+      timeoutRef.current = setTimeout(handleLogout, timeout);
     }
   }, [isAuthenticated, handleLogout, userType]);
 
@@ -57,10 +58,11 @@ export const useAutoLogout = (isAuthenticated, logoutCallback, userType = 'admin
     // Check for stored last activity on mount
     const storageKey = userType === 'admin' ? 'asrAdminLastActivity' : 'asrStaffLastActivity';
     const storedLastActivity = localStorage.getItem(storageKey);
+    const timeout = userType === 'staff' ? STAFF_INACTIVITY_TIMEOUT : ADMIN_INACTIVITY_TIMEOUT;
     
     if (storedLastActivity) {
       const timeSinceLastActivity = Date.now() - parseInt(storedLastActivity);
-      if (timeSinceLastActivity > INACTIVITY_TIMEOUT) {
+      if (timeSinceLastActivity > timeout) {
         handleLogout();
         return;
       }

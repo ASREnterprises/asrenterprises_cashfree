@@ -78,15 +78,7 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
   const [success, setSuccess] = useState('');
   const [syncing, setSyncing] = useState(false);
   
-  useEffect(() => {
-    if (isOpen) {
-      fetchTemplates();
-      setError('');
-      setSuccess('');
-    }
-  }, [isOpen]);
-  
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/api/whatsapp/templates`);
       setTemplates(res.data || []);
@@ -97,7 +89,15 @@ export const SendWhatsAppModal = ({ isOpen, onClose, lead, onSent }) => {
     } catch (err) {
       console.error('Error fetching templates:', err);
     }
-  };
+  }, [API]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      fetchTemplates();
+      setError('');
+      setSuccess('');
+    }
+  }, [isOpen, fetchTemplates]);
   
   const syncTemplates = async () => {
     setSyncing(true);

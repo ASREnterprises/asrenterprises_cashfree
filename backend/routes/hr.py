@@ -174,7 +174,7 @@ async def create_hr_employee(data: Dict[str, Any]):
             try:
                 last_num = int(latest["employee_id"][3:])
                 data["employee_id"] = f"ASR{last_num + 1:04d}"
-            except:
+            except (ValueError, IndexError, TypeError):
                 data["employee_id"] = f"ASR{1001}"
         else:
             data["employee_id"] = "ASR1001"
@@ -215,7 +215,9 @@ async def create_hr_employee(data: Dict[str, Any]):
     
     # Auto-sync with CRM staff accounts
     import hashlib
-    default_password = "asr@123"
+    import os
+    # Use environment variable for default password or generate a random one
+    default_password = os.environ.get("DEFAULT_STAFF_PASSWORD", str(uuid.uuid4())[:12])
     password_hash = hashlib.sha256(default_password.encode()).hexdigest()
     
     staff_data = {
@@ -311,7 +313,7 @@ async def update_employee_onboarding(employee_id: str, data: Dict[str, Any]):
 @router.delete("/employees/{employee_id}")
 async def delete_hr_employee(employee_id: str):
     """Delete HR employee (soft delete - mark as terminated)"""
-    result = await db.hr_employees.update_one(
+    await db.hr_employees.update_one(
         {"employee_id": employee_id},
         {"$set": {
             "status": "terminated",
@@ -626,7 +628,7 @@ async def get_hr_summary_report():
                     tenure_data["1-2 years"] += 1
                 else:
                     tenure_data["2+ years"] += 1
-            except:
+            except (ValueError, TypeError):
                 pass
     
     return {

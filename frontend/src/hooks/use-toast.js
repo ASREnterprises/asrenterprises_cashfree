@@ -143,7 +143,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     };
-  }, [state])
+  }, []) // Empty deps - listeners is a module-level array
 
   return {
     ...state,

@@ -642,13 +642,13 @@ const StaffTraining = ({ staffId, staffName, staffRole }) => {
             
             <div className="grid md:grid-cols-3 gap-6">
               {QUICK_REFERENCES.map((card, index) => (
-                <div key={index} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div key={card.title || index} className="bg-white rounded-2xl shadow-lg overflow-hidden">
                   <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4 text-white">
                     <h3 className="font-bold">{card.title}</h3>
                   </div>
                   <div className="p-4">
-                    {card.items.map((item, i) => (
-                      <div key={i} className="flex justify-between py-3 border-b border-gray-100 last:border-0">
+                    {card.items.map((item, idx) => (
+                      <div key={item.label || idx} className="flex justify-between py-3 border-b border-gray-100 last:border-0">
                         <span className="text-gray-600">{item.label}</span>
                         <span className="font-semibold text-gray-800">{item.value}</span>
                       </div>

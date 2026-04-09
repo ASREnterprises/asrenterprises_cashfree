@@ -1108,9 +1108,11 @@ const HomePage = () => {
     setVerifyLoading(true);
     
     try {
-      // Use new Cashfree Orders API endpoint - MUST include /api prefix
+      // Use Cashfree Orders API endpoint
+      // Note: API already includes /api prefix, so we use /cashfree/... not /api/cashfree/...
       console.log('Creating Cashfree order...');
-      const res = await axios.post(`${API}/api/cashfree/website/create-order`, {
+      console.log('API URL:', `${API}/cashfree/website/create-order`);
+      const res = await axios.post(`${API}/cashfree/website/create-order`, {
         customer_name: bookingData.customer_name,
         customer_phone: bookingData.customer_phone,
         customer_email: bookingData.customer_email,
@@ -1152,8 +1154,8 @@ const HomePage = () => {
     }
     setVerifyLoading(true);
     try {
-      // Verify payment status using new Orders API - MUST include /api prefix
-      const res = await axios.get(`${API}/api/cashfree/order/${paymentOrderId}/refresh`);
+      // Verify payment status - API already includes /api prefix
+      const res = await axios.get(`${API}/cashfree/order/${paymentOrderId}/refresh`);
       
       if (res.data.paid) {
         setBookingSuccess({

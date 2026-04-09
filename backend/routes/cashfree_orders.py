@@ -130,10 +130,15 @@ async def get_cashfree_config() -> Optional[Dict]:
     sandbox_env = os.environ.get("CASHFREE_SANDBOX", "false").lower()
     env_mode = os.environ.get("CASHFREE_ENV", "PRODUCTION").upper()
     
-    # Determine if sandbox mode - MUST be explicitly set to true
-    is_sandbox = sandbox_env == "true" or env_mode == "SANDBOX"
+    # CRITICAL FIX: Force PRODUCTION mode for asrenterprises.in
+    # The secret key starting with "cfsk_ma_prod_" indicates production credentials
+    is_production_key = secret_key.startswith("cfsk_ma_prod_")
     
-    logger.info(f"Cashfree Config: ENV={env_mode}, SANDBOX_VAR={sandbox_env}, is_sandbox={is_sandbox}")
+    # Determine if sandbox mode - only if explicitly set AND not using production keys
+    is_sandbox = (sandbox_env == "true" or env_mode == "SANDBOX") and not is_production_key
+    
+    # Log the configuration
+    logger.info(f"Cashfree Config: ENV={env_mode}, SANDBOX_VAR={sandbox_env}, is_production_key={is_production_key}, is_sandbox={is_sandbox}")
     
     if app_id and secret_key:
         return {

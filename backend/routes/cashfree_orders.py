@@ -183,7 +183,8 @@ def verify_webhook_signature(timestamp: str, raw_body: str, signature: str, secr
         return False
 
 async def send_payment_whatsapp(phone: str, customer_name: str, amount: float, 
-                                 payment_url: str, purpose: str, msg_type: str = "payment_request"):
+                                 payment_url: str, purpose: str, msg_type: str = "payment_request",
+                                 order_id: str = ""):
     """Send payment notification via WhatsApp API"""
     try:
         wa_settings = await db.whatsapp_settings.find_one({}, {"_id": 0})
@@ -200,6 +201,10 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
         
         if not access_token or not phone_number_id:
             return False
+        
+        # Get current date
+        from datetime import datetime, timezone
+        payment_date = datetime.now(timezone.utc).strftime("%d %B %Y, %I:%M %p")
         
         # Create message based on type
         if msg_type == "payment_request":
@@ -220,18 +225,26 @@ Thank you,
 {ASR_WEBSITE}"""
         
         elif msg_type == "payment_success":
-            message = f"""Dear {customer_name},
+            # NEW TEMPLATE - Detailed payment confirmation
+            message = f"""✅ *Payment Received Successfully*
 
-*Payment Received Successfully!*
+Dear {customer_name},
 
-Amount: ₹{amount:,.0f}
-Purpose: {purpose}
+Thank you for your payment to *ASR ENTERPRISES*.
 
-Thank you for choosing {ASR_BUSINESS_NAME}.
-Our team will contact you shortly.
+📌 *Order ID:* {order_id}
+💰 *Amount Paid:* ₹{amount:,.0f}
+📝 *Purpose:* {purpose}
+📅 *Date:* {payment_date}
 
-For support: {ASR_DISPLAY_PHONE}
-{ASR_WEBSITE}"""
+Your payment has been received successfully.
+
+Our team will contact you shortly for the next steps.
+
+📞 Support: {ASR_DISPLAY_PHONE}
+🌐 Website: {ASR_WEBSITE}
+
+Thank you for choosing ASR ENTERPRISES ☀️"""
         
         elif msg_type == "payment_reminder":
             message = f"""Dear {customer_name},
@@ -298,6 +311,132 @@ Contact: {ASR_DISPLAY_PHONE}
     except Exception as e:
         logger.error(f"Error sending WhatsApp: {e}")
         return False
+
+
+async def send_payment_sms(phone: str, order_id: str, amount: float, purpose: str):
+    """
+    Send payment confirmation SMS via MSG91 API
+    Template: ASR ENTERPRISES: Payment received successfully. Order ID: {{order_id}}, Amount: Rs {{amount}}, Purpose: {{payment_purpose}}. Our team will contact you shortly. Support: 9296389097
+    """
+    try:
+        # Get MSG91 API key from environment
+        msg91_api_key = os.environ.get("MSG91_AUTH_KEY", "")
+        if not msg91_api_key:
+            logger.warning("MSG91 API key not configured, skipping SMS")
+            return False
+        
+        # Clean phone number
+        cleaned_phone = clean_phone_number(phone)
+        if not cleaned_phone or len(cleaned_phone) != 10:
+            logger.warning(f"Invalid phone for SMS: {phone}")
+            return False
+        
+        # Add country code if needed
+        if not cleaned_phone.startswith("91"):
+            cleaned_phone = f"91{cleaned_phone}"
+        
+        # SMS message
+        sms_message = f"ASR ENTERPRISES: Payment received successfully. Order ID: {order_id}, Amount: Rs {amount:,.0f}, Purpose: {purpose}. Our team will contact you shortly. Support: {ASR_DISPLAY_PHONE}"
+        
+        # MSG91 SMS API
+        # Using flow API for transactional SMS
+        sms_url = "https://control.msg91.com/api/v5/flow/"
+        
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "authkey": msg91_api_key
+        }
+        
+        # Alternative: Direct SMS API
+        # For now, use simple text SMS API
+        simple_sms_url = f"https://api.msg91.com/api/v2/sendsms"
+        
+        payload = {
+            "sender": "ASRENT",  # 6-char sender ID (needs to be approved)
+            "route": "4",  # Transactional route
+            "country": "91",
+            "sms": [
+                {
+                    "message": sms_message,
+                    "to": [cleaned_phone]
+                }
+            ]
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as http_client:
+            response = await http_client.post(
+                simple_sms_url,
+                json=payload,
+                headers=headers
+            )
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"Payment SMS sent to {cleaned_phone} for order {order_id}")
+                
+                # Log SMS in database
+                await db.sms_logs.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "phone": cleaned_phone,
+                    "order_id": order_id,
+                    "message": sms_message,
+                    "type": "payment_confirmation",
+                    "status": "sent",
+                    "sent_at": datetime.now(timezone.utc).isoformat(),
+                    "response": response.text
+                })
+                return True
+            else:
+                logger.error(f"MSG91 SMS error: {response.status_code} - {response.text}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"Error sending payment SMS: {e}")
+        return False
+
+
+async def send_payment_confirmations(order: Dict, order_id: str, amount: float):
+    """
+    Send both SMS and WhatsApp confirmation after successful payment.
+    This ensures customers always receive confirmation.
+    """
+    customer_phone = order.get("customer_phone", "")
+    customer_name = order.get("customer_name", "Customer")
+    purpose = order.get("purpose", "Payment")
+    
+    results = {
+        "whatsapp_sent": False,
+        "sms_sent": False
+    }
+    
+    # Send WhatsApp confirmation (primary)
+    try:
+        results["whatsapp_sent"] = await send_payment_whatsapp(
+            phone=customer_phone,
+            customer_name=customer_name,
+            amount=amount,
+            payment_url="",
+            purpose=purpose,
+            msg_type="payment_success",
+            order_id=order_id
+        )
+    except Exception as e:
+        logger.error(f"WhatsApp confirmation error: {e}")
+    
+    # Send SMS confirmation (backup)
+    try:
+        results["sms_sent"] = await send_payment_sms(
+            phone=customer_phone,
+            order_id=order_id,
+            amount=amount,
+            purpose=purpose
+        )
+    except Exception as e:
+        logger.error(f"SMS confirmation error: {e}")
+    
+    logger.info(f"Payment confirmations for {order_id}: WhatsApp={results['whatsapp_sent']}, SMS={results['sms_sent']}")
+    return results
+
 
 async def create_lead_from_payment(order_data: Dict) -> str:
     """Auto-create lead from payment if doesn't exist"""
@@ -415,6 +554,9 @@ async def create_cashfree_order(request: CreateOrderRequest):
         if not customer_phone or len(customer_phone) != 10:
             raise HTTPException(status_code=400, detail="Invalid phone number. Please provide 10-digit mobile number.")
         
+        # SECURITY: Mask phone number in logs
+        masked_phone = f"****{customer_phone[-4:]}"
+        
         # Determine base website URL - use origin_url if provided, else default to production
         website_base = request.origin_url or ASR_WEBSITE
         logger.info(f"Using website base URL: {website_base}")
@@ -443,9 +585,9 @@ async def create_cashfree_order(request: CreateOrderRequest):
         if request.customer_email:
             order_payload["customer_details"]["customer_email"] = request.customer_email
         
-        logger.info(f"Creating Cashfree order: {order_id}, amount: {request.amount}")
+        # SECURITY: Log order creation with masked customer data
+        logger.info(f"Creating Cashfree order: {order_id}, amount: {request.amount}, phone: {masked_phone}")
         logger.info(f"Cashfree API URL: {base_url}/orders")
-        logger.info(f"Order payload: {order_payload}")
         
         async with httpx.AsyncClient(timeout=30.0) as http_client:
             response = await http_client.post(
@@ -910,22 +1052,20 @@ async def cashfree_orders_webhook(request: Request):
                             order_id
                         )
                     
-                    # Send WhatsApp confirmation
-                    await send_payment_whatsapp(
-                        order["customer_phone"],
-                        order["customer_name"],
-                        payment_amount,
-                        "",
-                        order["purpose"],
-                        "payment_success"
+                    # Send BOTH WhatsApp AND SMS confirmations
+                    confirmation_results = await send_payment_confirmations(
+                        order=order,
+                        order_id=order_id,
+                        amount=payment_amount
                     )
                     
                     processing_result = {
                         "processed": True,
                         "message": "Payment marked as PAID",
-                        "amount": payment_amount
+                        "amount": payment_amount,
+                        "confirmations": confirmation_results
                     }
-                    logger.info(f"Payment SUCCESS: order={order_id}, amount={payment_amount}")
+                    logger.info(f"Payment SUCCESS: order={order_id}, amount={payment_amount}, confirmations={confirmation_results}")
             else:
                 processing_result = {"processed": False, "message": "Order not found"}
         

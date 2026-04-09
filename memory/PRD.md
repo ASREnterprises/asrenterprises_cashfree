@@ -9,54 +9,66 @@ Build a comprehensive Solar Business CRM with the following key features:
 5. **Cashfree Payments Integration**: Full payment collection system with links, webhooks, and tracking
 
 ## Critical Credentials (DO NOT CHANGE)
-- **Admin Login Mobile**: `8877896889`
 - **Admin Login Email**: `asrenterprisespatna@gmail.com`
 - **Admin Login Password**: `admin@asr123`
 - **WhatsApp API Number**: `8298389097`
 - **Display Contact Number**: `9296389097`
 - **Support Email**: `support@asrenterprises.in`
+- **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 8, 2026 - Round 13)
+## Latest Updates (April 9, 2026 - Round 14)
 
-### ✅ Payment UI Integration in Lead Cards (COMPLETE)
+### ✅ LIVE CASHFREE PAYMENT SYSTEM - PRODUCTION READY
 
-**Payment Button in Lead Actions:**
-- Added "Create Payment Link" button (₹ icon) to lead cards in both Table and Card views
-- Button opens Payment Modal for quick payment link creation
-- Located in `ProfessionalLeadsManagement.js` (Table: line 1184, Card: line 1325)
+**CRITICAL FIX: Switched from Payment Links API to Orders API**
+- The Payment Links API was blocked with "link_creation_api is not enabled or approved"
+- Solution: Implemented Cashfree Orders API (Hosted Checkout) which is fully activated
+- Live payments are now working in PRODUCTION
 
-**Payment Modal Features:**
-- Amount input field with ₹ currency prefix
-- Purpose field (default: "Solar Service Payment")
-- Link expiry selector (1 hour to 7 days)
-- "Send via WhatsApp" checkbox for automatic delivery
-- Payment history section showing previous payments for the lead
+**New Backend Route: `/app/backend/routes/cashfree_orders.py`**
+- `POST /api/cashfree/create-order` - Creates LIVE payment orders
+- `POST /api/cashfree/website/create-order` - Website payments with auto-lead creation
+- `GET /api/cashfree/order/{order_id}` - Get order details
+- `GET /api/cashfree/order/{order_id}/refresh` - Refresh status from Cashfree
+- `POST /api/cashfree/order/{order_id}/resend-whatsapp` - Resend payment link via WA
+- `GET /api/cashfree/dashboard/stats` - Payment statistics
+- `GET /api/cashfree/orders` - Paginated orders list
+- `GET /api/cashfree/lead/{lead_id}/orders` - Orders for a specific lead
+- `POST /api/cashfree/webhook` - Webhook handler for payment events
 
-**Payment Status Labels:**
-- `link_created` - Blue badge "Link Created"
-- `link_sent` - Purple badge "Link Sent"
-- `pending` - Yellow badge "Pending"
-- `paid` - Green badge "Paid"
-- `failed` - Red badge "Failed"
-- `expired` - Gray badge "Expired"
-- `cancelled` - Gray badge "Cancelled"
+**Payment Status Pages Created:**
+- `/payment/success` - Shows order details, WhatsApp button, Call button
+- `/payment/failed` - Shows error, tips, retry option
+- `/payment/pending` - Auto-refresh, check status button
+- All pages have ASR Enterprises branding and correct support info
 
-**Graceful Error Handling for Cashfree Activation:**
-- When Cashfree returns "link_creation_api is not enabled" error
-- Modal shows user-friendly message: "Live Payment Links Awaiting Activation"
-- Explains merchant account is under verification (1-3 business days)
-- Includes support contact information
+**Payment Types Supported:**
+- Advance Payment
+- Site Visit Payment
+- Booking Token Amount
+- Consultation Fee
+- Installation Payment
+- Custom Payment
 
-**Backend Verification (Testing Agent - 100% Pass Rate):**
-- GET /api/payments/status ✅
-- GET /api/payments/settings ✅
-- GET /api/payments/dashboard/stats ✅
-- POST /api/payments/create-link ✅ (Returns expected "not enabled" error)
-- GET /api/payments/lead/{lead_id}/payments ✅
-- POST /api/payments/webhook ✅
-- POST /api/payments/cashfree/webhook ✅
+**Auto Lead Stage Update After Payment:**
+- site_visit → "site_visit"
+- booking → "converted"
+- consultation → "contacted"
+- installation → "installation_scheduled"
+- advance → "converted"
 
-## Previous Updates (April 8, 2026 - Round 12)
+**UI Improvements:**
+- Removed yellow marquee, replaced with dark blue premium theme
+- Updated phone numbers from 8877896889 to 9296389097 in CRM dashboard
+- Payment Type selector added to payment modal in lead cards
+
+**Testing Results (Iteration 86):**
+- 100% pass rate (19/19 tests passed)
+- Live orders created successfully
+- Payment URLs working at payments.cashfree.com
+- Webhook endpoint ready for payment events
+
+## Previous Updates (April 8, 2026 - Round 13)
 
 ### ✅ Enhanced Cashfree Webhook Implementation
 

@@ -1096,6 +1096,57 @@ const HomePage = () => {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [paymentLink, setPaymentLink] = useState('');
   const [paymentOrderId, setPaymentOrderId] = useState('');
+  const [paymentSessionId, setPaymentSessionId] = useState(''); // Store session ID for direct SDK call
+
+  // Load Cashfree SDK
+  const loadCashfreeSDK = () => {
+    return new Promise((resolve, reject) => {
+      if (window.Cashfree) {
+        resolve(window.Cashfree);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      script.async = true;
+      script.onload = () => {
+        if (window.Cashfree) {
+          resolve(window.Cashfree);
+        } else {
+          reject(new Error('Cashfree SDK failed to load'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+      document.body.appendChild(script);
+    });
+  };
+
+  // Direct Cashfree checkout - call SDK directly without redirect
+  const launchCashfreeCheckout = async (sessionId) => {
+    try {
+      console.log('=== LAUNCHING CASHFREE SDK DIRECTLY ===');
+      console.log('Session ID:', sessionId);
+      console.log('Session ID length:', sessionId.length);
+      
+      const Cashfree = await loadCashfreeSDK();
+      console.log('Cashfree SDK loaded');
+      
+      const cashfree = Cashfree({ mode: "production" });
+      console.log('Cashfree initialized in PRODUCTION mode');
+      
+      const checkoutConfig = {
+        paymentSessionId: sessionId,
+        redirectTarget: "_self"
+      };
+      
+      console.log('Calling cashfree.checkout() with config:', JSON.stringify(checkoutConfig));
+      cashfree.checkout(checkoutConfig);
+      
+    } catch (err) {
+      console.error('Cashfree SDK error:', err);
+      alert('Payment initialization failed. Please try again or call 9296389097');
+      setPaymentStep('form');
+    }
+  };
 
   const handleBookService = async () => {
     if (!bookingData.customer_name || !bookingData.customer_phone) {
@@ -1143,19 +1194,18 @@ const HomePage = () => {
         console.log('=== PAYMENT SESSION VALID ===');
         console.log('Session ID first 50 chars:', res.data.payment_session_id.substring(0, 50));
         
+        // Store payment details
         setPaymentLink(res.data.payment_url);
         setPaymentOrderId(res.data.order_id);
+        setPaymentSessionId(res.data.payment_session_id); // Store for direct SDK call
         setPaymentStep('redirect');
         
-        // Log the exact redirect URL
-        console.log('=== REDIRECT URL ===');
-        console.log('Will redirect to:', res.data.payment_url);
-        
-        // Auto redirect to Cashfree hosted checkout after 2 seconds
-        setTimeout(() => {
-          console.log('Executing redirect now to:', res.data.payment_url);
-          window.location.href = res.data.payment_url;
-        }, 2000);
+        // DIRECT SDK CALL - Launch Cashfree checkout immediately without redirect
+        // This is more reliable than redirecting to a checkout page
+        console.log('=== LAUNCHING CASHFREE DIRECTLY (NO REDIRECT) ===');
+        setTimeout(async () => {
+          await launchCashfreeCheckout(res.data.payment_session_id);
+        }, 1500);
       } else {
         console.error('=== INVALID RESPONSE ===');
         console.error('success:', res.data.success);
@@ -2297,22 +2347,20 @@ const HomePage = () => {
                     <CheckCircle className="w-8 h-8 text-green-400" />
                   </div>
                   <h3 className="text-white text-lg font-semibold mb-2">Payment Link Ready!</h3>
-                  <p className="text-gray-400 text-sm mb-4">Redirecting to secure payment page...</p>
+                  <p className="text-gray-400 text-sm mb-4">Opening secure payment page...</p>
                   
                   <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 mb-4">
                     <p className="text-gray-400 text-xs mb-1">Order ID</p>
                     <p className="text-amber-400 font-mono font-bold">{paymentOrderId}</p>
                   </div>
                   
-                  <a
-                    href={paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => launchCashfreeCheckout(paymentSessionId)}
                     className="inline-flex items-center justify-center gap-2 w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg transition"
                     data-testid="pay-now-btn"
                   >
                     <ExternalLink className="w-5 h-5" /> Pay ₹{servicePrice.toLocaleString()} Now
-                  </a>
+                  </button>
                   
                   <div className="mt-4 pt-4 border-t border-gray-700">
                     <p className="text-gray-400 text-sm mb-3">Already paid?</p>

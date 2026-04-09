@@ -11,6 +11,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 
 // Payment Status Pages
 import { PaymentSuccess, PaymentFailed, PaymentPending, PaymentStatus } from "@/components/PaymentStatusPages";
+import CashfreeCheckout from "@/components/CashfreeCheckout";
 
 // ==================== LAZY LOADED COMPONENTS (Code Splitting) ====================
 // Public Pages - Lazy load for faster initial page load
@@ -2366,6 +2367,7 @@ export default function App() {
           <Route path="/payment/failed" element={<PaymentFailed />} />
           <Route path="/payment/pending" element={<PaymentPending />} />
           <Route path="/payment/status" element={<PaymentStatus />} />
+          <Route path="/payment/checkout" element={<CashfreeCheckout />} />
           
           {/* Admin Login */}
           <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />

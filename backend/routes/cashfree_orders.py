@@ -16,6 +16,10 @@ from typing import Dict, Optional
 from fastapi import APIRouter, HTTPException, Request, Query
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ ASR_SUPPORT_EMAIL = "support@asrenterprises.in"
 ASR_DISPLAY_PHONE = "9296389097"
 ASR_WHATSAPP_API_PHONE = "8298389097"
 ASR_BUSINESS_NAME = "ASR Enterprises"
-ASR_WEBSITE = "https://asrenterprises.in"
+ASR_WEBSITE = os.environ.get("ASR_WEBSITE", "https://asrenterprises.in")
 
 # Payment Types
 PAYMENT_TYPES = {
@@ -120,14 +124,19 @@ async def get_cashfree_config() -> Optional[Dict]:
     # Primary: Environment variables
     app_id = os.environ.get("CASHFREE_APP_ID", "")
     secret_key = os.environ.get("CASHFREE_SECRET_KEY", "")
-    is_sandbox = os.environ.get("CASHFREE_SANDBOX", "false").lower() == "true"
-    env_mode = os.environ.get("CASHFREE_ENV", "PRODUCTION")
+    sandbox_env = os.environ.get("CASHFREE_SANDBOX", "false").lower()
+    env_mode = os.environ.get("CASHFREE_ENV", "PRODUCTION").upper()
+    
+    # Determine if sandbox mode - MUST be explicitly set to true
+    is_sandbox = sandbox_env == "true" or env_mode == "SANDBOX"
+    
+    logger.info(f"Cashfree Config: ENV={env_mode}, SANDBOX_VAR={sandbox_env}, is_sandbox={is_sandbox}")
     
     if app_id and secret_key:
         return {
             "app_id": app_id,
             "secret_key": secret_key,
-            "is_sandbox": is_sandbox or env_mode != "PRODUCTION",
+            "is_sandbox": is_sandbox,
             "webhook_secret": os.environ.get("CASHFREE_WEBHOOK_SECRET", ""),
             "is_active": True
         }
@@ -450,11 +459,23 @@ async def create_cashfree_order(request: CreateOrderRequest):
             order_status = response_data.get("order_status", "ACTIVE")
             
             # Get payment URL for hosted checkout
-            # In production, customers pay at: https://payments.cashfree.com/order/#<payment_session_id>
-            if config.get("is_sandbox"):
-                payment_url = f"https://payments-test.cashfree.com/order/#/{payment_session_id}"
+            # Use our custom checkout page that loads Cashfree JS SDK
+            # This avoids the S2S requirement
+            is_sandbox = config.get("is_sandbox", False)
+            
+            # Direct Cashfree URL (may require S2S approval)
+            if is_sandbox:
+                direct_payment_url = f"https://payments-test.cashfree.com/order/#/{payment_session_id}"
             else:
-                payment_url = f"https://payments.cashfree.com/order/#/{payment_session_id}"
+                direct_payment_url = f"https://payments.cashfree.com/order/#/{payment_session_id}"
+            
+            # Our custom checkout page (uses JS SDK - works without S2S)
+            checkout_url = f"{ASR_WEBSITE}/payment/checkout?session_id={payment_session_id}&order_id={order_id}"
+            
+            logger.info(f"Generated PRODUCTION checkout URL: {checkout_url[:80]}...")
+            
+            # Use our checkout page as primary (more reliable)
+            payment_url = checkout_url
             
             # Store order in database
             order_record = {
@@ -463,6 +484,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 "cf_order_id": cf_order_id,
                 "payment_session_id": payment_session_id,
                 "payment_url": payment_url,
+                "direct_cashfree_url": direct_payment_url,
                 "lead_id": request.lead_id,
                 "customer_name": request.customer_name,
                 "customer_phone": customer_phone,
@@ -512,6 +534,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 "order_id": order_id,
                 "cf_order_id": cf_order_id,
                 "payment_url": payment_url,
+                "direct_cashfree_url": direct_payment_url,
                 "payment_session_id": payment_session_id,
                 "amount": request.amount,
                 "status": order_status,

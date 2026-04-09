@@ -65,7 +65,7 @@ class CashfreeSettings(BaseModel):
     app_id: str = Field(..., description="Cashfree App ID")
     secret_key: str = Field(..., description="Cashfree Secret Key")
     webhook_secret: Optional[str] = Field(None, description="Webhook verification secret")
-    is_sandbox: bool = Field(True, description="Use sandbox/test environment")
+    is_sandbox: bool = Field(False, description="Use sandbox/test environment (default: False = Production)")
     is_active: bool = Field(True, description="Enable Cashfree payments")
 
 class CreatePaymentLinkRequest(BaseModel):
@@ -135,17 +135,20 @@ async def get_cashfree_settings() -> Optional[Dict]:
         # Try environment variables as fallback
         app_id = os.environ.get("CASHFREE_APP_ID", "")
         secret_key = os.environ.get("CASHFREE_SECRET_KEY", "")
+        env_mode = os.environ.get("CASHFREE_ENV", "PRODUCTION").upper()
+        sandbox_var = os.environ.get("CASHFREE_SANDBOX", "false").lower()
         if app_id and secret_key:
+            is_sandbox = sandbox_var == "true" or env_mode == "SANDBOX"
             return {
                 "app_id": app_id,
                 "secret_key": secret_key,
                 "webhook_secret": os.environ.get("CASHFREE_WEBHOOK_SECRET", ""),
-                "is_sandbox": os.environ.get("CASHFREE_SANDBOX", "true").lower() == "true",
+                "is_sandbox": is_sandbox,
                 "is_active": True
             }
     return settings
 
-def get_cashfree_base_url(is_sandbox: bool = True) -> str:
+def get_cashfree_base_url(is_sandbox: bool = False) -> str:
     """Get Cashfree API base URL based on environment"""
     if is_sandbox:
         return "https://sandbox.cashfree.com/pg"
@@ -351,14 +354,14 @@ async def get_payment_settings():
         }
     
     # Check if it's production mode
-    is_production = not settings.get("is_sandbox", True)
+    is_production = not settings.get("is_sandbox", False)
     env_mode = "PRODUCTION" if is_production else "SANDBOX"
     api_url = "api.cashfree.com" if is_production else "sandbox.cashfree.com"
     
     return {
         "configured": True,
         "app_id": settings["app_id"][:12] + "..." if len(settings["app_id"]) > 12 else settings["app_id"],
-        "is_sandbox": settings.get("is_sandbox", True),
+        "is_sandbox": settings.get("is_sandbox", False),
         "is_active": settings.get("is_active", True),
         "environment": env_mode,
         "api_endpoint": f"https://{api_url}/pg",
@@ -396,7 +399,7 @@ async def get_payment_system_status():
         "cashfree": {
             "configured": bool(settings),
             "active": settings.get("is_active", False) if settings else False,
-            "environment": "PRODUCTION" if settings and not settings.get("is_sandbox", True) else "SANDBOX",
+            "environment": "PRODUCTION" if settings and not settings.get("is_sandbox", False) else "SANDBOX",
             "payment_links_api": "pending_activation"  # Will be "active" once Cashfree enables it
         },
         "whatsapp": {
@@ -438,7 +441,7 @@ async def test_payment_connection():
         raise HTTPException(status_code=400, detail="Cashfree not configured")
     
     try:
-        base_url = get_cashfree_base_url(settings.get("is_sandbox", True))
+        base_url = get_cashfree_base_url(settings.get("is_sandbox", False))
         headers = await get_cashfree_headers(settings)
         
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -490,7 +493,7 @@ async def create_payment_link(request: CreatePaymentLinkRequest, background_task
         raise HTTPException(status_code=400, detail="Cashfree payments are disabled")
     
     try:
-        base_url = get_cashfree_base_url(settings.get("is_sandbox", True))
+        base_url = get_cashfree_base_url(settings.get("is_sandbox", False))
         headers = await get_cashfree_headers(settings)
         
         # Generate IDs
@@ -680,7 +683,7 @@ async def get_payment_link_status(link_id: str):
         raise HTTPException(status_code=400, detail="Cashfree not configured")
     
     try:
-        base_url = get_cashfree_base_url(settings.get("is_sandbox", True))
+        base_url = get_cashfree_base_url(settings.get("is_sandbox", False))
         headers = await get_cashfree_headers(settings)
         
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -777,7 +780,7 @@ async def cancel_payment_link(link_id: str):
     
     # Cancel in Cashfree
     try:
-        base_url = get_cashfree_base_url(settings.get("is_sandbox", True))
+        base_url = get_cashfree_base_url(settings.get("is_sandbox", False))
         headers = await get_cashfree_headers(settings)
         
         async with httpx.AsyncClient(timeout=30.0) as client:

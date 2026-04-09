@@ -490,10 +490,15 @@ async def create_cashfree_order(request: CreateOrderRequest):
             # Use website_base for same-origin checkout
             checkout_url = f"{website_base}/payment/checkout?session_id={payment_session_id}&order_id={order_id}"
             
-            logger.info(f"Generated checkout URL: {checkout_url[:100]}...")
+            # WORKAROUND: Also create a direct backend checkout URL that bypasses frontend
+            # This is more reliable as it serves HTML directly from the backend
+            direct_backend_checkout = f"{ASR_WEBSITE}/api/cashfree/pay/{order_id}"
             
-            # Use our CUSTOM CHECKOUT PAGE as primary (JS SDK works without S2S)
-            payment_url = checkout_url
+            logger.info(f"Generated checkout URL: {checkout_url[:100]}...")
+            logger.info(f"Direct backend checkout: {direct_backend_checkout}")
+            
+            # Use DIRECT BACKEND CHECKOUT as primary (bypasses frontend issues)
+            payment_url = direct_backend_checkout
             
             # Store order in database
             order_record = {
@@ -1126,3 +1131,347 @@ async def get_lead_orders(lead_id: str):
         "pending_amount": pending_amount,
         "order_count": len(orders)
     }
+
+
+# ==================== DIRECT CHECKOUT PAGE (WORKAROUND) ====================
+from fastapi.responses import HTMLResponse
+
+@router.get("/pay/{order_id}", response_class=HTMLResponse)
+async def direct_checkout_page(order_id: str):
+    """
+    WORKAROUND: Serve a checkout page directly from the backend.
+    This bypasses the frontend entirely and ensures the payment_session_id
+    is correctly passed to the Cashfree SDK.
+    
+    Usage: https://asrenterprises.in/api/cashfree/pay/{order_id}
+    """
+    # Look up the order
+    order = await db.cashfree_orders.find_one({"order_id": order_id})
+    
+    if not order:
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Order Not Found - ASR Enterprises</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{ font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #1a1a2e; color: white; }}
+                .container {{ text-align: center; padding: 40px; }}
+                h1 {{ color: #f59e0b; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Order Not Found</h1>
+                <p>Order ID: {order_id}</p>
+                <p>This order does not exist or has expired.</p>
+                <p>Please contact support: {ASR_DISPLAY_PHONE}</p>
+                <a href="{ASR_WEBSITE}" style="color: #f59e0b;">Return to Home</a>
+            </div>
+        </body>
+        </html>
+        """, status_code=404)
+    
+    payment_session_id = order.get("payment_session_id")
+    
+    if not payment_session_id:
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Payment Error - ASR Enterprises</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{ font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #1a1a2e; color: white; }}
+                .container {{ text-align: center; padding: 40px; }}
+                h1 {{ color: #ef4444; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Payment Session Expired</h1>
+                <p>Order ID: {order_id}</p>
+                <p>The payment session for this order has expired.</p>
+                <p>Please create a new order or contact support: {ASR_DISPLAY_PHONE}</p>
+                <a href="{ASR_WEBSITE}" style="color: #f59e0b;">Return to Home</a>
+            </div>
+        </body>
+        </html>
+        """, status_code=400)
+    
+    # Check order status
+    order_status = order.get("status", "unknown")
+    if order_status == "paid":
+        return HTMLResponse(content=f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Already Paid - ASR Enterprises</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{ font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #1a1a2e; color: white; }}
+                .container {{ text-align: center; padding: 40px; }}
+                h1 {{ color: #22c55e; }}
+                .checkmark {{ font-size: 80px; color: #22c55e; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="checkmark">✓</div>
+                <h1>Payment Completed</h1>
+                <p>Order ID: {order_id}</p>
+                <p>Amount: ₹{order.get('amount', 0):,.0f}</p>
+                <p>This order has already been paid.</p>
+                <a href="{ASR_WEBSITE}" style="color: #f59e0b;">Return to Home</a>
+            </div>
+        </body>
+        </html>
+        """)
+    
+    customer_name = order.get("customer_name", "Customer")
+    amount = order.get("amount", 0)
+    
+    # Return HTML page with Cashfree SDK
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Pay ₹{amount:,.0f} - ASR Enterprises</title>
+        <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+        <style>
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: white;
+            }}
+            .container {{
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 20px;
+                padding: 40px;
+                max-width: 420px;
+                width: 90%;
+                text-align: center;
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }}
+            .logo {{
+                font-size: 48px;
+                margin-bottom: 20px;
+            }}
+            h1 {{
+                font-size: 24px;
+                margin-bottom: 10px;
+                color: #f59e0b;
+            }}
+            .amount {{
+                font-size: 48px;
+                font-weight: bold;
+                color: #22c55e;
+                margin: 20px 0;
+            }}
+            .order-info {{
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 12px;
+                padding: 15px;
+                margin: 20px 0;
+            }}
+            .order-info p {{
+                margin: 5px 0;
+                color: #9ca3af;
+                font-size: 14px;
+            }}
+            .order-info strong {{
+                color: #f59e0b;
+            }}
+            .loading {{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin: 30px 0;
+            }}
+            .spinner {{
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(245, 158, 11, 0.3);
+                border-top-color: #f59e0b;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }}
+            @keyframes spin {{
+                to {{ transform: rotate(360deg); }}
+            }}
+            .status {{
+                margin-top: 15px;
+                font-size: 16px;
+                color: #9ca3af;
+            }}
+            .error {{
+                background: rgba(239, 68, 68, 0.2);
+                border: 1px solid #ef4444;
+                border-radius: 12px;
+                padding: 20px;
+                margin: 20px 0;
+                display: none;
+            }}
+            .error h3 {{
+                color: #ef4444;
+                margin-bottom: 10px;
+            }}
+            .btn {{
+                display: inline-block;
+                background: #f59e0b;
+                color: #1a1a2e;
+                padding: 15px 30px;
+                border-radius: 10px;
+                text-decoration: none;
+                font-weight: bold;
+                margin-top: 15px;
+                cursor: pointer;
+                border: none;
+                font-size: 16px;
+            }}
+            .btn:hover {{
+                background: #d97706;
+            }}
+            .support {{
+                margin-top: 30px;
+                font-size: 12px;
+                color: #6b7280;
+            }}
+            .support a {{
+                color: #f59e0b;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">⚡</div>
+            <h1>ASR Enterprises</h1>
+            <p>Solar Power Solutions</p>
+            
+            <div class="amount">₹{amount:,.0f}</div>
+            
+            <div class="order-info">
+                <p>Order ID: <strong>{order_id}</strong></p>
+                <p>Customer: <strong>{customer_name}</strong></p>
+            </div>
+            
+            <div class="loading" id="loadingSection">
+                <div class="spinner"></div>
+                <p class="status" id="statusText">Initializing secure payment...</p>
+            </div>
+            
+            <div class="error" id="errorSection">
+                <h3>Payment Error</h3>
+                <p id="errorMessage"></p>
+                <button class="btn" onclick="retryPayment()">Try Again</button>
+            </div>
+            
+            <div class="support">
+                Need help? Call <a href="tel:{ASR_DISPLAY_PHONE}">{ASR_DISPLAY_PHONE}</a>
+            </div>
+        </div>
+        
+        <script>
+            const paymentSessionId = "{payment_session_id}";
+            const orderId = "{order_id}";
+            
+            console.log('=== ASR ENTERPRISES DIRECT CHECKOUT ===');
+            console.log('Order ID:', orderId);
+            console.log('Payment Session ID:', paymentSessionId);
+            console.log('Session ID Length:', paymentSessionId.length);
+            
+            function showError(message) {{
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('errorSection').style.display = 'block';
+                document.getElementById('errorMessage').textContent = message;
+            }}
+            
+            function updateStatus(text) {{
+                document.getElementById('statusText').textContent = text;
+            }}
+            
+            function retryPayment() {{
+                document.getElementById('errorSection').style.display = 'none';
+                document.getElementById('loadingSection').style.display = 'flex';
+                initializePayment();
+            }}
+            
+            // Wait for Cashfree SDK to load
+            function waitForCashfree(maxWait = 10000) {{
+                return new Promise((resolve, reject) => {{
+                    const startTime = Date.now();
+                    
+                    function check() {{
+                        if (typeof Cashfree !== 'undefined') {{
+                            console.log('Cashfree SDK loaded successfully');
+                            resolve(Cashfree);
+                        }} else if (Date.now() - startTime > maxWait) {{
+                            reject(new Error('Cashfree SDK failed to load. Please refresh the page.'));
+                        }} else {{
+                            setTimeout(check, 200);
+                        }}
+                    }}
+                    
+                    check();
+                }});
+            }}
+            
+            async function initializePayment() {{
+                try {{
+                    updateStatus('Loading Cashfree SDK...');
+                    
+                    // Validate session ID
+                    if (!paymentSessionId || paymentSessionId.length < 50) {{
+                        throw new Error('Invalid payment session. Please create a new order.');
+                    }}
+                    
+                    // Wait for Cashfree SDK to load
+                    const CashfreeSDK = await waitForCashfree();
+                    
+                    // Initialize Cashfree
+                    updateStatus('Initializing payment gateway...');
+                    const cashfree = CashfreeSDK({{ mode: "production" }});
+                    
+                    console.log('Cashfree SDK initialized in PRODUCTION mode');
+                    
+                    // Small delay for UI
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    updateStatus('Opening secure payment page...');
+                    
+                    // Launch checkout
+                    console.log('Calling cashfree.checkout() with:', {{
+                        paymentSessionId: paymentSessionId,
+                        redirectTarget: "_self"
+                    }});
+                    
+                    cashfree.checkout({{
+                        paymentSessionId: paymentSessionId,
+                        redirectTarget: "_self"
+                    }});
+                    
+                }} catch (error) {{
+                    console.error('Payment initialization error:', error);
+                    showError(error.message || 'Failed to initialize payment. Please try again.');
+                }}
+            }}
+            
+            // Start payment on page load
+            document.addEventListener('DOMContentLoaded', function() {{
+                setTimeout(initializePayment, 500);
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    
+    return HTMLResponse(content=html_content)

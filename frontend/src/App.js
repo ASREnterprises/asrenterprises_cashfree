@@ -1109,10 +1109,15 @@ const HomePage = () => {
     
     try {
       // Use Cashfree Orders API endpoint
-      // Note: API already includes /api prefix, so we use /cashfree/... not /api/cashfree/...
-      console.log('Creating Cashfree order...');
-      console.log('API URL:', `${API}/cashfree/website/create-order`);
-      const res = await axios.post(`${API}/cashfree/website/create-order`, {
+      // IMPORTANT: API = BACKEND_URL/api, so final URL is /api/cashfree/website/create-order
+      const apiEndpoint = `${API}/cashfree/website/create-order`;
+      console.log('=== CASHFREE ORDER CREATION ===');
+      console.log('BACKEND_URL:', BACKEND_URL);
+      console.log('API base:', API);
+      console.log('Full API endpoint:', apiEndpoint);
+      console.log('Request payload:', { customer_name: bookingData.customer_name, customer_phone: bookingData.customer_phone, amount: servicePrice });
+      
+      const res = await axios.post(apiEndpoint, {
         customer_name: bookingData.customer_name,
         customer_phone: bookingData.customer_phone,
         customer_email: bookingData.customer_email,
@@ -1140,8 +1145,22 @@ const HomePage = () => {
         setPaymentStep('form');
       }
     } catch (err) {
-      console.error("Payment initiation error:", err);
-      alert(err.response?.data?.detail || "Unable to process. Please call 9296389097");
+      console.error("=== PAYMENT INITIATION ERROR ===");
+      console.error("Error object:", err);
+      console.error("Error response:", err.response);
+      console.error("Error response status:", err.response?.status);
+      console.error("Error response data:", err.response?.data);
+      console.error("Request URL was:", `${API}/cashfree/website/create-order`);
+      
+      // Provide specific error messages based on status
+      let errorMsg = "Unable to process. Please call 9296389097";
+      if (err.response?.status === 404) {
+        errorMsg = `API endpoint not found (404). Please ensure the server is updated. URL: ${API}/cashfree/website/create-order`;
+      } else if (err.response?.data?.detail) {
+        errorMsg = err.response.data.detail;
+      }
+      
+      alert(errorMsg);
       setPaymentStep('form');
     }
     setVerifyLoading(false);

@@ -34,12 +34,13 @@ db = client[DB_NAME]
 # ==================== CONSTANTS ====================
 CASHFREE_API_VERSION = "2023-08-01"
 
-# ASR Contact Info
+# ASR Contact Info - PRODUCTION VALUES (DO NOT OVERRIDE)
 ASR_SUPPORT_EMAIL = "support@asrenterprises.in"
 ASR_DISPLAY_PHONE = "9296389097"
 ASR_WHATSAPP_API_PHONE = "8298389097"
 ASR_BUSINESS_NAME = "ASR Enterprises"
-ASR_WEBSITE = os.environ.get("ASR_WEBSITE", "https://asrenterprises.in")
+# HARDCODED PRODUCTION DOMAIN - Critical for webhooks and return URLs
+ASR_WEBSITE = "https://asrenterprises.in"
 
 # Payment Types
 PAYMENT_TYPES = {
@@ -378,7 +379,8 @@ async def get_payment_config():
             "message": "Cashfree not configured"
         }
     
-    is_production = not config.get("is_sandbox", True)
+    # Default to production mode unless explicitly set to sandbox
+    is_production = not config.get("is_sandbox", False)
     
     return {
         "configured": True,
@@ -438,6 +440,8 @@ async def create_cashfree_order(request: CreateOrderRequest):
             order_payload["customer_details"]["customer_email"] = request.customer_email
         
         logger.info(f"Creating Cashfree order: {order_id}, amount: {request.amount}")
+        logger.info(f"Cashfree API URL: {base_url}/orders")
+        logger.info(f"Order payload: {order_payload}")
         
         async with httpx.AsyncClient(timeout=30.0) as http_client:
             response = await http_client.post(
@@ -447,16 +451,25 @@ async def create_cashfree_order(request: CreateOrderRequest):
             )
             
             response_data = response.json() if response.text else {}
+            logger.info(f"Cashfree API response status: {response.status_code}")
+            logger.info(f"Cashfree API response: {response_data}")
             
             if response.status_code not in [200, 201]:
                 logger.error(f"Cashfree order creation failed: {response_data}")
                 error_msg = response_data.get("message", "Failed to create order")
                 raise HTTPException(status_code=response.status_code, detail=error_msg)
             
-            # Extract payment session URL
+            # Extract payment session URL - CRITICAL: This must be present
             payment_session_id = response_data.get("payment_session_id", "")
             cf_order_id = response_data.get("cf_order_id", "")
             order_status = response_data.get("order_status", "ACTIVE")
+            
+            # CRITICAL VALIDATION: Ensure payment_session_id is present
+            if not payment_session_id:
+                logger.error(f"CRITICAL: Cashfree did not return payment_session_id! Response: {response_data}")
+                raise HTTPException(status_code=500, detail="Payment session creation failed - no session ID returned from Cashfree")
+            
+            logger.info(f"Payment session ID received: {payment_session_id[:50]}...")
             
             # Get payment URL for hosted checkout
             # Use our custom checkout page that loads Cashfree JS SDK
@@ -528,6 +541,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
                     )
             
             logger.info(f"Cashfree order created successfully: {order_id}")
+            logger.info(f"Returning payment_session_id: {payment_session_id[:50]}...")
             
             return {
                 "success": True,
@@ -535,11 +549,13 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 "cf_order_id": cf_order_id,
                 "payment_url": payment_url,
                 "direct_cashfree_url": direct_payment_url,
-                "payment_session_id": payment_session_id,
+                "payment_session_id": payment_session_id,  # CRITICAL: This must be present
+                "payment_link": payment_url,  # Alias for compatibility
                 "amount": request.amount,
                 "status": order_status,
                 "whatsapp_sent": whatsapp_sent,
                 "return_url": return_url,
+                "cashfree_order": response_data,  # Full Cashfree response for debugging
                 "message": "Order created successfully. Redirect customer to payment_url"
             }
             

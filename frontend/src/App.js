@@ -1108,8 +1108,9 @@ const HomePage = () => {
     setVerifyLoading(true);
     
     try {
-      // Use new Cashfree Orders API endpoint
-      const res = await axios.post(`${API}/cashfree/website/create-order`, {
+      // Use new Cashfree Orders API endpoint - MUST include /api prefix
+      console.log('Creating Cashfree order...');
+      const res = await axios.post(`${API}/api/cashfree/website/create-order`, {
         customer_name: bookingData.customer_name,
         customer_phone: bookingData.customer_phone,
         customer_email: bookingData.customer_email,
@@ -1118,7 +1119,11 @@ const HomePage = () => {
         notes: 'Book Solar Service from Website'
       });
       
-      if (res.data.success && res.data.payment_url) {
+      console.log('Cashfree order response:', res.data);
+      
+      // CRITICAL: Validate payment_session_id
+      if (res.data.success && res.data.payment_session_id) {
+        console.log('Payment session ID received:', res.data.payment_session_id.substring(0, 30) + '...');
         setPaymentLink(res.data.payment_url);
         setPaymentOrderId(res.data.order_id);
         setPaymentStep('redirect');
@@ -1128,6 +1133,7 @@ const HomePage = () => {
           window.location.href = res.data.payment_url;
         }, 2000);
       } else {
+        console.error('Invalid response - no payment_session_id:', res.data);
         alert("Unable to initiate payment. Please try again or call 9296389097");
         setPaymentStep('form');
       }
@@ -1146,8 +1152,8 @@ const HomePage = () => {
     }
     setVerifyLoading(true);
     try {
-      // Verify payment status using new Orders API
-      const res = await axios.get(`${API}/cashfree/order/${paymentOrderId}/refresh`);
+      // Verify payment status using new Orders API - MUST include /api prefix
+      const res = await axios.get(`${API}/api/cashfree/order/${paymentOrderId}/refresh`);
       
       if (res.data.paid) {
         setBookingSuccess({

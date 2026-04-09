@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, Clock, MessageCircle, Phone, ArrowLeft, ExternalL
 import axios from 'axios';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
+const API_BASE = `${API}/api`;  // API routes require /api prefix
 const ASR_SUPPORT_PHONE = "9296389097";
 const ASR_WHATSAPP_PHONE = "8298389097";
 const ASR_SUPPORT_EMAIL = "support@asrenterprises.in";
@@ -27,7 +28,7 @@ export const PaymentSuccess = () => {
 
   const fetchOrderDetails = async () => {
     try {
-      const res = await axios.get(`${API}/cashfree/order/${orderId}`);
+      const res = await axios.get(`${API_BASE}/cashfree/order/${orderId}`);
       setOrderDetails(res.data);
     } catch (err) {
       console.error('Error fetching order:', err);
@@ -168,7 +169,7 @@ export const PaymentFailed = () => {
 
   const fetchOrderDetails = async () => {
     try {
-      const res = await axios.get(`${API}/cashfree/order/${orderId}`);
+      const res = await axios.get(`${API_BASE}/cashfree/order/${orderId}`);
       setOrderDetails(res.data);
     } catch (err) {
       console.error('Error fetching order:', err);
@@ -313,7 +314,7 @@ export const PaymentPending = () => {
 
   const fetchOrderDetails = async () => {
     try {
-      const res = await axios.get(`${API}/cashfree/order/${orderId}`);
+      const res = await axios.get(`${API_BASE}/cashfree/order/${orderId}`);
       setOrderDetails(res.data);
       if (res.data.paid) {
         navigate(`/payment/success?order_id=${orderId}`);
@@ -327,7 +328,7 @@ export const PaymentPending = () => {
     if (!orderId || checking) return;
     setChecking(true);
     try {
-      const res = await axios.get(`${API}/cashfree/order/${orderId}/refresh`);
+      const res = await axios.get(`${API_BASE}/cashfree/order/${orderId}/refresh`);
       if (res.data.paid) {
         navigate(`/payment/success?order_id=${orderId}`);
       } else if (res.data.status === 'failed') {
@@ -460,7 +461,7 @@ export const PaymentStatus = () => {
 
   const checkAndRedirect = async () => {
     try {
-      const res = await axios.get(`${API}/cashfree/order/${orderId}/refresh`);
+      const res = await axios.get(`${API_BASE}/cashfree/order/${orderId}/refresh`);
       const status = res.data.status;
       
       if (res.data.paid || status === 'paid') {

@@ -40,16 +40,34 @@ const CashfreeCheckout = () => {
   const [orderDetails, setOrderDetails] = useState(null);
   const [processingPayment, setProcessingPayment] = useState(false);
   
+  // Extract session_id from URL params
   const sessionId = searchParams.get('session_id');
   const orderId = searchParams.get('order_id');
   
+  // DEBUG: Log all URL parameters on mount
+  console.log('=== CASHFREE CHECKOUT PAGE LOADED ===');
+  console.log('Full URL:', window.location.href);
+  console.log('Search params string:', window.location.search);
+  console.log('session_id from URL:', sessionId);
+  console.log('session_id type:', typeof sessionId);
+  console.log('session_id length:', sessionId ? sessionId.length : 'null');
+  console.log('order_id from URL:', orderId);
+  
   useEffect(() => {
-    if (sessionId) {
+    console.log('=== CashfreeCheckout useEffect triggered ===');
+    console.log('sessionId value:', sessionId);
+    console.log('orderId value:', orderId);
+    
+    if (sessionId && sessionId.length > 10) {
+      console.log('Proceeding with session_id checkout...');
       initializeCheckout();
     } else if (orderId) {
+      console.log('No valid session_id, fetching order details...');
       fetchOrderAndInitialize();
     } else {
-      setError('No payment session or order ID provided');
+      console.error('ERROR: No valid session_id or order_id provided');
+      console.error('URL was:', window.location.href);
+      setError('No payment session or order ID provided. Please try again.');
       setLoading(false);
     }
   }, [sessionId, orderId]);
@@ -75,15 +93,34 @@ const CashfreeCheckout = () => {
   };
   
   const initializeCheckoutWithSession = async (paymentSessionId) => {
+    console.log('=== initializeCheckoutWithSession CALLED ===');
+    console.log('Received paymentSessionId:', paymentSessionId);
+    console.log('paymentSessionId type:', typeof paymentSessionId);
+    console.log('paymentSessionId length:', paymentSessionId ? paymentSessionId.length : 'null/undefined');
+    
     // CRITICAL: Validate payment_session_id before proceeding
-    if (!paymentSessionId || paymentSessionId === 'null' || paymentSessionId === 'undefined') {
-      console.error('INVALID payment_session_id:', paymentSessionId);
-      setError('Invalid payment session. Please try again or contact support.');
+    if (!paymentSessionId || 
+        paymentSessionId === 'null' || 
+        paymentSessionId === 'undefined' ||
+        paymentSessionId === '' ||
+        paymentSessionId.length < 20) {
+      console.error('=== INVALID PAYMENT SESSION ID ===');
+      console.error('Value received:', paymentSessionId);
+      console.error('This will cause Cashfree to show "payment_session_id_invalid" error');
+      setError('Invalid payment session. The session ID is missing or malformed. Please go back and try again.');
       setLoading(false);
       return;
     }
     
-    console.log('Initializing Cashfree checkout with session:', paymentSessionId.substring(0, 30) + '...');
+    // Check if session_id starts with expected prefix
+    if (!paymentSessionId.startsWith('session_')) {
+      console.error('=== SUSPICIOUS SESSION ID FORMAT ===');
+      console.error('Expected to start with "session_" but got:', paymentSessionId.substring(0, 20));
+    }
+    
+    console.log('Payment session ID validated successfully');
+    console.log('First 50 chars:', paymentSessionId.substring(0, 50));
+    console.log('Last 20 chars:', paymentSessionId.substring(paymentSessionId.length - 20));
     
     try {
       // Load Cashfree SDK
@@ -102,11 +139,20 @@ const CashfreeCheckout = () => {
       setProcessingPayment(true);
       
       // Use redirect checkout with CORRECT field name
-      console.log('Launching Cashfree checkout...');
-      cashfree.checkout({
+      console.log('=== LAUNCHING CASHFREE CHECKOUT ===');
+      console.log('Calling cashfree.checkout() with:');
+      console.log('  paymentSessionId:', paymentSessionId);
+      console.log('  redirectTarget: "_self"');
+      
+      // CRITICAL: Pass the exact session ID string
+      const checkoutConfig = {
         paymentSessionId: paymentSessionId,  // MUST be paymentSessionId (camelCase)
         redirectTarget: "_self"  // Redirect in same tab
-      });
+      };
+      
+      console.log('Checkout config object:', JSON.stringify(checkoutConfig));
+      
+      cashfree.checkout(checkoutConfig);
       
     } catch (err) {
       console.error('Cashfree SDK error:', err);

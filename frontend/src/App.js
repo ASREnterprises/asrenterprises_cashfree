@@ -1123,25 +1123,45 @@ const HomePage = () => {
         customer_email: bookingData.customer_email,
         payment_type: 'booking',
         amount: servicePrice,
-        notes: 'Book Solar Service from Website'
+        notes: 'Book Solar Service from Website',
+        origin_url: window.location.origin  // CRITICAL: Send current domain for same-origin checkout
       });
       
-      console.log('Cashfree order response:', res.data);
+      console.log('=== FULL API RESPONSE ===');
+      console.log('Response data:', JSON.stringify(res.data, null, 2).substring(0, 1500));
+      console.log('');
+      console.log('=== CRITICAL FIELDS ===');
+      console.log('success:', res.data.success);
+      console.log('payment_session_id:', res.data.payment_session_id);
+      console.log('payment_session_id type:', typeof res.data.payment_session_id);
+      console.log('payment_session_id length:', res.data.payment_session_id ? res.data.payment_session_id.length : 'null');
+      console.log('payment_url:', res.data.payment_url);
+      console.log('order_id:', res.data.order_id);
       
       // CRITICAL: Validate payment_session_id
-      if (res.data.success && res.data.payment_session_id) {
-        console.log('Payment session ID received:', res.data.payment_session_id.substring(0, 30) + '...');
+      if (res.data.success && res.data.payment_session_id && res.data.payment_session_id.length > 20) {
+        console.log('=== PAYMENT SESSION VALID ===');
+        console.log('Session ID first 50 chars:', res.data.payment_session_id.substring(0, 50));
+        
         setPaymentLink(res.data.payment_url);
         setPaymentOrderId(res.data.order_id);
         setPaymentStep('redirect');
         
+        // Log the exact redirect URL
+        console.log('=== REDIRECT URL ===');
+        console.log('Will redirect to:', res.data.payment_url);
+        
         // Auto redirect to Cashfree hosted checkout after 2 seconds
         setTimeout(() => {
+          console.log('Executing redirect now to:', res.data.payment_url);
           window.location.href = res.data.payment_url;
         }, 2000);
       } else {
-        console.error('Invalid response - no payment_session_id:', res.data);
-        alert("Unable to initiate payment. Please try again or call 9296389097");
+        console.error('=== INVALID RESPONSE ===');
+        console.error('success:', res.data.success);
+        console.error('payment_session_id:', res.data.payment_session_id);
+        console.error('Full response:', res.data);
+        alert("Payment session creation failed. Missing payment_session_id. Please try again or call 9296389097");
         setPaymentStep('form');
       }
     } catch (err) {

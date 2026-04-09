@@ -85,6 +85,7 @@ class CreateOrderRequest(BaseModel):
     send_via_whatsapp: bool = Field(default=False)
     created_by_staff_id: Optional[str] = None
     return_url: Optional[str] = None
+    origin_url: Optional[str] = None  # For cross-origin checkout (preview vs production)
 
 class WebsiteOrderRequest(BaseModel):
     customer_name: str
@@ -95,6 +96,7 @@ class WebsiteOrderRequest(BaseModel):
     payment_type: str = Field(default="booking")
     amount: float = Field(..., gt=0)
     notes: Optional[str] = None
+    origin_url: Optional[str] = None  # For cross-origin checkout (preview vs production)
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -415,8 +417,12 @@ async def create_cashfree_order(request: CreateOrderRequest):
         if not customer_phone or len(customer_phone) != 10:
             raise HTTPException(status_code=400, detail="Invalid phone number. Please provide 10-digit mobile number.")
         
+        # Determine base website URL - use origin_url if provided, else default to production
+        website_base = request.origin_url or ASR_WEBSITE
+        logger.info(f"Using website base URL: {website_base}")
+        
         # Determine return URL
-        return_url = request.return_url or f"{ASR_WEBSITE}/payment/status?order_id={order_id}"
+        return_url = request.return_url or f"{website_base}/payment/status?order_id={order_id}"
         
         # Create Cashfree Order payload
         order_payload = {
@@ -430,7 +436,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
             },
             "order_meta": {
                 "return_url": return_url,
-                "notify_url": f"{ASR_WEBSITE}/api/cashfree/webhook"
+                "notify_url": f"{ASR_WEBSITE}/api/cashfree/webhook"  # Webhook always goes to production
             },
             "order_note": f"{request.purpose[:100]} - {request.payment_type}"
         }
@@ -481,10 +487,10 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 direct_payment_url = f"https://payments.cashfree.com/order/#/{payment_session_id}"
             
             # Our custom checkout page - uses JS SDK which works without S2S
-            # This is the primary URL since asrenterprises.in is whitelisted
-            checkout_url = f"{ASR_WEBSITE}/payment/checkout?session_id={payment_session_id}&order_id={order_id}"
+            # Use website_base for same-origin checkout
+            checkout_url = f"{website_base}/payment/checkout?session_id={payment_session_id}&order_id={order_id}"
             
-            logger.info(f"Generated checkout URL: {checkout_url[:80]}...")
+            logger.info(f"Generated checkout URL: {checkout_url[:100]}...")
             
             # Use our CUSTOM CHECKOUT PAGE as primary (JS SDK works without S2S)
             payment_url = checkout_url
@@ -540,15 +546,20 @@ async def create_cashfree_order(request: CreateOrderRequest):
                     )
             
             logger.info(f"Cashfree order created successfully: {order_id}")
-            logger.info(f"Returning payment_session_id: {payment_session_id[:50]}...")
+            logger.info("=== FINAL RESPONSE TO FRONTEND ===")
+            logger.info(f"payment_session_id: {payment_session_id}")
+            logger.info(f"payment_session_id length: {len(payment_session_id)}")
+            logger.info(f"payment_url: {payment_url}")
+            logger.info(f"checkout_url: {checkout_url}")
             
-            return {
+            # Build the final response
+            final_response = {
                 "success": True,
                 "order_id": order_id,
                 "cf_order_id": cf_order_id,
-                "payment_url": payment_url,  # Direct Cashfree URL
+                "payment_url": payment_url,  # Our custom checkout page URL
                 "checkout_url": checkout_url,  # Our custom checkout page
-                "payment_session_id": payment_session_id,
+                "payment_session_id": payment_session_id,  # CRITICAL: This must be the raw session ID
                 "payment_link": payment_url,  # Alias for compatibility
                 "amount": request.amount,
                 "status": order_status,
@@ -557,6 +568,12 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 "cashfree_order": response_data,
                 "message": "Order created successfully. Redirect customer to payment_url"
             }
+            
+            logger.info("=== RETURNING RESPONSE ===")
+            logger.info(f"Response keys: {list(final_response.keys())}")
+            logger.info(f"payment_session_id in response: {final_response.get('payment_session_id', 'MISSING')[:60]}...")
+            
+            return final_response
             
     except HTTPException:
         raise
@@ -597,7 +614,8 @@ async def create_website_order(request: WebsiteOrderRequest):
             payment_type=request.payment_type,
             purpose=purpose,
             notes=request.notes,
-            send_via_whatsapp=False  # Will be sent via webhook on success
+            send_via_whatsapp=False,  # Will be sent via webhook on success
+            origin_url=request.origin_url  # Pass through for same-origin checkout
         )
         
         result = await create_cashfree_order(order_request)

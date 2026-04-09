@@ -472,22 +472,21 @@ async def create_cashfree_order(request: CreateOrderRequest):
             logger.info(f"Payment session ID received: {payment_session_id[:50]}...")
             
             # Get payment URL for hosted checkout
-            # Use our custom checkout page that loads Cashfree JS SDK
-            # This avoids the S2S requirement
             is_sandbox = config.get("is_sandbox", False)
             
-            # Direct Cashfree URL (may require S2S approval)
+            # Direct Cashfree URL (requires S2S approval which may not be enabled)
             if is_sandbox:
                 direct_payment_url = f"https://payments-test.cashfree.com/order/#/{payment_session_id}"
             else:
                 direct_payment_url = f"https://payments.cashfree.com/order/#/{payment_session_id}"
             
-            # Our custom checkout page (uses JS SDK - works without S2S)
+            # Our custom checkout page - uses JS SDK which works without S2S
+            # This is the primary URL since asrenterprises.in is whitelisted
             checkout_url = f"{ASR_WEBSITE}/payment/checkout?session_id={payment_session_id}&order_id={order_id}"
             
-            logger.info(f"Generated PRODUCTION checkout URL: {checkout_url[:80]}...")
+            logger.info(f"Generated checkout URL: {checkout_url[:80]}...")
             
-            # Use our checkout page as primary (more reliable)
+            # Use our CUSTOM CHECKOUT PAGE as primary (JS SDK works without S2S)
             payment_url = checkout_url
             
             # Store order in database
@@ -497,7 +496,7 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 "cf_order_id": cf_order_id,
                 "payment_session_id": payment_session_id,
                 "payment_url": payment_url,
-                "direct_cashfree_url": direct_payment_url,
+                "direct_cashfree_url": direct_payment_url,  # Backup - requires S2S
                 "lead_id": request.lead_id,
                 "customer_name": request.customer_name,
                 "customer_phone": customer_phone,
@@ -547,15 +546,15 @@ async def create_cashfree_order(request: CreateOrderRequest):
                 "success": True,
                 "order_id": order_id,
                 "cf_order_id": cf_order_id,
-                "payment_url": payment_url,
-                "direct_cashfree_url": direct_payment_url,
-                "payment_session_id": payment_session_id,  # CRITICAL: This must be present
+                "payment_url": payment_url,  # Direct Cashfree URL
+                "checkout_url": checkout_url,  # Our custom checkout page
+                "payment_session_id": payment_session_id,
                 "payment_link": payment_url,  # Alias for compatibility
                 "amount": request.amount,
                 "status": order_status,
                 "whatsapp_sent": whatsapp_sent,
                 "return_url": return_url,
-                "cashfree_order": response_data,  # Full Cashfree response for debugging
+                "cashfree_order": response_data,
                 "message": "Order created successfully. Redirect customer to payment_url"
             }
             

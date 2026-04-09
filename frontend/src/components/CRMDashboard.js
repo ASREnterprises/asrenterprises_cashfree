@@ -3387,7 +3387,7 @@ export const CRMDashboard = () => {
                       <span className="bg-white/20 text-white text-xs px-2 py-0.5 rounded-full">OWNER</span>
                     </div>
                     <div className="text-amber-100 text-sm font-mono">ASR1001 - Super Admin</div>
-                    <div className="text-amber-100 text-sm">asrenterprisespatna@gmail.com | 8877896889</div>
+                    <div className="text-amber-100 text-sm">asrenterprisespatna@gmail.com | 9296389097</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -3419,7 +3419,7 @@ export const CRMDashboard = () => {
                     <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xl">AK</div>
                     <div>
                       <div className="font-bold text-[#0a355e]">ABHIJEET KUMAR (Owner)</div>
-                      <div className="text-gray-500 text-sm">Mobile: 8877896889 | Email: asrenterprisespatna@gmail.com</div>
+                      <div className="text-gray-500 text-sm">Mobile: 9296389097 | Email: asrenterprisespatna@gmail.com</div>
                     </div>
                   </div>
                   <button

@@ -74,6 +74,7 @@ from routes.staff import router as staff_router, init_router as init_staff_route
 from routes.whatsapp import router as whatsapp_router
 from routes.social_media import router as social_media_router
 from routes.payments import router as payments_router
+from routes.cashfree_orders import router as cashfree_orders_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -11377,6 +11378,9 @@ api_router.include_router(social_media_router)
 
 # Include Payments router under /api prefix (Cashfree Integration)
 api_router.include_router(payments_router)
+
+# Include Cashfree Orders router (Live Production Payments via Hosted Checkout)
+api_router.include_router(cashfree_orders_router)
 
 app.include_router(api_router)
 

@@ -16,6 +16,16 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // ==================== CONSTANTS ====================
 
+// Payment Types for Cashfree Orders
+const PAYMENT_TYPES = {
+  advance: "Advance Payment",
+  site_visit: "Site Visit Payment",
+  booking: "Booking Token Amount",
+  consultation: "Consultation Fee",
+  installation: "Installation Payment",
+  custom: "Custom Payment"
+};
+
 const BIHAR_DISTRICTS = [
   "Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", 
   "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", 
@@ -373,6 +383,7 @@ export const ProfessionalLeadsManagement = () => {
     setPaymentData({
       amount: "",
       purpose: "Solar Service Payment",
+      payment_type: "custom",
       send_via_whatsapp: true,
       expiry_minutes: 1440
     });
@@ -383,8 +394,9 @@ export const ProfessionalLeadsManagement = () => {
   const fetchLeadPayments = async (leadId) => {
     setPaymentsLoading(true);
     try {
-      const res = await axios.get(`${API}/payments/lead/${leadId}/payments`);
-      setLeadPayments(res.data.payments || []);
+      // Use new Cashfree Orders API endpoint
+      const res = await axios.get(`${API}/cashfree/lead/${leadId}/orders`);
+      setLeadPayments(res.data.orders || []);
     } catch (err) {
       console.error("Error fetching lead payments:", err);
       setLeadPayments([]);
@@ -400,20 +412,23 @@ export const ProfessionalLeadsManagement = () => {
 
     setPaymentLoading(true);
     try {
-      const res = await axios.post(`${API}/payments/create-link`, {
+      // Use new Cashfree Orders API (Hosted Checkout) instead of Payment Links
+      const res = await axios.post(`${API}/cashfree/create-order`, {
         lead_id: selectedLead.id,
         customer_name: selectedLead.name || "Customer",
         customer_phone: selectedLead.phone,
         customer_email: selectedLead.email || "",
         amount: parseFloat(paymentData.amount),
+        payment_type: paymentData.payment_type || "custom",
         purpose: paymentData.purpose,
-        send_via_whatsapp: paymentData.send_via_whatsapp,
-        expiry_minutes: paymentData.expiry_minutes,
-        source: "crm_link"
+        send_via_whatsapp: paymentData.send_via_whatsapp
       });
 
       if (res.data.success) {
-        setPaymentResult(res.data);
+        setPaymentResult({
+          ...res.data,
+          payment_link: res.data.payment_url  // Map payment_url to payment_link for UI
+        });
         // Refresh lead payments
         fetchLeadPayments(selectedLead.id);
         // Update lead to reflect payment sent
@@ -421,26 +436,27 @@ export const ProfessionalLeadsManagement = () => {
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || "";
-      // Handle Cashfree API not activated error gracefully
-      if (errorMsg.toLowerCase().includes("link_creation_api") || 
-          errorMsg.toLowerCase().includes("not enabled") ||
-          errorMsg.toLowerCase().includes("not approved")) {
+      // Handle any Cashfree API errors gracefully
+      if (errorMsg.toLowerCase().includes("not enabled") ||
+          errorMsg.toLowerCase().includes("not approved") ||
+          errorMsg.toLowerCase().includes("not configured")) {
         setPaymentResult({
           success: false,
           error: true,
-          message: "Live payment links are awaiting Cashfree activation. Your merchant account is being verified. Please try again later or contact support.",
+          message: "Payment system temporarily unavailable. Please contact support.",
           activation_pending: true
         });
       } else {
-        alert(errorMsg || "Failed to create payment link. Please try again.");
+        alert(errorMsg || "Failed to create payment order. Please try again.");
       }
     }
     setPaymentLoading(false);
   };
 
-  const resendPaymentLink = async (linkId) => {
+  const resendPaymentLink = async (orderId) => {
     try {
-      await axios.post(`${API}/payments/link/${linkId}/resend`);
+      // Use new Cashfree Orders API endpoint
+      await axios.post(`${API}/cashfree/order/${orderId}/resend-whatsapp`);
       alert("Payment link resent via WhatsApp!");
       fetchLeadPayments(selectedLead.id);
     } catch (err) {
@@ -2029,8 +2045,26 @@ export const ProfessionalLeadsManagement = () => {
                       </div>
                     </div>
                     
+                    {/* Payment Type Selector */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Purpose</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Payment Type</label>
+                      <select
+                        value={paymentData.payment_type}
+                        onChange={(e) => setPaymentData({...paymentData, payment_type: e.target.value, purpose: PAYMENT_TYPES[e.target.value] || paymentData.purpose})}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        data-testid="payment-type-select"
+                      >
+                        <option value="advance">Advance Payment</option>
+                        <option value="site_visit">Site Visit Payment</option>
+                        <option value="booking">Booking Token Amount</option>
+                        <option value="consultation">Consultation Fee</option>
+                        <option value="installation">Installation Payment</option>
+                        <option value="custom">Custom Payment</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Purpose / Description</label>
                       <input
                         type="text"
                         value={paymentData.purpose}
@@ -2038,22 +2072,6 @@ export const ProfessionalLeadsManagement = () => {
                         className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         placeholder="Solar Service Payment"
                       />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Link Expiry</label>
-                      <select
-                        value={paymentData.expiry_minutes}
-                        onChange={(e) => setPaymentData({...paymentData, expiry_minutes: parseInt(e.target.value)})}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      >
-                        <option value={60}>1 Hour</option>
-                        <option value={360}>6 Hours</option>
-                        <option value={720}>12 Hours</option>
-                        <option value={1440}>24 Hours</option>
-                        <option value={4320}>3 Days</option>
-                        <option value={10080}>7 Days</option>
-                      </select>
                     </div>
                     
                     {/* WhatsApp Option */}
@@ -2088,7 +2106,7 @@ export const ProfessionalLeadsManagement = () => {
                         data-testid="create-payment-btn"
                       >
                         {paymentLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                        Create & Send Link
+                        Create Payment
                       </button>
                     </div>
                   </div>

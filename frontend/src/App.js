@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
+// Payment Status Pages
+import { PaymentSuccess, PaymentFailed, PaymentPending, PaymentStatus } from "@/components/PaymentStatusPages";
+
 // ==================== LAZY LOADED COMPONENTS (Code Splitting) ====================
 // Public Pages - Lazy load for faster initial page load
 const WhatsAppChatPage = lazy(() => import("@/components/WhatsAppChat").then(m => ({ default: m.WhatsAppChatPage })));
@@ -1099,35 +1102,36 @@ const HomePage = () => {
       return;
     }
     
-    // Create Cashfree payment link
+    // Create Cashfree order using Orders API (Hosted Checkout)
     setPaymentStep('processing');
     setVerifyLoading(true);
     
     try {
-      const res = await axios.post(`${API}/payments/website/initiate`, {
+      // Use new Cashfree Orders API endpoint
+      const res = await axios.post(`${API}/cashfree/website/create-order`, {
         customer_name: bookingData.customer_name,
         customer_phone: bookingData.customer_phone,
         customer_email: bookingData.customer_email,
-        service_type: 'solar_registration',
+        payment_type: 'booking',
         amount: servicePrice,
         notes: 'Book Solar Service from Website'
       });
       
-      if (res.data.success && res.data.payment_link) {
-        setPaymentLink(res.data.payment_link);
+      if (res.data.success && res.data.payment_url) {
+        setPaymentLink(res.data.payment_url);
         setPaymentOrderId(res.data.order_id);
         setPaymentStep('redirect');
         
-        // Auto redirect after 2 seconds
+        // Auto redirect to Cashfree hosted checkout after 2 seconds
         setTimeout(() => {
-          window.open(res.data.payment_link, '_blank');
+          window.location.href = res.data.payment_url;
         }, 2000);
       } else {
-        alert("Unable to create payment link. Please try again or call 9296389097");
+        alert("Unable to initiate payment. Please try again or call 9296389097");
         setPaymentStep('form');
       }
     } catch (err) {
-      console.error("Payment link error:", err);
+      console.error("Payment initiation error:", err);
       alert(err.response?.data?.detail || "Unable to process. Please call 9296389097");
       setPaymentStep('form');
     }
@@ -1141,8 +1145,8 @@ const HomePage = () => {
     }
     setVerifyLoading(true);
     try {
-      // Verify payment status
-      const res = await axios.get(`${API}/payments/website/verify/${paymentOrderId}`);
+      // Verify payment status using new Orders API
+      const res = await axios.get(`${API}/cashfree/order/${paymentOrderId}/refresh`);
       
       if (res.data.paid) {
         setBookingSuccess({
@@ -1311,24 +1315,24 @@ const HomePage = () => {
         )}
       </nav>
 
-      {/* Running Marquee Announcement Bar */}
+      {/* Premium Announcement Bar - Solar Theme */}
       {marqueeEnabled && (
-        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2 overflow-hidden" data-testid="marquee-bar">
+        <div className="bg-gradient-to-r from-[#0B3C5D] via-[#0a355e] to-[#0B3C5D] py-2.5 overflow-hidden border-b border-emerald-500/30" data-testid="marquee-bar">
           <div className="animate-marquee whitespace-nowrap flex items-center">
-            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-              <span className="text-yellow-200">☀</span>
+            <span className="mx-8 text-white font-medium text-sm sm:text-base flex items-center gap-3">
+              <span className="text-emerald-400">★</span>
               {marqueeText}
             </span>
-            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-              <span className="text-yellow-200">☀</span>
+            <span className="mx-8 text-white font-medium text-sm sm:text-base flex items-center gap-3">
+              <span className="text-emerald-400">★</span>
               {marqueeText}
             </span>
-            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-              <span className="text-yellow-200">☀</span>
+            <span className="mx-8 text-white font-medium text-sm sm:text-base flex items-center gap-3">
+              <span className="text-emerald-400">★</span>
               {marqueeText}
             </span>
-            <span className="mx-8 text-white font-semibold text-sm sm:text-base flex items-center gap-2">
-              <span className="text-yellow-200">☀</span>
+            <span className="mx-8 text-white font-medium text-sm sm:text-base flex items-center gap-3">
+              <span className="text-emerald-400">★</span>
               {marqueeText}
             </span>
           </div>
@@ -2356,6 +2360,12 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/chat" element={<WhatsAppChatPage />} />
           <Route path="/become-agent" element={<AgentRegistrationPage />} />
+          
+          {/* Payment Status Pages */}
+          <Route path="/payment/success" element={<PaymentSuccess />} />
+          <Route path="/payment/failed" element={<PaymentFailed />} />
+          <Route path="/payment/pending" element={<PaymentPending />} />
+          <Route path="/payment/status" element={<PaymentStatus />} />
           
           {/* Admin Login */}
           <Route path="/admin/login" element={<AdminLogin onLogin={handleLogin} />} />

@@ -40,18 +40,37 @@ const CashfreeCheckout = () => {
   const [orderDetails, setOrderDetails] = useState(null);
   const [processingPayment, setProcessingPayment] = useState(false);
   
-  // Extract session_id from URL params
-  const sessionId = searchParams.get('session_id');
-  const orderId = searchParams.get('order_id');
+  // Extract session_id from URL params - try multiple methods for reliability
+  const sessionIdFromRouter = searchParams.get('session_id');
+  const orderIdFromRouter = searchParams.get('order_id');
+  
+  // BACKUP: Also parse directly from window.location to ensure we get the value
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionIdDirect = urlParams.get('session_id');
+  const orderIdDirect = urlParams.get('order_id');
+  
+  // Use the value that exists (prefer direct parsing as it's more reliable)
+  const sessionId = sessionIdDirect || sessionIdFromRouter;
+  const orderId = orderIdDirect || orderIdFromRouter;
   
   // DEBUG: Log all URL parameters on mount
   console.log('=== CASHFREE CHECKOUT PAGE LOADED ===');
   console.log('Full URL:', window.location.href);
-  console.log('Search params string:', window.location.search);
-  console.log('session_id from URL:', sessionId);
-  console.log('session_id type:', typeof sessionId);
-  console.log('session_id length:', sessionId ? sessionId.length : 'null');
-  console.log('order_id from URL:', orderId);
+  console.log('window.location.search:', window.location.search);
+  console.log('');
+  console.log('--- Router parsing ---');
+  console.log('session_id (router):', sessionIdFromRouter);
+  console.log('order_id (router):', orderIdFromRouter);
+  console.log('');
+  console.log('--- Direct parsing ---');
+  console.log('session_id (direct):', sessionIdDirect);
+  console.log('order_id (direct):', orderIdDirect);
+  console.log('');
+  console.log('--- Final values ---');
+  console.log('sessionId to use:', sessionId);
+  console.log('sessionId type:', typeof sessionId);
+  console.log('sessionId length:', sessionId ? sessionId.length : 'null');
+  console.log('orderId to use:', orderId);
   
   useEffect(() => {
     console.log('=== CashfreeCheckout useEffect triggered ===');
@@ -124,34 +143,59 @@ const CashfreeCheckout = () => {
     
     try {
       // Load Cashfree SDK
+      console.log('Loading Cashfree SDK...');
       const Cashfree = await loadCashfreeSDK();
-      console.log('Cashfree SDK loaded successfully');
+      console.log('Cashfree SDK loaded, typeof:', typeof Cashfree);
+      console.log('Cashfree function:', Cashfree.toString().substring(0, 100));
       
       // Initialize Cashfree in PRODUCTION mode
+      console.log('Initializing Cashfree with mode: production');
       const cashfree = Cashfree({
         mode: "production"  // IMPORTANT: Production mode
       });
-      console.log('Cashfree initialized in PRODUCTION mode');
+      console.log('Cashfree initialized successfully');
+      console.log('cashfree object type:', typeof cashfree);
+      console.log('cashfree.checkout type:', typeof cashfree.checkout);
       
       setLoading(false);
+      
+      // Small delay to ensure SDK is fully ready
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Auto-redirect to payment page
       setProcessingPayment(true);
       
-      // Use redirect checkout with CORRECT field name
+      // CRITICAL: Log everything before calling checkout
       console.log('=== LAUNCHING CASHFREE CHECKOUT ===');
-      console.log('Calling cashfree.checkout() with:');
-      console.log('  paymentSessionId:', paymentSessionId);
-      console.log('  redirectTarget: "_self"');
+      console.log('paymentSessionId to use:', paymentSessionId);
+      console.log('paymentSessionId type:', typeof paymentSessionId);
+      console.log('paymentSessionId is string:', typeof paymentSessionId === 'string');
+      console.log('paymentSessionId is truthy:', !!paymentSessionId);
+      console.log('paymentSessionId first 60 chars:', paymentSessionId.substring(0, 60));
+      console.log('paymentSessionId last 30 chars:', paymentSessionId.substring(paymentSessionId.length - 30));
       
-      // CRITICAL: Pass the exact session ID string
+      // Build checkout config
       const checkoutConfig = {
-        paymentSessionId: paymentSessionId,  // MUST be paymentSessionId (camelCase)
+        paymentSessionId: String(paymentSessionId),  // Ensure it's a string
         redirectTarget: "_self"  // Redirect in same tab
       };
       
-      console.log('Checkout config object:', JSON.stringify(checkoutConfig));
+      console.log('=== CHECKOUT CONFIG ===');
+      console.log('checkoutConfig:', JSON.stringify(checkoutConfig, null, 2));
+      console.log('checkoutConfig.paymentSessionId:', checkoutConfig.paymentSessionId);
+      console.log('typeof checkoutConfig.paymentSessionId:', typeof checkoutConfig.paymentSessionId);
       
+      // Final verification
+      if (!checkoutConfig.paymentSessionId || checkoutConfig.paymentSessionId.length < 50) {
+        console.error('=== CRITICAL ERROR: Invalid session ID in config! ===');
+        setError('Payment session is invalid. Please try again.');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Calling cashfree.checkout() NOW...');
+      
+      // Call Cashfree checkout
       cashfree.checkout(checkoutConfig);
       
     } catch (err) {

@@ -1534,20 +1534,22 @@ async def get_lead_payments(lead_id: str):
 @router.get("/webhook-url")
 async def get_webhook_url(request: Request):
     """Get the webhook URL to configure in Cashfree dashboard"""
-    base_url = str(request.base_url).rstrip("/")
-    webhook_url = f"{base_url}/api/payments/webhook"
+    # HARDCODED PRODUCTION WEBHOOK URL - Do not use request.base_url
+    # This ensures the correct production URL is always shown
+    webhook_url = "https://asrenterprises.in/api/cashfree/webhook"
     
     return {
         "webhook_url": webhook_url,
         "instructions": [
             "1. Go to Cashfree Dashboard > Settings > Webhooks",
             "2. Add a new webhook with the URL above",
-            "3. Select events: PAYMENT_LINK_EVENT, PAYMENT_SUCCESS_WEBHOOK",
+            "3. Select events: PAYMENT_SUCCESS, PAYMENT_FAILED, PAYMENT_USER_DROPPED",
             "4. Copy the webhook secret and save it in your payment settings",
             "5. Enable the webhook"
         ],
         "supported_events": [
-            "PAYMENT_LINK_EVENT",
-            "PAYMENT_SUCCESS_WEBHOOK"
+            "PAYMENT_SUCCESS",
+            "PAYMENT_FAILED",
+            "PAYMENT_USER_DROPPED"
         ]
     }

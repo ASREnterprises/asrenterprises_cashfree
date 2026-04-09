@@ -2135,11 +2135,9 @@ export const CRMDashboard = () => {
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "cashfree_payments", label: "Cashfree Payments", icon: <Wallet className="w-4 h-4" /> },
               { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
-              { id: "lead_management", label: "Lead Management", icon: <Inbox className="w-4 h-4" /> },
               { id: "hr_management", label: "HR Management", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
               { id: "site_settings", label: "Site Settings", icon: <Settings className="w-4 h-4" /> },
-              { id: "security_centre", label: "Security Centre", icon: <Shield className="w-4 h-4" /> },
               { id: "credentials", label: "Credentials", icon: <Key className="w-4 h-4" /> }
             ].map((tab) => (
               <button key={tab.id} onClick={() => { 
@@ -2149,9 +2147,7 @@ export const CRMDashboard = () => {
                   activeTab === tab.id 
                     ? tab.id === "whatsapp" ? "bg-green-600 text-white" 
                     : tab.id === "cashfree_payments" ? "bg-emerald-600 text-white"
-                    : tab.id === "lead_management" ? "bg-indigo-600 text-white"
                     : tab.id === "hr_management" ? "bg-purple-600 text-white"
-                    : tab.id === "security_centre" ? "bg-red-600 text-white"
                     : "bg-blue-600 text-white" 
                     : "text-gray-600 hover:bg-gray-50 border border-gray-300"
                 }`}>
@@ -2289,16 +2285,6 @@ export const CRMDashboard = () => {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Lead Management Tab - Contains Trash */}
-        {activeTab === "lead_management" && (
-          <LeadManagementSection 
-            trashedLeads={trashedLeads}
-            fetchTrashedLeads={fetchTrashedLeads}
-            restoreLeads={restoreLeads}
-            permanentlyDeleteLeads={permanentlyDeleteLeads}
-          />
         )}
 
         {/* All Leads Tab - Original leads functionality */}
@@ -3136,22 +3122,6 @@ export const CRMDashboard = () => {
               } catch (err) { alert(err.response?.data?.detail || "Error deleting staff"); }
             }}
             ownerInfo={staffAccounts.find(s => s.is_owner)}
-          />
-        )}
-
-        {/* Security Centre Tab - Backups */}
-        {activeTab === "security_centre" && (
-          <SecurityCentreSection
-            backups={[]}
-            fetchBackups={() => {}}
-            createBackup={async () => {
-              try {
-                await axios.post(`${API}/admin/backup`);
-                alert("Backup created successfully");
-              } catch (err) { alert("Error creating backup"); }
-            }}
-            downloadBackup={() => {}}
-            backupsLoading={false}
           />
         )}
 

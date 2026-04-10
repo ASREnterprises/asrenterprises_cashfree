@@ -1380,10 +1380,15 @@ async def list_orders(
     status: Optional[str] = None,
     payment_type: Optional[str] = None,
     lead_id: Optional[str] = None,
-    search: Optional[str] = None
+    search: Optional[str] = None,
+    include_deleted: bool = False
 ):
     """Get paginated list of orders"""
     query = {}
+    
+    # Exclude deleted orders by default
+    if not include_deleted:
+        query["is_deleted"] = {"$ne": True}
     
     if status:
         query["status"] = status
@@ -1410,6 +1415,143 @@ async def list_orders(
         "limit": limit,
         "total_pages": (total + limit - 1) // limit
     }
+
+
+# ==================== DELETE TRANSACTION ENDPOINTS ====================
+
+class BulkDeleteRequest(BaseModel):
+    order_ids: list[str] = Field(..., min_length=1, max_length=100)
+
+
+@router.delete("/orders/{order_id}")
+async def delete_order(order_id: str):
+    """
+    Delete a single Cashfree order/transaction.
+    This is a soft delete - marks as deleted but keeps data for records.
+    """
+    try:
+        # Check if order exists
+        order = await db.cashfree_orders.find_one({"order_id": order_id})
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        # Soft delete - mark as deleted
+        await db.cashfree_orders.update_one(
+            {"order_id": order_id},
+            {"$set": {
+                "is_deleted": True,
+                "deleted_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Also mark in legacy payments if exists
+        await db.payments.update_one(
+            {"order_id": order_id},
+            {"$set": {"is_deleted": True, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        logger.info(f"[Delete] Order {order_id} marked as deleted")
+        
+        return {
+            "success": True,
+            "message": f"Order {order_id} deleted successfully",
+            "order_id": order_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Delete] Error deleting order {order_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/orders/bulk-delete")
+async def bulk_delete_orders(request: BulkDeleteRequest):
+    """
+    Bulk delete multiple Cashfree orders/transactions.
+    This is a soft delete - marks as deleted but keeps data for records.
+    """
+    try:
+        order_ids = request.order_ids
+        
+        if not order_ids:
+            raise HTTPException(status_code=400, detail="No order IDs provided")
+        
+        if len(order_ids) > 100:
+            raise HTTPException(status_code=400, detail="Maximum 100 orders can be deleted at once")
+        
+        # Soft delete all matching orders
+        now = datetime.now(timezone.utc).isoformat()
+        
+        result = await db.cashfree_orders.update_many(
+            {"order_id": {"$in": order_ids}},
+            {"$set": {
+                "is_deleted": True,
+                "deleted_at": now
+            }}
+        )
+        
+        # Also mark in legacy payments collection
+        await db.payments.update_many(
+            {"order_id": {"$in": order_ids}},
+            {"$set": {"is_deleted": True, "deleted_at": now}}
+        )
+        
+        deleted_count = result.modified_count
+        logger.info(f"[Bulk Delete] {deleted_count} orders marked as deleted")
+        
+        return {
+            "success": True,
+            "message": f"{deleted_count} orders deleted successfully",
+            "deleted_count": deleted_count,
+            "requested_count": len(order_ids)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Bulk Delete] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/orders/permanent-delete/{order_id}")
+async def permanent_delete_order(order_id: str, confirm: bool = False):
+    """
+    Permanently delete an order from the database.
+    WARNING: This action is irreversible!
+    Requires confirm=true parameter.
+    """
+    if not confirm:
+        raise HTTPException(
+            status_code=400, 
+            detail="Permanent deletion requires confirm=true parameter"
+        )
+    
+    try:
+        # Delete from cashfree_orders
+        result1 = await db.cashfree_orders.delete_one({"order_id": order_id})
+        
+        # Delete from payments
+        result2 = await db.payments.delete_one({"order_id": order_id})
+        
+        if result1.deleted_count == 0 and result2.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        logger.warning(f"[PERMANENT DELETE] Order {order_id} permanently deleted")
+        
+        return {
+            "success": True,
+            "message": f"Order {order_id} permanently deleted",
+            "cashfree_deleted": result1.deleted_count > 0,
+            "payments_deleted": result2.deleted_count > 0
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[Permanent Delete] Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/dashboard/stats")
 async def get_orders_dashboard_stats():

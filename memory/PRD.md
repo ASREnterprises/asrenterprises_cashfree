@@ -16,7 +16,66 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 10, 2026 - Round 19)
+## Latest Updates (April 10, 2026 - Round 20)
+
+### ✅ HEYO CALL INTEGRATION
+- Integrated Heyo app deep linking for calls from CRM leads management
+- Works on both Admin (ProfessionalLeadsManagement.js) and Staff Portal (StaffPortal.js)
+- Deep link format: `heyo://call?number=PHONE_NUMBER`
+- Fallback to `tel:` if Heyo app not installed
+- Call attempts logged to backend for CRM tracking
+- New endpoints: `/api/crm/log-call-attempt`, `/api/staff/log-call`
+
+### ✅ BOOK SITE VISIT ₹500 WITH PAYMENT GATEWAY
+- Updated price from ₹199 to ₹500
+- Integrated with Cashfree payment gateway
+- Booking types: `site_visit` (₹500) or `book_solar_service` (configurable)
+- Orders tracked in "Book Solar Service - Price Configuration" after successful payment
+- Payment flow: Customer fills form → Cashfree checkout → Webhook updates order status
+
+### ✅ CASHFREE TRANSACTION DELETE/BULK DELETE
+- Added single transaction delete: `DELETE /api/cashfree/orders/{order_id}`
+- Added bulk delete: `POST /api/cashfree/orders/bulk-delete`
+- Soft delete (marks as deleted, preserves data)
+- Permanent delete option with confirmation: `POST /api/cashfree/orders/permanent-delete/{order_id}?confirm=true`
+- UI: Checkbox selection, "Select All", bulk delete button with confirmation modal
+- Transaction list excludes deleted orders by default
+
+### ✅ HYPER-LOCAL SEO PAGES
+- Created `/app/frontend/src/components/SEOPages.js`
+- Location pages for 10 Bihar cities/districts:
+  - Patna, Hajipur, Muzaffarpur, Gaya, Bhagalpur
+  - Darbhanga, Nalanda, Vaishali, Begusarai, Samastipur
+- Routes: `/solar` (landing), `/solar/:location` (city pages)
+- Features:
+  - Schema.org LocalBusiness markup
+  - Meta tags for SEO
+  - Subsidy information
+  - Service areas and nearby cities
+  - Lead capture form
+  - WhatsApp/Call CTAs
+- Installed `react-helmet-async` for SEO meta management
+
+### ✅ SERVER.PY REFACTORING PLAN
+- Created `/app/backend/REFACTORING_PLAN.md`
+- Documented modular structure for extracting:
+  - Social webhooks, Shop, Admin auth, Notifications
+  - Tasks, Leads import, Analytics, Backup
+- Priority order established for migration
+
+### Files Updated This Session:
+- `/app/frontend/src/components/ProfessionalLeadsManagement.js` - Heyo call integration
+- `/app/frontend/src/components/StaffPortal.js` - Heyo call for staff
+- `/app/frontend/src/components/PaymentsDashboard.js` - Delete/bulk delete UI
+- `/app/frontend/src/components/SEOPages.js` - NEW: Hyper-local SEO pages
+- `/app/frontend/src/App.js` - Routes, HelmetProvider, ₹500 pricing
+- `/app/backend/routes/cashfree_orders.py` - Delete endpoints, booking type tracking
+- `/app/backend/server.py` - Call logging endpoints
+- `/app/backend/REFACTORING_PLAN.md` - NEW: Refactoring documentation
+
+---
+
+## Previous Updates (April 10, 2026 - Round 19)
 
 ### ✅ HOMEPAGE REDESIGN & CLEANUP
 

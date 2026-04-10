@@ -793,7 +793,7 @@ const PaymentSettingsModal = memo(({ isOpen, onClose, onSaved }) => {
 });
 
 // ==================== TRANSACTION ROW ====================
-const TransactionRow = memo(({ payment, onRefresh, onResend }) => {
+const TransactionRow = memo(({ payment, onRefresh, onResend, isSelected, onToggleSelect, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const statusConfig = PAYMENT_STATUSES[payment.status] || PAYMENT_STATUSES.pending;
@@ -831,18 +831,26 @@ const TransactionRow = memo(({ payment, onRefresh, onResend }) => {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-3 hover:shadow-md transition">
+    <div className={`bg-white border rounded-xl overflow-hidden mb-3 hover:shadow-md transition ${isSelected ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}>
       {/* Main Row */}
-      <div 
-        className="p-4 cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
-      >
+      <div className="p-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Checkbox + Main Info */}
           <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={isSelected || false}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelect?.();
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-4 h-4 mt-1 text-red-600 rounded border-gray-300 focus:ring-red-500 cursor-pointer"
+            />
             <div className={`p-2 rounded-lg ${sourceConfig.color} text-white`}>
               <sourceConfig.icon className="w-5 h-5" />
             </div>
-            <div>
+            <div className="cursor-pointer" onClick={() => setExpanded(!expanded)}>
               <p className="font-semibold text-gray-800">{payment.customer_name}</p>
               <p className="text-sm text-gray-500">{payment.customer_phone}</p>
               <p className="text-xs text-gray-400 mt-1">{formatDateTime(payment.created_at)}</p>
@@ -857,7 +865,23 @@ const TransactionRow = memo(({ payment, onRefresh, onResend }) => {
                 {statusConfig.label}
               </span>
             </div>
-            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            <div className="flex items-center gap-2">
+              {/* Delete button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition"
+                title="Delete Transaction"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <ChevronDown 
+                className={`w-5 h-5 text-gray-400 transition-transform cursor-pointer ${expanded ? 'rotate-180' : ''}`} 
+                onClick={() => setExpanded(!expanded)}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -961,6 +985,11 @@ export const PaymentsDashboard = ({ leads = [] }) => {
   const [pagination, setPagination] = useState({ page: 1, total: 0, total_pages: 1 });
   const [filters, setFilters] = useState({ status: "", source: "", search: "" });
   
+  // Delete functionality
+  const [selectedTransactions, setSelectedTransactions] = useState(new Set());
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -1003,6 +1032,66 @@ export const PaymentsDashboard = ({ leads = [] }) => {
     fetchStats();
     fetchTransactions();
   }, [fetchStats, fetchTransactions]);
+
+  // Toggle single transaction selection
+  const toggleTransactionSelect = (orderId) => {
+    setSelectedTransactions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all transactions selection
+  const toggleAllTransactions = () => {
+    if (selectedTransactions.size === transactions.length) {
+      setSelectedTransactions(new Set());
+    } else {
+      setSelectedTransactions(new Set(transactions.map(t => t.order_id)));
+    }
+  };
+
+  // Delete single transaction
+  const handleDeleteTransaction = async (orderId) => {
+    if (!confirm("Are you sure you want to delete this transaction?")) return;
+    
+    setDeleteLoading(true);
+    try {
+      await axios.delete(`${API}/cashfree/orders/${orderId}`);
+      fetchTransactions(pagination.page);
+      fetchStats();
+      alert("Transaction deleted successfully");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to delete transaction");
+    }
+    setDeleteLoading(false);
+  };
+
+  // Bulk delete transactions
+  const handleBulkDelete = async () => {
+    if (selectedTransactions.size === 0) {
+      alert("No transactions selected");
+      return;
+    }
+    
+    setDeleteLoading(true);
+    try {
+      const orderIds = Array.from(selectedTransactions);
+      await axios.post(`${API}/cashfree/orders/bulk-delete`, { order_ids: orderIds });
+      setSelectedTransactions(new Set());
+      setShowDeleteConfirm(false);
+      fetchTransactions(pagination.page);
+      fetchStats();
+      alert(`Successfully deleted ${orderIds.length} transactions`);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to delete transactions");
+    }
+    setDeleteLoading(false);
+  };
 
   const handleCreateForLead = (lead) => {
     setSelectedLead(lead);
@@ -1154,7 +1243,84 @@ export const PaymentsDashboard = ({ leads = [] }) => {
             Search
           </button>
         </div>
+        
+        {/* Bulk Actions Bar - Only show when transactions exist */}
+        {transactions.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedTransactions.size === transactions.length && transactions.length > 0}
+                  onChange={toggleAllTransactions}
+                  className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                />
+                <span className="text-sm text-gray-600">Select All</span>
+              </label>
+              {selectedTransactions.size > 0 && (
+                <span className="text-sm text-blue-600 font-medium">
+                  {selectedTransactions.size} selected
+                </span>
+              )}
+            </div>
+            
+            {selectedTransactions.size > 0 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleteLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+                data-testid="bulk-delete-btn"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Selected ({selectedTransactions.size})
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Delete Transactions?</h3>
+              <p className="text-gray-500 mb-6">
+                Are you sure you want to delete {selectedTransactions.size} transaction(s)? 
+                This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Transactions List */}
       <div className="space-y-3">
@@ -1182,6 +1348,9 @@ export const PaymentsDashboard = ({ leads = [] }) => {
                 key={payment.id}
                 payment={payment}
                 onRefresh={() => { fetchStats(); fetchTransactions(pagination.page); }}
+                isSelected={selectedTransactions.has(payment.order_id)}
+                onToggleSelect={() => toggleTransactionSelect(payment.order_id)}
+                onDelete={() => handleDeleteTransaction(payment.order_id)}
               />
             ))}
 

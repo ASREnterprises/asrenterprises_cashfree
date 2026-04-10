@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
@@ -51,6 +52,10 @@ const LeadCapturePopup = lazy(() => import("@/components/LeadCapturePopup").then
 const DynamicROIWidget = lazy(() => import("@/components/DynamicROIWidget").then(m => ({ default: m.DynamicROIWidget })));
 const SubsidyCountdownMeter = lazy(() => import("@/components/SubsidyCountdownMeter").then(m => ({ default: m.SubsidyCountdownMeter })));
 const ZeroBillComparison = lazy(() => import("@/components/ZeroBillComparison").then(m => ({ default: m.ZeroBillComparison })));
+
+// Hyper-Local SEO Pages
+const LocationPage = lazy(() => import("@/components/SEOPages").then(m => ({ default: m.LocationPage })));
+const SolarServicesPage = lazy(() => import("@/components/SEOPages").then(m => ({ default: m.SolarServicesPage })));
 
 // CRM & Staff Portals - Heavy components (Lazy load critical for performance)
 const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({ default: m.CRMDashboard })));
@@ -1051,7 +1056,8 @@ const HomePage = () => {
   const [bookingData, setBookingData] = useState({ customer_name: "", customer_phone: "", customer_email: "" });
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
-  const [servicePrice, setServicePrice] = useState(1500);
+  const [servicePrice, setServicePrice] = useState(500); // Updated to ₹500
+  const [siteVisitPrice] = useState(500); // Site Visit price ₹500
   const [showScrollTop, setShowScrollTop] = useState(false);
   
   // Marquee state from backend
@@ -1189,15 +1195,23 @@ const HomePage = () => {
       console.log('BACKEND_URL:', BACKEND_URL);
       console.log('API base:', API);
       console.log('Full API endpoint:', apiEndpoint);
-      console.log('Request payload:', { customer_name: bookingData.customer_name, customer_phone: bookingData.customer_phone, amount: servicePrice });
+      
+      // Determine if this is a Site Visit (₹500) or Book Solar Service (higher price)
+      const isSiteVisit = servicePrice === 500;
+      const bookingType = isSiteVisit ? 'site_visit' : 'book_solar_service';
+      const bookingNotes = isSiteVisit ? 'Site Visit Booking - ₹500' : `Book Solar Service - ₹${servicePrice}`;
+      
+      console.log('Booking Type:', bookingType);
+      console.log('Request payload:', { customer_name: bookingData.customer_name, customer_phone: bookingData.customer_phone, amount: servicePrice, booking_type: bookingType });
       
       const res = await axios.post(apiEndpoint, {
         customer_name: bookingData.customer_name,
         customer_phone: bookingData.customer_phone,
         customer_email: bookingData.customer_email,
         payment_type: 'booking',
+        booking_type: bookingType, // site_visit or book_solar_service
         amount: servicePrice,
-        notes: 'Book Solar Service from Website',
+        notes: bookingNotes,
         origin_url: window.location.origin  // CRITICAL: Send current domain for same-origin checkout
       });
       
@@ -1573,7 +1587,7 @@ const HomePage = () => {
                 data-testid="book-site-visit-btn"
               >
                 <Calendar className="w-5 h-5" />
-                <span>Book Site Visit ₹199</span>
+                <span>Book Site Visit ₹500</span>
               </button>
             </div>
 
@@ -2565,6 +2579,7 @@ export default function App() {
   };
 
   return (
+    <HelmetProvider>
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -2575,6 +2590,10 @@ export default function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/chat" element={<WhatsAppChatPage />} />
           <Route path="/become-agent" element={<AgentRegistrationPage />} />
+          
+          {/* Hyper-Local SEO Pages */}
+          <Route path="/solar" element={<SolarServicesPage />} />
+          <Route path="/solar/:location" element={<LocationPage />} />
           
           {/* Payment Status Pages */}
           <Route path="/payment/success" element={<PaymentSuccess />} />
@@ -2697,6 +2716,7 @@ export default function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </HelmetProvider>
   );
 }
 

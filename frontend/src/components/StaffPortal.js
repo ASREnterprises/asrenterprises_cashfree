@@ -5,7 +5,7 @@ import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
   ChevronRight, ChevronUp, FileText, TrendingUp, Bell, Plus, Edit,
-  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox
+  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox, PhoneCall
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import StaffTraining from "./StaffTraining";
@@ -13,6 +13,43 @@ import { SendWhatsAppModal } from "@/components/WhatsAppCRM";
 import { WhatsAppInbox } from "@/components/WhatsAppInbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// ==================== HEYO CALL INTEGRATION FOR STAFF ====================
+const initiateHeyoCall = (phoneNumber, leadId, leadName, staffId) => {
+  const cleanPhone = phoneNumber?.replace(/\D/g, '').replace(/^91/, '');
+  if (!cleanPhone || cleanPhone.length < 10) {
+    alert("Invalid phone number");
+    return;
+  }
+  
+  const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+  
+  // Log call attempt for staff tracking
+  axios.post(`${API}/staff/log-call`, {
+    lead_id: leadId,
+    phone: fullPhone,
+    lead_name: leadName,
+    staff_id: staffId,
+    call_type: "heyo",
+    timestamp: new Date().toISOString()
+  }).catch(err => console.error("Failed to log call:", err));
+  
+  // Try Heyo app, fallback to tel:
+  const heyoUrl = `heyo://call?number=${fullPhone}`;
+  const telUrl = `tel:${cleanPhone}`;
+  
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = heyoUrl;
+  document.body.appendChild(iframe);
+  
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+    if (document.hasFocus()) {
+      window.location.href = telUrl;
+    }
+  }, 2000);
+};
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "bg-blue-500" },
@@ -344,8 +381,8 @@ export const StaffPortal = () => {
         staff_id: staffData.staff_id,
         staff_name: staffData.name,
         activity_type: "call",
-        title: "Call Initiated",
-        description: `${staffData.name} called ${lead.name} at ${lead.phone}`
+        title: "Call Initiated (Heyo)",
+        description: `${staffData.name} called ${lead.name} at ${lead.phone} via Heyo App`
       }),
       // Update lead's call_status in backend
       axios.put(`${API}/staff/${staffData.staff_id}/leads/${lead.id}`, { 
@@ -360,10 +397,29 @@ export const StaffPortal = () => {
         .catch(err => console.error("Error updating stage:", err));
     }
     
-    // Open phone app using window.open instead of location.href to preserve app state better
-    // Use a small timeout to ensure state is saved before navigating
+    // Use Heyo app for calling (with tel: fallback)
+    const cleanPhone = lead.phone?.replace(/\D/g, '').replace(/^91/, '');
+    const fullPhone = cleanPhone?.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    
+    // Try Heyo deep link first
+    const heyoUrl = `heyo://call?number=${fullPhone}`;
+    const telUrl = `tel:${cleanPhone}`;
+    
+    // Use timeout to ensure state is saved before navigating
     setTimeout(() => {
-      window.open(`tel:${lead.phone}`, '_self');
+      // Create hidden iframe to try Heyo deep link
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = heyoUrl;
+      document.body.appendChild(iframe);
+      
+      // If Heyo doesn't open within 1.5 seconds, fallback to tel:
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        if (document.hasFocus()) {
+          window.open(telUrl, '_self');
+        }
+      }, 1500);
     }, 100);
   };
 

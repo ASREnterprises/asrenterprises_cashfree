@@ -8709,6 +8709,60 @@ async def track_analytics_event(event: dict):
         logger.error(f"[Analytics] Error tracking event: {e}")
         return {"success": False, "error": str(e)}
 
+
+# CRM Call Logging Endpoint (for Heyo integration)
+@api_router.post("/crm/log-call-attempt")
+async def log_crm_call_attempt(call_data: dict):
+    """Log call attempts from CRM leads management (Heyo app integration)"""
+    try:
+        call_log = {
+            "id": str(uuid.uuid4()),
+            "lead_id": call_data.get("lead_id"),
+            "phone": call_data.get("phone"),
+            "lead_name": call_data.get("lead_name"),
+            "call_type": call_data.get("call_type", "heyo"),
+            "source": "crm_admin",
+            "status": "initiated",
+            "timestamp": call_data.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.call_logs.insert_one(call_log)
+        logger.info(f"[CRM Call] Logged call to {call_data.get('phone')} for lead {call_data.get('lead_id')}")
+        
+        return {"success": True, "call_id": call_log["id"]}
+    except Exception as e:
+        logger.error(f"[CRM Call] Error logging call: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# Staff Call Logging Endpoint (for Heyo integration)
+@api_router.post("/staff/log-call")
+async def log_staff_call(call_data: dict):
+    """Log call attempts from staff portal (Heyo app integration)"""
+    try:
+        call_log = {
+            "id": str(uuid.uuid4()),
+            "lead_id": call_data.get("lead_id"),
+            "phone": call_data.get("phone"),
+            "lead_name": call_data.get("lead_name"),
+            "staff_id": call_data.get("staff_id"),
+            "call_type": call_data.get("call_type", "heyo"),
+            "source": "staff_portal",
+            "status": "initiated",
+            "timestamp": call_data.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.call_logs.insert_one(call_log)
+        logger.info(f"[Staff Call] Staff {call_data.get('staff_id')} called {call_data.get('phone')}")
+        
+        return {"success": True, "call_id": call_log["id"]}
+    except Exception as e:
+        logger.error(f"[Staff Call] Error logging call: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # CRITICAL: Health check for Kubernetes
 @app.get("/health")
 async def health_check():

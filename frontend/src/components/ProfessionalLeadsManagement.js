@@ -7,12 +7,59 @@ import {
   Users, TrendingUp, Flame, Snowflake, ThermometerSun, Zap, History, 
   MoreVertical, Download, Archive, RotateCcw, AlertTriangle, ExternalLink,
   Table, LayoutGrid, Settings, Bell, Target, Building2, Home, Factory,
-  CreditCard, IndianRupee, Send, Copy, Wallet, Link as LinkIcon
+  CreditCard, IndianRupee, Send, Copy, Wallet, Link as LinkIcon, PhoneCall
 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// ==================== HEYO CALL INTEGRATION ====================
+// Heyo app deep link format: heyo://call?number=PHONE_NUMBER
+// Fallback to tel: link if Heyo app is not installed
+
+const initiateHeyoCall = (phoneNumber, leadId, leadName) => {
+  // Clean the phone number
+  const cleanPhone = phoneNumber?.replace(/\D/g, '').replace(/^91/, '');
+  if (!cleanPhone || cleanPhone.length < 10) {
+    alert("Invalid phone number");
+    return;
+  }
+  
+  // Full phone with country code for Heyo
+  const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+  
+  // Log call attempt to backend
+  axios.post(`${API}/crm/log-call-attempt`, {
+    lead_id: leadId,
+    phone: fullPhone,
+    lead_name: leadName,
+    call_type: "heyo",
+    timestamp: new Date().toISOString()
+  }).catch(err => console.error("Failed to log call:", err));
+  
+  // Try Heyo app first, fallback to regular tel: link
+  const heyoUrl = `heyo://call?number=${fullPhone}`;
+  const telUrl = `tel:${cleanPhone}`;
+  
+  // Create hidden iframe to try Heyo deep link
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = heyoUrl;
+  document.body.appendChild(iframe);
+  
+  // If Heyo doesn't open within 2 seconds, fallback to tel:
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+    // Check if app was opened by seeing if page is still focused
+    if (document.hasFocus()) {
+      // Heyo didn't open, use tel: link
+      window.location.href = telUrl;
+    }
+  }, 2000);
+  
+  return true;
+};
 
 // ==================== CONSTANTS ====================
 
@@ -1136,10 +1183,14 @@ export const ProfessionalLeadsManagement = () => {
                         </td>
                         <td className="px-3 py-3">
                           <div className="text-sm">
-                            <a href={`tel:${lead.phone}`} className="text-blue-600 hover:underline flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
+                            <button
+                              onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1 transition"
+                              title="Call via Heyo App"
+                            >
+                              <PhoneCall className="w-3 h-3" />
                               {lead.phone}
-                            </a>
+                            </button>
                             {lead.email && (
                               <div className="text-xs text-slate-500 truncate max-w-[140px]">{lead.email}</div>
                             )}
@@ -1211,13 +1262,13 @@ export const ProfessionalLeadsManagement = () => {
                             >
                               <MessageSquare className="w-4 h-4" />
                             </button>
-                            <a
-                              href={`tel:${lead.phone}`}
+                            <button
+                              onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
                               className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                              title="Call"
+                              title="Call via Heyo App"
                             >
-                              <Phone className="w-4 h-4" />
-                            </a>
+                              <PhoneCall className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={() => { setSelectedLead(lead); setShowDetailModal(true); }}
                               className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition"
@@ -1351,13 +1402,13 @@ export const ProfessionalLeadsManagement = () => {
                       >
                         <MessageSquare className="w-4 h-4" />
                       </button>
-                      <a
-                        href={`tel:${lead.phone}`}
+                      <button
+                        onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
                         className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                        title="Call"
+                        title="Call via Heyo App"
                       >
-                        <Phone className="w-4 h-4" />
-                      </a>
+                        <PhoneCall className="w-4 h-4" />
+                      </button>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -1736,13 +1787,13 @@ export const ProfessionalLeadsManagement = () => {
                     <MessageSquare className="w-4 h-4" />
                     WhatsApp
                   </a>
-                  <a
-                    href={`tel:${selectedLead.phone}`}
+                  <button
+                    onClick={() => initiateHeyoCall(selectedLead.phone, selectedLead.id, selectedLead.name)}
                     className="flex items-center gap-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                   >
-                    <Phone className="w-4 h-4" />
-                    Call
-                  </a>
+                    <PhoneCall className="w-4 h-4" />
+                    Call (Heyo)
+                  </button>
                 </div>
               </div>
               

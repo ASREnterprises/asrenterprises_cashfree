@@ -1582,7 +1582,7 @@ const HomePage = () => {
                 <span>Get Free Solar Consultation on WhatsApp</span>
               </a>
               <button
-                onClick={() => document.getElementById('book-service')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => setShowBookService(true)}
                 className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
                 data-testid="book-site-visit-btn"
               >

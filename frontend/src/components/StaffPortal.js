@@ -397,29 +397,40 @@ export const StaffPortal = () => {
         .catch(err => console.error("Error updating stage:", err));
     }
     
-    // Use Heyo app for calling (with tel: fallback)
+    // Clean phone number for calling
     const cleanPhone = lead.phone?.replace(/\D/g, '').replace(/^91/, '');
     const fullPhone = cleanPhone?.length === 10 ? `91${cleanPhone}` : cleanPhone;
     
-    // Try Heyo deep link first
+    // Detect if mobile device
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Heyo deep link URL
     const heyoUrl = `heyo://call?number=${fullPhone}`;
     const telUrl = `tel:${cleanPhone}`;
     
     // Use timeout to ensure state is saved before navigating
     setTimeout(() => {
-      // Create hidden iframe to try Heyo deep link
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = heyoUrl;
-      document.body.appendChild(iframe);
-      
-      // If Heyo doesn't open within 1.5 seconds, fallback to tel:
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-        if (document.hasFocus()) {
-          window.open(telUrl, '_self');
-        }
-      }, 1500);
+      if (isMobile) {
+        // On mobile, try direct navigation to Heyo, then fallback
+        // Store the time we tried to open Heyo
+        const startTime = Date.now();
+        
+        // Try to open Heyo app
+        window.location.href = heyoUrl;
+        
+        // Set a timeout to check if we're still here (Heyo didn't open)
+        setTimeout(() => {
+          // If we're still on the page after 2 seconds, Heyo isn't installed
+          // The page blur/visibility change would have happened if Heyo opened
+          if (document.visibilityState === 'visible' && (Date.now() - startTime) < 2500) {
+            // Heyo didn't open, fallback to tel:
+            window.location.href = telUrl;
+          }
+        }, 2000);
+      } else {
+        // Desktop: just use tel: directly (most desktops don't have Heyo)
+        window.location.href = telUrl;
+      }
     }, 100);
   };
 

@@ -1057,7 +1057,7 @@ export const PaymentsDashboard = ({ leads = [] }) => {
 
   // Delete single transaction
   const handleDeleteTransaction = async (orderId) => {
-    if (!confirm("Are you sure you want to delete this transaction?")) return;
+    if (!window.confirm("Are you sure you want to delete this transaction?")) return;
     
     setDeleteLoading(true);
     try {
@@ -1066,6 +1066,7 @@ export const PaymentsDashboard = ({ leads = [] }) => {
       fetchStats();
       alert("Transaction deleted successfully");
     } catch (err) {
+      console.error("Delete error:", err);
       alert(err.response?.data?.detail || "Failed to delete transaction");
     }
     setDeleteLoading(false);

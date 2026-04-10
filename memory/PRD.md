@@ -16,30 +16,41 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 10, 2026 - Round 20)
+## Latest Updates (April 10, 2026 - Round 21)
 
-### ✅ HEYO CALL INTEGRATION
-- Integrated Heyo app deep linking for calls from CRM leads management
-- Works on both Admin (ProfessionalLeadsManagement.js) and Staff Portal (StaffPortal.js)
-- Deep link format: `heyo://call?number=PHONE_NUMBER`
-- Fallback to `tel:` if Heyo app not installed
-- Call attempts logged to backend for CRM tracking
-- New endpoints: `/api/crm/log-call-attempt`, `/api/staff/log-call`
+### ✅ VERIFIED: All P0/P1 Issues Fixed & Tested
+**Testing Report:** `/app/test_reports/iteration_87.json` - 100% Pass Rate (10/10 tests)
 
-### ✅ BOOK SITE VISIT ₹500 WITH PAYMENT GATEWAY
-- Updated price from ₹199 to ₹500
-- Integrated with Cashfree payment gateway
-- Booking types: `site_visit` (₹500) or `book_solar_service` (configurable)
-- Orders tracked in "Book Solar Service - Price Configuration" after successful payment
-- Payment flow: Customer fills form → Cashfree checkout → Webhook updates order status
+### ✅ BOOK SITE VISIT ₹500 MODAL (SEPARATED FROM BOOK SOLAR SERVICE)
+- **CRITICAL FIX**: Site Visit ₹500 modal now completely separate from "Book Solar Service" modal
+- Constant `SITE_VISIT_PRICE = 500` ensures fixed ₹500 pricing
+- State: `showSiteVisitModal` (separate from `showBookService`)
+- Handler: `handleSiteVisitBooking()` at line 1279 in App.js
+- Modal rendered at line 2582 with "₹500 (Fixed Price)" text
+- Button: `data-testid="book-site-visit-btn"` at lines 1638-1645
+- **User Issue Resolved**: No more cross-talk with Book Solar Service pricing
+
+### ✅ HEYO CALL + STANDARD CALL (DUAL BUTTONS)
+- **Staff Portal (StaffPortal.js)**:
+  - `handleCallLead()` at line 363 - Standard tel: dialer
+  - `handleHeyoCall()` at line 411 - Heyo app deep link
+  - Mobile card view: Both buttons side-by-side (lines 1159-1176)
+  - "Call Now" (blue) + "Heyo Call" (purple) buttons
+- **Admin Leads (ProfessionalLeadsManagement.js)**:
+  - `initiatePhoneCall()` at line 48 - Standard tel: dialer
+  - `initiateHeyoCall()` at line 21 - Heyo app deep link
+  - Table view: Both buttons (lines 1269-1282)
+  - Card view: Both buttons (lines 1416-1429)
+- **User Issue Resolved**: Staff can now use either standard call or Heyo app
 
 ### ✅ CASHFREE TRANSACTION DELETE/BULK DELETE
-- Added single transaction delete: `DELETE /api/cashfree/orders/{order_id}`
-- Added bulk delete: `POST /api/cashfree/orders/bulk-delete`
-- Soft delete (marks as deleted, preserves data)
-- Permanent delete option with confirmation: `POST /api/cashfree/orders/permanent-delete/{order_id}?confirm=true`
-- UI: Checkbox selection, "Select All", bulk delete button with confirmation modal
-- Transaction list excludes deleted orders by default
+- Single delete: `DELETE /api/cashfree/orders/{order_id}` - Working
+- Bulk delete: `POST /api/cashfree/orders/bulk-delete` - Working
+- PaymentsDashboard.js UI:
+  - `handleDeleteTransaction()` at line 1059
+  - `handleBulkDelete()` at line 1076
+  - Checkbox selection, "Select All", confirmation modal
+- **Verified**: Deleted order removed from list (Total 45 → 44)
 
 ### ✅ HYPER-LOCAL SEO PAGES
 - Created `/app/frontend/src/components/SEOPages.js`

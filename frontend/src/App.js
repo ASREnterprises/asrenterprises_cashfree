@@ -1053,11 +1053,13 @@ const HomePage = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [festiveBanner, setFestiveBanner] = useState(null);
   const [showBookService, setShowBookService] = useState(false);
+  const [showSiteVisitModal, setShowSiteVisitModal] = useState(false); // NEW: Separate modal for Site Visit ₹500
   const [bookingData, setBookingData] = useState({ customer_name: "", customer_phone: "", customer_email: "" });
+  const [siteVisitData, setSiteVisitData] = useState({ customer_name: "", customer_phone: "", customer_email: "" }); // NEW
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(null);
-  const [servicePrice, setServicePrice] = useState(500); // Updated to ₹500
-  const [siteVisitPrice] = useState(500); // Site Visit price ₹500
+  const [servicePrice, setServicePrice] = useState(2999); // Book Solar Service price (configurable from backend)
+  const SITE_VISIT_PRICE = 500; // Fixed Site Visit price ₹500
   const [showScrollTop, setShowScrollTop] = useState(false);
   
   // Marquee state from backend
@@ -1271,6 +1273,58 @@ const HomePage = () => {
       setPaymentStep('form');
     }
     setVerifyLoading(false);
+  };
+
+  // ==================== SITE VISIT ₹500 BOOKING (SEPARATE FROM BOOK SOLAR SERVICE) ====================
+  const handleSiteVisitBooking = async () => {
+    if (!siteVisitData.customer_name || !siteVisitData.customer_phone) {
+      alert("Please fill in your name and phone number");
+      return;
+    }
+    
+    setBookingLoading(true);
+    
+    try {
+      const apiEndpoint = `${API}/cashfree/website/create-order`;
+      console.log('=== SITE VISIT ₹500 BOOKING ===');
+      
+      const res = await axios.post(apiEndpoint, {
+        customer_name: siteVisitData.customer_name,
+        customer_phone: siteVisitData.customer_phone,
+        customer_email: siteVisitData.customer_email || '',
+        payment_type: 'booking',
+        booking_type: 'site_visit',
+        amount: SITE_VISIT_PRICE, // Fixed ₹500
+        notes: 'Site Visit Booking - ₹500',
+        origin_url: window.location.origin
+      });
+      
+      console.log('Site Visit Order Response:', res.data);
+      
+      if (res.data.success && res.data.payment_session_id && res.data.payment_session_id.length > 20) {
+        // Store payment details
+        setPaymentLink(res.data.payment_url);
+        setPaymentOrderId(res.data.order_id);
+        setPaymentSessionId(res.data.payment_session_id);
+        
+        // Launch Cashfree checkout
+        console.log('=== LAUNCHING SITE VISIT PAYMENT ===');
+        setTimeout(async () => {
+          await launchCashfreeCheckout(res.data.payment_session_id);
+        }, 1000);
+      } else {
+        // Fallback to direct checkout page
+        if (res.data.order_id) {
+          window.location.href = `${BACKEND_URL}/api/cashfree/pay/${res.data.order_id}`;
+        } else {
+          alert("Failed to create order. Please try again or call 9296389097");
+        }
+      }
+    } catch (err) {
+      console.error('Site Visit booking error:', err);
+      alert("Booking failed. Please try again or call 9296389097");
+    }
+    setBookingLoading(false);
   };
 
   const handlePaymentVerification = async () => {
@@ -1582,7 +1636,7 @@ const HomePage = () => {
                 <span>Get Free Solar Consultation on WhatsApp</span>
               </a>
               <button
-                onClick={() => setShowBookService(true)}
+                onClick={() => setShowSiteVisitModal(true)}
                 className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
                 data-testid="book-site-visit-btn"
               >
@@ -2520,6 +2574,101 @@ const HomePage = () => {
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ==================== SITE VISIT ₹500 MODAL (SEPARATE FROM BOOK SOLAR SERVICE) ==================== */}
+      {showSiteVisitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="site-visit-modal">
+          <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowSiteVisitModal(false)} />
+          <div className="relative bg-gradient-to-b from-[#0d1b33] to-[#071A2E] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <MapPin className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">Book Site Visit</h2>
+              <p className="text-white/90 text-sm mt-1">Expert will visit your location for assessment</p>
+              <div className="mt-3 bg-white/20 backdrop-blur rounded-lg px-4 py-2 inline-block">
+                <span className="text-3xl font-extrabold text-white">₹500</span>
+                <span className="text-white/80 text-sm ml-2">(Fixed Price)</span>
+              </div>
+            </div>
+            
+            {/* Form */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Your Name *</label>
+                <input
+                  type="text"
+                  value={siteVisitData.customer_name}
+                  onChange={(e) => setSiteVisitData({...siteVisitData, customer_name: e.target.value})}
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Phone Number *</label>
+                <input
+                  type="tel"
+                  value={siteVisitData.customer_phone}
+                  onChange={(e) => setSiteVisitData({...siteVisitData, customer_phone: e.target.value})}
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="10-digit mobile number"
+                  maxLength={10}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="text-gray-400 text-sm mb-1 block">Email (Optional)</label>
+                <input
+                  type="email"
+                  value={siteVisitData.customer_email}
+                  onChange={(e) => setSiteVisitData({...siteVisitData, customer_email: e.target.value})}
+                  className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="your@email.com"
+                />
+              </div>
+              
+              {/* What's Included */}
+              <div className="bg-green-900/20 border border-green-700/30 rounded-xl p-4">
+                <p className="text-green-400 font-semibold mb-2 text-sm">What's Included:</p>
+                <ul className="text-green-300/80 text-sm space-y-1">
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Rooftop inspection</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Shadow analysis</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Customized quotation</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Subsidy guidance</li>
+                </ul>
+              </div>
+              
+              <button
+                onClick={handleSiteVisitBooking}
+                disabled={bookingLoading || !siteVisitData.customer_name || !siteVisitData.customer_phone}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                data-testid="site-visit-pay-btn"
+              >
+                {bookingLoading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+                ) : (
+                  <><CreditCard className="w-5 h-5" /> Pay ₹500 & Book Visit</>
+                )}
+              </button>
+              
+              <p className="text-gray-500 text-xs text-center">Secure payment powered by Cashfree</p>
+            </div>
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setShowSiteVisitModal(false)}
+              disabled={bookingLoading}
+              className="absolute top-4 right-4 text-white/70 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
         </div>
       )}

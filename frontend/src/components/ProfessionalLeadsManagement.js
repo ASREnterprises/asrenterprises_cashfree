@@ -38,27 +38,31 @@ const initiateHeyoCall = (phoneNumber, leadId, leadName) => {
     timestamp: new Date().toISOString()
   }).catch(err => console.error("Failed to log call:", err));
   
-  // Try Heyo app first, fallback to regular tel: link
-  const heyoUrl = `heyo://call?number=${fullPhone}`;
-  const telUrl = `tel:${cleanPhone}`;
-  
-  // Create hidden iframe to try Heyo deep link
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = heyoUrl;
-  document.body.appendChild(iframe);
-  
-  // If Heyo doesn't open within 2 seconds, fallback to tel:
-  setTimeout(() => {
-    document.body.removeChild(iframe);
-    // Check if app was opened by seeing if page is still focused
-    if (document.hasFocus()) {
-      // Heyo didn't open, use tel: link
-      window.location.href = telUrl;
-    }
-  }, 2000);
+  // Direct navigation to Heyo app (works better on mobile)
+  window.location.href = `heyo://call?number=${fullPhone}`;
   
   return true;
+};
+
+// Regular phone call (standard dialer)
+const initiatePhoneCall = (phoneNumber, leadId, leadName) => {
+  const cleanPhone = phoneNumber?.replace(/\D/g, '').replace(/^91/, '');
+  if (!cleanPhone || cleanPhone.length < 10) {
+    alert("Invalid phone number");
+    return;
+  }
+  
+  // Log call attempt
+  axios.post(`${API}/crm/log-call-attempt`, {
+    lead_id: leadId,
+    phone: cleanPhone,
+    lead_name: leadName,
+    call_type: "phone",
+    timestamp: new Date().toISOString()
+  }).catch(err => console.error("Failed to log call:", err));
+  
+  // Use standard tel: link
+  window.location.href = `tel:${cleanPhone}`;
 };
 
 // ==================== CONSTANTS ====================
@@ -1263,8 +1267,15 @@ export const ProfessionalLeadsManagement = () => {
                               <MessageSquare className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
+                              onClick={() => initiatePhoneCall(lead.phone, lead.id, lead.name)}
                               className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                              title="Call (Phone Dialer)"
+                            >
+                              <Phone className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
+                              className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition"
                               title="Call via Heyo App"
                             >
                               <PhoneCall className="w-4 h-4" />
@@ -1403,8 +1414,15 @@ export const ProfessionalLeadsManagement = () => {
                         <MessageSquare className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
+                        onClick={() => initiatePhoneCall(lead.phone, lead.id, lead.name)}
                         className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                        title="Call (Phone Dialer)"
+                      >
+                        <Phone className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
+                        className="p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
                         title="Call via Heyo App"
                       >
                         <PhoneCall className="w-4 h-4" />

@@ -381,8 +381,8 @@ export const StaffPortal = () => {
         staff_id: staffData.staff_id,
         staff_name: staffData.name,
         activity_type: "call",
-        title: "Call Initiated (Heyo)",
-        description: `${staffData.name} called ${lead.name} at ${lead.phone} via Heyo App`
+        title: "Call Initiated",
+        description: `${staffData.name} called ${lead.name} at ${lead.phone}`
       }),
       // Update lead's call_status in backend
       axios.put(`${API}/staff/${staffData.staff_id}/leads/${lead.id}`, { 
@@ -399,39 +399,21 @@ export const StaffPortal = () => {
     
     // Clean phone number for calling
     const cleanPhone = lead.phone?.replace(/\D/g, '').replace(/^91/, '');
+    
+    // Use small timeout to ensure state is saved before navigating
+    setTimeout(() => {
+      // Simple and reliable - just use tel: link which works on all devices
+      window.location.href = `tel:${cleanPhone}`;
+    }, 100);
+  };
+
+  // Separate function for Heyo calling (optional - user can choose)
+  const handleHeyoCall = (lead) => {
+    const cleanPhone = lead.phone?.replace(/\D/g, '').replace(/^91/, '');
     const fullPhone = cleanPhone?.length === 10 ? `91${cleanPhone}` : cleanPhone;
     
-    // Detect if mobile device
-    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Heyo deep link URL
-    const heyoUrl = `heyo://call?number=${fullPhone}`;
-    const telUrl = `tel:${cleanPhone}`;
-    
-    // Use timeout to ensure state is saved before navigating
-    setTimeout(() => {
-      if (isMobile) {
-        // On mobile, try direct navigation to Heyo, then fallback
-        // Store the time we tried to open Heyo
-        const startTime = Date.now();
-        
-        // Try to open Heyo app
-        window.location.href = heyoUrl;
-        
-        // Set a timeout to check if we're still here (Heyo didn't open)
-        setTimeout(() => {
-          // If we're still on the page after 2 seconds, Heyo isn't installed
-          // The page blur/visibility change would have happened if Heyo opened
-          if (document.visibilityState === 'visible' && (Date.now() - startTime) < 2500) {
-            // Heyo didn't open, fallback to tel:
-            window.location.href = telUrl;
-          }
-        }, 2000);
-      } else {
-        // Desktop: just use tel: directly (most desktops don't have Heyo)
-        window.location.href = telUrl;
-      }
-    }, 100);
+    // Try Heyo app
+    window.location.href = `heyo://call?number=${fullPhone}`;
   };
 
   // Load called leads and cached leads data from localStorage on mount
@@ -1171,15 +1153,28 @@ export const StaffPortal = () => {
                   
                   {/* Action Buttons - Full Width, Large Touch Targets */}
                   <div className="p-4 space-y-3">
-                    {/* Primary Action: Call */}
-                    <button 
-                      onClick={() => handleCallLead(lead)}
-                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 text-white py-4 rounded-xl text-lg flex items-center justify-center space-x-3 transition font-bold shadow-lg"
-                      data-testid={`call-btn-${lead.id}`}
-                    >
-                      <Phone className="w-6 h-6" />
-                      <span>Call Now</span>
-                    </button>
+                    {/* Primary Actions: Call Options */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Regular Call */}
+                      <button 
+                        onClick={() => handleCallLead(lead)}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-bold shadow-lg"
+                        data-testid={`call-btn-${lead.id}`}
+                      >
+                        <Phone className="w-5 h-5" />
+                        <span>Call Now</span>
+                      </button>
+                      
+                      {/* Heyo Call */}
+                      <button 
+                        onClick={() => handleHeyoCall(lead)}
+                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 active:from-purple-700 active:to-purple-800 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-bold shadow-lg"
+                        data-testid={`heyo-btn-${lead.id}`}
+                      >
+                        <PhoneCall className="w-5 h-5" />
+                        <span>Heyo Call</span>
+                      </button>
+                    </div>
                     
                     {/* Secondary Actions Grid */}
                     <div className="grid grid-cols-2 gap-3">

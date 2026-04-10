@@ -5,7 +5,7 @@ import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
   ChevronRight, ChevronUp, FileText, TrendingUp, Bell, Plus, Edit,
-  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox, PhoneCall
+  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import StaffTraining from "./StaffTraining";
@@ -13,43 +13,6 @@ import { SendWhatsAppModal } from "@/components/WhatsAppCRM";
 import { WhatsAppInbox } from "@/components/WhatsAppInbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
-// ==================== HEYO CALL INTEGRATION FOR STAFF ====================
-const initiateHeyoCall = (phoneNumber, leadId, leadName, staffId) => {
-  const cleanPhone = phoneNumber?.replace(/\D/g, '').replace(/^91/, '');
-  if (!cleanPhone || cleanPhone.length < 10) {
-    alert("Invalid phone number");
-    return;
-  }
-  
-  const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-  
-  // Log call attempt for staff tracking
-  axios.post(`${API}/staff/log-call`, {
-    lead_id: leadId,
-    phone: fullPhone,
-    lead_name: leadName,
-    staff_id: staffId,
-    call_type: "heyo",
-    timestamp: new Date().toISOString()
-  }).catch(err => console.error("Failed to log call:", err));
-  
-  // Try Heyo app, fallback to tel:
-  const heyoUrl = `heyo://call?number=${fullPhone}`;
-  const telUrl = `tel:${cleanPhone}`;
-  
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = heyoUrl;
-  document.body.appendChild(iframe);
-  
-  setTimeout(() => {
-    document.body.removeChild(iframe);
-    if (document.hasFocus()) {
-      window.location.href = telUrl;
-    }
-  }, 2000);
-};
 
 const PIPELINE_STAGES = [
   { id: "new", label: "New", color: "bg-blue-500" },
@@ -407,15 +370,6 @@ export const StaffPortal = () => {
     }, 100);
   };
 
-  // Separate function for Heyo calling (optional - user can choose)
-  const handleHeyoCall = (lead) => {
-    const cleanPhone = lead.phone?.replace(/\D/g, '').replace(/^91/, '');
-    const fullPhone = cleanPhone?.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    
-    // Try Heyo app
-    window.location.href = `heyo://call?number=${fullPhone}`;
-  };
-
   // Load called leads and cached leads data from localStorage on mount
   useEffect(() => {
     if (staffData?.staff_id) {
@@ -598,36 +552,51 @@ export const StaffPortal = () => {
                     </span>
                   )}
                 </button>
-                {/* Notifications Dropdown */}
+                {/* Notifications Dropdown - Mobile Responsive */}
                 {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white shadow-lg border border-sky-200 border border-sky-200 rounded-xl shadow-2xl z-50 max-h-96 overflow-y-auto">
-                    <div className="p-3 border-b border-sky-200 flex justify-between items-center">
+                  <div className="fixed sm:absolute left-2 right-2 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-2 w-auto sm:w-80 bg-white shadow-lg border border-sky-200 rounded-xl shadow-2xl z-[100] max-h-[70vh] sm:max-h-96 overflow-y-auto">
+                    <div className="p-3 border-b border-sky-200 flex justify-between items-center sticky top-0 bg-white">
                       <h3 className="font-bold text-[#0a355e]">Notifications</h3>
-                      {notifUnread > 0 && (
-                        <button onClick={markAllNotificationsRead} className="text-xs text-blue-400 hover:text-blue-300">Mark all read</button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {notifUnread > 0 && (
+                          <button onClick={markAllNotificationsRead} className="text-xs text-blue-500 hover:text-blue-700">Mark all read</button>
+                        )}
+                        <button 
+                          onClick={() => setShowNotifications(false)} 
+                          className="sm:hidden p-1 text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                     {notifications.length === 0 ? (
                       <div className="p-6 text-center text-gray-500">No notifications</div>
                     ) : (
-                      <div className="divide-y divide-gray-700">
+                      <div className="divide-y divide-gray-200">
                         {notifications.slice(0, 10).map((notif) => (
                           <div 
                             key={notif.id} 
                             onClick={() => { markNotificationRead(notif.id); setShowNotifications(false); if(notif.lead_id) setActiveTab('leads'); }}
-                            className={`p-3 cursor-pointer hover:bg-gray-50 border border-gray-300 ${!notif.is_read ? 'bg-gray-50 border border-gray-300/50' : ''}`}
+                            className={`p-3 cursor-pointer hover:bg-gray-50 ${!notif.is_read ? 'bg-blue-50' : ''}`}
                           >
                             <div className="flex justify-between items-start">
                               <div className={`text-sm font-medium ${!notif.is_read ? 'text-[#0a355e]' : 'text-gray-500'}`}>{notif.title}</div>
-                              {!notif.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full"></span>}
+                              {!notif.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></span>}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
-                            <p className="text-xs text-gray-600 mt-1">{new Date(notif.timestamp).toLocaleString()}</p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{notif.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">{new Date(notif.timestamp).toLocaleString()}</p>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+                )}
+                {/* Overlay for mobile notification dropdown */}
+                {showNotifications && (
+                  <div 
+                    className="fixed inset-0 bg-black/20 z-[99] sm:hidden" 
+                    onClick={() => setShowNotifications(false)}
+                  />
                 )}
               </div>
               {unreadCount > 0 && (
@@ -1153,28 +1122,15 @@ export const StaffPortal = () => {
                   
                   {/* Action Buttons - Full Width, Large Touch Targets */}
                   <div className="p-4 space-y-3">
-                    {/* Primary Actions: Call Options */}
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Regular Call */}
-                      <button 
-                        onClick={() => handleCallLead(lead)}
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-bold shadow-lg"
-                        data-testid={`call-btn-${lead.id}`}
-                      >
-                        <Phone className="w-5 h-5" />
-                        <span>Call Now</span>
-                      </button>
-                      
-                      {/* Heyo Call */}
-                      <button 
-                        onClick={() => handleHeyoCall(lead)}
-                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 active:from-purple-700 active:to-purple-800 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-bold shadow-lg"
-                        data-testid={`heyo-btn-${lead.id}`}
-                      >
-                        <PhoneCall className="w-5 h-5" />
-                        <span>Heyo Call</span>
-                      </button>
-                    </div>
+                    {/* Primary Action: Call */}
+                    <button 
+                      onClick={() => handleCallLead(lead)}
+                      className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 text-white py-4 rounded-xl text-base flex items-center justify-center space-x-2 transition font-bold shadow-lg"
+                      data-testid={`call-btn-${lead.id}`}
+                    >
+                      <Phone className="w-5 h-5" />
+                      <span>Call Now</span>
+                    </button>
                     
                     {/* Secondary Actions Grid */}
                     <div className="grid grid-cols-2 gap-3">

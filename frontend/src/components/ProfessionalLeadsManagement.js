@@ -7,44 +7,15 @@ import {
   Users, TrendingUp, Flame, Snowflake, ThermometerSun, Zap, History, 
   MoreVertical, Download, Archive, RotateCcw, AlertTriangle, ExternalLink,
   Table, LayoutGrid, Settings, Bell, Target, Building2, Home, Factory,
-  CreditCard, IndianRupee, Send, Copy, Wallet, Link as LinkIcon, PhoneCall
+  CreditCard, IndianRupee, Send, Copy, Wallet, Link as LinkIcon
 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// ==================== HEYO CALL INTEGRATION ====================
-// Heyo app deep link format: heyo://call?number=PHONE_NUMBER
-// Fallback to tel: link if Heyo app is not installed
-
-const initiateHeyoCall = (phoneNumber, leadId, leadName) => {
-  // Clean the phone number
-  const cleanPhone = phoneNumber?.replace(/\D/g, '').replace(/^91/, '');
-  if (!cleanPhone || cleanPhone.length < 10) {
-    alert("Invalid phone number");
-    return;
-  }
-  
-  // Full phone with country code for Heyo
-  const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-  
-  // Log call attempt to backend
-  axios.post(`${API}/crm/log-call-attempt`, {
-    lead_id: leadId,
-    phone: fullPhone,
-    lead_name: leadName,
-    call_type: "heyo",
-    timestamp: new Date().toISOString()
-  }).catch(err => console.error("Failed to log call:", err));
-  
-  // Direct navigation to Heyo app (works better on mobile)
-  window.location.href = `heyo://call?number=${fullPhone}`;
-  
-  return true;
-};
-
-// Regular phone call (standard dialer)
+// ==================== PHONE CALL INTEGRATION ====================
+// Standard phone call (using tel: link)
 const initiatePhoneCall = (phoneNumber, leadId, leadName) => {
   const cleanPhone = phoneNumber?.replace(/\D/g, '').replace(/^91/, '');
   if (!cleanPhone || cleanPhone.length < 10) {
@@ -254,6 +225,7 @@ export const ProfessionalLeadsManagement = () => {
   const [showBulkActionsMenu, setShowBulkActionsMenu] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showBulkWhatsAppModal, setShowBulkWhatsAppModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   
   // WhatsApp API state
@@ -1022,76 +994,89 @@ export const ProfessionalLeadsManagement = () => {
           )}
         </div>
 
-        {/* Bulk Actions Bar */}
+        {/* Bulk Actions Bar - Mobile Responsive */}
         {selectedLeadIds.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-blue-700 font-medium">{selectedLeadIds.length} selected</span>
-              <button onClick={() => setSelectedLeadIds([])} className="text-blue-600 hover:text-blue-800 text-sm">
-                Clear Selection
-              </button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setShowAssignModal(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 transition"
-              >
-                <UserPlus className="w-4 h-4" />
-                Assign
-              </button>
-              <div className="relative group">
-                <button className="flex items-center gap-1 px-3 py-1.5 bg-cyan-500 text-white rounded-lg text-sm hover:bg-cyan-600 transition">
-                  <TrendingUp className="w-4 h-4" />
-                  Change Stage
-                  <ChevronDown className="w-3 h-3" />
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 sticky top-0 z-30">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Selection Info */}
+              <div className="flex items-center justify-between sm:justify-start gap-3">
+                <span className="text-blue-700 font-medium text-sm sm:text-base">{selectedLeadIds.length} selected</span>
+                <button onClick={() => setSelectedLeadIds([])} className="text-blue-600 hover:text-blue-800 text-xs sm:text-sm">
+                  Clear
                 </button>
-                <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-20 min-w-[180px]">
-                  {SOLAR_STAGES.map(stage => (
-                    <button
-                      key={stage.id}
-                      onClick={() => handleBulkStageChange(stage.id)}
-                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      <span className={`w-2 h-2 rounded-full ${stage.color}`}></span>
-                      {stage.label}
-                    </button>
-                  ))}
-                </div>
               </div>
-              <div className="relative group">
-                <button className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition">
-                  <Flame className="w-4 h-4" />
-                  Priority
-                  <ChevronDown className="w-3 h-3" />
+              
+              {/* Action Buttons - Scrollable on Mobile */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+                {/* WhatsApp Bulk - Primary on Mobile */}
+                <button
+                  onClick={() => setShowBulkWhatsAppModal(true)}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded-lg text-xs sm:text-sm hover:bg-green-600 transition font-medium"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>WhatsApp</span>
                 </button>
-                <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-20 min-w-[140px]">
-                  {LEAD_PRIORITIES.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => handleBulkPriorityChange(p.id)}
-                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
-                    >
-                      <span className={`w-2 h-2 rounded-full ${p.color}`}></span>
-                      {p.label}
-                    </button>
-                  ))}
+                <button
+                  onClick={() => setShowAssignModal(true)}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-purple-500 text-white rounded-lg text-xs sm:text-sm hover:bg-purple-600 transition"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Assign</span>
+                </button>
+                <div className="relative group flex-shrink-0">
+                  <button className="flex items-center gap-1 px-3 py-2 bg-cyan-500 text-white rounded-lg text-xs sm:text-sm hover:bg-cyan-600 transition">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="hidden sm:inline">Stage</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-20 min-w-[160px]">
+                    {SOLAR_STAGES.map(stage => (
+                      <button
+                        key={stage.id}
+                        onClick={() => handleBulkStageChange(stage.id)}
+                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${stage.color}`}></span>
+                        {stage.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <div className="relative group flex-shrink-0">
+                  <button className="flex items-center gap-1 px-3 py-2 bg-orange-500 text-white rounded-lg text-xs sm:text-sm hover:bg-orange-600 transition">
+                    <Flame className="w-4 h-4" />
+                    <span className="hidden sm:inline">Priority</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 hidden group-hover:block z-20 min-w-[140px]">
+                    {LEAD_PRIORITIES.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => handleBulkPriorityChange(p.id)}
+                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${p.color}`}></span>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={handleExportSelected}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-emerald-500 text-white rounded-lg text-xs sm:text-sm hover:bg-emerald-600 transition"
+                >
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Export</span>
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkProcessing}
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-2 bg-red-500 text-white rounded-lg text-xs sm:text-sm hover:bg-red-600 transition disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Delete</span>
+                </button>
               </div>
-              <button
-                onClick={handleExportSelected}
-                className="flex items-center gap-1 px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-              <button
-                onClick={handleBulkDelete}
-                disabled={bulkProcessing}
-                className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition disabled:opacity-50"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
             </div>
           </div>
         )}
@@ -1187,14 +1172,14 @@ export const ProfessionalLeadsManagement = () => {
                         </td>
                         <td className="px-3 py-3">
                           <div className="text-sm">
-                            <button
-                              onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
+                            <a
+                              href={`tel:${lead.phone?.replace(/\D/g, '')}`}
                               className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded flex items-center gap-1 transition"
-                              title="Call via Heyo App"
+                              title="Call"
                             >
-                              <PhoneCall className="w-3 h-3" />
+                              <Phone className="w-3 h-3" />
                               {lead.phone}
-                            </button>
+                            </a>
                             {lead.email && (
                               <div className="text-xs text-slate-500 truncate max-w-[140px]">{lead.email}</div>
                             )}
@@ -1269,16 +1254,9 @@ export const ProfessionalLeadsManagement = () => {
                             <button
                               onClick={() => initiatePhoneCall(lead.phone, lead.id, lead.name)}
                               className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                              title="Call (Phone Dialer)"
+                              title="Call"
                             >
                               <Phone className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
-                              className="p-1.5 text-purple-600 hover:bg-purple-100 rounded-lg transition"
-                              title="Call via Heyo App"
-                            >
-                              <PhoneCall className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => { setSelectedLead(lead); setShowDetailModal(true); }}
@@ -1416,16 +1394,9 @@ export const ProfessionalLeadsManagement = () => {
                       <button
                         onClick={() => initiatePhoneCall(lead.phone, lead.id, lead.name)}
                         className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
-                        title="Call (Phone Dialer)"
+                        title="Call"
                       >
                         <Phone className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => initiateHeyoCall(lead.phone, lead.id, lead.name)}
-                        className="p-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
-                        title="Call via Heyo App"
-                      >
-                        <PhoneCall className="w-4 h-4" />
                       </button>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1805,13 +1776,13 @@ export const ProfessionalLeadsManagement = () => {
                     <MessageSquare className="w-4 h-4" />
                     WhatsApp
                   </a>
-                  <button
-                    onClick={() => initiateHeyoCall(selectedLead.phone, selectedLead.id, selectedLead.name)}
+                  <a
+                    href={`tel:${selectedLead.phone?.replace(/\D/g, '')}`}
                     className="flex items-center gap-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                   >
-                    <PhoneCall className="w-4 h-4" />
-                    Call (Heyo)
-                  </button>
+                    <Phone className="w-4 h-4" />
+                    Call
+                  </a>
                 </div>
               </div>
               
@@ -2225,6 +2196,129 @@ export const ProfessionalLeadsManagement = () => {
               {/* Support Info */}
               <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
                 Support: support@asrenterprises.in | 9296389097
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk WhatsApp Template Modal - Mobile Responsive */}
+      {showBulkWhatsAppModal && selectedLeadIds.length > 0 && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white w-full sm:rounded-2xl sm:w-full sm:max-w-lg shadow-2xl max-h-[85vh] overflow-y-auto rounded-t-2xl">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 rounded-t-2xl">
+              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Bulk WhatsApp ({selectedLeadIds.length} leads)
+              </h2>
+              <button 
+                onClick={() => setShowBulkWhatsAppModal(false)} 
+                className="p-2 hover:bg-white/20 rounded-lg transition text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4 sm:p-6 space-y-4">
+              {/* Selected Leads Summary */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="text-sm text-green-800 font-medium mb-2">
+                  Selected {selectedLeadIds.length} leads for messaging
+                </div>
+                <div className="text-xs text-green-600">
+                  Messages will be sent via WhatsApp API to all selected leads
+                </div>
+              </div>
+
+              {/* Template Selection */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700">Select Template</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {waTemplates.length > 0 ? waTemplates.map((template) => (
+                    <div
+                      key={template.name}
+                      onClick={() => setSelectedTemplate(template)}
+                      className={`p-3 border rounded-lg cursor-pointer transition ${
+                        selectedTemplate?.name === template.name
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-slate-200 hover:border-green-300'
+                      }`}
+                    >
+                      <div className="font-medium text-sm text-slate-800">{template.label || template.name}</div>
+                      <div className="text-xs text-slate-500 mt-1">{template.name}</div>
+                    </div>
+                  )) : (
+                    <div className="text-sm text-slate-500 text-center py-4">
+                      No templates available. Templates will be fetched from WhatsApp API.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Custom Message Option */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700">Or type custom message</label>
+                <textarea
+                  value={waMessage}
+                  onChange={(e) => { setWaMessage(e.target.value); setSelectedTemplate(null); }}
+                  placeholder="Type your message here..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  rows={3}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowBulkWhatsAppModal(false)}
+                  className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!selectedTemplate && !waMessage) {
+                      alert('Please select a template or type a message');
+                      return;
+                    }
+                    setWaSending(true);
+                    try {
+                      const selectedLeadsData = leads.filter(l => selectedLeadIds.includes(l.id));
+                      let successCount = 0;
+                      for (const lead of selectedLeadsData) {
+                        try {
+                          if (selectedTemplate) {
+                            await axios.post(`${API}/whatsapp/send-template`, {
+                              phone: lead.phone,
+                              template_name: selectedTemplate.name,
+                              lead_id: lead.id
+                            });
+                          } else {
+                            await axios.post(`${API}/whatsapp/send-message`, {
+                              phone: lead.phone,
+                              message: waMessage,
+                              lead_id: lead.id
+                            });
+                          }
+                          successCount++;
+                        } catch (err) {
+                          console.error(`Failed to send to ${lead.phone}:`, err);
+                        }
+                      }
+                      alert(`Successfully sent to ${successCount}/${selectedLeadsData.length} leads`);
+                      setShowBulkWhatsAppModal(false);
+                      setSelectedLeadIds([]);
+                    } catch (err) {
+                      alert('Failed to send bulk messages');
+                    }
+                    setWaSending(false);
+                  }}
+                  disabled={waSending || (!selectedTemplate && !waMessage)}
+                  className="flex-1 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50 flex items-center justify-center gap-2 font-medium"
+                >
+                  {waSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Send to All
+                </button>
               </div>
             </div>
           </div>

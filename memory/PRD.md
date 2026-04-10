@@ -16,38 +16,49 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 10, 2026 - Round 21)
+## Latest Updates (April 10, 2026 - Round 22)
 
-### ✅ VERIFIED: All P0/P1 Issues Fixed & Tested
-**Testing Report:** `/app/test_reports/iteration_87.json` - 100% Pass Rate (10/10 tests)
+### ✅ HEYO CALL REMOVED - STANDARD CALLING RESTORED
+**Testing Report:** `/app/test_reports/iteration_88.json` - 100% Pass Rate
 
-### ✅ BOOK SITE VISIT ₹500 MODAL (SEPARATED FROM BOOK SOLAR SERVICE)
-- **CRITICAL FIX**: Site Visit ₹500 modal now completely separate from "Book Solar Service" modal
-- Constant `SITE_VISIT_PRICE = 500` ensures fixed ₹500 pricing
-- State: `showSiteVisitModal` (separate from `showBookService`)
-- Handler: `handleSiteVisitBooking()` at line 1279 in App.js
-- Modal rendered at line 2582 with "₹500 (Fixed Price)" text
-- Button: `data-testid="book-site-visit-btn"` at lines 1638-1645
-- **User Issue Resolved**: No more cross-talk with Book Solar Service pricing
+**User Request**: Heyo call not working - remove it completely
 
-### ✅ HEYO CALL + STANDARD CALL (DUAL BUTTONS)
-- **Staff Portal (StaffPortal.js)**:
-  - `handleCallLead()` at line 363 - Standard tel: dialer
-  - `handleHeyoCall()` at line 411 - Heyo app deep link
-  - Mobile card view: Both buttons side-by-side (lines 1159-1176)
-  - "Call Now" (blue) + "Heyo Call" (purple) buttons
-- **Admin Leads (ProfessionalLeadsManagement.js)**:
-  - `initiatePhoneCall()` at line 48 - Standard tel: dialer
-  - `initiateHeyoCall()` at line 21 - Heyo app deep link
-  - Table view: Both buttons (lines 1269-1282)
-  - Card view: Both buttons (lines 1416-1429)
-- **User Issue Resolved**: Staff can now use either standard call or Heyo app
+**Changes Made:**
+- **StaffPortal.js**: Removed all Heyo code (initiateHeyoCall function, heyo:// links, PhoneCall icon import)
+- **ProfessionalLeadsManagement.js**: Removed all Heyo code from table view, card view, and detail modal
+- **Standard tel: calling** is now the ONLY call option across the entire CRM
+- Phone links use `tel:${phone}` format for native dialer
 
-### ✅ CASHFREE TRANSACTION DELETE/BULK DELETE
-- Single delete: `DELETE /api/cashfree/orders/{order_id}` - Working
-- Bulk delete: `POST /api/cashfree/orders/bulk-delete` - Working
-- PaymentsDashboard.js UI:
-  - `handleDeleteTransaction()` at line 1059
+### ✅ MOBILE RESPONSIVE FIXES
+
+**1. Staff Portal Notification Dropdown (Fixed)**
+- Changed from `absolute right-0` to `fixed left-2 right-2 sm:absolute`
+- Added close button (`X` icon) visible only on mobile
+- Added overlay backdrop on mobile (`bg-black/20`)
+- Max height: `max-h-[70vh] sm:max-h-96`
+- Z-index: `z-[100]` for proper stacking
+
+**2. Admin Leads Bulk Action Bar (Fixed)**
+- Made horizontal scrollable on mobile: `overflow-x-auto`
+- Added `flex-shrink-0` to buttons to prevent shrinking
+- **NEW: WhatsApp bulk button** - sends templates to all selected leads
+- Sticky positioning: `sticky top-0 z-30`
+- Button labels hidden on mobile (icons only)
+
+**3. Bulk WhatsApp Template Modal (NEW)**
+- Opens from bulk action bar WhatsApp button
+- Mobile-first design: full-width on mobile, max-w-lg on desktop
+- Template selection from WhatsApp API templates
+- Custom message option
+- Sends to all selected leads sequentially
+
+### Files Updated:
+- `/app/frontend/src/components/StaffPortal.js` - Heyo removed, notification mobile fix
+- `/app/frontend/src/components/ProfessionalLeadsManagement.js` - Heyo removed, bulk action mobile fix, bulk WhatsApp modal
+
+---
+
+## Previous Updates (April 10, 2026 - Round 21)
   - `handleBulkDelete()` at line 1076
   - Checkbox selection, "Select All", confirmation modal
 - **Verified**: Deleted order removed from list (Total 45 → 44)

@@ -5,7 +5,7 @@ import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
   Zap, Sun, Phone, Mail, MapPin, Menu, X, ChevronRight, ChevronUp,
-  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram, MessageCircle, ExternalLink
+  Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram, MessageCircle, ExternalLink, Calendar
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 
@@ -1078,6 +1078,29 @@ const HomePage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Call tracking function - logs call clicks for CRM
+  const handleCallClick = async () => {
+    try {
+      // Track with Facebook Pixel if available
+      if (typeof fbq !== 'undefined') {
+        fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Click to Call' });
+      }
+      // Track with Google Analytics if available
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'click', { event_category: 'Contact', event_label: 'Phone Call' });
+      }
+      // Log to backend for CRM tracking (non-blocking)
+      axios.post(`${API}/analytics/track-event`, {
+        event_type: 'call_click',
+        source: 'website',
+        phone: '9296389097',
+        timestamp: new Date().toISOString()
+      }).catch(() => {}); // Silent fail - don't block user
+    } catch (e) {
+      console.error('Call tracking error:', e);
+    }
+  };
+
   useEffect(() => {
     axios.get(`${API}/service/book-solar-config`).then(res => setServicePrice(res.data.price)).catch(() => setServicePrice(2499));
     // Fetch marquee settings
@@ -1534,12 +1557,23 @@ const HomePage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row justify-center gap-4 mb-10">
-              <button
-                onClick={() => document.getElementById('inquiry-form')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
-                data-testid="free-consultation-btn"
+              <a
+                href="https://wa.me/918298389097?text=Hello%2C%20I%20am%20interested%20in%20solar%20installation.%20Please%20guide%20me."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(34,197,94,0.4)] transition flex items-center justify-center space-x-2"
+                data-testid="whatsapp-consultation-btn"
               >
-                <span>Get Free Consultation →</span>
+                <MessageCircle className="w-5 h-5" />
+                <span>Get Free Solar Consultation on WhatsApp</span>
+              </a>
+              <button
+                onClick={() => document.getElementById('book-service')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] px-8 py-4 rounded-full font-bold hover:shadow-[0_0_30px_rgba(245,166,35,0.4)] transition flex items-center justify-center space-x-2"
+                data-testid="book-site-visit-btn"
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Book Site Visit ₹199</span>
               </button>
             </div>
 
@@ -1592,18 +1626,106 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* NEW: 25-Year Zero Bill Comparison Chart */}
-      <div className="bg-gradient-to-b from-gray-50 to-white py-16">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
+      {/* PM Surya Ghar Yojana Subsidy Section - Modern Cards */}
+      <div className="bg-gradient-to-b from-gray-50 to-white py-16" id="subsidy-section">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-[#0a355e] mb-4">
-              DISCOM vs Solar: 25-Year Cost Reality
+              Solar Subsidy Under PM Surya Ghar Yojana
             </h2>
-            <p className="text-gray-600 text-lg">See why smart Bihar families are switching to solar!</p>
+            <p className="text-gray-600 text-lg">Government subsidy to make solar affordable for every household</p>
           </div>
-          <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-amber-500" /></div>}>
-            <ZeroBillComparison monthlyBill={3000} />
-          </Suspense>
+          
+          {/* Subsidy Cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-12">
+            {/* Card 1 - Up to 2 kW */}
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all">
+              <div className="text-center">
+                <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <Zap className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Up to 2 kW</h3>
+                <div className="text-4xl font-extrabold mb-2">₹30,000<span className="text-lg font-normal">/kW</span></div>
+                <p className="text-orange-100 text-sm">For smaller households</p>
+                <div className="mt-4 bg-white/20 rounded-lg px-4 py-2">
+                  <p className="font-semibold">Max Subsidy: ₹60,000</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Card 2 - Additional 2-3 kW */}
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all">
+              <div className="text-center">
+                <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <TrendingUp className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Additional (2-3 kW)</h3>
+                <div className="text-4xl font-extrabold mb-2">₹18,000<span className="text-lg font-normal">/kW</span></div>
+                <p className="text-green-100 text-sm">For medium households</p>
+                <div className="mt-4 bg-white/20 rounded-lg px-4 py-2">
+                  <p className="font-semibold">Extra: ₹18,000</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Card 3 - Maximum Subsidy */}
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl transform hover:scale-105 transition-all">
+              <div className="text-center">
+                <div className="bg-white/20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                  <Award className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Maximum Subsidy</h3>
+                <div className="text-4xl font-extrabold mb-2">₹78,000</div>
+                <p className="text-blue-100 text-sm">Capped at this amount</p>
+                <div className="mt-4 bg-white/20 rounded-lg px-4 py-2">
+                  <p className="font-semibold">For 3 kW System</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Recommendation Table */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0a355e] to-[#1a4a7e] px-6 py-4">
+              <h3 className="text-xl font-bold text-white text-center">Which Solar Size is Right for You?</h3>
+            </div>
+            <div className="p-6">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-3 px-4 text-[#0a355e] font-bold">Average Monthly Units</th>
+                    <th className="text-left py-3 px-4 text-[#0a355e] font-bold">Recommended Solar Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-100 hover:bg-orange-50 transition">
+                    <td className="py-4 px-4">
+                      <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-semibold">0–150 units</span>
+                    </td>
+                    <td className="py-4 px-4 font-semibold text-gray-700">1–2 kW System</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 hover:bg-green-50 transition">
+                    <td className="py-4 px-4">
+                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold">150–300 units</span>
+                    </td>
+                    <td className="py-4 px-4 font-semibold text-gray-700">2–3 kW System</td>
+                  </tr>
+                  <tr className="hover:bg-blue-50 transition">
+                    <td className="py-4 px-4">
+                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Above 300 units</span>
+                    </td>
+                    <td className="py-4 px-4 font-semibold text-gray-700">Above 3 kW System</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="bg-amber-50 px-6 py-4 border-t border-amber-200">
+              <p className="text-amber-800 text-sm text-center">
+                <CheckCircle className="w-4 h-4 inline mr-2 text-amber-600" />
+                <strong>Note:</strong> Subsidy applicable as per government norms. Terms & conditions apply.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2064,8 +2186,8 @@ const HomePage = () => {
               <p className="text-purple-100">Training & Support</p>
             </div>
             <div className="bg-white/20 rounded-xl p-6 backdrop-blur-lg border border-white/30">
-              <div className="text-5xl font-bold mb-2">10%</div>
-              <p className="text-purple-100">Commission on deals</p>
+              <div className="text-4xl font-bold mb-2">Up to 10%</div>
+              <p className="text-purple-100">Commission on Solar Deals</p>
             </div>
           </div>
           <Link
@@ -2082,9 +2204,6 @@ const HomePage = () => {
       <Suspense fallback={<div className="py-16 text-center"><Loader2 className="w-8 h-8 animate-spin text-amber-500 mx-auto" /></div>}>
         <BiharInstallationMap />
       </Suspense>
-
-      {/* Testimonials */}
-      <TestimonialsSection />
 
       {/* Footer - Premium Dark Navy */}
       <footer className="bg-[#071A2E] text-white py-16">
@@ -2238,16 +2357,16 @@ const HomePage = () => {
           </span>
         </a>
 
-        {/* Call Icon */}
+        {/* Call Icon - Enhanced with tracking */}
         <a
           href="tel:9296389097"
-          className="bg-blue-500 text-white p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative"
+          className="bg-blue-500 text-white p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative animate-pulse"
           data-testid="call-float-btn"
-          onClick={() => { if (typeof fbq !== 'undefined') fbq('track', 'Contact', { content_name: 'Phone Call', content_category: 'Floating Button' }); }}
+          onClick={handleCallClick}
         >
           <Phone className="w-5 h-5" />
           <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-            Call: 9296389097
+            Call Now: 9296389097
           </span>
         </a>
         

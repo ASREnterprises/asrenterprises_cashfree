@@ -8686,6 +8686,29 @@ def clean_phone_number(phone: str) -> str:
 async def root():
     return {"message": "ASR Enterprises Solar AI Platform API", "status": "active"}
 
+# Analytics tracking endpoint for frontend events
+@api_router.post("/analytics/track-event")
+async def track_analytics_event(event: dict):
+    """Track frontend events like call clicks, button interactions etc."""
+    try:
+        event_data = {
+            "id": str(uuid.uuid4()),
+            "event_type": event.get("event_type", "unknown"),
+            "source": event.get("source", "website"),
+            "phone": event.get("phone"),
+            "metadata": event,
+            "timestamp": event.get("timestamp") or datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.analytics_events.insert_one(event_data)
+        logger.info(f"[Analytics] Tracked event: {event.get('event_type')}")
+        
+        return {"success": True, "event_id": event_data["id"]}
+    except Exception as e:
+        logger.error(f"[Analytics] Error tracking event: {e}")
+        return {"success": False, "error": str(e)}
+
 # CRITICAL: Health check for Kubernetes
 @app.get("/health")
 async def health_check():

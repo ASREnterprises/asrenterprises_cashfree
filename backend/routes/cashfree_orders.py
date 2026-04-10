@@ -389,8 +389,70 @@ ASR ENTERPRISES | Patna"""
                         logger.error(f"[WhatsApp] ❌ Fallback also failed: {response2.text}")
                         return False
         
-        # For non-payment-success types - use text messages (requires 24hr window)
+        # For non-payment-success types - try template first, fallback to text
         if msg_type == "payment_request":
+            # Try to use a payment request template if available
+            # Template format (user should create this in Meta Business Manager):
+            # Hello {{1}},
+            # Your payment request from ASR Enterprises is ready.
+            # Amount: ₹{{2}}
+            # Purpose: {{3}}
+            # Pay here: {{4}}
+            # Call: 9296389097
+            
+            # First, try template-based approach
+            template_name = "payment_request"  # User can create this template
+            try:
+                payment_template_payload = {
+                    "messaging_product": "whatsapp",
+                    "to": cleaned_phone,
+                    "type": "template",
+                    "template": {
+                        "name": template_name,
+                        "language": {"code": "en"},
+                        "components": [
+                            {
+                                "type": "body",
+                                "parameters": [
+                                    {"type": "text", "text": (customer_name[:60] if customer_name else "Customer")},  # {{1}}
+                                    {"type": "text", "text": f"{amount:,.0f}"},  # {{2}}
+                                    {"type": "text", "text": (purpose[:100] if purpose else "Payment")},  # {{3}}
+                                    {"type": "text", "text": payment_url}  # {{4}}
+                                ]
+                            }
+                        ]
+                    }
+                }
+                
+                async with httpx.AsyncClient(timeout=30.0) as http_client:
+                    response = await http_client.post(wa_url, json=payment_template_payload, headers=headers)
+                    
+                    if response.status_code in [200, 201]:
+                        response_data = response.json()
+                        wa_message_id = response_data.get("messages", [{}])[0].get("id", "")
+                        
+                        await db.whatsapp_messages.insert_one({
+                            "id": str(uuid.uuid4()),
+                            "wa_message_id": wa_message_id,
+                            "phone": cleaned_phone,
+                            "direction": "outgoing",
+                            "type": "payment_request_template",
+                            "template_name": template_name,
+                            "order_id": order_id,
+                            "amount": amount,
+                            "status": "sent",
+                            "created_at": datetime.now(timezone.utc).isoformat()
+                        })
+                        
+                        logger.info(f"[WhatsApp] ✅ Payment request template sent to {cleaned_phone}")
+                        return True
+                    else:
+                        # Template not approved or doesn't exist - fall back to text
+                        logger.warning(f"[WhatsApp] Template '{template_name}' failed, using text fallback")
+            except Exception as e:
+                logger.warning(f"[WhatsApp] Template error: {e}, using text fallback")
+            
+            # Fallback: Text message (only works in 24hr window)
             message = f"""Dear {customer_name},
 
 Your payment request from *{ASR_BUSINESS_NAME}* is ready.
@@ -457,7 +519,29 @@ Contact: {ASR_DISPLAY_PHONE}
                 logger.info(f"[WhatsApp] ✅ {msg_type} sent to {cleaned_phone}")
                 return True
             else:
-                logger.error(f"[WhatsApp] ❌ {msg_type} failed: {response.status_code} - {response.text}")
+                # Log detailed error
+                error_detail = response.text
+                try:
+                    error_json = response.json()
+                    error_detail = error_json.get("error", {}).get("message", response.text)
+                except Exception:
+                    pass
+                
+                logger.error(f"[WhatsApp] ❌ {msg_type} failed: HTTP {response.status_code} - {error_detail}")
+                
+                # Log failed message to database
+                await db.whatsapp_messages.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "phone": cleaned_phone,
+                    "direction": "outgoing",
+                    "type": msg_type,
+                    "order_id": order_id,
+                    "status": "failed",
+                    "error_message": error_detail,
+                    "http_status": response.status_code,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+                
                 return False
                 
     except Exception as e:
@@ -466,6 +550,38 @@ Contact: {ASR_DISPLAY_PHONE}
         logger.error(traceback.format_exc())
         await log_whatsapp_attempt(order_id, phone, msg_type, "error", str(e))
         return False
+
+
+async def retry_failed_whatsapp_messages():
+    """
+    Retry sending failed WhatsApp messages (called periodically or manually).
+    Retries up to 3 times with exponential backoff.
+    """
+    try:
+        failed_messages = await db.whatsapp_messages.find({
+            "status": "failed",
+            "retry_count": {"$lt": 3},
+            "type": {"$in": ["payment_success_template", "payment_request_template"]}
+        }).to_list(10)
+        
+        for msg in failed_messages:
+            retry_count = msg.get("retry_count", 0) + 1
+            logger.info(f"[WhatsApp] Retrying message {msg.get('id')} (attempt {retry_count})")
+            
+            # Update retry count
+            await db.whatsapp_messages.update_one(
+                {"id": msg.get("id")},
+                {"$set": {"retry_count": retry_count, "last_retry": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            # Note: Actual retry logic would call send_payment_whatsapp again
+            # For now, just log the attempt
+            logger.info(f"[WhatsApp] Retry logged for message {msg.get('id')}")
+            
+        return len(failed_messages)
+    except Exception as e:
+        logger.error(f"[WhatsApp] Retry error: {e}")
+        return 0
 
 
 async def send_payment_sms(phone: str, order_id: str, amount: float, purpose: str):

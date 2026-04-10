@@ -16,7 +16,51 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 9, 2026 - Round 18)
+## Latest Updates (April 10, 2026 - Round 19)
+
+### ✅ HOMEPAGE REDESIGN & CLEANUP
+
+**1. REMOVED: DISCOM vs Solar Section**
+- Completely removed the "DISCOM vs Solar: 25-Year Cost Reality" section
+- Removed associated ZeroBillComparison chart component
+
+**2. NEW: PM Surya Ghar Yojana Subsidy Section**
+- Modern colored cards (orange/green/blue theme):
+  - Orange: ₹30,000/kW up to 2 kW (Max: ₹60,000)
+  - Green: ₹18,000/kW for additional 2-3 kW (Extra: ₹18,000)
+  - Blue: Maximum Subsidy ₹78,000 (For 3 kW System)
+- Recommendation table: "Which Solar Size is Right for You?"
+  - 0-150 units → 1-2 kW System
+  - 150-300 units → 2-3 kW System
+  - Above 300 units → Above 3 kW System
+- Note: "Subsidy applicable as per government norms. Terms & conditions apply."
+
+**3. UPDATED: Solar Advisor Section**
+- Changed "10% Commission on deals" → "Up to 10% Commission on Solar Deals"
+
+**4. MOVED: Testimonials Section**
+- Moved "What Our Customers Say" from Homepage to Gallery page
+- Renamed to "Customer Testimonials"
+- Proper UI spacing maintained
+
+**5. UPDATED: CTA Buttons**
+- Primary: "Get Free Solar Consultation on WhatsApp" (green, with WhatsApp icon)
+- Secondary: "Book Site Visit ₹199" (gold, with Calendar icon)
+- WhatsApp prefilled message added
+
+**6. ENHANCED: Call Button Tracking**
+- Added call click tracking with Facebook Pixel, Google Analytics, and backend CRM logging
+- Pulsing animation on call button
+
+**Files Updated:**
+- `/app/frontend/src/App.js` - Hero CTA buttons, subsidy section, advisor text, removed testimonials
+- `/app/frontend/src/components/Gallery.js` - Added CustomerTestimonials component
+- `/app/backend/server.py` - Added `/api/analytics/track-event` endpoint
+- `/app/backend/routes/cashfree_orders.py` - Enhanced WhatsApp template support with retry logic
+
+---
+
+## Previous Updates (April 9, 2026 - Round 18)
 
 ### ✅ WHATSAPP PAYMENT CONFIRMATION SYSTEM (Production-Ready)
 

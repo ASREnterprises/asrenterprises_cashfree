@@ -16,7 +16,41 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 11, 2026 - Round 27)
+## Latest Updates (April 11, 2026 - Round 28)
+
+### ✅ MSG91 OTP BACKEND API INTEGRATION + UI FIXES
+**Testing Report:** `/app/test_reports/iteration_94.json` - 93% Backend / 100% Frontend
+
+**1. BACKEND OTP API (NEW - CRITICAL FIX)**
+- Created `/api/otp/send` - Generates 6-digit OTP, stores in MongoDB (`otp_store` collection), sends via MSG91 OTP REST API
+- Created `/api/otp/verify` - Verifies OTP against stored value, max 5 attempts, 5-minute expiry
+- Created `/api/otp/resend` - Resends OTP using same flow
+- MSG91 OTP API confirmed working: `method: "msg91_otp_api"` 
+- Three fallback methods: MSG91 OTP API → SMS API → Flow API
+
+**2. FRONTEND OTP REFACTOR (ALL COMPONENTS)**
+- AdminLogin.js, StaffLogin.js, App.js (SolarInquiryForm) now use **backend API as primary**
+- MSG91 widget kept as **fallback only** (no more "OTP service is loading" error)
+- Widget loading fixed: removed `crossOrigin="anonymous"` (caused CORS), added `initSendOTP()` call
+
+**3. WhatsApp Icon Shifted Down**
+- SmartWhatsAppButton moved from `bottom-20` to `bottom-4` on mobile
+- Social icons repositioned to avoid overlap
+
+**4. Email Icon Restored**
+- Red email floating button added to right-side social stack
+
+### Files Updated:
+- `/app/backend/server.py` (NEW endpoints: /api/otp/send, /api/otp/verify, /api/otp/resend)
+- `/app/frontend/public/index.html` (FIXED: MSG91 widget loading)
+- `/app/frontend/src/components/AdminLogin.js` (REFACTORED: backend API primary)
+- `/app/frontend/src/components/StaffLogin.js` (REFACTORED: backend API primary)
+- `/app/frontend/src/components/SmartWhatsAppButton.js` (FIXED: position)
+- `/app/frontend/src/App.js` (REFACTORED: OTP + social icons + email button)
+
+---
+
+## Previous Updates (April 11, 2026 - Round 27)
 
 ### ✅ P0 FINAL VERIFICATION + EMAIL ICON RESTORATION
 **Testing Report:** `/app/test_reports/iteration_93.json` - 100% Pass Rate (Frontend)

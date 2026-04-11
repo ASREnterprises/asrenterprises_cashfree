@@ -1,0 +1,28 @@
+# robots.txt for ASR Enterprises - Solar Solutions
+# https://asrenterprises.in
+
+User-agent: *
+Allow: /
+
+# Allow important pages
+Allow: /about
+Allow: /gallery
+Allow: /contact
+Allow: /inquiry
+Allow: /patna/*
+Allow: /solar/*
+
+# Disallow admin and staff areas
+Disallow: /admin/*
+Disallow: /staff/*
+Disallow: /crm/*
+Disallow: /api/*
+
+# Disallow payment status pages from indexing
+Disallow: /payment/*
+
+# Sitemap location
+Sitemap: https://asrenterprises.in/sitemap.xml
+
+# Crawl-delay for politeness (optional)
+Crawl-delay: 1

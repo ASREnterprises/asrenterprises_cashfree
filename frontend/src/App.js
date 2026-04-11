@@ -1028,7 +1028,7 @@ const ServiceRegistration = () => {
           <div className="mt-6 flex items-center justify-center space-x-4 text-sm text-gray-500">
             <div className="flex items-center space-x-1">
               <CheckCircle className="w-4 h-4 text-green-500" />
-              <span>Powered by Razorpay</span>
+              <span>Powered by Cashfree</span>
             </div>
             <div className="flex items-center space-x-1">
               <CheckCircle className="w-4 h-4 text-green-500" />
@@ -1432,8 +1432,11 @@ const HomePage = () => {
             <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">
               <img 
                 src="/asr_logo_transparent.png" 
-                alt="ASR Enterprises Patna" 
+                alt="ASR Enterprises Patna - Solar Rooftop Installation" 
                 className="h-16 w-auto"
+                width="64"
+                height="64"
+                fetchpriority="high"
               />
               <div className="flex flex-col">
                 {/* Daily Rotating Color Title */}
@@ -1810,8 +1813,11 @@ const HomePage = () => {
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2ec9e58fd2abff0bdf30ff0421355525a7340de1ca2a28c48b166c013ee92e32.png" 
-                  alt="TATA Power Solar" 
+                  alt="TATA Power Solar Panels" 
                   className="h-16 w-auto object-contain"
+                  width="64"
+                  height="64"
+                  loading="lazy"
                 />
               </div>
               <h3 className="font-bold text-[#0a355e] text-sm">TATA Power Solar</h3>
@@ -1823,8 +1829,11 @@ const HomePage = () => {
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/41dcb615eba9ab569f57551b6ff6382956917056e859b5e54978a7c236d87429.png" 
-                  alt="Adani Solar" 
+                  alt="Adani Solar Panels" 
                   className="h-16 w-auto object-contain"
+                  width="64"
+                  height="64"
+                  loading="lazy"
                 />
               </div>
               <h3 className="font-bold text-[#0a355e] text-sm">Adani Solar</h3>
@@ -1836,8 +1845,11 @@ const HomePage = () => {
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/aec140fce213a04d665f5b8cb77d677357d947b90cf77e9b13525221364096d4.png" 
-                  alt="Luminous Solar" 
+                  alt="Luminous Solar Panels" 
                   className="h-16 w-auto object-contain"
+                  width="64"
+                  height="64"
+                  loading="lazy"
                 />
               </div>
               <h3 className="font-bold text-[#0a355e] text-sm">Luminous Solar</h3>
@@ -1849,8 +1861,11 @@ const HomePage = () => {
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/cd17c9473d45036b2878ebac38a938b0d04b3405eeef23360c0c5176a762e138.png" 
-                  alt="Loom Solar" 
+                  alt="Loom Solar Panels" 
                   className="h-16 w-auto object-contain"
+                  width="64"
+                  height="64"
+                  loading="lazy"
                 />
               </div>
               <h3 className="font-bold text-[#0a355e] text-sm">Loom Solar</h3>
@@ -1862,8 +1877,11 @@ const HomePage = () => {
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/7ec5409d65b483bfe009d1dc7e6a7ee6df1d67bb7a31a531ada18708020e63f7.png" 
-                  alt="Waaree Solar" 
+                  alt="Waaree Solar Panels" 
                   className="h-16 w-auto object-contain"
+                  width="64"
+                  height="64"
+                  loading="lazy"
                 />
               </div>
               <h3 className="font-bold text-[#0a355e] text-sm">Waaree Solar</h3>
@@ -1875,8 +1893,11 @@ const HomePage = () => {
               <div className="h-20 flex items-center justify-center mb-3">
                 <img 
                   src="https://static.prod-images.emergentagent.com/jobs/a0aa1b09-c7bd-44f8-9d6e-6ad61d4babe5/images/2bf4384279551841349eac5d02f7b1c15550a0b920a4eda5dca5b62f94302fb0.png" 
-                  alt="Vikram Solar" 
+                  alt="Vikram Solar Panels" 
                   className="h-16 w-auto object-contain"
+                  width="64"
+                  height="64"
+                  loading="lazy"
                 />
               </div>
               <h3 className="font-bold text-[#0a355e] text-sm">Vikram Solar</h3>
@@ -2026,8 +2047,11 @@ const HomePage = () => {
             <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-sky-200">
               <img
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/xgz3s4do_IMG-20250826-WA0065.jpg"
-                alt="Solar Installation in Vaishali"
+                alt="Solar Installation in Vaishali Bihar"
                 className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+                width="400"
+                height="256"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -2039,8 +2063,11 @@ const HomePage = () => {
             <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-sky-200">
               <img
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/q85yfc91_IMG-20250826-WA0070.jpg"
-                alt="Solar Installation in Chak Bhoj"
+                alt="Solar Installation in Chak Bhoj Patna"
                 className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+                width="400"
+                height="256"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -2052,8 +2079,11 @@ const HomePage = () => {
             <div className="relative group overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-sky-200">
               <img
                 src="https://customer-assets.emergentagent.com/job_marketing-ai-hub-18/artifacts/ftxdhwd0_IMG-20250826-WA0064.jpg"
-                alt="Solar Panel System"
+                alt="Solar Panel System Installation Bihar"
                 className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+                width="400"
+                height="256"
+                loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
               <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
@@ -3466,8 +3496,11 @@ const SolarCalculatorPage = () => {
             <div className="flex items-center space-x-4">
               <img 
                 src="/asr_logo_dark.png"
-                alt="ASR Enterprises"
+                alt="ASR Enterprises Solar Calculator"
                 className="h-16 w-auto rounded-lg p-1"
+                width="64"
+                height="64"
+                loading="lazy"
               />
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold">ASR Solar Calculator</h1>

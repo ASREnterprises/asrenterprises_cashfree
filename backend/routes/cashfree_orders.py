@@ -193,7 +193,7 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
     - Idempotency: Prevents duplicate messages for same order
     - Detailed logging: All attempts logged to database
     - Status tracking: Success/failure saved with error details
-    - Template-based: Uses approved 'payment_sucess_confirm' template
+    - Template-based: Uses approved 'payment_sucess_confirmation' template
     
     Template Variables (as per user's approved template):
       - {{1}} = Order Status (e.g., "Confirmed")
@@ -246,7 +246,7 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
         
         # PAYMENT SUCCESS - Use approved template
         if msg_type == "payment_success":
-            # Template: payment_sucess_confirm (note: typo in original template name)
+            # Template: payment_sucess_confirmation (note: typo in original template name)
             # 6 body parameters matching user's approved template
             
             template_payload = {
@@ -254,7 +254,7 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                 "to": cleaned_phone,
                 "type": "template",
                 "template": {
-                    "name": "payment_sucess_confirm",  # User's approved template name
+                    "name": "payment_sucess_confirmation",  # User's approved template name
                     "language": {"code": "en"},
                     "components": [
                         {
@@ -272,7 +272,7 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                 }
             }
             
-            logger.info(f"[WhatsApp] Sending template 'payment_sucess_confirm' to {cleaned_phone}")
+            logger.info(f"[WhatsApp] Sending template 'payment_sucess_confirmation' to {cleaned_phone}")
             logger.info(f"[WhatsApp] Params - Order: {order_id}, Name: {customer_name}, Amount: ₹{amount:,.0f}")
             
             async with httpx.AsyncClient(timeout=30.0) as http_client:
@@ -291,7 +291,7 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                         "customer_name": customer_name,
                         "direction": "outgoing",
                         "type": "payment_success_template",
-                        "template_name": "payment_sucess_confirm",
+                        "template_name": "payment_sucess_confirmation",
                         "order_id": order_id,
                         "amount": amount,
                         "purpose": purpose,
@@ -325,7 +325,7 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
                         "customer_name": customer_name,
                         "direction": "outgoing",
                         "type": "payment_success_template",
-                        "template_name": "payment_sucess_confirm",
+                        "template_name": "payment_sucess_confirmation",
                         "order_id": order_id,
                         "amount": amount,
                         "status": "failed",
@@ -390,18 +390,12 @@ ASR ENTERPRISES | Patna"""
                         return False
         
         # For non-payment-success types - try template first, fallback to text
-        if msg_type == "payment_request":
-            # Try to use a payment request template if available
-            # Template format (user should create this in Meta Business Manager):
-            # Hello {{1}},
-            # Your payment request from ASR Enterprises is ready.
-            # Amount: ₹{{2}}
-            # Purpose: {{3}}
-            # Pay here: {{4}}
-            # Call: 9296389097
+        if msg_type in ["payment_request", "payment_reminder"]:
+            # Use approved template: payment_link_asr
+            # Template: "Hello {{1}}, Your payment..."
+            # Variables: {{1}} = customer_name, {{2}} = amount, {{3}} = purpose, {{4}} = payment_url
             
-            # First, try template-based approach
-            template_name = "payment_request"  # User can create this template
+            template_name = "payment_link_asr"  # User's approved template
             try:
                 payment_template_payload = {
                     "messaging_product": "whatsapp",
@@ -640,7 +634,7 @@ async def send_payment_confirmations(order: Dict, order_id: str, amount: float):
     Send payment confirmation after successful Cashfree payment.
     
     PRODUCTION FLOW:
-    1. WhatsApp template message (primary) - uses approved 'payment_sucess_confirm' template
+    1. WhatsApp template message (primary) - uses approved 'payment_sucess_confirmation' template
     2. SMS is DISABLED until DLT registration is complete
     
     Features:
@@ -1354,6 +1348,67 @@ async def cashfree_orders_webhook(request: Request):
                 {"$set": {"status": "dropped", "dropped_at": received_at}}
             )
             processing_result = {"processed": True, "message": "Payment dropped"}
+        
+        elif event_type in ["PAYMENT_LINK_EVENT", "LINK_STATUS"]:
+            # Handle Cashfree Payment Link events
+            link_data = data.get("link_details", data.get("payment_link", data))
+            link_id = link_data.get("link_id", "") or payload.get("link_id", "")
+            link_status = link_data.get("link_status", "") or data.get("link_status", "")
+            link_amount_paid = link_data.get("link_amount_paid", 0)
+            
+            logger.info(f"[Webhook] Payment Link event: link_id={link_id}, status={link_status}")
+            
+            if link_status in ["PAID", "PARTIALLY_PAID"]:
+                # Find order by link reference or order_id
+                order = None
+                if order_id:
+                    order = await db.cashfree_orders.find_one({"order_id": order_id}, {"_id": 0})
+                if not order and link_id:
+                    order = await db.cashfree_orders.find_one(
+                        {"$or": [{"link_id": link_id}, {"payment_link_id": link_id}]}, 
+                        {"_id": 0}
+                    )
+                
+                if order and order.get("status") != "paid":
+                    payment_amount = link_amount_paid or order.get("amount", 0)
+                    update_data = {
+                        "status": "paid",
+                        "paid_at": received_at,
+                        "payment_amount_received": payment_amount,
+                        "link_status": link_status,
+                        "payment_details": data,
+                        "webhook_updated_at": received_at
+                    }
+                    
+                    await db.cashfree_orders.update_one(
+                        {"order_id": order.get("order_id", order_id)},
+                        {"$set": update_data}
+                    )
+                    
+                    # Send confirmations
+                    confirmation_results = await send_payment_confirmations(
+                        order=order,
+                        order_id=order.get("order_id", order_id),
+                        amount=payment_amount
+                    )
+                    
+                    processing_result = {
+                        "processed": True,
+                        "message": f"Payment Link PAID: {link_id}",
+                        "amount": payment_amount,
+                        "confirmations": confirmation_results
+                    }
+                    logger.info(f"Payment Link SUCCESS: link={link_id}, amount={payment_amount}")
+                else:
+                    processing_result = {"processed": True, "message": f"Link event processed: {link_status}"}
+            else:
+                # EXPIRED, CANCELLED, etc.
+                if order_id:
+                    await db.cashfree_orders.update_one(
+                        {"order_id": order_id},
+                        {"$set": {"link_status": link_status, "webhook_updated_at": received_at}}
+                    )
+                processing_result = {"processed": True, "message": f"Link status: {link_status}"}
         
         # Update webhook log
         await db.cashfree_webhook_logs.update_one(

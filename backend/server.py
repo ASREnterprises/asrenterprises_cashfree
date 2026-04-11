@@ -3477,10 +3477,11 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
 @api_router.post("/admin/login-password")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def admin_login_password(request: Request, data: Dict[str, Any]):
-    """Step 1 of 2FA: Verify email/password - ONLY ADMIN OWNER ALLOWED"""
+    """Admin login with email + password - DIRECT LOGIN (no OTP required)"""
     client_ip = get_real_ip(request)
     user_id = data.get("user_id", "").strip()
     password = data.get("password", "").strip()
+    direct_login = data.get("direct_login", False)  # If True, skip OTP
     
     # Check lockout status
     allowed, message = check_login_lockout(client_ip, user_id)
@@ -3489,8 +3490,6 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=429, detail=message)
     
     # ========== SECURITY: ONLY ADMIN OWNER CREDENTIALS ALLOWED ==========
-    # ONLY Abhijeet Kumar (ASR1001) with email asrenterprisespatna@gmail.com 
-    # and mobile 8877896889 can access admin panel
     ADMIN_REGISTERED_EMAIL = "asrenterprisespatna@gmail.com"
     ADMIN_REGISTERED_MOBILE = "8877896889"
     ADMIN_STAFF_ID = "ASR1001"
@@ -3508,27 +3507,37 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
     # Check admin credentials in database
     admin_cred = await db.admin_credentials.find_one({"user_id": user_id.lower()}, {"_id": 0})
     
+    password_valid = False
     if admin_cred:
-        # Verify password
         import hashlib
         hashed = hashlib.sha256((password + admin_cred.get("salt", "")).encode()).hexdigest()
         if hashed == admin_cred.get("password_hash"):
-            reset_failed_login(client_ip, user_id)
-            logger.info(f"Admin password verified for {user_id} - awaiting OTP from IP: {client_ip}")
-            return {
-                "success": True, 
-                "require_otp": True,
-                "role": "admin", 
-                "email": ADMIN_REGISTERED_EMAIL,
-                "mobile_last4": ADMIN_REGISTERED_MOBILE[-4:],
-                "name": ADMIN_NAME,
-                "staff_id": ADMIN_STAFF_ID,
-                "message": "Password verified. Please verify OTP sent to your registered mobile."
-            }
+            password_valid = True
     
     # Default admin fallback (for initial setup)
-    if password == "admin@asr123":
-        reset_failed_login(client_ip, user_id)
+    if not password_valid and password == "admin@asr123":
+        password_valid = True
+    
+    if not password_valid:
+        record_failed_login(client_ip, user_id)
+        raise HTTPException(status_code=401, detail="Invalid password")
+    
+    reset_failed_login(client_ip, user_id)
+    logger.info(f"Successful admin login for {user_id} from IP: {client_ip}")
+    
+    if direct_login:
+        # Direct login - no OTP required
+        return {
+            "success": True, 
+            "require_otp": False,
+            "role": "admin", 
+            "email": ADMIN_REGISTERED_EMAIL,
+            "name": ADMIN_NAME,
+            "staff_id": ADMIN_STAFF_ID,
+            "message": "Login successful!"
+        }
+    else:
+        # 2FA flow - require OTP
         return {
             "success": True, 
             "require_otp": True,
@@ -3539,9 +3548,6 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
             "staff_id": ADMIN_STAFF_ID,
             "message": "Password verified. Please verify OTP sent to your registered mobile."
         }
-    
-    record_failed_login(client_ip, user_id)
-    raise HTTPException(status_code=401, detail="Invalid password")
 
 # Registered admin credentials - ONLY these can access admin panel
 ADMIN_REGISTERED_MOBILE = "8877896889"

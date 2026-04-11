@@ -253,7 +253,7 @@ export const AdminLogin = ({ onLogin }) => {
     setResendTimer(0);
   };
 
-  // Handle password-based login (Step 1 of 2FA)
+  // Handle password-based login - Direct login (no OTP)
   const loginWithPassword = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -262,30 +262,26 @@ export const AdminLogin = ({ onLogin }) => {
     try {
       const response = await axios.post(`${API}/admin/login-password`, { 
         user_id: userId,
-        password 
+        password,
+        direct_login: true  // Direct login - no OTP required
       });
       
       if (response.data.success) {
-        // Check if 2FA OTP is required
         if (response.data.require_otp) {
-          // Store login data for step 2
+          // 2FA flow (shouldn't happen with direct_login: true, but handle gracefully)
           setPendingLoginData(response.data);
           setLoginStep(2);
           setSuccess(`Password verified! OTP sent to mobile ending in ${response.data.mobile_last4}. Please verify.`);
-          
-          // Auto-trigger OTP send for registered mobile
-          setTimeout(() => {
-            sendOTPFor2FA();
-          }, 500);
+          setTimeout(() => { sendOTPFor2FA(); }, 500);
         } else {
-          // Direct login (no 2FA required - fallback)
+          // Direct login success - no OTP needed
           completeLogin(response.data);
         }
       } else {
         setError(response.data.message || "Invalid credentials.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid email or password. Only registered admin (asrenterprisespatna@gmail.com) can login.");
+      setError(err.response?.data?.detail || "Invalid email or password. Only registered admin can login.");
     } finally {
       setLoading(false);
     }
@@ -455,8 +451,8 @@ export const AdminLogin = ({ onLogin }) => {
 
         {/* Login Card */}
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 border border-[#0B3C5D]/10">
-          {/* Step Indicator for 2FA */}
-          {loginMethod === "password" && (
+          {/* Step Indicator for 2FA - only show when in step 2 */}
+          {loginMethod === "password" && loginStep === 2 && (
             <div className="flex items-center justify-center mb-6">
               <div className={`flex items-center ${loginStep >= 1 ? 'text-[#F5A623]' : 'text-gray-300'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${loginStep >= 1 ? 'bg-[#F5A623] text-white' : 'bg-gray-200'}`}>1</div>
@@ -482,7 +478,7 @@ export const AdminLogin = ({ onLogin }) => {
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Key className="w-4 h-4" /> Email + OTP
+                <Lock className="w-4 h-4" /> Email + Password
               </button>
               <button
                 type="button"
@@ -517,7 +513,7 @@ export const AdminLogin = ({ onLogin }) => {
             <form onSubmit={loginWithPassword} className="space-y-5">
               <div className="text-center mb-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">
-                  Step 1: Email & Password
+                  Email & Password Login
                 </h2>
                 <p className="text-gray-500 text-sm">
                   Only registered admin email can login
@@ -581,14 +577,14 @@ export const AdminLogin = ({ onLogin }) => {
                 ) : (
                   <>
                     <Lock className="w-5 h-5" />
-                    <span>Continue to OTP</span>
+                    <span>Login</span>
                   </>
                 )}
               </button>
             </form>
           )}
 
-          {/* Password Login Form - Step 2: OTP Verification */}
+          {/* Password Login Form - Step 2: OTP Verification (fallback, hidden by default) */}
           {loginMethod === "password" && loginStep === 2 && (
             <div className="space-y-5">
               <div className="text-center mb-4">

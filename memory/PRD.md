@@ -16,7 +16,43 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 11, 2026 - Round 24)
+## Latest Updates (April 11, 2026 - Round 25)
+
+### ✅ CRITICAL BUG FIXES
+**Testing Report:** `/app/test_reports/iteration_91.json` - 100% Pass Rate
+
+**1. OTP SERVICE FIX (CRITICAL)**
+- **Problem**: "OTP service is not available. Please refresh the page"
+- **Root Cause**: MSG91 script was loaded on-demand but login pages needed it immediately
+- **Fix**: Added `window.loadMSG91()` call before sending OTP in AdminLogin.js and StaffLogin.js
+- **Files**: `AdminLogin.js` lines 48-58, `StaffLogin.js` lines 52-62
+- **Result**: OTP sends successfully, shows "OTP sent! Enter the code you received."
+
+**2. ASR SOLAR EXPERT BOT OVERLAP FIX**
+- **Problem**: Bot widget overlapping payment buttons in modals
+- **Fix**: 
+  - Changed SmartWhatsAppButton from `bottom-6` to `bottom-20 sm:bottom-6`
+  - Changed z-index from `z-40` to `z-30` (modals are z-50)
+  - Added `mb-20 sm:mb-0` to Site Visit modal
+  - Added `pb-24 sm:pb-4` to Book Solar Service modal
+- **File**: `SmartWhatsAppButton.js` line 106
+- **Result**: Payment buttons always clickable above bot
+
+**3. BACK BUTTON / SESSION FIX**
+- **Problem**: After payment, pressing back kept going back infinitely
+- **Fix**: Added `window.history.replaceState(null, '', window.location.pathname)` after successful payment
+- **File**: `App.js` line 1343
+- **Result**: Back navigation properly handled after payment
+
+**4. UX IMPROVEMENTS**
+- Loading spinner shows while OTP service initializes
+- Success message: "OTP sent! Enter the code you received."
+- 30-second resend timer working
+- Better error messages (not generic technical text)
+
+---
+
+## Previous Updates (April 11, 2026 - Round 24)
 
 ### ✅ WEBSITE PERFORMANCE & SEO OPTIMIZATION
 

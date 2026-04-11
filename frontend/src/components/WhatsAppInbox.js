@@ -4,7 +4,7 @@ import {
   MessageSquare, Send, Phone, User, Clock, CheckCircle, 
   CheckCheck, XCircle, AlertTriangle, ArrowLeft, Search,
   RefreshCw, FileText, ChevronDown, X, Inbox, MessageCircle,
-  Trash2, Paperclip, Image, File, Video, Upload, CheckSquare, Square
+  Trash2, Paperclip, Image, File, Video, Upload, CheckSquare, Square, Bell
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL || '';
@@ -326,8 +326,8 @@ const TemplateSelector = ({ templates, selectedTemplate, onSelect, variables, on
   );
 };
 
-// Main WhatsApp Inbox Component
-export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffId = null, staffLeadIds = [], openLeadPhone = null, onLeadOpened = null }) => {
+// Main WhatsApp Inbox Component with Real-time Updates
+export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffId = null, staffLeadIds = [], openLeadPhone = null, onLeadOpened = null, onNewMessage = null }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [chatThread, setChatThread] = useState(null);
@@ -338,6 +338,9 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [unreadCount, setUnreadCount] = useState(0);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [newMessagePhone, setNewMessagePhone] = useState(null);
   
   // Mobile state
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -394,8 +397,10 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   }, [openLeadPhone]);
   
   // Fetch conversations - staff mode filters by assigned leads
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (silent = false) => {
     try {
+      if (!silent) setLoading(true);
+      
       const [convRes, unreadRes] = await Promise.all([
         axios.get(`${API}/api/whatsapp/conversations?limit=100`),
         axios.get(`${API}/api/whatsapp/conversations/unread-count`)
@@ -410,6 +415,33 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
         );
       }
       
+      // Check for new messages (compare total message count)
+      const totalMessages = allConversations.reduce((sum, c) => sum + (c.message_count || 0), 0);
+      if (lastMessageCount > 0 && totalMessages > lastMessageCount) {
+        setHasNewMessages(true);
+        // Find which conversation has new messages
+        const newConv = allConversations.find(c => c.has_unread);
+        if (newConv) {
+          setNewMessagePhone(newConv.phone);
+          // Callback for parent component (StaffPortal) notification
+          if (onNewMessage) {
+            onNewMessage({
+              phone: newConv.phone,
+              lead: newConv.lead,
+              unread: unreadRes.data.unread_count
+            });
+          }
+        }
+        // Auto-refresh current chat if we have new messages there
+        if (selectedConversation) {
+          const currentConv = allConversations.find(c => c.phone === selectedConversation);
+          if (currentConv?.has_unread) {
+            fetchChatThread(selectedConversation);
+          }
+        }
+      }
+      setLastMessageCount(totalMessages);
+      
       setConversations(allConversations);
       setUnreadCount(unreadRes.data.unread_count || 0);
     } catch (err) {
@@ -417,7 +449,7 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
     } finally {
       setLoading(false);
     }
-  }, [staffMode, staffLeadIds]);
+  }, [staffMode, staffLeadIds, lastMessageCount, selectedConversation, onNewMessage]);
   
   // Fetch templates
   const fetchTemplates = useCallback(async () => {
@@ -471,15 +503,18 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
     fetchConversations();
     fetchTemplates();
     
-    // Poll for new messages every 10 seconds
-    const interval = setInterval(fetchConversations, 10000);
+    // Poll for new messages - faster interval for staff mode (5s) vs admin (10s)
+    const pollInterval = staffMode ? 5000 : 10000;
+    const interval = setInterval(() => fetchConversations(true), pollInterval);
     return () => clearInterval(interval);
-  }, [fetchConversations, fetchTemplates]);
+  }, [fetchConversations, fetchTemplates, staffMode]);
   
-  // Re-fetch when staff leads change
+  // Re-fetch when staff leads change (immediate refresh when lead assigned)
   useEffect(() => {
     if (staffMode && staffLeadIds.length > 0) {
+      // Immediate fetch when leads change
       fetchConversations();
+      setHasNewMessages(false); // Reset notification
     }
   }, [staffMode, staffLeadIds.length, fetchConversations]);
   
@@ -877,6 +912,24 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
               />
             </div>
           </div>
+          
+          {/* New Messages Banner - Animated */}
+          {hasNewMessages && (
+            <div 
+              className="bg-green-500 text-white px-3 py-2 flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+              onClick={() => {
+                fetchConversations();
+                setHasNewMessages(false);
+                if (newMessagePhone) {
+                  const conv = conversations.find(c => c.phone === newMessagePhone);
+                  if (conv) handleMobileSelectConversation(conv);
+                }
+              }}
+            >
+              <Bell className="w-4 h-4" />
+              <span className="text-sm font-medium">New message received! Tap to view</span>
+            </div>
+          )}
           
           {/* Conversation List */}
           <div className="flex-1 overflow-y-auto">

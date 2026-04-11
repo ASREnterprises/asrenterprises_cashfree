@@ -73,6 +73,10 @@ export const StaffPortal = () => {
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
+  // WhatsApp real-time notification state
+  const [whatsAppNewMessage, setWhatsAppNewMessage] = useState(null);
+  const [showWhatsAppNotification, setShowWhatsAppNotification] = useState(false);
+  
   // New leads tracking - Track lead IDs seen previously
   const [seenLeadIds, setSeenLeadIds] = useState(() => {
     const stored = localStorage.getItem('staffSeenLeadIds');
@@ -370,6 +374,16 @@ export const StaffPortal = () => {
       window.location.href = `tel:${cleanPhone}`;
     }, 100);
   };
+
+  // Handle new WhatsApp message notification from WhatsAppInbox
+  const handleNewWhatsAppMessage = useCallback((messageInfo) => {
+    setWhatsAppNewMessage(messageInfo);
+    setShowWhatsAppNotification(true);
+    // Auto-hide notification after 10 seconds
+    setTimeout(() => {
+      setShowWhatsAppNotification(false);
+    }, 10000);
+  }, []);
 
   // Load called leads and cached leads data from localStorage on mount
   useEffect(() => {
@@ -1360,6 +1374,7 @@ export const StaffPortal = () => {
                 staffLeadIds={leads.map(l => l.id)}
                 openLeadPhone={selectedWhatsAppLead?.phone}
                 onLeadOpened={() => setSelectedWhatsAppLead(null)}
+                onNewMessage={handleNewWhatsAppMessage}
               />
             </div>
           </div>
@@ -1713,6 +1728,38 @@ export const StaffPortal = () => {
           )}
         </button>
       </div>
+      
+      {/* WhatsApp New Message Notification Toast */}
+      {showWhatsAppNotification && whatsAppNewMessage && (
+        <div className="fixed top-16 left-2 right-2 sm:left-auto sm:right-4 sm:w-80 z-[200] animate-slide-in-top">
+          <div 
+            className="bg-green-600 text-white rounded-xl shadow-2xl p-4 cursor-pointer"
+            onClick={() => {
+              setActiveTab('whatsapp');
+              setShowWhatsAppNotification(false);
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <MessageSquare className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm">New WhatsApp Message</div>
+                <div className="text-green-100 text-xs mt-0.5 truncate">
+                  {whatsAppNewMessage.lead?.name || whatsAppNewMessage.phone}
+                </div>
+                <div className="text-green-200 text-xs mt-1">Tap to view in inbox</div>
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowWhatsAppNotification(false); }}
+                className="p-1 hover:bg-white/20 rounded-full"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -323,3 +323,20 @@ code {
   animation: shimmer 2s infinite linear;
   background-size: 200% 100%;
 }
+
+/* Slide in from top animation for notifications */
+@keyframes slide-in-top {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-top {
+  animation: slide-in-top 0.3s ease-out forwards;
+}
+

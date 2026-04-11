@@ -16,47 +16,49 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 10, 2026 - Round 22)
+## Latest Updates (April 11, 2026 - Round 23)
 
-### ✅ HEYO CALL REMOVED - STANDARD CALLING RESTORED
-**Testing Report:** `/app/test_reports/iteration_88.json` - 100% Pass Rate
+### ✅ STAFF LEAD SEARCH FEATURE (NEW)
+**Testing Report:** `/app/test_reports/iteration_89.json` - 100% Pass Rate
 
-**User Request**: Heyo call not working - remove it completely
+**User Request**: Add lead search option for staff to search allotted leads
 
-**Changes Made:**
-- **StaffPortal.js**: Removed all Heyo code (initiateHeyoCall function, heyo:// links, PhoneCall icon import)
-- **ProfessionalLeadsManagement.js**: Removed all Heyo code from table view, card view, and detail modal
-- **Standard tel: calling** is now the ONLY call option across the entire CRM
-- Phone links use `tel:${phone}` format for native dialer
+**Implementation:**
+- **StaffPortal.js**: Added `leadSearchQuery` state at line 71
+- New search input with `data-testid="staff-lead-search"` at lines 918-927
+- Placeholder: "Search leads by name or phone..."
+- Search filters leads by both name AND phone number (case-insensitive)
+- Clear button (X) to reset search
+- Empty state message shows search query when no results found
 
-### ✅ MOBILE RESPONSIVE FIXES
+### ✅ WHATSAPP MOBILE RESPONSIVE FIX
+**User Request**: WhatsApp not opening properly on mobile, messages being cut off
 
-**1. Staff Portal Notification Dropdown (Fixed)**
-- Changed from `absolute right-0` to `fixed left-2 right-2 sm:absolute`
-- Added close button (`X` icon) visible only on mobile
-- Added overlay backdrop on mobile (`bg-black/20`)
-- Max height: `max-h-[70vh] sm:max-h-96`
-- Z-index: `z-[100]` for proper stacking
+**Fixes Applied:**
+1. **ChatBubble Component (WhatsAppInbox.js line 164)**:
+   - Mobile: `max-w-[90%]`
+   - Small screens: `sm:max-w-[80%]`
+   - Medium screens: `md:max-w-[75%]`
+   - Fixed horizontal padding: `px-1 sm:px-2`
 
-**2. Admin Leads Bulk Action Bar (Fixed)**
-- Made horizontal scrollable on mobile: `overflow-x-auto`
-- Added `flex-shrink-0` to buttons to prevent shrinking
-- **NEW: WhatsApp bulk button** - sends templates to all selected leads
-- Sticky positioning: `sticky top-0 z-30`
-- Button labels hidden on mobile (icons only)
+2. **Chat Container (WhatsAppInbox.js line 600)**:
+   - Added `WebkitOverflowScrolling: 'touch'` for smooth iOS scrolling
+   - Added `overflow-x-hidden` to prevent horizontal scroll
+   - Set `minHeight: '200px'` for proper display
 
-**3. Bulk WhatsApp Template Modal (NEW)**
-- Opens from bulk action bar WhatsApp button
-- Mobile-first design: full-width on mobile, max-w-lg on desktop
-- Template selection from WhatsApp API templates
-- Custom message option
-- Sends to all selected leads sequentially
+3. **Reply Box (WhatsAppInbox.js line 1064)**:
+   - Mobile-first padding: `p-2 sm:p-3 md:p-4`
+   - Compact mode tabs with hidden labels on mobile
+   - Smaller quick reply buttons
+   - Sticky positioning at bottom
 
 ### Files Updated:
-- `/app/frontend/src/components/StaffPortal.js` - Heyo removed, notification mobile fix
-- `/app/frontend/src/components/ProfessionalLeadsManagement.js` - Heyo removed, bulk action mobile fix, bulk WhatsApp modal
+- `/app/frontend/src/components/StaffPortal.js` - Lead search feature
+- `/app/frontend/src/components/WhatsAppInbox.js` - Mobile responsive fixes
 
 ---
+
+## Previous Updates (April 10, 2026 - Round 22)
 
 ## Previous Updates (April 10, 2026 - Round 21)
   - `handleBulkDelete()` at line 1076

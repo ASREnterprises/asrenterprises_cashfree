@@ -5,7 +5,7 @@ import {
   User, LogOut, ClipboardList, Calendar, Phone, MapPin,
   CheckCircle, Clock, AlertCircle, MessageSquare, RefreshCw,
   ChevronRight, ChevronUp, FileText, TrendingUp, Bell, Plus, Edit,
-  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox
+  Send, Briefcase, ListTodo, MessageCircle, Activity, Menu, X, ChevronDown, GraduationCap, History, Inbox, Search
 } from "lucide-react";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import StaffTraining from "./StaffTraining";
@@ -68,6 +68,7 @@ export const StaffPortal = () => {
   const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
   const [callFilter, setCallFilter] = useState('all'); // all, called, uncalled
   const [pipelineStageFilter, setPipelineStageFilter] = useState(null); // Filter leads by pipeline stage
+  const [leadSearchQuery, setLeadSearchQuery] = useState(''); // Search leads by name/phone
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState(null);
@@ -911,6 +912,27 @@ export const StaffPortal = () => {
               </button>
             </div>
             
+            {/* Search Bar for Staff Leads */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search leads by name or phone..."
+                value={leadSearchQuery}
+                onChange={(e) => setLeadSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-10 py-3 border-2 border-gray-200 rounded-xl text-base focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition"
+                data-testid="staff-lead-search"
+              />
+              {leadSearchQuery && (
+                <button 
+                  onClick={() => setLeadSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            
             {/* Pipeline Stage Filter Indicator */}
             {pipelineStageFilter && (
               <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-center justify-between">
@@ -1063,6 +1085,13 @@ export const StaffPortal = () => {
             <div className="md:hidden space-y-4">
               {leads
                 .filter(lead => {
+                  // Search filter
+                  if (leadSearchQuery) {
+                    const search = leadSearchQuery.toLowerCase();
+                    const nameMatch = lead.name?.toLowerCase().includes(search);
+                    const phoneMatch = lead.phone?.includes(search);
+                    if (!nameMatch && !phoneMatch) return false;
+                  }
                   if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
                   if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
                   if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
@@ -1181,6 +1210,13 @@ export const StaffPortal = () => {
             </div>
 
             {leads.filter(lead => {
+              // Search filter
+              if (leadSearchQuery) {
+                const search = leadSearchQuery.toLowerCase();
+                const nameMatch = lead.name?.toLowerCase().includes(search);
+                const phoneMatch = lead.phone?.includes(search);
+                if (!nameMatch && !phoneMatch) return false;
+              }
               if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
               if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
               if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
@@ -1189,15 +1225,17 @@ export const StaffPortal = () => {
               <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">
                 <ClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500">
-                  {pipelineStageFilter 
+                  {leadSearchQuery
+                    ? `No leads found for "${leadSearchQuery}"`
+                    : pipelineStageFilter 
                     ? `No leads in "${PIPELINE_STAGES.find(s => s.id === pipelineStageFilter)?.label}" stage`
                     : callFilter === 'all' 
                       ? 'No leads assigned yet' 
                       : `No ${callFilter} leads`
                   }
                 </p>
-                {(callFilter !== 'all' || pipelineStageFilter) && (
-                  <button onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
+                {(callFilter !== 'all' || pipelineStageFilter || leadSearchQuery) && (
+                  <button onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); setLeadSearchQuery(''); }} className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Show All Leads</button>
                 )}
               </div>
             )}

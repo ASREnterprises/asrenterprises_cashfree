@@ -143,7 +143,7 @@ const ConversationItem = ({ conversation, isActive, onClick, selectionMode, isSe
   );
 };
 
-// Chat Message Bubble - Mobile Optimized
+// Chat Message Bubble - Mobile Optimized & Fixed Width
 const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDelete }) => {
   const isIncoming = message.direction === 'incoming';
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -172,7 +172,7 @@ const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDele
   };
   
   return (
-    <div className={`flex ${isIncoming ? 'justify-start' : 'justify-end'} mb-2 px-2 group`}>
+    <div className={`flex ${isIncoming ? 'justify-start' : 'justify-end'} mb-2 px-1 sm:px-2 group`}>
       {/* Selection checkbox */}
       {selectionMode && (
         <button 
@@ -183,7 +183,7 @@ const ChatBubble = ({ message, selectionMode, isSelected, onToggleSelect, onDele
         </button>
       )}
       
-      <div className={`relative max-w-[85%] sm:max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
+      <div className={`relative max-w-[90%] sm:max-w-[80%] md:max-w-[75%] rounded-lg px-3 py-2 shadow-sm ${
         isIncoming 
           ? 'bg-white text-gray-800 rounded-tl-none' 
           : 'bg-[#dcf8c6] text-gray-800 rounded-tr-none'
@@ -795,7 +795,7 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
   };
   
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 140px)', minHeight: '500px' }}>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden" style={{ height: 'calc(100vh - 160px)', minHeight: '450px', maxHeight: '800px' }}>
       <div className="flex h-full">
         {/* Conversation List - Full width on mobile, hidden when chat open */}
         <div className={`w-full md:w-80 lg:w-96 border-r border-gray-200 flex flex-col ${showMobileChat ? 'hidden md:flex' : 'flex'}`}>
@@ -1026,13 +1026,15 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                 )}
               </div>
               
-              {/* Chat Messages - WhatsApp style background */}
+              {/* Chat Messages - WhatsApp style background with proper mobile scrolling */}
               <div 
                 ref={chatContainerRef}
-                className="flex-1 overflow-y-auto p-3 md:p-4 bg-[#e5ddd5]"
+                className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-3 md:p-4 bg-[#e5ddd5]"
                 style={{ 
                   backgroundImage: 'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAABF0lEQVR4nO3YMUrDUBjA8f9rXcQT6BnE0aFbZ8EL6OIp3N1cPI3DwUXBU+gNHFwVHBzaJTi4JL4kJNBq2kLNn8D/7OB9/B5JfjwAAAAAAAAAw/O2+6C9vQ8/O3UVGvh6Nb8J6+0/efr6JqnN/ZmJsNxbCI3r/0kkrDePwp6YDZvr5+HV/knY1/Nhcv1yeLH3JN6+ycIrxyAq8RMAAAAASUVORK5CYII=")',
-                  backgroundRepeat: 'repeat'
+                  backgroundRepeat: 'repeat',
+                  WebkitOverflowScrolling: 'touch',
+                  minHeight: '200px'
                 }}
               >
                 {chatLoading ? (
@@ -1059,14 +1061,14 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                 )}
               </div>
               
-              {/* Reply Box */}
-              <div className="border-t border-gray-200 bg-white p-4">
+              {/* Reply Box - Mobile Optimized */}
+              <div className="border-t border-gray-200 bg-white p-2 sm:p-3 md:p-4 sticky bottom-0">
                 {/* Error message */}
                 {error && (
-                  <div className="mb-3 p-3 bg-red-50 text-red-600 rounded-xl text-sm flex items-center gap-2">
+                  <div className="mb-2 sm:mb-3 p-2 sm:p-3 bg-red-50 text-red-600 rounded-xl text-xs sm:text-sm flex items-center gap-2">
                     <XCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{error}</span>
-                    <button onClick={() => setError('')} className="ml-auto">
+                    <span className="truncate">{error}</span>
+                    <button onClick={() => setError('')} className="ml-auto flex-shrink-0">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -1074,24 +1076,24 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                 
                 {/* 24h Warning */}
                 {!chatThread?.within_24h_window && replyMode === 'text' && (
-                  <div className="mb-3 p-3 bg-amber-50 text-amber-700 rounded-xl text-sm flex items-center gap-2">
+                  <div className="mb-2 sm:mb-3 p-2 sm:p-3 bg-amber-50 text-amber-700 rounded-xl text-xs sm:text-sm flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                    <span>Outside 24-hour window. Please send an approved template instead.</span>
+                    <span>Outside 24h window. Use template.</span>
                   </div>
                 )}
                 
                 {/* Quick Reply Buttons */}
                 {chatThread?.within_24h_window && (
-                  <div className="mb-3">
+                  <div className="mb-2 sm:mb-3">
                     <button
                       onClick={() => setShowQuickReplies(!showQuickReplies)}
-                      className="text-sm text-gray-600 flex items-center gap-1 mb-2 hover:text-green-600 transition"
+                      className="text-xs sm:text-sm text-gray-600 flex items-center gap-1 mb-2 hover:text-green-600 transition"
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform ${showQuickReplies ? 'rotate-180' : ''}`} />
                       Quick Replies
                     </button>
                     {showQuickReplies && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {quickReplies.map((reply, idx) => (
                           <button
                             key={idx}
@@ -1100,7 +1102,7 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                               setReplyMode('text');
                               setShowQuickReplies(false);
                             }}
-                            className="px-3 py-1.5 bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700 rounded-full text-xs font-medium transition"
+                            className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-700 rounded-full text-[10px] sm:text-xs font-medium transition"
                           >
                             {reply.label}
                           </button>
@@ -1110,35 +1112,35 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
                   </div>
                 )}
                 
-                {/* Mode Tabs */}
-                <div className="flex gap-2 mb-3">
+                {/* Mode Tabs - Compact for mobile */}
+                <div className="flex gap-1 sm:gap-2 mb-2 sm:mb-3">
                   <button
                     onClick={() => setReplyMode('template')}
-                    className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition ${
+                    className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition ${
                       replyMode === 'template'
                         ? 'bg-green-500 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
                     <FileText className="w-4 h-4 inline mr-1" />
-                    Template
+                    <span className="hidden sm:inline">Template</span>
                   </button>
                   <button
                     onClick={() => setReplyMode('text')}
                     disabled={!chatThread?.within_24h_window}
-                    className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition ${
+                    className={`flex-1 py-2 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition ${
                       replyMode === 'text'
                         ? 'bg-green-500 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     } ${!chatThread?.within_24h_window ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <MessageSquare className="w-4 h-4 inline mr-1" />
-                    Text
+                    <span className="hidden sm:inline">Text</span>
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!chatThread?.within_24h_window}
-                    className={`py-2 px-4 rounded-xl text-sm font-medium transition ${
+                    className={`py-2 px-2 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition ${
                       chatThread?.within_24h_window
                         ? 'bg-blue-500 text-white hover:bg-blue-600'
                         : 'bg-gray-100 text-gray-400 cursor-not-allowed'

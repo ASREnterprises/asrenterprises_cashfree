@@ -16,7 +16,36 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 11, 2026 - Round 26)
+## Latest Updates (April 11, 2026 - Round 27)
+
+### ✅ P0 FINAL VERIFICATION + EMAIL ICON RESTORATION
+**Testing Report:** `/app/test_reports/iteration_93.json` - 100% Pass Rate (Frontend)
+
+**1. EMAIL FLOATING ICON RESTORED (VERIFIED)**
+- Added red Email floating button (mailto:support@asrenterprises.in) to right-side social icons stack
+- Positioned between Instagram and Call buttons — no overlap with WhatsApp
+- data-testid: `email-float-btn`
+
+**2. FLOATING ICON OVERLAP FIX (VERIFIED)**
+- Right side: Facebook → Instagram → Email → Call (bottom-36) above WhatsApp (bottom-20) — no overlap
+- Left side: Scroll-to-top (bottom-36) above AI bot (bottom-20) — 64px gap, no overlap
+- Mobile responsive verified at 390px width
+
+**3. OTP/LOGIN VERIFICATION (VERIFIED)**
+- Admin Login: Email+OTP tab and Mobile OTP tab both work
+- Staff Login: All 3 tabs (Email+Password, Mobile OTP, Email+2FA) work
+- Admin password form successfully submits and progresses to Step 2 OTP verification
+
+**4. CODE CLEANUP**
+- Fixed duplicate comment in StaffLogin.js (line 146-148)
+
+### Files Updated:
+- `/app/frontend/src/App.js` (UPDATED - added email icon, adjusted floating icon positions)
+- `/app/frontend/src/components/StaffLogin.js` (UPDATED - removed duplicate comment)
+
+---
+
+## Previous Updates (April 11, 2026 - Round 26)
 
 ### ✅ PRODUCTION-LEVEL FIXES COMPLETE
 **Testing Report:** `/app/test_reports/iteration_92.json` - 100% Pass Rate

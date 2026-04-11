@@ -18,6 +18,39 @@ Build a comprehensive Solar Business CRM with the following key features:
 
 ## Latest Updates (April 11, 2026 - Round 23)
 
+### ✅ STAFF WHATSAPP REAL-TIME INBOX (NEW)
+**Testing Report:** `/app/test_reports/iteration_90.json` - 100% Pass Rate (Code Review)
+
+**User Request**: Staff gets WhatsApp messages of allotted leads, inbox updates immediately when new messages arrive or leads are assigned
+
+**Implementation:**
+
+**1. Faster Polling for Staff (5s vs 10s)**
+- `WhatsAppInbox.js` Line 507: `const pollInterval = staffMode ? 5000 : 10000`
+- Staff inbox checks for new messages every 5 seconds
+- Admin mode remains at 10 second intervals
+
+**2. New Message Detection & Banner**
+- Tracks `lastMessageCount` to detect new messages
+- Green animated banner: "New message received! Tap to view"
+- Click banner to jump directly to the new conversation
+- Auto-refreshes current chat if new message is for open conversation
+
+**3. onNewMessage Callback**
+- `WhatsAppInbox` accepts `onNewMessage` prop (Line 330)
+- Fires with `{phone, lead, unread}` when new messages detected
+- Parent component (StaffPortal) can react to notifications
+
+**4. Staff Portal Notification Toast**
+- Floating green toast appears at top when new WhatsApp message arrives
+- Shows lead name/phone number
+- Auto-hides after 10 seconds
+- Click to navigate to WhatsApp tab
+
+**5. Auto-Refresh on Lead Assignment**
+- When `staffLeadIds` changes (new lead assigned), inbox immediately refreshes
+- Staff instantly sees WhatsApp conversations for newly assigned leads
+
 ### ✅ STAFF LEAD SEARCH FEATURE (NEW)
 **Testing Report:** `/app/test_reports/iteration_89.json` - 100% Pass Rate
 

@@ -460,10 +460,21 @@
             // Load MSG91 script on demand with retry logic
             window.loadMSG91 = function() {
                 return new Promise((resolve, reject) => {
-                    // Already loaded
-                    if (typeof window.initSendOTP === 'function') {
-                        console.log("[MSG91] Script already loaded");
+                    // Already loaded and initialized
+                    if (typeof window.sendOtp === 'function') {
+                        console.log("[MSG91] Already initialized with sendOtp");
                         window.msg91Loaded = true;
+                        resolve();
+                        return;
+                    }
+                    if (typeof window.initSendOTP === 'function') {
+                        console.log("[MSG91] initSendOTP available, initializing...");
+                        try {
+                            window.initSendOTP(window.msg91Configuration);
+                            window.msg91Loaded = true;
+                        } catch(e) {
+                            console.warn("[MSG91] initSendOTP call failed:", e);
+                        }
                         resolve();
                         return;
                     }
@@ -476,57 +487,43 @@
                         return;
                     }
                     
-                    // Production URLs - try multiple CDNs
-                    const urls = [
-                        'https://verify.msg91.com/otp-provider.js',
-                        'https://verify.phone91.com/otp-provider.js',
-                        'https://control.msg91.com/otp-provider.js'
-                    ];
-                    let urlIndex = 0;
+                    // Production URL
+                    var scriptUrl = 'https://verify.msg91.com/otp-provider.js';
+                    console.log("[MSG91] Loading from:", scriptUrl);
                     
-                    function attemptLoad() {
-                        console.log("[MSG91] Loading from:", urls[urlIndex]);
-                        const script = document.createElement('script');
-                        script.src = urls[urlIndex];
-                        script.async = true;
-                        script.crossOrigin = "anonymous";
+                    var script = document.createElement('script');
+                    script.src = scriptUrl;
+                    script.async = true;
+                    // NOTE: Do NOT set crossOrigin - it causes CORS blocking
+                    
+                    script.onload = function() {
+                        console.log("[MSG91] Script loaded successfully");
+                        window.msg91Loaded = true;
                         
-                        script.onload = function() {
-                            console.log("[MSG91] Script loaded successfully from:", urls[urlIndex]);
-                            window.msg91Loaded = true;
-                            
-                            // Give the script time to initialize
-                            setTimeout(() => {
-                                if (typeof window.initSendOTP === 'function') {
-                                    console.log("[MSG91] initSendOTP available");
-                                    resolve();
-                                } else if (typeof window.sendOtp === 'function') {
-                                    console.log("[MSG91] sendOtp available");
-                                    resolve();
-                                } else {
-                                    console.warn("[MSG91] Script loaded but methods not available yet");
-                                    resolve(); // Still resolve, methods might be available later
+                        // Initialize the widget IMMEDIATELY after script loads
+                        setTimeout(function() {
+                            if (typeof window.initSendOTP === 'function') {
+                                console.log("[MSG91] Calling initSendOTP with configuration");
+                                try {
+                                    window.initSendOTP(window.msg91Configuration);
+                                    console.log("[MSG91] Widget initialized successfully");
+                                } catch(e) {
+                                    console.warn("[MSG91] initSendOTP error:", e);
                                 }
-                            }, 500);
-                        };
-                        
-                        script.onerror = function(error) {
-                            console.error("[MSG91] Failed to load from:", urls[urlIndex], error);
-                            urlIndex++;
-                            if (urlIndex < urls.length) {
-                                attemptLoad();
-                            } else {
-                                reject(new Error('Failed to load MSG91 from all CDNs'));
                             }
-                        };
-                        
-                        document.head.appendChild(script);
-                    }
+                            resolve();
+                        }, 300);
+                    };
                     
-                    attemptLoad();
+                    script.onerror = function(error) {
+                        console.error("[MSG91] Failed to load script:", error);
+                        reject(new Error('Failed to load MSG91 script'));
+                    };
+                    
+                    document.head.appendChild(script);
                     
                     // Timeout after 15 seconds
-                    setTimeout(() => {
+                    setTimeout(function() {
                         if (!window.msg91Loaded && typeof window.initSendOTP !== 'function') {
                             reject(new Error('MSG91 script load timeout'));
                         }

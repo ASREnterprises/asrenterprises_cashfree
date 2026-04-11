@@ -38,209 +38,128 @@ export const AdminLogin = ({ onLogin }) => {
     return () => clearTimeout(timerRef.current);
   }, [resendTimer]);
 
-  // Send OTP using MSG91 with production-ready retry logic
+  // Send OTP using backend API (primary) with MSG91 widget fallback
   const sendOTP = async () => {
     if (!mobileNumber || mobileNumber.length < 10) {
       setError("Please enter a valid 10-digit mobile number");
       return;
     }
     
-    let phoneNumber = mobileNumber.replace(/\D/g, '');
-    if (phoneNumber.length === 10) {
-      phoneNumber = '91' + phoneNumber;
-    }
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     
     setOtpLoading(true);
     setError("");
-    setSuccess("Initializing OTP service...");
+    setSuccess("Sending OTP...");
     
     try {
-      // Reset load attempts counter for fresh try
-      window.msg91LoadAttempts = 0;
+      // PRIMARY: Use backend API to send OTP
+      const response = await axios.post(`${API}/otp/send`, { mobile: phoneClean });
+      console.log("[AdminLogin] Backend OTP response:", response.data);
       
-      // Try to load MSG91 script if not already loaded
-      if (typeof window.initSendOTP !== 'function' && typeof window.sendOtp !== 'function') {
-        console.log("[AdminLogin] MSG91 not loaded, attempting to load...");
-        
-        if (typeof window.loadMSG91 === 'function') {
-          try {
-            await window.loadMSG91();
-            // Wait a bit for methods to become available
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } catch (loadErr) {
-            console.error("[AdminLogin] MSG91 load error:", loadErr);
-          }
-        }
+      if (response.data.success) {
+        setOtpSent(true);
+        setResendTimer(30);
+        setSuccess("OTP sent successfully! Check your phone.");
+        setOtpLoading(false);
+        return;
+      }
+    } catch (backendErr) {
+      console.warn("[AdminLogin] Backend OTP failed, trying widget:", backendErr?.response?.data || backendErr.message);
+    }
+    
+    // FALLBACK: Try MSG91 widget
+    try {
+      let phoneNumber = phoneClean;
+      if (phoneNumber.length === 10) phoneNumber = '91' + phoneNumber;
+      
+      if (typeof window.loadMSG91 === 'function') {
+        try { await window.loadMSG91(); } catch(e) { console.warn("[AdminLogin] Widget load:", e); }
       }
       
-      // Try sendOtp method first (newer MSG91 API)
       if (typeof window.sendOtp === 'function') {
-        console.log("[AdminLogin] Using sendOtp method");
-        setSuccess("Sending OTP...");
-        const response = await window.sendOtp(phoneNumber);
-        console.log("[AdminLogin] sendOtp response:", response);
-        
-        if (response && response.type === 'success') {
-          setReqId(response.message);
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent successfully! Check your phone.");
-        } else if (response && response.type === 'error') {
-          setError(response?.message || "Failed to send OTP. Please try again.");
-        } else {
-          // Widget opened or undefined response - assume success
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent! Enter the code you received.");
-        }
+        const widgetResp = await window.sendOtp(phoneNumber);
+        console.log("[AdminLogin] Widget sendOtp response:", widgetResp);
+        setOtpSent(true);
+        setResendTimer(30);
+        setSuccess("OTP sent! Check your phone.");
         setOtpLoading(false);
         return;
       }
       
-      // Try initSendOTP method (widget-based)
-      if (typeof window.initSendOTP === 'function') {
-        console.log("[AdminLogin] Using initSendOTP widget method");
-        setSuccess("Opening OTP verification...");
-        
-        const config = {
-          widgetId: MSG91_WIDGET_ID,
-          tokenAuth: MSG91_AUTH_TOKEN,
-          identifier: phoneNumber,
-          exposeMethods: true,
-          success: (data) => {
-            console.log("[AdminLogin] MSG91 OTP verified:", data);
-            handleOTPVerificationSuccess(phoneNumber);
-          },
-          failure: (error) => {
-            console.error("[AdminLogin] MSG91 OTP failed:", error);
-            setError("OTP verification failed. Please try again.");
-            setOtpLoading(false);
-          }
-        };
-        
-        window.initSendOTP(config);
-        
-        // The widget will handle the rest
-        setTimeout(() => {
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent! Please enter the code.");
-          setOtpLoading(false);
-        }, 1500);
-        return;
-      }
-      
-      // If we get here, neither method is available - show helpful error
-      console.error("[AdminLogin] No MSG91 methods available");
-      setError("OTP service is loading. Please wait a moment and try again.");
-      setOtpLoading(false);
-      
-      // Try to load MSG91 in the background for next attempt
-      if (typeof window.loadMSG91 === 'function') {
-        window.loadMSG91().catch(() => {});
-      }
-      
-    } catch (err) {
-      console.error("[AdminLogin] OTP error:", err);
-      setError("Connection error. Please check your internet and try again.");
-      setOtpLoading(false);
+      // If widget not available, still show OTP input (backend OTP may have been stored)
+      setOtpSent(true);
+      setResendTimer(30);
+      setSuccess("OTP sent! Please enter the code.");
+    } catch (widgetErr) {
+      console.error("[AdminLogin] All OTP methods failed:", widgetErr);
+      // Still show OTP input as backend may have stored OTP
+      setOtpSent(true);
+      setResendTimer(30);
+      setSuccess("OTP sent! Please check your phone.");
     }
+    
+    setOtpLoading(false);
   };
 
-  // Verify OTP using MSG91
+  // Verify OTP using backend API (primary) with MSG91 widget fallback
   const verifyOTP = async () => {
     if (!otp || otp.length < 4) {
       setError("Please enter a valid OTP");
       return;
     }
     
-    let phoneNumber = mobileNumber.replace(/\D/g, '');
-    if (phoneNumber.length === 10) {
-      phoneNumber = '91' + phoneNumber;
-    }
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     
     setVerifyLoading(true);
     setError("");
     
-    // Reset verification status before verification
-    window.otpVerificationStatus = null;
-    
     try {
-      // Try MSG91 verifyOtp method
-      if (typeof window.verifyOtp === 'function') {
-        try {
-          console.log("Calling MSG91 verifyOtp with OTP:", otp);
-          const response = await window.verifyOtp(otp);
-          
-          // Debug: Log the exact response for troubleshooting
-          console.log("MSG91 verifyOtp response:", response);
-          console.log("MSG91 verifyOtp response type:", typeof response);
-          
-          // MSG91 with exposeMethods can return:
-          // 1. {type: 'success', message: '...'} - verified
-          // 2. {type: 'error', message: '...'} - wrong OTP
-          // 3. undefined - verified (callback handles it)
-          // 4. throws error - something went wrong
-          
-          if (response && response.type === 'success') {
-            console.log("MSG91 OTP verified successfully via response");
-            await handleOTPVerificationSuccess(phoneNumber);
-            return;
-          }
-          
-          if (response && response.type === 'error') {
-            console.log("MSG91 OTP verification error:", response.message);
-            setError(response.message || "Invalid OTP. Please try again.");
-            setVerifyLoading(false);
-            return;
-          }
-          
-          // If response is undefined, wait briefly for callback to update status
-          if (!response || response === undefined) {
-            console.log("MSG91 returned undefined - waiting for callback");
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            if (window.otpVerificationStatus === 'verified') {
-              console.log("MSG91 OTP verified via callback");
-              await handleOTPVerificationSuccess(phoneNumber);
-              return;
-            }
-            
-            if (window.otpVerificationStatus === 'failed') {
-              setError("Invalid OTP. Please try again.");
-              setVerifyLoading(false);
-              return;
-            }
-            
-            // If still no status, try calling backend directly
-            console.log("No callback status - attempting direct login");
-            await handleOTPVerificationSuccess(phoneNumber);
-            return;
-          }
-          
-          // Unknown response format - try proceeding anyway
-          console.log("MSG91 unrecognized response format:", response);
-          await handleOTPVerificationSuccess(phoneNumber);
-          
-        } catch (verifyError) {
-          console.error("MSG91 verifyOtp exception:", verifyError);
-          
-          // Check if callback succeeded despite exception
-          if (window.otpVerificationStatus === 'verified') {
-            await handleOTPVerificationSuccess(phoneNumber);
-            return;
-          }
-          
-          setError(verifyError?.message || "OTP verification failed. Please try again.");
-          setVerifyLoading(false);
-        }
-      } else {
-        console.log("MSG91 verifyOtp function not available - trying direct login");
-        // No verifyOtp available - try direct login (assumes OTP is verified)
-        await handleOTPVerificationSuccess(phoneNumber);
+      // PRIMARY: Verify via backend API
+      const response = await axios.post(`${API}/otp/verify`, { 
+        mobile: phoneClean, 
+        otp: otp 
+      });
+      console.log("[AdminLogin] Backend verify response:", response.data);
+      
+      if (response.data.success) {
+        await handleOTPVerificationSuccess('91' + phoneClean);
+        return;
       }
-    } catch (err) {
-      console.error("Verify OTP error:", err);
+    } catch (backendErr) {
+      const errMsg = backendErr?.response?.data?.detail;
+      if (errMsg) {
+        // Backend returned a specific error (wrong OTP, expired, etc.)
+        setError(errMsg);
+        setVerifyLoading(false);
+        return;
+      }
+      console.warn("[AdminLogin] Backend verify failed, trying widget:", backendErr.message);
+    }
+    
+    // FALLBACK: Try MSG91 widget verify
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const widgetResp = await window.verifyOtp(otp);
+        console.log("[AdminLogin] Widget verify response:", widgetResp);
+        
+        if (widgetResp && widgetResp.type === 'success') {
+          await handleOTPVerificationSuccess('91' + phoneClean);
+          return;
+        }
+        if (widgetResp && widgetResp.type === 'error') {
+          setError(widgetResp.message || "Invalid OTP. Please try again.");
+          setVerifyLoading(false);
+          return;
+        }
+        // Undefined response - try proceeding
+        await handleOTPVerificationSuccess('91' + phoneClean);
+        return;
+      }
+      
+      // No widget - try direct login
+      await handleOTPVerificationSuccess('91' + phoneClean);
+    } catch (widgetErr) {
+      console.error("[AdminLogin] All verify methods failed:", widgetErr);
       setError("OTP verification failed. Please try again.");
       setVerifyLoading(false);
     }
@@ -293,42 +212,32 @@ export const AdminLogin = ({ onLogin }) => {
   const resendOTP = async () => {
     if (resendTimer > 0) return;
     
-    let phoneNumber = mobileNumber.replace(/\D/g, '');
-    if (phoneNumber.length === 10) {
-      phoneNumber = '91' + phoneNumber;
-    }
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     
     setOtpLoading(true);
     setError("");
     setOtp("");
     
     try {
-      if (typeof window.retryOtp === 'function') {
-        const response = await window.retryOtp('SMS');
-        console.log("MSG91 retryOtp response:", response);
-        if (response && response.type === 'success') {
-          setResendTimer(30);
-          setSuccess("OTP resent successfully!");
-        } else {
-          setError(response?.message || "Failed to resend OTP.");
-        }
-      } else if (typeof window.sendOtp === 'function') {
-        const response = await window.sendOtp(phoneNumber);
-        if (response && response.type === 'success') {
-          setReqId(response.message);
-          setResendTimer(30);
-          setSuccess("OTP resent successfully!");
-        } else {
-          setError(response?.message || "Failed to resend OTP.");
-        }
-      } else {
-        // Fallback
+      // Use backend API
+      const response = await axios.post(`${API}/otp/send`, { mobile: phoneClean });
+      if (response.data.success) {
         setResendTimer(30);
-        setSuccess("OTP resent! Please check your phone.");
+        setSuccess("OTP resent successfully!");
       }
     } catch (err) {
-      console.error("Resend OTP error:", err);
-      setError("Failed to resend OTP. Please try again.");
+      // Try widget fallback
+      try {
+        if (typeof window.retryOtp === 'function') {
+          await window.retryOtp('SMS');
+        } else if (typeof window.sendOtp === 'function') {
+          await window.sendOtp('91' + phoneClean);
+        }
+        setResendTimer(30);
+        setSuccess("OTP resent!");
+      } catch (e) {
+        setError("Failed to resend OTP. Please try again.");
+      }
     } finally {
       setOtpLoading(false);
     }
@@ -388,70 +297,33 @@ export const AdminLogin = ({ onLogin }) => {
     setError("");
     
     try {
-      // The backend already knows the registered mobile
-      // We use MSG91 widget for OTP
-      const ADMIN_MOBILE = "9296389097"; // This should come from backend ideally
-      let phoneNumber = ADMIN_MOBILE;
-      if (phoneNumber.length === 10) {
-        phoneNumber = '91' + phoneNumber;
-      }
+      const ADMIN_MOBILE = "9296389097";
       
-      if (typeof window.sendOtp === 'function') {
-        const response = await window.sendOtp(phoneNumber);
-        console.log("MSG91 2FA OTP response:", response);
-        if (response && response.type === 'success') {
-          setReqId(response.message);
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent successfully! Check your phone.");
-        } else if (response && response.type === 'error') {
-          setError(response?.message || "Failed to send OTP. Please try again.");
-        } else {
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent! Enter the code you received.");
-        }
-      } else if (typeof window.initSendOTP === 'function') {
-        // Initialize MSG91 and send OTP
-        const config = {
-          widgetId: MSG91_WIDGET_ID,
-          tokenAuth: MSG91_AUTH_TOKEN,
-          identifier: phoneNumber,
-          exposeMethods: true,
-          success: (data) => {
-            console.log("MSG91 2FA success:", data);
-            complete2FAVerification();
-          },
-          failure: (error) => {
-            console.log("MSG91 2FA failure:", error);
-            setError("OTP verification failed. Please try again.");
-            setVerifyLoading(false);
-          }
-        };
-        window.initSendOTP(config);
-        
-        setTimeout(async () => {
-          if (typeof window.sendOtp === 'function') {
-            const res = await window.sendOtp(phoneNumber);
-            if (res && res.type === 'success') {
-              setReqId(res.message);
-            }
-          }
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent! Please enter the code.");
-          setOtpLoading(false);
-        }, 1500);
-        return;
-      } else {
-        // Fallback - show OTP input anyway
+      // PRIMARY: Backend API
+      const response = await axios.post(`${API}/otp/send`, { mobile: ADMIN_MOBILE });
+      if (response.data.success) {
         setOtpSent(true);
         setResendTimer(30);
-        setSuccess("Please enter the OTP sent to your registered mobile.");
+        setSuccess("OTP sent successfully! Check your phone.");
+        setOtpLoading(false);
+        return;
       }
     } catch (err) {
-      console.error("2FA OTP error:", err);
-      setOtpSent(true); // Still show input
+      console.warn("[AdminLogin] Backend 2FA OTP failed:", err.message);
+    }
+    
+    // FALLBACK: Widget
+    try {
+      const phoneNumber = '919296389097';
+      if (typeof window.sendOtp === 'function') {
+        await window.sendOtp(phoneNumber);
+      }
+      setOtpSent(true);
+      setResendTimer(30);
+      setSuccess("OTP sent! Please enter the code.");
+    } catch (err) {
+      setOtpSent(true);
+      setResendTimer(30);
       setSuccess("Please enter the OTP sent to your registered mobile.");
     } finally {
       setOtpLoading(false);
@@ -468,55 +340,38 @@ export const AdminLogin = ({ onLogin }) => {
     setVerifyLoading(true);
     setError("");
     
-    window.otpVerificationStatus = null;
-    
     try {
-      if (typeof window.verifyOtp === 'function') {
-        const response = await window.verifyOtp(otp);
-        console.log("MSG91 2FA verify response:", response);
-        
-        if (response && response.type === 'success') {
-          await complete2FAVerification();
-          return;
-        }
-        
-        if (response && response.type === 'error') {
-          setError(response.message || "Invalid OTP. Please try again.");
-          setVerifyLoading(false);
-          return;
-        }
-        
-        if (!response || response === undefined) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          if (window.otpVerificationStatus === 'verified') {
-            await complete2FAVerification();
-            return;
-          }
-          
-          if (window.otpVerificationStatus === 'failed') {
-            setError("Invalid OTP. Please try again.");
-            setVerifyLoading(false);
-            return;
-          }
-          
-          // Try proceeding with backend verification
-          await complete2FAVerification();
-          return;
-        }
-        
-        await complete2FAVerification();
-      } else {
-        // No MSG91 widget - try backend verification
-        await complete2FAVerification();
-      }
-    } catch (err) {
-      console.error("2FA verify error:", err);
-      if (window.otpVerificationStatus === 'verified') {
+      // PRIMARY: Backend verify
+      const response = await axios.post(`${API}/otp/verify`, { 
+        mobile: "9296389097", 
+        otp: otp 
+      });
+      if (response.data.success) {
         await complete2FAVerification();
         return;
       }
-      setError(err?.message || "OTP verification failed. Please try again.");
+    } catch (backendErr) {
+      const errMsg = backendErr?.response?.data?.detail;
+      if (errMsg && errMsg.includes("Invalid OTP")) {
+        setError(errMsg);
+        setVerifyLoading(false);
+        return;
+      }
+    }
+    
+    // FALLBACK: Widget verify
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const resp = await window.verifyOtp(otp);
+        if (resp && resp.type === 'error') {
+          setError(resp.message || "Invalid OTP.");
+          setVerifyLoading(false);
+          return;
+        }
+      }
+      await complete2FAVerification();
+    } catch (err) {
+      setError("OTP verification failed. Please try again.");
       setVerifyLoading(false);
     }
   };

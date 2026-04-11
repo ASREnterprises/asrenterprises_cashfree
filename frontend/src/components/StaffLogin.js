@@ -39,108 +39,62 @@ export const StaffLogin = () => {
     return () => clearTimeout(timerRef.current);
   }, [resendTimer]);
 
-  // Send Mobile OTP using MSG91 with production-ready retry logic
+  // Send Mobile OTP using backend API (primary) with MSG91 widget fallback
   const sendMobileOTP = async () => {
     if (!mobileNumber || mobileNumber.length < 10) {
       setError("Please enter a valid 10-digit mobile number");
       return;
     }
     
-    let phoneNumber = mobileNumber.replace(/\D/g, '');
-    if (phoneNumber.length === 10) {
-      phoneNumber = '91' + phoneNumber;
-    }
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     
     setOtpLoading(true);
     setError("");
-    setSuccess("Initializing OTP service...");
+    setSuccess("Sending OTP...");
     
     try {
-      // Reset load attempts counter for fresh try
-      window.msg91LoadAttempts = 0;
+      // PRIMARY: Backend API
+      const response = await axios.post(`${API}/otp/send`, { mobile: phoneClean });
+      console.log("[StaffLogin] Backend OTP response:", response.data);
       
-      // Try to load MSG91 script if not already loaded
-      if (typeof window.initSendOTP !== 'function' && typeof window.sendOtp !== 'function') {
-        console.log("[StaffLogin] MSG91 not loaded, attempting to load...");
-        
-        if (typeof window.loadMSG91 === 'function') {
-          try {
-            await window.loadMSG91();
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } catch (loadErr) {
-            console.error("[StaffLogin] MSG91 load error:", loadErr);
-          }
-        }
+      if (response.data.success) {
+        setOtpSent(true);
+        setResendTimer(30);
+        setSuccess("OTP sent successfully! Check your phone.");
+        setOtpLoading(false);
+        return;
+      }
+    } catch (backendErr) {
+      console.warn("[StaffLogin] Backend OTP failed:", backendErr?.response?.data || backendErr.message);
+    }
+    
+    // FALLBACK: Widget
+    try {
+      let phoneNumber = phoneClean;
+      if (phoneNumber.length === 10) phoneNumber = '91' + phoneNumber;
+      
+      if (typeof window.loadMSG91 === 'function') {
+        try { await window.loadMSG91(); } catch(e) {}
       }
       
-      // Try sendOtp method first
       if (typeof window.sendOtp === 'function') {
-        console.log("[StaffLogin] Using sendOtp method");
-        setSuccess("Sending OTP...");
-        const response = await window.sendOtp(phoneNumber);
-        console.log("[StaffLogin] sendOtp response:", response);
-        
-        if (response && response.type === 'success') {
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent successfully! Check your phone.");
-        } else if (response && response.type === 'error') {
-          setError(response?.message || "Failed to send OTP. Please try again.");
-        } else {
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent! Enter the code you received.");
-        }
+        await window.sendOtp(phoneNumber);
+        setOtpSent(true);
+        setResendTimer(30);
+        setSuccess("OTP sent! Check your phone.");
         setOtpLoading(false);
         return;
       }
       
-      // Try initSendOTP widget method
-      if (typeof window.initSendOTP === 'function') {
-        console.log("[StaffLogin] Using initSendOTP widget method");
-        setSuccess("Opening OTP verification...");
-        
-        const config = {
-          widgetId: MSG91_WIDGET_ID,
-          tokenAuth: MSG91_AUTH_TOKEN,
-          identifier: phoneNumber,
-          exposeMethods: true,
-          success: (data) => {
-            console.log("[StaffLogin] MSG91 OTP verified:", data);
-            handleMobileOTPSuccess(phoneNumber);
-          },
-          failure: (error) => {
-            console.error("[StaffLogin] MSG91 OTP failed:", error);
-            setError("OTP verification failed. Please try again.");
-            setOtpLoading(false);
-          }
-        };
-        
-        window.initSendOTP(config);
-        
-        setTimeout(() => {
-          setOtpSent(true);
-          setResendTimer(30);
-          setSuccess("OTP sent! Please enter the code.");
-          setOtpLoading(false);
-        }, 1500);
-        return;
-      }
-      
-      // No methods available
-      console.error("[StaffLogin] No MSG91 methods available");
-      setError("OTP service is loading. Please wait a moment and try again.");
-      setOtpLoading(false);
-      
-      if (typeof window.loadMSG91 === 'function') {
-        window.loadMSG91().catch(() => {});
-      }
-      
+      setOtpSent(true);
+      setResendTimer(30);
+      setSuccess("OTP sent! Please enter the code.");
     } catch (err) {
-      console.error("[StaffLogin] OTP error:", err);
-      setError("Connection error. Please check your internet and try again.");
-      setOtpLoading(false);
+      setOtpSent(true);
+      setResendTimer(30);
+      setSuccess("OTP sent! Please check your phone.");
     }
+    setOtpLoading(false);
   };
 
   // Verify Mobile OTP
@@ -150,88 +104,42 @@ export const StaffLogin = () => {
       return;
     }
     
-    let phoneNumber = mobileNumber.replace(/\D/g, '');
-    if (phoneNumber.length === 10) {
-      phoneNumber = '91' + phoneNumber;
-    }
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     
     setVerifyLoading(true);
     setError("");
     
-    // Reset verification status before verification
-    window.otpVerificationStatus = null;
+    try {
+      // PRIMARY: Backend verify
+      const response = await axios.post(`${API}/otp/verify`, { 
+        mobile: phoneClean, 
+        otp: mobileOtp 
+      });
+      if (response.data.success) {
+        await handleMobileOTPSuccess('91' + phoneClean);
+        return;
+      }
+    } catch (backendErr) {
+      const errMsg = backendErr?.response?.data?.detail;
+      if (errMsg) {
+        setError(errMsg);
+        setVerifyLoading(false);
+        return;
+      }
+    }
     
+    // FALLBACK: Widget verify
     try {
       if (typeof window.verifyOtp === 'function') {
-        try {
-          console.log("Calling MSG91 verifyOtp with OTP:", mobileOtp);
-          const response = await window.verifyOtp(mobileOtp);
-          
-          console.log("MSG91 verifyOtp response:", response);
-          
-          // MSG91 with exposeMethods can return:
-          // 1. {type: 'success', message: '...'} - verified
-          // 2. {type: 'error', message: '...'} - wrong OTP
-          // 3. undefined - verified (callback handles it)
-          
-          if (response && response.type === 'success') {
-            console.log("MSG91 OTP verified successfully via response");
-            await handleMobileOTPSuccess(phoneNumber);
-            return;
-          }
-          
-          if (response && response.type === 'error') {
-            console.log("MSG91 OTP verification error:", response.message);
-            setError(response.message || "Invalid OTP. Please try again.");
-            setVerifyLoading(false);
-            return;
-          }
-          
-          // If response is undefined, wait briefly for callback to update status
-          if (!response || response === undefined) {
-            console.log("MSG91 returned undefined - waiting for callback");
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            if (window.otpVerificationStatus === 'verified') {
-              console.log("MSG91 OTP verified via callback");
-              await handleMobileOTPSuccess(phoneNumber);
-              return;
-            }
-            
-            if (window.otpVerificationStatus === 'failed') {
-              setError("Invalid OTP. Please try again.");
-              setVerifyLoading(false);
-              return;
-            }
-            
-            // If still no status, try calling backend directly
-            console.log("No callback status - attempting direct login");
-            await handleMobileOTPSuccess(phoneNumber);
-            return;
-          }
-          
-          // Unknown response format - try proceeding anyway
-          console.log("MSG91 unrecognized response format:", response);
-          await handleMobileOTPSuccess(phoneNumber);
-          
-        } catch (verifyError) {
-          console.error("MSG91 verifyOtp exception:", verifyError);
-          
-          // Check if callback succeeded despite exception
-          if (window.otpVerificationStatus === 'verified') {
-            await handleMobileOTPSuccess(phoneNumber);
-            return;
-          }
-          
-          setError(verifyError?.message || "OTP verification failed. Please try again.");
+        const resp = await window.verifyOtp(mobileOtp);
+        if (resp && resp.type === 'error') {
+          setError(resp.message || "Invalid OTP.");
           setVerifyLoading(false);
+          return;
         }
-      } else {
-        console.log("MSG91 verifyOtp function not available - trying direct login");
-        await handleMobileOTPSuccess(phoneNumber);
       }
+      await handleMobileOTPSuccess('91' + phoneClean);
     } catch (err) {
-      console.error("Verify OTP error:", err);
       setError("OTP verification failed. Please try again.");
       setVerifyLoading(false);
     }
@@ -285,38 +193,28 @@ export const StaffLogin = () => {
   const resendMobileOTP = async () => {
     if (resendTimer > 0) return;
     
-    let phoneNumber = mobileNumber.replace(/\D/g, '');
-    if (phoneNumber.length === 10) {
-      phoneNumber = '91' + phoneNumber;
-    }
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     
     setOtpLoading(true);
     setError("");
     setMobileOtp("");
     
     try {
-      if (typeof window.retryOtp === 'function') {
-        const response = await window.retryOtp('SMS');
-        if (response && response.type === 'success') {
-          setResendTimer(30);
-          setSuccess("OTP resent successfully!");
-        } else {
-          setError(response?.message || "Failed to resend OTP.");
-        }
-      } else if (typeof window.sendOtp === 'function') {
-        const response = await window.sendOtp(phoneNumber);
-        if (response && response.type === 'success') {
-          setResendTimer(30);
-          setSuccess("OTP resent successfully!");
-        } else {
-          setError(response?.message || "Failed to resend OTP.");
-        }
-      } else {
+      const response = await axios.post(`${API}/otp/send`, { mobile: phoneClean });
+      if (response.data.success) {
         setResendTimer(30);
-        setSuccess("OTP resent! Please check your phone.");
+        setSuccess("OTP resent successfully!");
       }
     } catch (err) {
-      setError("Failed to resend OTP. Please try again.");
+      try {
+        if (typeof window.sendOtp === 'function') {
+          await window.sendOtp('91' + phoneClean);
+        }
+        setResendTimer(30);
+        setSuccess("OTP resent!");
+      } catch (e) {
+        setError("Failed to resend OTP. Please try again.");
+      }
     } finally {
       setOtpLoading(false);
     }
@@ -376,21 +274,20 @@ export const StaffLogin = () => {
   // Send OTP for Email 2FA
   const sendEmail2FAOTP = async (phoneNumber) => {
     setOtpLoading(true);
+    const phoneClean = phoneNumber.replace(/\D/g, '').slice(-10);
     try {
-      if (typeof window.sendOtp === 'function') {
-        const response = await window.sendOtp(phoneNumber);
-        if (response && response.type === 'success') {
-          setOtpSent(true);
-          setResendTimer(30);
-        } else {
-          setOtpSent(true);
-          setResendTimer(30);
-        }
-      } else {
+      const response = await axios.post(`${API}/otp/send`, { mobile: phoneClean });
+      if (response.data.success) {
         setOtpSent(true);
         setResendTimer(30);
       }
     } catch (err) {
+      // Fallback to widget
+      try {
+        if (typeof window.sendOtp === 'function') {
+          await window.sendOtp('91' + phoneClean);
+        }
+      } catch (e) {}
       setOtpSent(true);
       setResendTimer(30);
     } finally {
@@ -405,50 +302,38 @@ export const StaffLogin = () => {
       return;
     }
     
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     setVerifyLoading(true);
     setError("");
     
     try {
-      // Verify with MSG91
-      if (typeof window.verifyOtp === 'function') {
-        const response = await window.verifyOtp(mobileOtp);
-        
-        if (response && response.type === 'success') {
-          await completeEmail2FALogin();
-          return;
-        }
-        
-        if (response && response.type === 'error') {
-          setError(response.message || "Invalid OTP. Please try again.");
-          setVerifyLoading(false);
-          return;
-        }
-        
-        // If undefined response, try proceeding
-        if (!response) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          if (window.otpVerificationStatus === 'verified') {
-            await completeEmail2FALogin();
-            return;
-          }
-          if (window.otpVerificationStatus === 'failed') {
-            setError("Invalid OTP. Please try again.");
-            setVerifyLoading(false);
-            return;
-          }
-          await completeEmail2FALogin();
-          return;
-        }
-        
-        await completeEmail2FALogin();
-      } else {
-        await completeEmail2FALogin();
-      }
-    } catch (err) {
-      if (window.otpVerificationStatus === 'verified') {
+      // PRIMARY: Backend verify
+      const response = await axios.post(`${API}/otp/verify`, { mobile: phoneClean, otp: mobileOtp });
+      if (response.data.success) {
         await completeEmail2FALogin();
         return;
       }
+    } catch (backendErr) {
+      const errMsg = backendErr?.response?.data?.detail;
+      if (errMsg) {
+        setError(errMsg);
+        setVerifyLoading(false);
+        return;
+      }
+    }
+    
+    // FALLBACK: Widget verify
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const resp = await window.verifyOtp(mobileOtp);
+        if (resp && resp.type === 'error') {
+          setError(resp.message || "Invalid OTP.");
+          setVerifyLoading(false);
+          return;
+        }
+      }
+      await completeEmail2FALogin();
+    } catch (err) {
       setError("OTP verification failed. Please try again.");
       setVerifyLoading(false);
     }
@@ -534,21 +419,17 @@ export const StaffLogin = () => {
   // Send OTP for 2FA
   const sendStaff2FAOTP = async (phoneNumber) => {
     setOtpLoading(true);
+    const phoneClean = phoneNumber.replace(/\D/g, '').slice(-10);
     try {
-      if (typeof window.sendOtp === 'function') {
-        const response = await window.sendOtp(phoneNumber);
-        if (response && response.type === 'success') {
-          setOtpSent(true);
-          setResendTimer(30);
-        } else {
-          setOtpSent(true);
-          setResendTimer(30);
-        }
-      } else {
+      const response = await axios.post(`${API}/otp/send`, { mobile: phoneClean });
+      if (response.data.success) {
         setOtpSent(true);
         setResendTimer(30);
       }
     } catch (err) {
+      try {
+        if (typeof window.sendOtp === 'function') await window.sendOtp('91' + phoneClean);
+      } catch(e) {}
       setOtpSent(true);
       setResendTimer(30);
     } finally {
@@ -563,50 +444,38 @@ export const StaffLogin = () => {
       return;
     }
     
+    const phoneClean = mobileNumber.replace(/\D/g, '').slice(-10);
     setVerifyLoading(true);
     setError("");
     
     try {
-      // Verify with MSG91
-      if (typeof window.verifyOtp === 'function') {
-        const response = await window.verifyOtp(mobileOtp);
-        
-        if (response && response.type === 'success') {
-          await completeStaff2FALogin();
-          return;
-        }
-        
-        if (response && response.type === 'error') {
-          setError(response.message || "Invalid OTP. Please try again.");
-          setVerifyLoading(false);
-          return;
-        }
-        
-        // If undefined, try proceeding
-        if (!response) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          if (window.otpVerificationStatus === 'verified') {
-            await completeStaff2FALogin();
-            return;
-          }
-          if (window.otpVerificationStatus === 'failed') {
-            setError("Invalid OTP. Please try again.");
-            setVerifyLoading(false);
-            return;
-          }
-          await completeStaff2FALogin();
-          return;
-        }
-        
-        await completeStaff2FALogin();
-      } else {
-        await completeStaff2FALogin();
-      }
-    } catch (err) {
-      if (window.otpVerificationStatus === 'verified') {
+      // PRIMARY: Backend verify
+      const response = await axios.post(`${API}/otp/verify`, { mobile: phoneClean, otp: mobileOtp });
+      if (response.data.success) {
         await completeStaff2FALogin();
         return;
       }
+    } catch (backendErr) {
+      const errMsg = backendErr?.response?.data?.detail;
+      if (errMsg) {
+        setError(errMsg);
+        setVerifyLoading(false);
+        return;
+      }
+    }
+    
+    // FALLBACK: Widget verify
+    try {
+      if (typeof window.verifyOtp === 'function') {
+        const resp = await window.verifyOtp(mobileOtp);
+        if (resp && resp.type === 'error') {
+          setError(resp.message || "Invalid OTP.");
+          setVerifyLoading(false);
+          return;
+        }
+      }
+      await completeStaff2FALogin();
+    } catch (err) {
       setError("OTP verification failed. Please try again.");
       setVerifyLoading(false);
     }

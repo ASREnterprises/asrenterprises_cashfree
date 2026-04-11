@@ -16,7 +16,37 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 11, 2026 - Round 28)
+## Latest Updates (April 11, 2026 - Round 29)
+
+### ✅ P0 FIXES: Admin Login, WhatsApp Templates, Payment Link Webhook
+**Testing Report:** `/app/test_reports/iteration_95.json` - 100% Pass Rate
+
+**1. ADMIN EMAIL+PASSWORD LOGIN (NO OTP)**
+- Replaced "Email + OTP" tab with "Email + Password" for direct admin login
+- Backend `/admin/login-password` now accepts `direct_login: true` to skip OTP
+- Admin logs in with just email + password → redirects directly to dashboard
+
+**2. WHATSAPP PAYMENT CONFIRMATION TEMPLATE FIX**
+- Template name fixed: `payment_sucess_confirm` → `payment_sucess_confirmation`
+- This was causing template "Failed" status in WhatsApp CRM
+- 6 body parameters: Order Status, customer_name, order_id, amount, purpose, date
+
+**3. WHATSAPP PAYMENT LINK TEMPLATE FIX**
+- Template name fixed: `payment_request` → `payment_link_asr`
+- Now uses the user's approved Meta template for payment link messages
+
+**4. PAYMENT LINK WEBHOOK HANDLER**
+- Added `PAYMENT_LINK_EVENT` and `LINK_STATUS` event handling to Cashfree webhook
+- Processes payment link payments and sends confirmations
+
+### Files Updated:
+- `/app/backend/server.py` (admin login-password endpoint)
+- `/app/backend/routes/cashfree_orders.py` (template names, webhook handler)
+- `/app/frontend/src/components/AdminLogin.js` (Email+Password tab, direct login)
+
+---
+
+## Previous Updates (April 11, 2026 - Round 28)
 
 ### ✅ MSG91 OTP BACKEND API INTEGRATION + UI FIXES
 **Testing Report:** `/app/test_reports/iteration_94.json` - 93% Backend / 100% Frontend

@@ -55,6 +55,19 @@ export const AdminLogin = ({ onLogin }) => {
     setSuccess("");  // Clear previous success
     
     try {
+      // First, ensure MSG91 script is loaded
+      if (typeof window.loadMSG91 === 'function' && typeof window.initSendOTP !== 'function') {
+        setSuccess("Loading OTP service...");
+        try {
+          await window.loadMSG91();
+        } catch (loadErr) {
+          console.error("Failed to load MSG91:", loadErr);
+          setError("OTP service temporarily unavailable. Please try again in a moment.");
+          setOtpLoading(false);
+          return;
+        }
+      }
+      
       // Check if MSG91 sendOTP method is available
       if (typeof window.sendOtp === 'function') {
         const response = await window.sendOtp(phoneNumber);
@@ -126,11 +139,24 @@ export const AdminLogin = ({ onLogin }) => {
         }, 1500);
         return;
       } else {
-        setError("OTP service is not available. Please refresh the page.");
+        // Try loading MSG91 one more time
+        if (typeof window.loadMSG91 === 'function') {
+          setSuccess("Initializing OTP service...");
+          try {
+            await window.loadMSG91();
+            // Retry after loading
+            setTimeout(() => sendOTP(), 500);
+            return;
+          } catch (e) {
+            setError("OTP service temporarily unavailable. Please try again later.");
+          }
+        } else {
+          setError("OTP service temporarily unavailable. Please refresh the page and try again.");
+        }
       }
     } catch (err) {
       console.error("Send OTP error:", err);
-      setError("Failed to send OTP. Please try again.");
+      setError("Failed to send OTP. Please check your connection and try again.");
     } finally {
       setOtpLoading(false);
     }

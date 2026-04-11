@@ -1338,6 +1338,9 @@ const HomePage = () => {
       const res = await axios.get(`${API}/cashfree/order/${paymentOrderId}/refresh`);
       
       if (res.data.paid) {
+        // Prevent back navigation to payment page
+        window.history.replaceState(null, '', window.location.pathname);
+        
         setBookingSuccess({
           booking_number: paymentOrderId,
           customer_whatsapp_url: `https://wa.me/918298389097?text=Hi, I just paid for solar service. Order: ${paymentOrderId}`,
@@ -2498,9 +2501,9 @@ const HomePage = () => {
 
       {/* Book Service Modal with Cashfree Payment */}
       {showBookService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-24 sm:pb-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => !verifyLoading && setShowBookService(false)} />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
               <Zap className="w-10 h-10 text-white mx-auto mb-2" />
               <h2 className="text-xl font-bold text-white">Book Solar Service</h2>
@@ -2612,7 +2615,7 @@ const HomePage = () => {
       {showSiteVisitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="site-visit-modal">
           <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowSiteVisitModal(false)} />
-          <div className="relative bg-gradient-to-b from-[#0d1b33] to-[#071A2E] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="relative bg-gradient-to-b from-[#0d1b33] to-[#071A2E] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden mb-20 sm:mb-0">
             {/* Header */}
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">

@@ -120,7 +120,7 @@ export const SmartWhatsAppButton = ({ variant = 'floating', className = '' }) =>
 
   if (variant === 'floating') {
     return (
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-30 print:hidden">
         {/* Tooltip */}
         {showTooltip && (
           <div className="absolute bottom-full right-0 mb-3 animate-fade-in">

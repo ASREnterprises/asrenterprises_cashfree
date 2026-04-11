@@ -357,22 +357,30 @@
             });
         </script>
         
-        <!-- MSG91 OTP - Loaded Only on Login/OTP Pages -->
+        <!-- MSG91 OTP - Production Ready Configuration -->
         <script type="text/javascript">
             // Set backend URL for API calls
             window.REACT_APP_BACKEND_URL = window.location.origin.includes('localhost') 
                 ? 'http://localhost:8001' 
                 : window.location.origin;
             
-            // MSG91 Configuration - Available globally but script loads on demand
+            // MSG91 Production Configuration
+            // Widget ID: 366367775a6a363731333933
+            // Token Auth: 498782Ts6ZESL8A69acbb0aP1
+            // Make sure your domain is whitelisted in MSG91 dashboard
             window.msg91Configuration = {
                 widgetId: "366367775a6a363731333933",
                 tokenAuth: "498782Ts6ZESL8A69acbb0aP1",
                 identifier: "",
                 exposeMethods: true,
                 success: function (data) {
-                    console.log("OTP Verified Successfully", data);
+                    console.log("[MSG91] OTP Verified Successfully:", data);
                     window.otpVerificationStatus = 'verified';
+                    window.otpVerificationData = data;
+                    
+                    // Dispatch success event for React components
+                    window.dispatchEvent(new CustomEvent('msg91OtpSuccess', { detail: data }));
+                    
                     if (window.pendingLoginType === 'admin' || window.pendingLoginType === 'staff') {
                         window.completeOTPLogin(window.pendingLoginMobile, window.pendingLoginType);
                     } else {
@@ -380,21 +388,34 @@
                     }
                 },
                 failure: function (error) {
-                    console.log("OTP Verification Failed", error);
+                    console.error("[MSG91] OTP Verification Failed:", error);
                     window.otpVerificationStatus = 'failed';
+                    window.otpVerificationError = error;
+                    
+                    // Dispatch failure event for React components
+                    window.dispatchEvent(new CustomEvent('msg91OtpFailed', { detail: error }));
+                    
+                    // Clear pending login data
                     window.pendingLoginMobile = '';
                     window.pendingLoginType = '';
-                    alert("OTP verification failed. Please try again.");
+                    
+                    // Show user-friendly error
+                    const errorMsg = error?.message || error?.error || "OTP verification failed";
+                    alert(errorMsg + ". Please try again.");
                 },
                 VAR1: "OTP"
             };
             
-            // Store for OTP flow
+            // OTP Flow State Management
             window.pendingLoginMobile = '';
             window.pendingLoginType = '';
+            window.otpVerificationStatus = null;
+            window.msg91LoadAttempts = 0;
+            window.msg91Loaded = false;
             
-            // Complete OTP Login function
+            // Complete OTP Login function (called after successful OTP verification)
             window.completeOTPLogin = async function(mobile, loginType) {
+                console.log("[MSG91] Completing OTP login for:", mobile, loginType);
                 try {
                     const response = await fetch(window.REACT_APP_BACKEND_URL + '/api/admin/login-otp', {
                         method: 'POST',
@@ -402,6 +423,8 @@
                         body: JSON.stringify({ mobile: mobile.replace(/\D/g, '') })
                     });
                     const result = await response.json();
+                    console.log("[MSG91] Login API response:", result);
+                    
                     if (response.ok && result.success) {
                         if (result.role === 'admin') {
                             localStorage.setItem("asrAdminAuth", "true");
@@ -420,12 +443,13 @@
                             window.location.href = "/staff/portal";
                         }
                     } else {
-                        alert(result.detail || result.message || "Mobile number not registered.");
+                        console.error("[MSG91] Login failed:", result);
+                        alert(result.detail || result.message || "Mobile number not registered. Please contact admin.");
                         window.location.reload();
                     }
                 } catch (error) {
-                    console.error("Login API error:", error);
-                    alert("Login failed. Please try again.");
+                    console.error("[MSG91] Login API error:", error);
+                    alert("Login failed. Please check your connection and try again.");
                     window.location.reload();
                 } finally {
                     window.pendingLoginMobile = '';
@@ -433,64 +457,142 @@
                 }
             };
             
-            // Load MSG91 script on demand (only when needed)
+            // Load MSG91 script on demand with retry logic
             window.loadMSG91 = function() {
                 return new Promise((resolve, reject) => {
+                    // Already loaded
                     if (typeof window.initSendOTP === 'function') {
+                        console.log("[MSG91] Script already loaded");
+                        window.msg91Loaded = true;
                         resolve();
                         return;
                     }
-                    const urls = ['https://verify.msg91.com/otp-provider.js', 'https://verify.phone91.com/otp-provider.js'];
-                    let i = 0;
-                    function attempt() {
-                        const s = document.createElement('script');
-                        s.src = urls[i];
-                        s.async = true;
-                        s.onload = function() {
-                            console.log("MSG91 OTP script loaded");
-                            resolve();
-                        };
-                        s.onerror = function() {
-                            i++;
-                            if (i < urls.length) attempt();
-                            else reject(new Error('Failed to load MSG91'));
-                        };
-                        document.head.appendChild(s);
+                    
+                    // Check load attempts to prevent infinite retry
+                    window.msg91LoadAttempts++;
+                    if (window.msg91LoadAttempts > 3) {
+                        console.error("[MSG91] Max load attempts reached");
+                        reject(new Error('MSG91 script failed to load after 3 attempts'));
+                        return;
                     }
-                    attempt();
+                    
+                    // Production URLs - try multiple CDNs
+                    const urls = [
+                        'https://verify.msg91.com/otp-provider.js',
+                        'https://verify.phone91.com/otp-provider.js',
+                        'https://control.msg91.com/otp-provider.js'
+                    ];
+                    let urlIndex = 0;
+                    
+                    function attemptLoad() {
+                        console.log("[MSG91] Loading from:", urls[urlIndex]);
+                        const script = document.createElement('script');
+                        script.src = urls[urlIndex];
+                        script.async = true;
+                        script.crossOrigin = "anonymous";
+                        
+                        script.onload = function() {
+                            console.log("[MSG91] Script loaded successfully from:", urls[urlIndex]);
+                            window.msg91Loaded = true;
+                            
+                            // Give the script time to initialize
+                            setTimeout(() => {
+                                if (typeof window.initSendOTP === 'function') {
+                                    console.log("[MSG91] initSendOTP available");
+                                    resolve();
+                                } else if (typeof window.sendOtp === 'function') {
+                                    console.log("[MSG91] sendOtp available");
+                                    resolve();
+                                } else {
+                                    console.warn("[MSG91] Script loaded but methods not available yet");
+                                    resolve(); // Still resolve, methods might be available later
+                                }
+                            }, 500);
+                        };
+                        
+                        script.onerror = function(error) {
+                            console.error("[MSG91] Failed to load from:", urls[urlIndex], error);
+                            urlIndex++;
+                            if (urlIndex < urls.length) {
+                                attemptLoad();
+                            } else {
+                                reject(new Error('Failed to load MSG91 from all CDNs'));
+                            }
+                        };
+                        
+                        document.head.appendChild(script);
+                    }
+                    
+                    attemptLoad();
+                    
+                    // Timeout after 15 seconds
+                    setTimeout(() => {
+                        if (!window.msg91Loaded && typeof window.initSendOTP !== 'function') {
+                            reject(new Error('MSG91 script load timeout'));
+                        }
+                    }, 15000);
                 });
             };
             
-            // Trigger OTP functions
+            // Trigger OTP functions with better error handling
             window.triggerLoginOTP = async function(phoneNumber, loginType) {
+                console.log("[MSG91] Triggering OTP for:", phoneNumber, loginType);
                 window.pendingLoginMobile = phoneNumber;
                 window.pendingLoginType = loginType;
+                
                 let formattedPhone = phoneNumber.replace(/\D/g, '');
                 if (formattedPhone.length === 10) formattedPhone = '91' + formattedPhone;
                 window.msg91Configuration.identifier = formattedPhone;
                 
-                await window.loadMSG91();
-                if (typeof window.initSendOTP === 'function') {
-                    window.initSendOTP(window.msg91Configuration);
-                } else {
-                    alert("OTP service failed to load. Please refresh and try again.");
+                try {
+                    await window.loadMSG91();
+                    
+                    if (typeof window.initSendOTP === 'function') {
+                        console.log("[MSG91] Calling initSendOTP");
+                        window.initSendOTP(window.msg91Configuration);
+                    } else if (typeof window.sendOtp === 'function') {
+                        console.log("[MSG91] Calling sendOtp");
+                        window.sendOtp(formattedPhone);
+                    } else {
+                        throw new Error("OTP methods not available");
+                    }
+                } catch (error) {
+                    console.error("[MSG91] Error triggering OTP:", error);
+                    alert("OTP service temporarily unavailable. Please try again or contact support.");
                 }
             };
             
             window.triggerOTPVerification = async function(phoneNumber) {
+                console.log("[MSG91] Triggering OTP verification for:", phoneNumber);
                 window.pendingLoginType = 'inquiry';
+                
                 let formattedPhone = phoneNumber.replace(/\D/g, '');
                 if (formattedPhone.length === 10) formattedPhone = '91' + formattedPhone;
                 window.msg91Configuration.identifier = formattedPhone;
                 
-                await window.loadMSG91();
-                if (typeof window.initSendOTP === 'function') {
-                    window.initSendOTP(window.msg91Configuration);
-                } else {
-                    alert("OTP service failed to load. Please try again.");
+                try {
+                    await window.loadMSG91();
+                    if (typeof window.initSendOTP === 'function') {
+                        window.initSendOTP(window.msg91Configuration);
+                    } else if (typeof window.sendOtp === 'function') {
+                        window.sendOtp(formattedPhone);
+                    } else {
+                        throw new Error("OTP methods not available");
+                    }
+                } catch (error) {
+                    console.error("[MSG91] Error triggering OTP verification:", error);
+                    alert("OTP service temporarily unavailable. Please try again.");
                 }
             };
+            
+            // Pre-load MSG91 on login pages for faster OTP
+            if (window.location.pathname.includes('/login') || 
+                window.location.pathname.includes('/admin') || 
+                window.location.pathname.includes('/staff')) {
+                console.log("[MSG91] Pre-loading on login page");
+                setTimeout(() => window.loadMSG91().catch(() => {}), 1000);
+            }
         </script>
-        <!-- End MSG91 OTP Script (On-Demand Loading) -->
+        <!-- End MSG91 OTP Script (Production Ready) -->
     </body>
 </html>

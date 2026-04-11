@@ -9,6 +9,7 @@ import {
   Send, Loader2, CheckCircle, AlertCircle, Bot, User, Facebook, Image, Award, CreditCard, RefreshCw, Key, QrCode, Instagram, MessageCircle, ExternalLink, Calendar
 } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
+import { usePaymentProtection, markPaymentCompleted, isPaymentCompleted } from "@/hooks/useSessionSecurity";
 
 // Payment Status Pages
 import { PaymentSuccess, PaymentFailed, PaymentPending, PaymentStatus } from "@/components/PaymentStatusPages";
@@ -1332,14 +1333,41 @@ const HomePage = () => {
       alert("No payment order found. Please try again.");
       return;
     }
+    
+    // Check if payment already completed - prevent re-verification
+    if (isPaymentCompleted(paymentOrderId)) {
+      console.log('[Payment] Order already completed:', paymentOrderId);
+      setBookingSuccess({
+        booking_number: paymentOrderId,
+        customer_whatsapp_url: `https://wa.me/918298389097?text=Hi, I already paid for solar service. Order: ${paymentOrderId}`,
+        email_sent: true,
+        sms_sent: true
+      });
+      setShowBookService(false);
+      return;
+    }
+    
     setVerifyLoading(true);
     try {
       // Verify payment status - API already includes /api prefix
       const res = await axios.get(`${API}/cashfree/order/${paymentOrderId}/refresh`);
       
       if (res.data.paid) {
-        // Prevent back navigation to payment page
+        console.log('[Payment] Payment verified successfully:', paymentOrderId);
+        
+        // Mark payment as completed to prevent re-entry
+        markPaymentCompleted(paymentOrderId);
+        
+        // Prevent back navigation - multiple strategies
         window.history.replaceState(null, '', window.location.pathname);
+        window.history.pushState(null, '', window.location.pathname);
+        
+        // Block back button
+        const blockBack = () => {
+          window.history.pushState(null, '', window.location.pathname);
+        };
+        window.addEventListener('popstate', blockBack);
+        setTimeout(() => window.removeEventListener('popstate', blockBack), 5000);
         
         setBookingSuccess({
           booking_number: paymentOrderId,

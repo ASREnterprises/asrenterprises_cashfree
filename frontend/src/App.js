@@ -2454,20 +2454,20 @@ const HomePage = () => {
         <SmartWhatsAppButton variant="floating" />
       </Suspense>
 
-      {/* Floating Action Buttons - Positioned above WhatsApp */}
-      <div className="fixed bottom-24 right-6 z-40 flex flex-col space-y-3">
+      {/* Floating Action Buttons - Positioned above WhatsApp button */}
+      <div className="fixed bottom-32 sm:bottom-24 right-4 sm:right-6 z-30 flex flex-col space-y-2 sm:space-y-3">
         {/* Facebook */}
         <a
           href="https://www.facebook.com/share/1CU69hsGbJ/"
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-[#1877F2] text-white p-3 rounded-full shadow-xl hover:bg-[#166FE5] transition-all hover:scale-110 group relative"
+          className="bg-[#1877F2] text-white p-2.5 sm:p-3 rounded-full shadow-xl hover:bg-[#166FE5] transition-all hover:scale-110 group relative"
           data-testid="facebook-float-btn"
         >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
           </svg>
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition hidden sm:block">
             Facebook
           </span>
         </a>
@@ -2477,55 +2477,52 @@ const HomePage = () => {
           href="https://instagram.com/asr_enterprises_patna"
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white p-3 rounded-full shadow-xl hover:scale-110 transition-all group relative"
+          className="bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white p-2.5 sm:p-3 rounded-full shadow-xl hover:scale-110 transition-all group relative"
           data-testid="instagram-float-btn"
         >
-          <Instagram className="w-5 h-5" />
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+          <Instagram className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition hidden sm:block">
             Instagram
           </span>
         </a>
 
-        {/* Call Icon - Enhanced with tracking */}
+        {/* Email */}
         <a
-          href="tel:9296389097"
-          className="bg-blue-500 text-white p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative animate-pulse"
-          data-testid="call-float-btn"
-          onClick={handleCallClick}
-        >
-          <Phone className="w-5 h-5" />
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-            Call Now: 9296389097
-          </span>
-        </a>
-        
-        {/* Email Icon */}
-        <a
-          href="mailto:support@asrenterprises.in?subject=Solar Inquiry&body=Hi ASR Enterprises, I'm interested in solar rooftop installation."
-          className="bg-red-500 text-white p-3 rounded-full shadow-xl hover:bg-red-600 transition-all hover:scale-110 group relative"
+          href="mailto:support@asrenterprises.in"
+          className="bg-red-500 text-white p-2.5 sm:p-3 rounded-full shadow-xl hover:bg-red-600 transition-all hover:scale-110 group relative"
           data-testid="email-float-btn"
         >
-          <Mail className="w-5 h-5" />
-          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+          <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition hidden sm:block">
             Email Us
           </span>
         </a>
 
-        {/* Scroll to Top Button - Below Email */}
-        {showScrollTop && (
-          <button
-            onClick={scrollToTop}
-            className="bg-[#0a355e] text-white p-3 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all hover:scale-110 group relative border border-white/30"
-            data-testid="scroll-to-top-btn"
-            aria-label="Scroll to top"
-          >
-            <ChevronUp className="w-5 h-5" />
-            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
-              Back to Top
-            </span>
-          </button>
-        )}
+        {/* Call Icon */}
+        <a
+          href="tel:9296389097"
+          className="bg-blue-500 text-white p-2.5 sm:p-3 rounded-full shadow-xl hover:bg-blue-600 transition-all hover:scale-110 group relative"
+          data-testid="call-float-btn"
+          onClick={handleCallClick}
+        >
+          <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition hidden sm:block">
+            Call Now
+          </span>
+        </a>
       </div>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-36 sm:bottom-20 left-4 sm:left-6 z-30 bg-[#0a355e] text-white p-2.5 sm:p-3 rounded-full shadow-xl hover:bg-[#0B3C5D] transition-all hover:scale-110 group border border-white/30"
+          data-testid="scroll-to-top-btn"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
+      )}
 
       {/* Book Service Modal with Cashfree Payment */}
       {showBookService && (

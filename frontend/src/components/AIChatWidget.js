@@ -184,30 +184,23 @@ export const AIChatWidget = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Closed state - Prominent floating button
+  // Closed state - Small floating icon button (like Facebook/Instagram)
   if (!isOpen) {
     return (
-      <div className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-auto z-50 flex flex-col items-start space-y-2">
-        {/* Attention-grabbing pill - hidden on mobile */}
-        <div className="hidden sm:flex bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full shadow-lg animate-bounce text-sm font-medium items-center space-x-2">
-          <Sparkles className="w-4 h-4" />
-          <span>Ask about ₹78,000 subsidy!</span>
-        </div>
-        
+      <div className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-30 print:hidden">
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-2xl shadow-2xl hover:from-amber-600 hover:to-orange-600 transition-all duration-300 hover:scale-105 flex items-center space-x-2 sm:space-x-3 w-full sm:w-auto justify-center sm:justify-start"
+          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-3 rounded-full shadow-xl hover:from-amber-600 hover:to-orange-600 transition-all hover:scale-110 group relative"
           data-testid="ai-chat-toggle"
           aria-label="Open Solar Expert Chat"
         >
           <div className="relative">
-            <Bot className="w-7 h-7 sm:w-8 sm:h-8" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white animate-pulse"></span>
+            <Bot className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full border border-white animate-pulse"></span>
           </div>
-          <div className="text-left">
-            <p className="font-bold text-sm sm:text-base">ASR Solar Expert</p>
-            <p className="text-xs text-amber-100">Chat • Voice • Upload Bill</p>
-          </div>
+          <span className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-gray-900 text-white px-3 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition hidden sm:block">
+            Solar Expert
+          </span>
         </button>
       </div>
     );

@@ -38,7 +38,7 @@ export const AdminLogin = ({ onLogin }) => {
     return () => clearTimeout(timerRef.current);
   }, [resendTimer]);
 
-  // Send OTP using MSG91
+  // Send OTP using MSG91 with production-ready retry logic
   const sendOTP = async () => {
     if (!mobileNumber || mobileNumber.length < 10) {
       setError("Please enter a valid 10-digit mobile number");
@@ -52,112 +52,97 @@ export const AdminLogin = ({ onLogin }) => {
     
     setOtpLoading(true);
     setError("");
-    setSuccess("");  // Clear previous success
+    setSuccess("Initializing OTP service...");
     
     try {
-      // First, ensure MSG91 script is loaded
-      if (typeof window.loadMSG91 === 'function' && typeof window.initSendOTP !== 'function') {
-        setSuccess("Loading OTP service...");
-        try {
-          await window.loadMSG91();
-        } catch (loadErr) {
-          console.error("Failed to load MSG91:", loadErr);
-          setError("OTP service temporarily unavailable. Please try again in a moment.");
-          setOtpLoading(false);
-          return;
+      // Reset load attempts counter for fresh try
+      window.msg91LoadAttempts = 0;
+      
+      // Try to load MSG91 script if not already loaded
+      if (typeof window.initSendOTP !== 'function' && typeof window.sendOtp !== 'function') {
+        console.log("[AdminLogin] MSG91 not loaded, attempting to load...");
+        
+        if (typeof window.loadMSG91 === 'function') {
+          try {
+            await window.loadMSG91();
+            // Wait a bit for methods to become available
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } catch (loadErr) {
+            console.error("[AdminLogin] MSG91 load error:", loadErr);
+          }
         }
       }
       
-      // Check if MSG91 sendOTP method is available
+      // Try sendOtp method first (newer MSG91 API)
       if (typeof window.sendOtp === 'function') {
+        console.log("[AdminLogin] Using sendOtp method");
+        setSuccess("Sending OTP...");
         const response = await window.sendOtp(phoneNumber);
-        console.log("MSG91 sendOtp response:", response);
+        console.log("[AdminLogin] sendOtp response:", response);
+        
         if (response && response.type === 'success') {
-          setReqId(response.message); // Store request ID for verification
+          setReqId(response.message);
           setOtpSent(true);
-          setResendTimer(30); // 30 seconds before resend
+          setResendTimer(30);
           setSuccess("OTP sent successfully! Check your phone.");
         } else if (response && response.type === 'error') {
-          // Only show error if MSG91 explicitly returned an error
           setError(response?.message || "Failed to send OTP. Please try again.");
         } else {
-          // MSG91 widget opened or returned undefined - show OTP input
+          // Widget opened or undefined response - assume success
           setOtpSent(true);
           setResendTimer(30);
           setSuccess("OTP sent! Enter the code you received.");
         }
-      } else if (typeof window.initSendOTP === 'function') {
-        // Fallback: Initialize MSG91 widget
+        setOtpLoading(false);
+        return;
+      }
+      
+      // Try initSendOTP method (widget-based)
+      if (typeof window.initSendOTP === 'function') {
+        console.log("[AdminLogin] Using initSendOTP widget method");
+        setSuccess("Opening OTP verification...");
+        
         const config = {
           widgetId: MSG91_WIDGET_ID,
           tokenAuth: MSG91_AUTH_TOKEN,
           identifier: phoneNumber,
           exposeMethods: true,
           success: (data) => {
-            console.log("MSG91 OTP success:", data);
+            console.log("[AdminLogin] MSG91 OTP verified:", data);
             handleOTPVerificationSuccess(phoneNumber);
           },
           failure: (error) => {
-            console.log("MSG91 OTP failure:", error);
+            console.error("[AdminLogin] MSG91 OTP failed:", error);
             setError("OTP verification failed. Please try again.");
-            setVerifyLoading(false);
+            setOtpLoading(false);
           }
         };
+        
         window.initSendOTP(config);
         
-        // After init, try to send OTP
-        setTimeout(async () => {
-          if (typeof window.sendOtp === 'function') {
-            try {
-              const response = await window.sendOtp(phoneNumber);
-              console.log("MSG91 sendOtp response after init:", response);
-              if (response && response.type === 'success') {
-                setReqId(response.message);
-                setOtpSent(true);
-                setResendTimer(30);
-                setSuccess("OTP sent successfully! Check your phone.");
-              } else if (response && response.type === 'error') {
-                // Only show error if MSG91 explicitly returned an error
-                setError(response?.message || "Failed to send OTP. Please try again.");
-              } else {
-                // MSG91 widget opened or returned undefined - show OTP input
-                setOtpSent(true);
-                setResendTimer(30);
-                setSuccess("OTP sent! Enter the code you received.");
-              }
-            } catch (err) {
-              console.error("Send OTP error:", err);
-              setError("Failed to send OTP. Please try again.");
-            }
-          } else {
-            // If sendOtp still not available, show manual entry
-            setOtpSent(true);
-            setResendTimer(30);
-            setSuccess("OTP sent! Please enter the code you received.");
-          }
+        // The widget will handle the rest
+        setTimeout(() => {
+          setOtpSent(true);
+          setResendTimer(30);
+          setSuccess("OTP sent! Please enter the code.");
           setOtpLoading(false);
         }, 1500);
         return;
-      } else {
-        // Try loading MSG91 one more time
-        if (typeof window.loadMSG91 === 'function') {
-          setSuccess("Initializing OTP service...");
-          try {
-            await window.loadMSG91();
-            // Retry after loading
-            setTimeout(() => sendOTP(), 500);
-            return;
-          } catch (e) {
-            setError("OTP service temporarily unavailable. Please try again later.");
-          }
-        } else {
-          setError("OTP service temporarily unavailable. Please refresh the page and try again.");
-        }
       }
+      
+      // If we get here, neither method is available - show helpful error
+      console.error("[AdminLogin] No MSG91 methods available");
+      setError("OTP service is loading. Please wait a moment and try again.");
+      setOtpLoading(false);
+      
+      // Try to load MSG91 in the background for next attempt
+      if (typeof window.loadMSG91 === 'function') {
+        window.loadMSG91().catch(() => {});
+      }
+      
     } catch (err) {
-      console.error("Send OTP error:", err);
-      setError("Failed to send OTP. Please check your connection and try again.");
-    } finally {
+      console.error("[AdminLogin] OTP error:", err);
+      setError("Connection error. Please check your internet and try again.");
       setOtpLoading(false);
     }
   };

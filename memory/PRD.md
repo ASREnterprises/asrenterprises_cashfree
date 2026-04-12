@@ -16,7 +16,27 @@ Build a comprehensive Solar Business CRM with the following key features:
 - **Support Email**: `support@asrenterprises.in`
 - **Website**: `https://asrenterprises.in`
 
-## Latest Updates (April 11, 2026 - Round 29)
+## Latest Updates (April 12, 2026 - Round 30)
+
+### ✅ SHOP PAGE RESTORED WITH CASHFREE PAYMENTS
+**Testing Report:** `/app/test_reports/iteration_96.json` - 100% Pass Rate
+
+**1. SHOP PAGE RESTORED**
+- Re-added `/shop` route with lazy-loaded ShopPage component
+- Added Shop link to desktop navigation, mobile menu, and footer
+- 9 products: Solar panels, inverters, batteries, wires, accessories, services
+
+**2. CASHFREE PAYMENT IN SHOP**
+- Replaced Razorpay with Cashfree SDK in Shop.js checkout
+- Backend creates Cashfree orders for online payments, returns payment_session_id
+- COD option still available
+
+### Files Updated:
+- `/app/frontend/src/App.js`, `/app/frontend/src/components/Shop.js`, `/app/backend/server.py`
+
+---
+
+## Previous Updates (April 11, 2026 - Round 29)
 
 ### ✅ P0 FIXES: Admin Login, WhatsApp Templates, Payment Link Webhook
 **Testing Report:** `/app/test_reports/iteration_95.json` - 100% Pass Rate

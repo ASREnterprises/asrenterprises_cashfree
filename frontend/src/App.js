@@ -65,6 +65,7 @@ const StaffLogin = lazy(() => import("@/components/StaffLogin").then(m => ({ def
 const StaffPortal = lazy(() => import("@/components/StaffPortal").then(m => ({ default: m.StaffPortal })));
 const BusinessDashboard = lazy(() => import("@/components/BusinessDashboard").then(m => ({ default: m.BusinessDashboard })));
 const StaffTraining = lazy(() => import("@/components/StaffTraining").then(m => ({ default: m.default })));
+const ShopManagement = lazy(() => import("@/components/ShopManagement").then(m => ({ default: m.ShopManagement })));
 
 // Loading Spinner Component for Suspense fallback
 const PageLoader = () => (
@@ -2862,6 +2863,11 @@ export default function App() {
           <Route path="/admin/training" element={
             <ProtectedRoute>
               <StaffTraining staffId="admin" staffName="Admin" staffRole="manager" />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/shop" element={
+            <ProtectedRoute>
+              <ShopManagement />
             </ProtectedRoute>
           } />
           <Route path="/staff/training" element={

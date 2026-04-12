@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog } from "lucide-react";
+import { Users, LogOut, ClipboardList, Image, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -130,6 +130,14 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/social-media",
       color: "from-blue-500 to-indigo-600",
       count: "FB & IG"
+    },
+    {
+      title: "Shop Management",
+      description: "Products, orders & payments",
+      icon: <ShoppingCart className="w-10 h-10" />,
+      link: "/admin/shop",
+      color: "from-teal-500 to-cyan-600",
+      count: "Shop"
     }
   ];
 

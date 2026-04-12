@@ -26,6 +26,7 @@ const ContactPage = lazy(() => import("@/components/Contact").then(m => ({ defau
 const TestimonialsSection = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.TestimonialsSection })));
 const AboutUsPage = lazy(() => import("@/components/AboutUs").then(m => ({ default: m.AboutUsPage })));
 // Shop removed - Book Solar Service with QR payment now available
+const ShopPage = lazy(() => import("@/components/Shop").then(m => ({ default: m.ShopPage })));
 // Admin Panel - Lazy load (heavy components)
 const AIMarketingHub = lazy(() => import("@/components/AIMarketing").then(m => ({ default: m.AIMarketingHub })));
 const AdminLogin = lazy(() => import("@/components/AdminLogin").then(m => ({ default: m.AdminLogin })));
@@ -1436,6 +1437,10 @@ const HomePage = () => {
                 Gallery
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
               </Link>
+              <Link to="/shop" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
+                Shop
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
+              </Link>
               <Link to="/contact" className="text-[#0B3C5D] hover:text-[#F5A623] transition font-medium relative group">
                 Contact Us
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F5A623] transition-all group-hover:w-full"></span>
@@ -1466,6 +1471,7 @@ const HomePage = () => {
               <Link to="/" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Home</Link>
               <Link to="/about" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">About Us</Link>
               <Link to="/gallery" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Gallery</Link>
+              <Link to="/shop" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Shop</Link>
               <Link to="/contact" className="block py-2 text-[#0B3C5D] hover:text-[#F5A623] font-medium">Contact Us</Link>
               {localStorage.getItem("asrAdminAuth") === "true" ? (
                 <Link to="/admin/dashboard" className="block py-2 text-[#00C389] font-bold">Go to Dashboard</Link>
@@ -2329,6 +2335,7 @@ const HomePage = () => {
                 <div><Link to="/" className="hover:text-[#FFD166] transition">Home</Link></div>
                 <div><Link to="/about" className="hover:text-[#FFD166] transition">About Us</Link></div>
                 <div><Link to="/gallery" className="hover:text-[#FFD166] transition">Our Work</Link></div>
+                <div><Link to="/shop" className="hover:text-[#FFD166] transition">Shop</Link></div>
                 <div><Link to="/contact" className="hover:text-[#FFD166] transition">Contact Us</Link></div>
               </div>
             </div>
@@ -2734,6 +2741,7 @@ export default function App() {
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/shop" element={<ShopPage />} />
           <Route path="/chat" element={<WhatsAppChatPage />} />
           <Route path="/become-agent" element={<AgentRegistrationPage />} />
           

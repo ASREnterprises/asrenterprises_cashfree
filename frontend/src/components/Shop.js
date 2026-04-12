@@ -219,98 +219,37 @@ export const ShopPage = () => {
     if (checkoutData.delivery_type === "delivery" && !checkoutData.delivery_address) { alert("Please enter delivery address"); return; }
     setPlacingOrder(true);
     try {
-      const orderData = { ...checkoutData, items: cart, subtotal: cartTotal, delivery_charge: deliveryFee, total: grandTotal };
+      const orderData = { ...checkoutData, items: cart, subtotal: cartTotal, delivery_charge: deliveryFee, total: grandTotal, origin_url: window.location.origin };
       const res = await axios.post(`${API}/shop/orders`, orderData);
       const orderId = res.data.order?.id;
-      const orderNumber = res.data.order_number;
-      const razorpayOrderId = res.data.razorpay_order_id;
-      const keyId = res.data.key_id;
+      const paymentSessionId = res.data.payment_session_id;
       
-      if (checkoutData.payment_method === "razorpay") {
-        if (!razorpayOrderId || !keyId) {
-          alert("Payment configuration error. Please contact support.");
-          setPlacingOrder(false);
-          return;
-        }
-        
+      if (checkoutData.payment_method === "online" && paymentSessionId) {
         try {
-          // Load Razorpay SDK with proper error handling
-          try {
-            await window.loadRazorpay();
-          } catch (loadErr) {
-            console.error("Failed to load Razorpay:", loadErr);
-            alert("Payment gateway could not be loaded. Please check your internet connection and try again.");
-            setPlacingOrder(false);
-            return;
-          }
-          
-          // Check if Razorpay is now available
-          if (!window.Razorpay) {
-            alert("Payment gateway unavailable. Please refresh the page and try again.");
-            setPlacingOrder(false);
-            return;
-          }
-          
-          const options = {
-            key: keyId,
-            amount: Math.round(grandTotal * 100),
-            currency: "INR",
-            name: "ASR Enterprises",
-            description: `Order #${orderNumber}`,
-            image: "/asr_logo_transparent.png",
-            order_id: razorpayOrderId,
-            handler: async function (response) {
-              try {
-                await axios.post(`${API}/shop/orders/${orderId}/payment-verify`, {
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_signature: response.razorpay_signature
-                });
-              } catch (e) {
-                console.error("Payment verification error:", e);
-              }
-              setOrderSuccess({ ...res.data, payment_completed: true });
-              setCart([]);
-              localStorage.removeItem("asr_cart");
-              setShowCheckout(false);
-              setPlacingOrder(false);
-            },
-            modal: {
-              ondismiss: () => {
-                axios.put(`${API}/shop/orders/${orderId}/status`, {
-                  order_status: "cancelled",
-                  payment_status: "failed"
-                }).catch(() => {});
-                setPlacingOrder(false);
-                alert("Payment was cancelled.");
-              },
-              escape: false,
-              backdropclose: false
-            },
-            prefill: {
-              name: checkoutData.customer_name,
-              contact: checkoutData.customer_phone,
-              email: checkoutData.customer_email || ""
-            },
-            theme: { color: "#f59e0b" },
-            retry: { enabled: true, max_count: 3 }
+          // Load Cashfree SDK
+          const loadCashfreeSDK = () => {
+            return new Promise((resolve, reject) => {
+              if (window.Cashfree) { resolve(window.Cashfree); return; }
+              const script = document.createElement('script');
+              script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+              script.async = true;
+              script.onload = () => window.Cashfree ? resolve(window.Cashfree) : reject(new Error('Cashfree SDK failed'));
+              script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+              document.body.appendChild(script);
+            });
           };
           
-          const rzp = new window.Razorpay(options);
-          rzp.on("payment.failed", function(response) {
-            console.error("Payment failed:", response.error);
-            axios.put(`${API}/shop/orders/${orderId}/status`, {
-              order_status: "cancelled",
-              payment_status: "failed"
-            }).catch(() => {});
-            setPlacingOrder(false);
-            alert(`Payment failed: ${response.error?.description || "Unknown error"}. Please try again.`);
+          const Cashfree = await loadCashfreeSDK();
+          const cashfree = Cashfree({ mode: "production" });
+          
+          cashfree.checkout({
+            paymentSessionId: paymentSessionId,
+            redirectTarget: "_self"
           });
-          rzp.open();
-          return;
+          return; // Cashfree will redirect
         } catch (paymentErr) {
           console.error("Payment error:", paymentErr);
-          alert("Payment could not be processed. Please try again.");
+          alert("Payment could not be processed. Please try again or call 9296389097.");
           setPlacingOrder(false);
           return;
         }
@@ -733,8 +672,8 @@ export const ShopPage = () => {
                     <Banknote className="w-6 h-6 text-green-600 mx-auto mb-1" />
                     <p className="text-sm font-semibold text-gray-800">Cash on {checkoutData.delivery_type === "pickup" ? "Store" : "Delivery"}</p>
                   </button>
-                  <button onClick={() => setCheckoutData({...checkoutData, payment_method: "razorpay"})}
-                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.payment_method === "razorpay" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`} data-testid="payment-razorpay">
+                  <button onClick={() => setCheckoutData({...checkoutData, payment_method: "online"})}
+                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.payment_method === "online" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`} data-testid="payment-online">
                     <CreditCard className="w-6 h-6 text-blue-500 mx-auto mb-1" />
                     <p className="text-sm font-semibold text-gray-800">Pay Online</p>
                     <p className="text-[10px] text-gray-500">UPI / Card / Net Banking</p>

@@ -1,0 +1,121 @@
+{
+  "theme": "dark",
+  "archetype": "4 (Swiss & High-Contrast)",
+  "vibe": "Pure Tech Brutalism, Command Center, Cyber-IDE",
+  "colors": {
+    "background": "#0A0A0A",
+    "surface": "#111113",
+    "surface_hover": "#1A1A1D",
+    "border": "#27272A",
+    "primary_accent": "#FBBF24",
+    "secondary_accent": "#3B82F6",
+    "text_primary": "#FAFAFA",
+    "text_secondary": "#A1A1AA",
+    "success": "#22C55E",
+    "danger": "#EF4444"
+  },
+  "typography": {
+    "fonts": {
+      "headings": "IBM Plex Sans, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "code": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-3xl font-light tracking-tight",
+      "h2": "text-xl font-medium tracking-tight",
+      "h3": "text-lg font-medium",
+      "body": "text-sm text-zinc-400 leading-relaxed",
+      "code": "text-[13px] font-mono leading-tight tracking-tight",
+      "overline": "text-[10px] uppercase tracking-widest text-zinc-500 font-bold"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "w-full max-w-md mx-auto h-[100dvh] flex flex-col relative bg-black shadow-2xl overflow-hidden",
+    "screen_padding": "p-4 sm:p-6",
+    "gap_small": "gap-2",
+    "gap_medium": "gap-4",
+    "gap_large": "gap-8"
+  },
+  "components": {
+    "login_screen": {
+      "background_image_url": "https://images.unsplash.com/photo-1761599821310-da0d6356b4f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwxfHxkYXJrJTIwYWJzdHJhY3QlMjB0ZWNobm9sb2d5JTIwY29kZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc2MTA1MTEzfDA&ixlib=rb-4.1.0&q=85",
+      "container": "relative h-full flex flex-col justify-end p-6 pb-12",
+      "overlay": "absolute inset-0 bg-gradient-to-t from-black via-black/80 to-black/20",
+      "card": "relative z-10 w-full bg-[#111113]/90 backdrop-blur-xl border border-white/10 p-6 rounded-none space-y-6"
+    },
+    "input": {
+      "style": "w-full bg-black border border-zinc-800 text-white placeholder-zinc-600 px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors rounded-none"
+    },
+    "button": {
+      "primary": "w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-4 text-sm tracking-wide transition-colors rounded-none flex items-center justify-center gap-2",
+      "secondary": "w-full bg-transparent border border-zinc-800 hover:bg-zinc-900 text-white font-medium py-3 px-4 text-sm transition-colors rounded-none"
+    },
+    "repo_card": {
+      "container": "w-full bg-[#111113] border border-white/5 p-4 rounded-none flex flex-col gap-3 hover:bg-[#1a1a1d] transition-colors cursor-pointer",
+      "title": "text-base font-medium text-white line-clamp-1",
+      "description": "text-sm text-zinc-400 line-clamp-2",
+      "meta_row": "flex items-center gap-4 text-xs text-zinc-500 mt-2",
+      "meta_item": "flex items-center gap-1.5 font-mono"
+    },
+    "file_browser": {
+      "list": "flex flex-col border border-white/5 divide-y divide-white/5 bg-[#111113]",
+      "item": "flex items-center gap-3 px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors",
+      "icon_folder": "text-blue-400 w-5 h-5",
+      "icon_file": "text-zinc-500 w-5 h-5",
+      "text": "text-sm font-mono text-zinc-200 truncate"
+    },
+    "timeline_item": {
+      "container": "relative pl-6 pb-6 border-l border-zinc-800 last:border-0 last:pb-0",
+      "node": "absolute left-[-5px] top-1 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-black",
+      "title": "text-sm text-white font-medium",
+      "meta": "text-xs text-zinc-500 mt-1 font-mono",
+      "sha_badge": "inline-block bg-zinc-900 border border-zinc-800 text-yellow-500 px-1.5 py-0.5 text-[10px] uppercase rounded-sm ml-2"
+    },
+    "bottom_nav": {
+      "container": "flex items-center justify-around h-16 bg-black/95 backdrop-blur-xl border-t border-zinc-800 absolute bottom-0 w-full z-50 pb-safe",
+      "item": "flex flex-col items-center gap-1 p-2",
+      "icon_active": "text-blue-500",
+      "icon_inactive": "text-zinc-500",
+      "text_active": "text-[10px] text-blue-500 font-medium",
+      "text_inactive": "text-[10px] text-zinc-500 font-medium"
+    },
+    "readme_viewer": {
+      "container": "prose prose-invert prose-sm max-w-none p-4 font-sans bg-[#0A0A0A]",
+      "headings": "text-white font-medium border-b border-zinc-800 pb-2",
+      "code_block": "bg-[#111113] border border-zinc-800 rounded-none p-4 font-mono text-[13px] overflow-x-auto",
+      "inline_code": "bg-zinc-900 text-yellow-400 px-1 rounded-sm font-mono text-[13px]"
+    }
+  },
+  "motion_and_interactions": {
+    "hover_states": "All list items and buttons must have explicit hover states (e.g., bg-white/5 or border-blue-500).",
+    "transitions": "Use 'transition-all duration-200 ease-out' universally.",
+    "page_transitions": "Slide up for new views (files, commits), slide left/right for tabs. Use framer-motion AnimatePresence if in React."
+  },
+  "accessibility": {
+    "contrast": "Text must maintain 4.5:1 ratio. Muted text is zinc-400 against black, which passes. Yellow accents ensure high visibility for data.",
+    "focus_rings": "focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 on all interactive elements.",
+    "test_ids": "Mandatory. e.g., data-testid='repo-list-item', data-testid='bottom-nav-search'."
+  },
+  "media": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1761599821310-da0d6356b4f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwxfHxkYXJrJTIwYWJzdHJhY3QlMjB0ZWNobm9sb2d5JTIwY29kZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc2MTA1MTEzfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract green digital pattern with vertical lines - used behind the token login screen.",
+      "usage": "Cover image with black gradient overlay to ensure text readability."
+    },
+    "code_placeholder": {
+      "url": "https://images.unsplash.com/photo-1759661881353-5b9cc55e1cf4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NDh8MHwxfHNlYXJjaHwzfHxkYXJrJTIwYWJzdHJhY3QlMjB0ZWNobm9sb2d5JTIwY29kZSUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc2MTA1MTEzfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Computer screen displaying lines of code.",
+      "usage": "Use as a placeholder header image in the user profile or empty states."
+    }
+  },
+  "instructions_to_main_agent": [
+    "TECH STACK OVERRIDE: The problem stated 'React Native Expo' but the system environment enforces 'React js, Tailwind, shadcn/ui'. Build a React Web application that SIMULATES a mobile application interface.",
+    "Wrap the main application in a mobile-simulator container: <div className=\"mx-auto w-full max-w-md h-[100dvh] bg-black relative shadow-2xl overflow-hidden flex flex-col\">",
+    "Use Phosphor Icons (yarn add @phosphor-icons/react). They fit the developer aesthetic perfectly. Use weight='duotone' for active tabs, 'regular' for files.",
+    "Do NOT use generic card components with rounded corners and soft shadows. Use purely flat, sharp-edged (rounded-none or max rounded-sm) borders. Tech Brutalism.",
+    "Ensure all routing changes (Tabs vs Stack pushes) are smooth. A mobile app feels fast because it doesn't do full page reloads. Use standard state-based views.",
+    "File Viewer MUST use `JetBrains Mono` or similar monospace font. Make it dense.",
+    "Commit Histories should use a vertical timeline layout (border-l).",
+    "Ensure every interactive element has a `data-testid`."
+  ]
+}

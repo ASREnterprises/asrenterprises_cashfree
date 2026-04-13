@@ -53,6 +53,8 @@ def parse_token(authorization: str) -> str:
 
 @api_router.post("/auth/login")
 async def login(req: LoginRequest):
+    if not req.token or not req.token.strip():
+        raise HTTPException(status_code=422, detail="Token is required")
     async with httpx.AsyncClient(timeout=15.0) as http:
         r = await http.get(f"{GITHUB_API}/user", headers=gh_headers(req.token))
         if r.status_code != 200:

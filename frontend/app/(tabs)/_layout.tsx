@@ -1,8 +1,22 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
 import { Octicons } from '@expo/vector-icons';
 import { Colors } from '@/src/constants/theme';
+import { useAuth } from '@/src/context/AuthContext';
 
 export default function TabLayout() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/');
+    }
+  }, [user, isLoading]);
+
+  if (isLoading || !user) return null;
+
   return (
     <Tabs
       screenOptions={{
@@ -24,24 +38,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => <Octicons name="home" size={22} color={color} />,
-          tabBarTestID: 'tab-home',
+          tabBarIcon: ({ color }) => <Octicons name="home" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color, size }) => <Octicons name="search" size={22} color={color} />,
-          tabBarTestID: 'tab-search',
+          tabBarIcon: ({ color }) => <Octicons name="search" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Octicons name="person" size={22} color={color} />,
-          tabBarTestID: 'tab-profile',
+          tabBarIcon: ({ color }) => <Octicons name="person" size={22} color={color} />,
         }}
       />
     </Tabs>

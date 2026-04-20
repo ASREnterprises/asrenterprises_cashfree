@@ -26,12 +26,11 @@ const MSG91_AUTH_TOKEN = process.env.REACT_APP_MSG91_TOKEN_AUTH || "";
  */
 function routeByRole(staffData, token, navigate, setError) {
   const role = (staffData?.role || "").toLowerCase();
+  const dept = (staffData?.department || "").toLowerCase();
   const staffId = (staffData?.staff_id || "").toUpperCase();
   const isOwner = staffData?.is_owner === true || staffData?.is_super_admin === true;
 
-  // Only the Super Admin (ASR1001 / ABHIJEET) is restricted to the Admin Login portal.
-  // Everyone else — including Admin Managers like Anamika (ASR1002, role=manager,
-  // department=admin) — logs in via the Staff Portal.
+  // Only the Super Admin (ASR1001 / ABHIJEET) must use the Admin Login portal.
   if (role === "super_admin" || isOwner || staffId === "ASR1001") {
     setError("This is the Super Admin account. Please use the Admin Login page at /admin/login.");
     return false;
@@ -45,7 +44,24 @@ function routeByRole(staffData, token, navigate, setError) {
     return false;
   }
 
-  // Staff / Manager / Admin-department manager → Staff Portal
+  // Admin-department managers (e.g., Anamika ASR1002) get a filtered Admin
+  // Dashboard showing only: Leads Management, Customer Portal, Social Media,
+  // Testimonials, Festival Posts, WhatsApp API, Solar Advisor (filter lives
+  // in AdminDashboard.js — ALLOWED_FOR_MANAGER).
+  if (role === "manager" && dept === "admin") {
+    localStorage.setItem("asrAdminAuth", "true");
+    localStorage.setItem("asrAdminEmail", staffData?.email || "");
+    localStorage.setItem("asrAdminRole", role);
+    localStorage.setItem("asrAdminName", staffData?.name || "");
+    localStorage.setItem("asrAdminDepartment", dept);
+    localStorage.setItem("asrAdminStaffId", staffId);
+    localStorage.setItem("asrAdminLastActivity", Date.now().toString());
+    if (token) localStorage.setItem("asrStaffToken", token);
+    navigate("/admin/dashboard");
+    return true;
+  }
+
+  // Regular staff (role=staff, or role=manager with non-admin dept) → Staff Portal
   localStorage.setItem("asrStaffAuth", "true");
   localStorage.setItem("asrStaffData", JSON.stringify(staffData));
   if (token) localStorage.setItem("asrStaffToken", token);

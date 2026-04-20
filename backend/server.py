@@ -147,7 +147,7 @@ MAX_FAILED_LOGINS = 5      # Max failed logins before lockout
 # This account cannot be deleted, modified, or bypassed.
 # ============================================================
 OWNER_EMAIL    = "asrenterprisespatna@gmail.com"
-OWNER_MOBILE   = "9296389097"
+OWNER_MOBILE   = "8877896889"
 OWNER_STAFF_ID = "ASR1001"
 OWNER_NAME     = "ABHIJEET KUMAR"
 OWNER_PASSWORD = "Abhi@9745"   # fallback if DB has no hash

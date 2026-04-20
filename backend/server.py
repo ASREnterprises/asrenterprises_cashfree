@@ -909,6 +909,64 @@ api_router = APIRouter(prefix="/api")
 # LLM Configuration
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '').strip()
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o-mini').strip() or 'gpt-4o-mini'
+
+
+def _openai_configured() -> bool:
+    """Fast check for usable OpenAI credentials."""
+    return bool(OPENAI_API_KEY and OPENAI_API_KEY not in ("your-key", "sk-xxx"))
+
+
+async def _openai_chat_complete(
+    system_prompt: str,
+    user_message: str,
+    history: Optional[list] = None,
+    max_tokens: int = 500,
+    temperature: float = 0.7,
+) -> Optional[str]:
+    """Minimal direct OpenAI Chat Completions call.
+    
+    Used by the Solar Expert (homepage) and Staff Training Assistant so new OpenAI
+    models can be swapped in via the OPENAI_MODEL env var without editing code.
+    Returns the assistant text or None on any error (caller must fall back to
+    Gemini or pre-canned response).
+    """
+    if not _openai_configured():
+        return None
+    import httpx as _httpx
+    msgs: list = [{"role": "system", "content": system_prompt}]
+    if history:
+        for h in history[-12:]:  # last 6 turns only to cap tokens
+            role = h.get("role") if h.get("role") in ("user", "assistant") else "user"
+            content = (h.get("content") or "").strip()
+            if content:
+                msgs.append({"role": role, "content": content[:2000]})
+    msgs.append({"role": "user", "content": user_message[:4000]})
+    try:
+        async with _httpx.AsyncClient(timeout=25.0) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": OPENAI_MODEL,
+                    "messages": msgs,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+            )
+        if resp.status_code == 200:
+            data = resp.json()
+            txt = (data.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
+            return txt or None
+        logger.warning(f"[OpenAI] HTTP {resp.status_code}: {resp.text[:300]}")
+        return None
+    except Exception as e:
+        logger.warning(f"[OpenAI] call failed: {e}")
+        return None
 
 # ASR Solar Expert System Prompt
 ASR_SOLAR_EXPERT_PROMPT = """You are the "ASR Solar Expert," the official AI assistant for ASR Enterprises, Patna. Your role is to convert website visitors into leads by explaining solar benefits and government subsidies in Bihar.
@@ -1966,7 +2024,7 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
         # Use Emergent LLM key with Gemini model as primary (better quota management)
         # Fall back to user's Gemini key if available
         api_key = EMERGENT_LLM_KEY or GEMINI_API_KEY
-        if not api_key:
+        if not api_key and not _openai_configured():
             raise HTTPException(status_code=500, detail="AI service not configured")
         
         # Get or create chat session
@@ -2149,16 +2207,42 @@ IMPORTANT: The customer needs human assistance. In your response:
 5. Do NOT try to handle complex pricing or technical details yourself
 """
         
-        # Create Gemini chat instance using Emergent key
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=session_id,
-            system_message=ASR_SOLAR_EXPERT_PROMPT + handover_instruction
-        ).with_model("gemini", "gemini-2.5-flash")
-        
-        # Send message with context
+        # Try OpenAI first (user's configured preferred provider) then fall back
+        # to Gemini via emergentintegrations. This lets the same Solar Expert
+        # respond via gpt-4o-mini when OPENAI_API_KEY is set.
+        response = None
         context_message = f"Previous conversation:\n{history_text}\n\nCustomer's latest message: {message}"
-        response = await chat.send_message(UserMessage(text=context_message))
+        
+        if _openai_configured():
+            try:
+                oai_history = [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in session["messages"][:-1]  # skip current user msg (we pass separately)
+                ]
+                response = await _openai_chat_complete(
+                    system_prompt=ASR_SOLAR_EXPERT_PROMPT + handover_instruction,
+                    user_message=message,
+                    history=oai_history,
+                    max_tokens=400,
+                    temperature=0.7,
+                )
+            except Exception as _oe:
+                logger.warning(f"[SolarExpert] OpenAI failed, will fall back: {_oe}")
+                response = None
+        
+        if not response:
+            # Fallback — route through Emergent's universal LLM key so the
+            # bot stays responsive even if the user's OpenAI quota is drained.
+            # Prefer GPT-4o-mini (same model the user picked), drop to Gemini
+            # as last-resort if Emergent key is also missing.
+            fallback_model = ("openai", "gpt-4o-mini") if EMERGENT_LLM_KEY else ("gemini", "gemini-2.5-flash")
+            fallback_key = EMERGENT_LLM_KEY or api_key
+            chat = LlmChat(
+                api_key=fallback_key,
+                session_id=session_id,
+                system_message=ASR_SOLAR_EXPERT_PROMPT + handover_instruction
+            ).with_model(*fallback_model)
+            response = await chat.send_message(UserMessage(text=context_message))
         
         # Add assistant response to history
         session["messages"].append({
@@ -2218,7 +2302,7 @@ async def admin_ai_chat(request: Request, data: Dict[str, Any]):
         
         # Use Emergent LLM key with Gemini model
         api_key = EMERGENT_LLM_KEY or GEMINI_API_KEY
-        if not api_key:
+        if not api_key and not _openai_configured():
             raise HTTPException(status_code=500, detail="AI service not configured")
         
         # Create admin chat instance
@@ -2375,7 +2459,7 @@ async def ai_training_assistant(data: Dict[str, Any]):
         
         # Use Emergent LLM key with Gemini model
         api_key = EMERGENT_LLM_KEY or GEMINI_API_KEY
-        if not api_key:
+        if not api_key and not _openai_configured():
             raise HTTPException(status_code=500, detail="AI service not configured")
         
         # Enhance prompt based on role
@@ -2397,13 +2481,32 @@ async def ai_training_assistant(data: Dict[str, Any]):
         
         enhanced_prompt = ASR_TRAINING_ASSISTANT_PROMPT + role_context.get(staff_role, "") + topic_context.get(context, "")
         
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"training_{session_id}",
-            system_message=enhanced_prompt
-        ).with_model("gemini", "gemini-2.5-flash")
+        # Prefer OpenAI when configured so new staff get the richer gpt-4o-mini
+        # training dialogue. Fall back to Gemini via LlmChat if OpenAI is
+        # unavailable or returns empty.
+        response = None
+        if _openai_configured():
+            try:
+                response = await _openai_chat_complete(
+                    system_prompt=enhanced_prompt,
+                    user_message=message,
+                    history=None,
+                    max_tokens=600,
+                    temperature=0.6,
+                )
+            except Exception as _oe:
+                logger.warning(f"[TrainingAI] OpenAI failed, will fall back: {_oe}")
+                response = None
         
-        response = await chat.send_message(UserMessage(text=message))
+        if not response:
+            fallback_model = ("openai", "gpt-4o-mini") if EMERGENT_LLM_KEY else ("gemini", "gemini-2.5-flash")
+            fallback_key = EMERGENT_LLM_KEY or api_key
+            chat = LlmChat(
+                api_key=fallback_key,
+                session_id=f"training_{session_id}",
+                system_message=enhanced_prompt
+            ).with_model(*fallback_model)
+            response = await chat.send_message(UserMessage(text=message))
         
         # Log training interaction for analytics
         await db.training_logs.insert_one({

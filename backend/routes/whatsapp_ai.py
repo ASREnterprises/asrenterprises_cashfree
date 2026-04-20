@@ -269,7 +269,26 @@ async def generate_ai_reply(phone: str, message: str, db) -> Optional[str]:
         except Exception as exc:
             logger.warning(f"[WhatsApp AI] OpenAI error: {exc}")
 
-    # 5. Try Gemini
+    # 5. Try Emergent LLM Key (routes to GPT-4o-mini via Emergent proxy)
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    if emergent_key:
+        try:
+            from emergentintegrations.llm.chat import LlmChat, UserMessage
+            chat = LlmChat(
+                api_key=emergent_key,
+                session_id=f"wa_{phone}",
+                system_message=WHATSAPP_AI_SYSTEM_PROMPT,
+            ).with_model("openai", "gpt-4o-mini")
+            # Build conversation context from last user turn (LlmChat is session-based)
+            last_user_msg = message
+            reply = await chat.send_message(UserMessage(text=last_user_msg))
+            if reply and isinstance(reply, str) and reply.strip():
+                logger.info(f"[WhatsApp AI] Emergent/gpt-4o-mini reply OK for {phone}")
+                return reply.strip()
+        except Exception as exc:
+            logger.warning(f"[WhatsApp AI] Emergent LLM error: {exc}")
+
+    # 6. Try Gemini (last fallback)
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if gemini_key and gemini_key not in ("your-key", "AIzaxxx"):
         try:
@@ -291,11 +310,13 @@ def ai_provider_configured() -> Dict:
     """Return which AI providers are configured."""
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    emergent_key = os.environ.get("EMERGENT_LLM_KEY", "").strip()
+    openai_ok = bool(openai_key and openai_key not in ("your-key", "sk-xxx"))
+    gemini_ok = bool(gemini_key and gemini_key not in ("your-key", "AIzaxxx"))
+    emergent_ok = bool(emergent_key)
     return {
-        "openai": bool(openai_key and openai_key not in ("your-key", "sk-xxx")),
-        "gemini": bool(gemini_key and gemini_key not in ("your-key", "AIzaxxx")),
-        "any_configured": bool(
-            (openai_key and openai_key not in ("your-key", "sk-xxx"))
-            or (gemini_key and gemini_key not in ("your-key", "AIzaxxx"))
-        ),
+        "openai": openai_ok,
+        "gemini": gemini_ok,
+        "emergent_llm": emergent_ok,
+        "any_configured": openai_ok or gemini_ok or emergent_ok,
     }

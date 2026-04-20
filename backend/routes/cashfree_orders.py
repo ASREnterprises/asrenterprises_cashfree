@@ -42,7 +42,21 @@ CASHFREE_API_VERSION = "2023-08-01"
 # Cashfree call if these are missing, surfacing a clear configuration error.
 CASHFREE_PRODUCTION_APP_ID = os.environ.get("CASHFREE_API_KEY", "")
 CASHFREE_PRODUCTION_SECRET_KEY = os.environ.get("CASHFREE_SECRET_KEY", "")
-CASHFREE_IS_SANDBOX = os.environ.get("CASHFREE_IS_SANDBOX", "false").lower() == "true"
+
+# Smart environment detection: the secret key encodes the environment in its
+# prefix (`cfsk_ma_prod_...` for LIVE, `cfsk_ma_test_...` for SANDBOX). If the
+# operator forgets to set CASHFREE_IS_SANDBOX=false on deploy but has pasted in
+# real production keys, we'd call the SANDBOX API with PROD keys and get
+# "authentication Failed". The key-prefix check is the authoritative signal
+# and overrides a stale/missing env flag so the server self-heals.
+_sandbox_env = os.environ.get("CASHFREE_IS_SANDBOX", "false").lower() == "true"
+_secret_lower = CASHFREE_PRODUCTION_SECRET_KEY.lower()
+if _secret_lower.startswith("cfsk_ma_prod_"):
+    CASHFREE_IS_SANDBOX = False  # production key → force LIVE API regardless of env flag
+elif _secret_lower.startswith("cfsk_ma_test_"):
+    CASHFREE_IS_SANDBOX = True   # test key → force SANDBOX API
+else:
+    CASHFREE_IS_SANDBOX = _sandbox_env  # unknown prefix → honour env flag
 
 # Cashfree API URLs
 CASHFREE_PRODUCTION_API_URL = "https://api.cashfree.com/pg"

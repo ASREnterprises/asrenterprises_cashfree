@@ -4445,8 +4445,16 @@ async def register_staff(data: Dict[str, Any]):
 
 @api_router.post("/staff/login")
 async def staff_login(request: Request, data: Dict[str, Any]):
-    """Staff login with password - Step 1 of 2FA: verify credentials, require mobile OTP"""
+    """Staff login with Staff ID + Password (single-step, no 2FA).
+    
+    Per business policy:
+      • Only Super Admin ABHIJEET (ASR1001) uses the Admin login portal.
+      • All other staff (including Anamika ASR1002) use this Staff login portal.
+      • Email+2FA requirement has been removed so staff can log in with
+        just Staff ID + Password.
+    """
     import hashlib
+    import secrets
     
     client_ip = get_client_ip(request)
     if not check_login_rate_limit(client_ip):
@@ -4454,6 +4462,8 @@ async def staff_login(request: Request, data: Dict[str, Any]):
     
     staff_id = data.get("staff_id", "").strip().upper()
     password = data.get("password", "")
+    if not staff_id or not password:
+        raise HTTPException(status_code=400, detail="Staff ID and Password are required")
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     
     # Find staff with hashed password
@@ -4472,35 +4482,30 @@ async def staff_login(request: Request, data: Dict[str, Any]):
     if not staff:
         raise HTTPException(status_code=401, detail="Invalid Staff ID or Password")
     
-    # Block admin/super_admin accounts — they must use Admin Login
-    if (staff.get("role") or "").lower() in {"super_admin", "admin"}:
-        raise HTTPException(status_code=403, detail="This is an Admin account. Please log in at the Admin Login page.")
+    # Block Super Admin / Admin accounts — they must use Admin Login
+    if (staff.get("role") or "").lower() in {"super_admin", "admin"} or staff.get("is_owner") is True or staff.get("is_super_admin") is True:
+        raise HTTPException(
+            status_code=403,
+            detail="This is a Super Admin account. Please log in at the Admin Login page."
+        )
     
-    # Get staff phone for 2FA
-    phone = staff.get("phone", "")
-    mobile_last4 = phone[-4:] if phone else "****"
+    reset_failed_login(client_ip)
+    logger.info(f"Successful staff login for {staff_id} from IP: {client_ip}")
     
-    # Store staff_id in pending 2FA sessions
-    await db.pending_2fa_sessions.update_one(
-        {"staff_id": staff_id},
-        {"$set": {
-            "staff_id": staff_id,
-            "staff": staff,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=10)).isoformat()
-        }},
-        upsert=True
-    )
-    
-    logger.info(f"Staff 2FA initiated for {staff_id} from IP: {client_ip}")
+    # Issue a session token for the staff portal
+    token = secrets.token_urlsafe(32)
     
     return {
         "success": True,
-        "require_otp": True,
-        "phone": phone,
-        "mobile_last4": mobile_last4,
-        "message": f"Password verified. OTP will be sent to mobile ending in ****{mobile_last4}",
-        "staff_id": staff_id
+        "require_otp": False,
+        "token": token,
+        "staff": staff,
+        "role": staff.get("role") or "staff",
+        "staff_id": staff.get("staff_id"),
+        "name": staff.get("name"),
+        "email": staff.get("email"),
+        "department": staff.get("department", ""),
+        "message": "Login successful"
     }
 
 @api_router.post("/staff/login-email")
@@ -13113,6 +13118,80 @@ async def update_customer_portal_settings(request: Request, data: Dict[str, Any]
     data.pop("_id", None)
     await db.customer_portal_settings.update_one({}, {"$set": data}, upsert=True)
     return {"success": True}
+
+@api_router.post("/customer/register")
+async def customer_register(request: Request, data: Dict[str, Any]):
+    """Public self-service customer registration.
+    
+    Creates a new customer record so the customer can immediately log in
+    via OTP. Minimal required fields: name + mobile. Additional fields
+    (district, address, installation/system details) are optional and
+    can be filled in later by the customer or admin.
+    """
+    name = sanitize_input((data.get("name") or "").strip())
+    mobile = (data.get("mobile") or "").replace(" ", "").replace("+", "").replace("-", "")
+    mobile_clean = mobile[-10:] if len(mobile) >= 10 else mobile
+    if not name or len(name) < 2:
+        raise HTTPException(status_code=400, detail="Please enter your full name")
+    if len(mobile_clean) != 10 or not mobile_clean.isdigit() or not PHONE_PATTERN.match(mobile_clean):
+        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
+    
+    # Block duplicate registrations — the customer should log in instead
+    existing = await db.customers.find_one({"mobile": mobile_clean}, {"_id": 0, "name": 1})
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail="This mobile is already registered. Please login with OTP instead."
+        )
+    
+    now_iso = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "mobile": mobile_clean,
+        "name": name,
+        "email": sanitize_input((data.get("email") or "").strip().lower()),
+        "address": sanitize_input((data.get("address") or "").strip()),
+        "district": sanitize_input((data.get("district") or "").strip()),
+        "installation_date": "",
+        "application_id": "",
+        "application_status": "pending",
+        "subsidy_amount": 0.0,
+        "subsidy_status": "pending",
+        "subsidy_credited_date": "",
+        "system_capacity_kw": 0.0,
+        "solar_brand": "",
+        "inverter_brand": "",
+        "panels_count": 0,
+        "panel_warranty_years": 25,
+        "inverter_warranty_years": 5,
+        "installation_warranty_years": 1,
+        "total_cost": 0.0,
+        "amount_paid": 0.0,
+        "payment_status": "pending",
+        "net_metering_status": "not_applied",
+        "notes": "Self-registered via Customer Portal",
+        "service_requests": [],
+        "self_registered": True,
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.customers.insert_one(doc)
+    logger.info(f"✅ New customer self-registered: {name} ({_mask_phone(mobile_clean)})")
+    
+    # Trigger OTP so UX flows straight into verification after registration
+    try:
+        await _send_otp_impl({"mobile": mobile_clean})
+    except Exception as _e:
+        logger.warning(f"OTP send after customer register failed (non-blocking): {_e}")
+    
+    return {
+        "success": True,
+        "message": "Registered successfully. An OTP has been sent to your mobile.",
+        "customer_id": doc["id"],
+        "mobile": mobile_clean,
+        "name": name,
+    }
+
 
 @api_router.post("/customer/send-otp")
 async def customer_send_otp(request: Request, data: Dict[str, Any]):

@@ -276,7 +276,7 @@ export const StaffLogin = () => {
     setResendTimer(0);
   };
 
-  // Password Login - Step 1 of 2FA (kept for backwards compatibility)
+  // Staff Password Login — single-step (2FA removed per latest policy)
   const handlePasswordLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -288,24 +288,8 @@ export const StaffLogin = () => {
         password: password
       });
 
-      if (res.data.require_otp) {
-        // 2FA - Password verified, now need OTP
-        setStep("otp_verify");
-        setMobileNumber(res.data.phone || "");
-        setSuccess(res.data.message || `Password verified! OTP sent to mobile ending in ****${res.data.mobile_last4}`);
-        
-        // Auto-trigger OTP send
-        if (res.data.phone) {
-          let phoneNumber = res.data.phone.replace(/\D/g, '');
-          if (phoneNumber.length === 10) {
-            phoneNumber = '91' + phoneNumber;
-          }
-          setTimeout(() => {
-            sendStaff2FAOTP(phoneNumber);
-          }, 500);
-        }
-      } else if (res.data.success) {
-        // Direct login (backwards compatibility)
+      if (res.data.success) {
+        // No OTP step — route directly by role
         routeByRole(res.data.staff || {}, res.data.token || "", navigate, setError);
       }
     } catch (err) {

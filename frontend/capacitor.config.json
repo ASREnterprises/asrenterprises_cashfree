@@ -1,0 +1,44 @@
+{
+  "appId": "in.asrenterprises.app",
+  "appName": "ASR Enterprises",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "*.asrenterprises.in",
+      "asrenterprises.in",
+      "*.emergentagent.com",
+      "*.cashfree.com",
+      "sandbox.cashfree.com",
+      "api.cashfree.com",
+      "payments.cashfree.com",
+      "*.razorpay.com",
+      "*.msg91.com",
+      "control.msg91.com",
+      "*.whatsapp.com",
+      "wa.me",
+      "*.google.com",
+      "www.gstatic.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": true,
+      "backgroundColor": "#FFFFFF",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#0B3C5D"
+    }
+  }
+}

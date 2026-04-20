@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^7",
+    "@capacitor/app": "^7",
+    "@capacitor/browser": "^7",
+    "@capacitor/cli": "^7",
+    "@capacitor/core": "^7",
+    "@capacitor/haptics": "^7",
+    "@capacitor/splash-screen": "^7",
+    "@capacitor/status-bar": "^7",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-alert-dialog": "^1.1.11",
@@ -61,7 +69,8 @@
   },
   "scripts": {
     "start": "HOST=0.0.0.0 PORT=${PORT:-5000} BROWSER=none craco start",
-    "build": "CI=false REACT_APP_BACKEND_URL= craco build",
+    "build": "CI=false craco build",
+    "build:android": "CI=false craco build && npx cap sync android",
     "test": "craco test"
   },
   "browserslist": {

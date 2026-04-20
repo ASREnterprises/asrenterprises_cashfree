@@ -1,0 +1,112 @@
+{
+  "identity": {
+    "name": "Solar Corporate Premium – Emergent",
+    "tone": "Trustworthy, Technological, Sustainable, Premium",
+    "archetype": "Jewel & Luxury mixed with Performance Pro"
+  },
+  "typography": {
+    "headings": {
+      "family": "Poppins, Montserrat, sans-serif",
+      "weight": "700",
+      "style": "Bold",
+      "usage": "All section titles, hero headings, card titles"
+    },
+    "body": {
+      "family": "Inter, sans-serif",
+      "weight": "400",
+      "style": "Regular",
+      "usage": "Paragraphs, lists, data tables"
+    }
+  },
+  "colors": {
+    "primary": {
+      "hex": "#0B3C5D",
+      "name": "Deep Solar Blue",
+      "usage": "Headings, Primary Buttons Border, Footer Background"
+    },
+    "secondary": {
+      "hex": "#F5A623",
+      "gradient": "linear-gradient(135deg, #F5A623 0%, #FFD166 100%)",
+      "name": "Solar Gold",
+      "usage": "Highlight text, Icons, Secondary Buttons, Hover states"
+    },
+    "cta": {
+      "hex": "#00C389",
+      "name": "Eco Green",
+      "usage": "Primary Call-to-Action Buttons, Success States, Price Savings"
+    },
+    "background": {
+      "dark": "#071A2E",
+      "light": "#FFFFFF",
+      "glass_light": "rgba(255, 255, 255, 0.75)",
+      "glass_dark": "rgba(7, 26, 46, 0.85)"
+    },
+    "text": {
+      "primary": "#0B3C5D",
+      "secondary": "#475569",
+      "light": "#F8FAFC",
+      "muted": "#94A3B8"
+    }
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "light": "bg-white/75 backdrop-blur-md border border-white/20 shadow-lg",
+      "dark": "bg-[#071A2E]/80 backdrop-blur-md border border-white/10 shadow-xl",
+      "card": "backdrop-filter backdrop-blur-lg bg-opacity-30 border-t border-l border-white/30 shadow-2xl rounded-2xl"
+    },
+    "shadows": {
+      "soft": "0 20px 40px -15px rgba(2, 6, 23, 0.12)",
+      "glow_green": "0 0 20px rgba(0, 195, 137, 0.4)",
+      "glow_gold": "0 0 25px rgba(245, 166, 35, 0.3)"
+    },
+    "borders": {
+      "radius": "rounded-[16px]",
+      "light": "border-slate-200",
+      "glass": "border-white/20"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary_cta": "bg-[#00C389] text-white hover:bg-[#00A372] shadow-lg hover:shadow-green-500/30 transition-all duration-300 rounded-full px-8 py-3 font-bold tracking-wide",
+      "secondary_gold": "bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] hover:shadow-amber-500/30 shadow-md rounded-full px-8 py-3 font-bold transition-transform hover:-translate-y-0.5",
+      "outline": "border-2 border-[#0B3C5D] text-[#0B3C5D] hover:bg-[#0B3C5D] hover:text-white rounded-full px-8 py-3 font-semibold transition-colors"
+    },
+    "cards": {
+      "feature": "bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 p-8 hover:-translate-y-1 group",
+      "glass_float": "bg-white/80 backdrop-blur-xl border border-white/40 shadow-2xl rounded-3xl p-8"
+    },
+    "inputs": {
+      "style": "bg-white/50 border border-slate-200 focus:border-[#0B3C5D] focus:ring-2 focus:ring-[#0B3C5D]/20 rounded-xl px-4 py-3 outline-none transition-all backdrop-blur-sm"
+    }
+  },
+  "layout_strategies": {
+    "hero_section": {
+      "bg": "bg-[#071A2E]",
+      "overlay": "radial-gradient(circle at 50% 50%, rgba(11, 60, 93, 0.4) 0%, rgba(7, 26, 46, 0.8) 100%)",
+      "text_alignment": "center",
+      "features": "Large Gold Gradient Text, Glowing Green CTA, Background Image with Dark Overlay"
+    },
+    "section_alternation": {
+      "pattern": "Dark Hero -> Light Features -> White/Glass Calculator -> Light Comparison -> Dark Footer",
+      "spacing": "py-24 or py-32"
+    }
+  },
+  "media": {
+    "image_urls": {
+      "hero_bg": "https://images.unsplash.com/photo-1771479755134-9c1e3143c110?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzV8MHwxfHNlYXJjaHwxfHxzb2xhciUyMHBhbmVscyUyMHJvb2Z0b3AlMjBpbnN0YWxsYXRpb24lMjBtb2Rlcm4lMjBob21lfGVufDB8fHx8MTc3MjQ3NzI5Mnww&ixlib=rb-4.1.0&q=85",
+      "happy_family": "https://images.unsplash.com/photo-1667184087086-ac955d1f300d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHw0fHxpbmRpYW4lMjBmYW1pbHklMjBoYXBweSUyMGhvbWUlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NzI0NzczMDV8MA&ixlib=rb-4.1.0&q=85",
+      "solar_workers": "https://images.unsplash.com/photo-1690622013290-45168b079709?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzJ8MHwxfHNlYXJjaHwzfHxzb2xhciUyMGVuZ2luZWVyJTIwd29ya2VyJTIwc2FmZXR5JTIwaGVsbWV0JTIwaW5zdGFsbGF0aW9ufGVufDB8fHx8MTc3MjQ3NzMwNnww&ixlib=rb-4.1.0&q=85",
+      "inverter_product": "https://images.unsplash.com/photo-1612323581494-9752a2bf4924?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBzb2xhciUyMGludmVydGVyJTIwd2FsbCUyMG1vdW50JTIwd2hpdGUlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc3MjQ3NzMwNnww&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "universal_guidelines": [
+    "Use 2-3x more spacing than typical designs (p-8, p-12).",
+    "Every interaction needs micro-animations (hover lift, scale).",
+    "Dark colors look good when used independently without gradients.",
+    "Do NOT use complete transparent background in header/overlays with content under it.",
+    "All interactive elements MUST include data-testid attribute.",
+    "Use sonner for toasts.",
+    "Components MUST use named exports."
+  ],
+  "instructions_to_main_agent": "Apply this design system to all pages. Prioritize the Homepage overhaul first. Use the Glassmorphism effect on the Calculator and Feature cards. Ensure the 'Get Quote' and 'Book Survey' buttons use the Green CTA style with Glow."
+}

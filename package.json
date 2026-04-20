@@ -1,0 +1,8 @@
+{
+  "name": "asr-enterprises-root",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm install --no-audit --no-fund && npm run build",
+    "start": "bash -c 'export MONGO_URL=\"${MONGO_URL:-mongodb://127.0.0.1:27017}\" DB_NAME=\"${DB_NAME:-asr_dev}\" USE_IN_MEMORY_MONGO=\"${USE_IN_MEMORY_MONGO:-true}\" CORS_ORIGINS=\"${CORS_ORIGINS:-*}\" PYTHONPATH=backend; python -m uvicorn server:app --app-dir backend --host 0.0.0.0 --port \"${PORT:-5000}\"'"
+  }
+}

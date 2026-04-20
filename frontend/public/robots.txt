@@ -1,0 +1,49 @@
+# robots.txt for ASR Enterprises - Solar Solutions
+# https://www.asrenterprises.in
+
+# Allow all major social-media and SEO crawlers explicitly
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: *
+Allow: /
+
+# Allow important public pages
+Allow: /about
+Allow: /gallery
+Allow: /contact
+Allow: /inquiry
+Allow: /shop
+Allow: /advisor
+Allow: /patna/*
+Allow: /solar/*
+
+# Disallow admin and staff areas
+Disallow: /admin/*
+Disallow: /staff/*
+Disallow: /crm/*
+Disallow: /api/*
+
+# Disallow payment status pages from indexing
+Disallow: /payment/*
+
+# Sitemap location
+Sitemap: https://www.asrenterprises.in/sitemap.xml
+
+# Crawl-delay for general bots
+Crawl-delay: 1

@@ -281,36 +281,65 @@ async def send_payment_whatsapp(phone: str, customer_name: str, amount: float,
         # PAYMENT SUCCESS - Use approved template
         if msg_type == "payment_success":
             # Template: payment_sucess_confirmation (note: typo in original template name)
-            # 6 body parameters matching user's approved template
-            
-            template_payload = {
-                "messaging_product": "whatsapp",
-                "to": cleaned_phone,
-                "type": "template",
-                "template": {
-                    "name": "payment_sucess_confirmation",  # User's approved template name
-                    "language": {"code": "en"},
-                    "components": [
-                        {
-                            "type": "body",
-                            "parameters": [
-                                {"type": "text", "text": "Confirmed"},  # {{1}} Order Status
-                                {"type": "text", "text": (customer_name[:60] if customer_name else "Customer")},  # {{2}} customer_name
-                                {"type": "text", "text": (order_id or "N/A")},  # {{3}} order_id
-                                {"type": "text", "text": f"{amount:,.0f}"},  # {{4}} amount
-                                {"type": "text", "text": (purpose[:100] if purpose else "Solar Service Payment")},  # {{5}} payment_purpose
-                                {"type": "text", "text": payment_date}  # {{6}} payment_date
-                            ]
-                        }
-                    ]
+            # 6 body parameters matching user's approved template.
+            # Language fallback: Meta often rejects "en" when the template was
+            # approved as "en_US" (or vice-versa). Try the configured code first,
+            # then auto-retry with the alternate code on Meta error #132001 /
+            # 131000 ("Template name does not exist in the translation").
+            configured_lang = os.environ.get("WHATSAPP_TEMPLATE_LANG", "en").strip() or "en"
+            lang_candidates = [configured_lang]
+            if configured_lang.lower() == "en":
+                lang_candidates.append("en_US")
+            elif configured_lang.lower() == "en_us":
+                lang_candidates.append("en")
+
+            def _build_template_payload(lang_code: str) -> dict:
+                return {
+                    "messaging_product": "whatsapp",
+                    "to": cleaned_phone,
+                    "type": "template",
+                    "template": {
+                        "name": "payment_sucess_confirmation",  # User's approved template name
+                        "language": {"code": lang_code},
+                        "components": [
+                            {
+                                "type": "body",
+                                "parameters": [
+                                    {"type": "text", "text": "Confirmed"},  # {{1}} Order Status
+                                    {"type": "text", "text": (customer_name[:60] if customer_name else "Customer")},  # {{2}}
+                                    {"type": "text", "text": (order_id or "N/A")},  # {{3}}
+                                    {"type": "text", "text": f"{amount:,.0f}"},  # {{4}}
+                                    {"type": "text", "text": (purpose[:100] if purpose else "Solar Service Payment")},  # {{5}}
+                                    {"type": "text", "text": payment_date}  # {{6}}
+                                ]
+                            }
+                        ]
+                    }
                 }
-            }
+            template_payload = _build_template_payload(lang_candidates[0])
             
             logger.info(f"[WhatsApp] Sending template 'payment_sucess_confirmation' to {cleaned_phone}")
             logger.info(f"[WhatsApp] Params - Order: {order_id}, Name: {customer_name}, Amount: ₹{amount:,.0f}")
             
             async with httpx.AsyncClient(timeout=30.0) as http_client:
                 response = await http_client.post(wa_url, json=template_payload, headers=headers)
+                # Auto-retry with alternate language if first attempt hit a language-related Meta error
+                if response.status_code not in [200, 201] and len(lang_candidates) > 1:
+                    try:
+                        err = response.json().get("error", {})
+                        err_code = str(err.get("code") or "")
+                        err_msg = (err.get("message") or "").lower()
+                        if err_code in {"132001", "132012", "131000"} or "translation" in err_msg or "language" in err_msg:
+                            alt = lang_candidates[1]
+                            logger.warning(
+                                f"[WhatsApp] Template lang '{lang_candidates[0]}' rejected "
+                                f"(code={err_code}); retrying with '{alt}'"
+                            )
+                            response = await http_client.post(
+                                wa_url, json=_build_template_payload(alt), headers=headers
+                            )
+                    except Exception:
+                        pass
                 response_text = response.text
                 
                 if response.status_code in [200, 201]:
@@ -738,17 +767,29 @@ async def send_admin_payment_alert(order: Dict, amount: float):
             return True
 
         customer_name = order.get("customer_name", "Customer")
+        purpose = order.get("purpose") or order.get("notes") or "Solar Service Payment"
+        payment_date = datetime.now(timezone.utc).strftime("%d %b %Y, %I:%M %p")
+        # 6-parameter template: {{1}} status, {{2}} name, {{3}} order_id,
+        # {{4}} amount, {{5}} purpose, {{6}} date — matches payment_sucess_confirmation.
+        variables = [
+            "OWNER ALERT",
+            f"From {customer_name}",
+            order_id or "N/A",
+            f"{amount:,.0f}",
+            (purpose[:100] if purpose else "Payment"),
+            payment_date,
+        ]
         result = await send_whatsapp_template(
             phone=admin_phone,
             template_name="payment_sucess_confirmation",
-            variables=[f"OWNER ALERT — {customer_name}", order_id, str(int(amount))],
+            variables=variables,
         )
 
         # Update the sentinel row with the outcome (sent or failed) so the
         # retry loop can find it and re-send while preserving idempotency.
         update = {
             "template_name": "payment_sucess_confirmation",
-            "variables": [f"OWNER ALERT — {customer_name}", order_id, str(int(amount))],
+            "variables": variables,
             "result_at": datetime.now(timezone.utc).isoformat(),
         }
         if result.get("success"):
@@ -1546,6 +1587,40 @@ async def _mark_order_paid(
             logger.info(f"[{source}] Service booking synced to CRM: {booking_number}")
         except Exception as svc_err:
             logger.error(f"[{source}] Service booking sync failed for {order_id}: {svc_err}")
+
+    # Sync back to shop_orders collection if this is a shop purchase — this is
+    # the missing piece that used to leave shop orders stuck in "pending" even
+    # after Cashfree confirmed the UPI payment.
+    shop_order_synced = False
+    if ptype == "shop_order" or order.get("shop_order_id"):
+        try:
+            shop_update = {
+                "payment_status": "paid",
+                "payment_received_at": payment_time,
+                "cashfree_payment_id": cf_payment_id,
+                "cashfree_order_id": order_id,
+                "payment_amount_received": float(payment_amount),
+                "payment_method": payment_method,
+                "status": "confirmed",
+                "updated_at": received_at,
+            }
+            shop_id = order.get("shop_order_id")
+            match_query = {"id": shop_id} if shop_id else {"order_number": order.get("shop_order_number", "")}
+            if match_query.get("id") or match_query.get("order_number"):
+                shop_result = await db.shop_orders.update_one(match_query, {"$set": shop_update})
+                shop_order_synced = shop_result.modified_count > 0 or shop_result.matched_count > 0
+                if shop_order_synced:
+                    logger.info(
+                        f"[{source}] Shop order synced: shop_id={shop_id} "
+                        f"order_number={order.get('shop_order_number')} -> paid"
+                    )
+                else:
+                    logger.warning(
+                        f"[{source}] Shop order NOT found for update: "
+                        f"shop_id={shop_id} order_number={order.get('shop_order_number')}"
+                    )
+        except Exception as shop_err:
+            logger.error(f"[{source}] Shop order sync failed for {order_id}: {shop_err}")
 
     # WhatsApp + SMS confirmations (also fires on sync, so missed-webhook
     # customers still receive their receipt the moment we reconcile).

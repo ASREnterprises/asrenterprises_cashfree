@@ -26,11 +26,14 @@ const MSG91_AUTH_TOKEN = process.env.REACT_APP_MSG91_TOKEN_AUTH || "";
  */
 function routeByRole(staffData, token, navigate, setError) {
   const role = (staffData?.role || "").toLowerCase();
-  const dept = (staffData?.department || "").toLowerCase();
+  const staffId = (staffData?.staff_id || "").toUpperCase();
+  const isOwner = staffData?.is_owner === true || staffData?.is_super_admin === true;
 
-  // Block wrong portals — each role has exactly one login page
-  if (role === "super_admin" || role === "admin" || (role === "manager" && dept === "admin")) {
-    setError("This is an Admin account. Please use the Admin Login page at /admin/login.");
+  // Only the Super Admin (ASR1001 / ABHIJEET) is restricted to the Admin Login portal.
+  // Everyone else — including Admin Managers like Anamika (ASR1002, role=manager,
+  // department=admin) — logs in via the Staff Portal.
+  if (role === "super_admin" || isOwner || staffId === "ASR1001") {
+    setError("This is the Super Admin account. Please use the Admin Login page at /admin/login.");
     return false;
   }
   if (role === "solar_advisor") {
@@ -42,7 +45,7 @@ function routeByRole(staffData, token, navigate, setError) {
     return false;
   }
 
-  // Staff / Manager (non-admin dept) → Staff Portal
+  // Staff / Manager / Admin-department manager → Staff Portal
   localStorage.setItem("asrStaffAuth", "true");
   localStorage.setItem("asrStaffData", JSON.stringify(staffData));
   if (token) localStorage.setItem("asrStaffToken", token);

@@ -331,8 +331,9 @@ const StaffRoute = ({ children }) => {
   try {
     const staffData = JSON.parse(localStorage.getItem("asrStaffData") || "{}");
     const role = (staffData.role || localStorage.getItem("asrStaffRole") || "").toLowerCase();
-    const dept = (staffData.department || "").toLowerCase();
-    if (role === "super_admin" || role === "admin" || (role === "manager" && dept === "admin")) {
+    const staffId = (staffData.staff_id || "").toUpperCase();
+    const isOwner = staffData.is_owner === true || staffData.is_super_admin === true;
+    if (role === "super_admin" || isOwner || staffId === "ASR1001") {
       return <Navigate to="/admin/dashboard" replace />;
     }
   } catch (_) {}

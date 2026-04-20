@@ -189,8 +189,10 @@ export const AdminLogin = ({ onLogin }) => {
     setLoading(true);
     
     try {
+      // Admin portal → pass login_type=admin so backend only allows the owner mobile.
       const response = await axios.post(`${API}/admin/login-otp`, { 
-        mobile: cleanMobile
+        mobile: cleanMobile,
+        login_type: "admin"
       });
       
       if (response.data.success) {
@@ -202,26 +204,19 @@ export const AdminLogin = ({ onLogin }) => {
         localStorage.setItem("asrAdminStaffId", response.data.staff_id || "");
         localStorage.setItem("asrAdminLastActivity", Date.now().toString());
         
-        const loginRole = (response.data.role || "").toLowerCase();
-        // Block non-admin accounts — staff must use the Staff Login page
-        if (loginRole === "staff" || (loginRole === "manager" && (response.data.department || "").toLowerCase() !== "admin")) {
-          setError("This is a Staff account. Please log in at the Staff Portal: /staff/login");
-          setLoading(false);
-          setVerifyLoading(false);
-          return;
-        }
-        
         setSuccess("Login successful! Redirecting...");
         setTimeout(() => {
           onLogin();
           navigate("/admin/dashboard");
         }, 1000);
       } else {
-        setError(response.data.message || "Mobile number not registered. Contact admin.");
+        setError(response.data.message || "Mobile number not registered as Admin.");
       }
     } catch (err) {
       console.error("Login API error:", err);
-      setError(err.response?.data?.detail || "Mobile number not registered for admin/staff access.");
+      // If backend rejects because this is a staff mobile, give a clearer redirect hint.
+      const detail = err.response?.data?.detail || "Mobile number not registered for admin access.";
+      setError(detail);
     } finally {
       setLoading(false);
       setVerifyLoading(false);

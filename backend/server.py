@@ -13653,12 +13653,12 @@ async def _resolve_og(path: str, product_id: str = ""):
         )
 
     # Advisor page
-    if path.rstrip("/") == "/advisor":
+    if path.rstrip("/") in ("/advisor", "/become-agent"):
         return (
-            "Become Solar Advisor - ASR Enterprises",
-            "Join ASR Enterprises & earn with solar business. High commission, flexible work. Serving Bihar.",
+            "Become an ASR Solar Advisor | Earn up to ₹10,000 per referral",
+            "Join ASR Enterprises' Solar Advisor program in Bihar. Earn weekly Cashfree payouts per converted customer. Free onboarding. Register in 2 minutes.",
             _OG_ADVISOR_IMAGE,
-            _OG_BASE_URL + "/advisor",
+            _OG_BASE_URL + "/become-agent",
         )
 
     # Gallery / Our Work
@@ -13769,7 +13769,7 @@ async def serve_spa(full_path: str, request: Request):
     product_id = request.query_params.get("product", "").strip()
     needs_og = (
         path in ("/", "")
-        or path.rstrip("/") in ("/advisor", "/gallery", "/contact", "/shop", "/about")
+        or path.rstrip("/") in ("/advisor", "/become-agent", "/gallery", "/contact", "/shop", "/about")
         or bool(re.match(r"^/product/[^/?#]+$", path))
         or (path.rstrip("/") == "/shop" and bool(product_id))
     )

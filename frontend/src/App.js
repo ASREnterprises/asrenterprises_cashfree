@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
+import { HelmetProvider, Helmet } from "react-helmet-async";
 import axios from "axios";
 import { 
   MessageSquare, Users, TrendingUp, BarChart3, 
@@ -2522,9 +2522,19 @@ const HomePage = () => {
 
       {/* Book Service Modal with Cashfree Payment */}
       {showBookService && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-24 sm:pb-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => !verifyLoading && setShowBookService(false)} />
-          <div className="relative bg-[#0d1b33] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-[#0d1b33] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[95dvh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+            <button
+              type="button"
+              onClick={() => !verifyLoading && setShowBookService(false)}
+              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition"
+              aria-label="Close"
+              data-testid="book-service-close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="overflow-y-auto flex-1">
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
               <Zap className="w-10 h-10 text-white mx-auto mb-2" />
               <h2 className="text-xl font-bold text-white">Book Solar Service</h2>
@@ -2631,15 +2641,26 @@ const HomePage = () => {
                 </button>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
 
       {/* ==================== SITE VISIT ₹500 MODAL (SEPARATE FROM BOOK SOLAR SERVICE) ==================== */}
       {showSiteVisitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="site-visit-modal">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" data-testid="site-visit-modal">
           <div className="absolute inset-0 bg-black/60" onClick={() => !bookingLoading && setShowSiteVisitModal(false)} />
-          <div className="relative bg-gradient-to-b from-[#0d1b33] to-[#071A2E] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden mb-20 sm:mb-0">
+          <div className="relative bg-gradient-to-b from-[#0d1b33] to-[#071A2E] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md max-h-[95dvh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+            <button
+              type="button"
+              onClick={() => !bookingLoading && setShowSiteVisitModal(false)}
+              className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition"
+              aria-label="Close"
+              data-testid="site-visit-close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="overflow-y-auto flex-1">
             {/* Header */}
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-center">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -2717,15 +2738,7 @@ const HomePage = () => {
               
               <p className="text-gray-500 text-xs text-center">Secure payment powered by Cashfree</p>
             </div>
-            
-            {/* Close Button */}
-            <button
-              onClick={() => setShowSiteVisitModal(false)}
-              disabled={bookingLoading}
-              className="absolute top-4 right-4 text-white/70 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            </div>
           </div>
         </div>
       )}
@@ -3858,6 +3871,31 @@ const AgentRegistrationPage = () => {
     experience: "", notes: ""
   });
 
+  // Page-specific social-share metadata so when someone shares the
+  // /become-agent or /advisor URL on WhatsApp/Facebook/LinkedIn, the preview
+  // shows the Solar-Advisor page branding instead of the homepage OG image.
+  const advisorOgTags = (
+    <Helmet>
+      <title>Become an ASR Solar Advisor | Earn up to ₹10,000 per referral</title>
+      <meta name="description" content="Join ASR Enterprises' Solar Advisor program in Bihar. Earn up to ₹10,000 per converted customer. Free onboarding, weekly payouts, district-level exclusivity. Register in 2 minutes." />
+      <meta property="og:type" content="website" />
+      <meta property="og:url" content="https://www.asrenterprises.in/become-agent" />
+      <meta property="og:title" content="Become an ASR Solar Advisor | Earn up to ₹10,000 per referral" />
+      <meta property="og:description" content="Join ASR Enterprises' Solar Advisor program in Bihar. Earn up to ₹10,000 per converted customer with weekly Cashfree payouts." />
+      <meta property="og:image" content="https://www.asrenterprises.in/og-advisor.jpg" />
+      <meta property="og:image:secure_url" content="https://www.asrenterprises.in/og-advisor.jpg" />
+      <meta property="og:image:type" content="image/jpeg" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="Join ASR Enterprises Solar Advisor program — Bihar" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Become an ASR Solar Advisor | Earn up to ₹10,000 per referral" />
+      <meta name="twitter:description" content="Earn weekly Cashfree payouts by referring solar customers in your district. Register in 2 minutes." />
+      <meta name="twitter:image" content="https://www.asrenterprises.in/og-advisor.jpg" />
+      <link rel="canonical" href="https://www.asrenterprises.in/become-agent" />
+    </Helmet>
+  );
+
   const BIHAR_DISTRICTS = [
     "Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", 
     "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", 
@@ -3906,6 +3944,8 @@ const AgentRegistrationPage = () => {
   }
 
   return (
+    <>
+    {advisorOgTags}
     <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1b33] to-[#0a1628] py-12 px-4">
       <div className="max-w-3xl mx-auto">
         <Link to="/" className="inline-flex items-center text-purple-400 hover:text-purple-300 mb-6">
@@ -4071,6 +4111,7 @@ const AgentRegistrationPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

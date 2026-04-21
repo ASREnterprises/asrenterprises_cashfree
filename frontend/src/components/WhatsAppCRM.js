@@ -1031,10 +1031,17 @@ export const WhatsAppModule = () => {
         </div>
       )}
       
-      {/* Inbox Tab - Primary WhatsApp Chat Interface */}
-      {activeTab === 'inbox' && (
-        <WhatsAppInbox />
-      )}
+      {/* Inbox Tab - Primary WhatsApp Chat Interface.
+          Admin-department managers (e.g. Anamika ASR1002) run in staffMode so
+          the inbox only shows conversations where the customer has actually
+          replied — outbound-only template blasts remain visible only to the
+          Super Admin. */}
+      {activeTab === 'inbox' && (() => {
+        const role = (localStorage.getItem("asrAdminRole") || "").toLowerCase();
+        const dept = (localStorage.getItem("asrAdminDepartment") || "").toLowerCase();
+        const isAdminManager = role === "manager" && dept === "admin";
+        return <WhatsAppInbox staffMode={isAdminManager} />;
+      })()}
 
       {/* CRM Inbox Tab - Filtered bulk tracking */}
       {activeTab === 'crm_inbox' && (

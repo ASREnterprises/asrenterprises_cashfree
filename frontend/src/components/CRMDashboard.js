@@ -2219,7 +2219,6 @@ export const CRMDashboard = () => {
               { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="w-4 h-4" /> },
               { id: "leads", label: "All Leads", icon: <ClipboardList className="w-4 h-4" /> },
               { id: "cashfree_payments", label: "Cashfree Payments", icon: <Wallet className="w-4 h-4" /> },
-              { id: "whatsapp", label: "WhatsApp", icon: <MessageSquare className="w-4 h-4" /> },
               { id: "hr_management", label: "HR Management", icon: <Users className="w-4 h-4" /> },
               { id: "service_config", label: "Service Price", icon: <CreditCard className="w-4 h-4" /> },
               { id: "site_settings", label: "Site Settings", icon: <Settings className="w-4 h-4" /> },
@@ -2230,8 +2229,7 @@ export const CRMDashboard = () => {
               }}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap relative ${
                   activeTab === tab.id 
-                    ? tab.id === "whatsapp" ? "bg-green-600 text-white" 
-                    : tab.id === "cashfree_payments" ? "bg-emerald-600 text-white"
+                    ? tab.id === "cashfree_payments" ? "bg-emerald-600 text-white"
                     : tab.id === "hr_management" ? "bg-purple-600 text-white"
                     : "bg-blue-600 text-white" 
                     : "text-gray-600 hover:bg-gray-50 border border-gray-300"

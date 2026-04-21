@@ -434,8 +434,15 @@ export const WhatsAppInbox = ({ onOpenFromLead = null, staffMode = false, staffI
     try {
       if (!silent) setLoading(true);
       
+      // Staff (and Anamika's filtered admin dashboard) must only see
+      // conversations where the customer has actually replied — they can
+      // chat once there's an incoming message. Outbound-only template
+      // blasts stay hidden and remain visible to the Super Admin only.
+      const convUrl = staffMode
+        ? `${API}/api/whatsapp/conversations?limit=100&customer_replied_only=true`
+        : `${API}/api/whatsapp/conversations?limit=100`;
       const [convRes, unreadRes] = await Promise.all([
-        axios.get(`${API}/api/whatsapp/conversations?limit=100`),
+        axios.get(convUrl),
         axios.get(`${API}/api/whatsapp/conversations/unread-count`)
       ]);
       

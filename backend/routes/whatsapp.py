@@ -1079,12 +1079,23 @@ async def get_lead_messages(lead_id: str):
 # ==================== CONVERSATION / INBOX ENDPOINTS ====================
 
 @router.get("/conversations")
-async def get_conversations(page: int = 1, limit: int = 50, background_tasks: BackgroundTasks = None):
+async def get_conversations(
+    page: int = 1,
+    limit: int = 50,
+    customer_replied_only: bool = False,
+    background_tasks: BackgroundTasks = None,
+):
     """
     Get all conversations grouped by phone number.
     Returns list of conversations with last message, unread count, and lead info.
     Sorted by last activity (most recent first).
     Auto-deletes messages older than 24 hours.
+    
+    When `customer_replied_only=true`, only returns conversations where the
+    customer has sent at least one incoming message. Staff / Anamika pass this
+    flag so they only see inboxes that the customer actually engaged with —
+    outbound-only template blasts are hidden from them and remain visible to
+    the Super Admin only.
     """
     skip = (page - 1) * limit
     
@@ -1113,6 +1124,9 @@ async def get_conversations(page: int = 1, limit: int = 50, background_tasks: Ba
                 "last_message": {"$last": "$$ROOT"},
                 "first_message": {"$first": "$$ROOT"},
                 "message_count": {"$sum": 1},
+                "incoming_count": {
+                    "$sum": {"$cond": [{"$eq": ["$direction", "incoming"]}, 1, 0]}
+                },
                 "unread_count": {
                     "$sum": {
                         "$cond": [
@@ -1136,11 +1150,16 @@ async def get_conversations(page: int = 1, limit: int = 50, background_tasks: Ba
                 },
                 "last_activity": {"$max": "$created_at"}
             }
-        },
+        }
+    ]
+    # Staff filter: only conversations where customer has replied at least once
+    if customer_replied_only:
+        pipeline.append({"$match": {"incoming_count": {"$gt": 0}}})
+    pipeline.extend([
         {"$sort": {"last_activity": -1}},
         {"$skip": skip},
-        {"$limit": limit}
-    ]
+        {"$limit": limit},
+    ])
     
     conversations_cursor = db.whatsapp_messages.aggregate(pipeline)
     conversations_raw = await conversations_cursor.to_list(limit)
@@ -1560,6 +1579,26 @@ async def send_template_bulk(request: Request, background_tasks: BackgroundTasks
                 if result.get("success"):
                     sent += 1
                     results.append({"phone": recipient["phone"], "status": "sent"})
+                    # Flag the lead so CRM UI can show "Campaign template already sent"
+                    # and the staff doesn't re-spam the same recipient in the next
+                    # campaign. Tracks template name + last-sent time + tally.
+                    if recipient.get("lead_id"):
+                        try:
+                            now_iso = datetime.now(timezone.utc).isoformat()
+                            await db.crm_leads.update_one(
+                                {"id": recipient["lead_id"]},
+                                {
+                                    "$set": {
+                                        "whatsapp_campaign_sent": True,
+                                        "last_campaign_template": template_name,
+                                        "last_campaign_sent_at": now_iso,
+                                    },
+                                    "$inc": {"campaign_send_count": 1},
+                                    "$addToSet": {"campaigns_received": template_name},
+                                }
+                            )
+                        except Exception as _le:
+                            logger.warning(f"[bulk-send] lead flag update failed for {recipient['lead_id']}: {_le}")
                 else:
                     failed += 1
                     results.append({"phone": recipient["phone"], "status": "failed", "error": result.get("error")})

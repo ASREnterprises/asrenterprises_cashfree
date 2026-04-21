@@ -66,7 +66,7 @@ export const StaffPortal = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
   const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
-  const [callFilter, setCallFilter] = useState('all'); // all, called, uncalled
+  const [callFilter, setCallFilter] = useState('new'); // new, contacted, all — default to "new" so staff always lands on uncalled leads first
   const [pipelineStageFilter, setPipelineStageFilter] = useState(null); // Filter leads by pipeline stage
   const [leadSearchQuery, setLeadSearchQuery] = useState(''); // Search leads by name/phone
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -904,25 +904,29 @@ export const StaffPortal = () => {
               </div>
             )}
             
-            {/* Filter Buttons - Large Touch Targets for Mobile */}
+            {/* Filter Buttons — ordered: New Leads → Contacted/Called → All Leads
+                so staff always lands on New first for calling priority */}
             <div className="grid grid-cols-3 gap-2">
               <button
+                data-testid="staff-filter-new"
+                onClick={() => { setCallFilter('new'); setPipelineStageFilter(null); }}
+                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'new' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                New Leads ({leads.filter(l => (l.stage || 'new') === 'new' && !calledLeads.has(l.id) && l.call_status !== 'called').length})
+              </button>
+              <button
+                data-testid="staff-filter-contacted"
+                onClick={() => { setCallFilter('contacted'); setPipelineStageFilter(null); }}
+                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'contacted' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called' || l.stage === 'contacted' || l.stage === 'site_visit').length})
+              </button>
+              <button
+                data-testid="staff-filter-all"
                 onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }}
                 className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' && !pipelineStageFilter ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
-                All ({leads.length})
-              </button>
-              <button
-                onClick={() => { setCallFilter('uncalled'); setPipelineStageFilter(null); }}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'uncalled' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                Uncalled ({leads.filter(l => !calledLeads.has(l.id) && l.call_status !== 'called').length})
-              </button>
-              <button
-                onClick={() => { setCallFilter('called'); setPipelineStageFilter(null); }}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'called' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called').length})
+                All Leads ({leads.length})
               </button>
             </div>
             
@@ -995,8 +999,8 @@ export const StaffPortal = () => {
                       // Pipeline stage filter
                       if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
                       // Call status filter
-                      if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
-                      if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
+                      if (callFilter === 'new') return (lead.stage || 'new') === 'new' && !calledLeads.has(lead.id) && lead.call_status !== 'called';
+                      if (callFilter === 'contacted') return calledLeads.has(lead.id) || lead.call_status === 'called' || lead.stage === 'contacted' || lead.stage === 'site_visit';
                       return true;
                     })
                     // Sort: NEW leads first, then by assigned_at descending
@@ -1107,8 +1111,8 @@ export const StaffPortal = () => {
                     if (!nameMatch && !phoneMatch) return false;
                   }
                   if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
-                  if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
-                  if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
+                  if (callFilter === 'new') return (lead.stage || 'new') === 'new' && !calledLeads.has(lead.id) && lead.call_status !== 'called';
+                  if (callFilter === 'contacted') return calledLeads.has(lead.id) || lead.call_status === 'called' || lead.stage === 'contacted' || lead.stage === 'site_visit';
                   return true;
                 })
                 // Sort: NEW leads first, then by assigned_at descending
@@ -1232,8 +1236,8 @@ export const StaffPortal = () => {
                 if (!nameMatch && !phoneMatch) return false;
               }
               if (pipelineStageFilter && lead.stage !== pipelineStageFilter) return false;
-              if (callFilter === 'called') return calledLeads.has(lead.id) || lead.call_status === 'called';
-              if (callFilter === 'uncalled') return !calledLeads.has(lead.id) && lead.call_status !== 'called';
+              if (callFilter === 'new') return (lead.stage || 'new') === 'new' && !calledLeads.has(lead.id) && lead.call_status !== 'called';
+              if (callFilter === 'contacted') return calledLeads.has(lead.id) || lead.call_status === 'called' || lead.stage === 'contacted' || lead.stage === 'site_visit';
               return true;
             }).length === 0 && (
               <div className="bg-white shadow-lg border border-sky-200 rounded-xl p-8 text-center">

@@ -53,9 +53,14 @@ export const AdminDashboard = ({ onLogout }) => {
   }, [fetchWidgets]);
 
   const handleLogout = () => {
-    localStorage.removeItem("asrAdminAuth");
-    localStorage.removeItem("asrAdminUser");
+    // Snapshot role BEFORE clearing so we can route back to the right login.
+    const role = (localStorage.getItem("asrAdminRole") || "").toLowerCase();
+    ["asrAdminAuth","asrAdminUser","asrAdminEmail","asrAdminRole","asrAdminName",
+     "asrAdminDepartment","asrAdminStaffId","asrAdminLastActivity",
+     "asrStaffAuth","asrStaffData","asrStaffRole","asrStaffToken"
+    ].forEach(k => localStorage.removeItem(k));
     onLogout();
+    navigate(role === "manager" ? "/staff/login" : "/admin/login", { replace: true });
   };
 
   const refreshAll = () => {

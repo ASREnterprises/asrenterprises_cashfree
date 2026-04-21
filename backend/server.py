@@ -3316,27 +3316,42 @@ async def get_dashboard_counts():
     if cached_data:
         return cached_data
     
-    # Count from both leads collections
+    # Count from both leads collections + service bookings + shop orders so
+    # the dashboard cards reflect live business data (not stale empty ones).
+    now = datetime.now(timezone.utc)
+    this_month_iso = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     results = await asyncio.gather(
         db.leads.count_documents({}),
         db.orders.count_documents({}),
         db.leads.count_documents({"status": "new"}),
         db.orders.count_documents({"status": "pending"}),
         db.crm_leads.count_documents({"$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}),  # CRM leads (excl. deleted)
-        db.crm_leads.count_documents({"stage": "new", "$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]})  # New CRM leads
+        db.crm_leads.count_documents({"stage": "new", "$or": [{"is_deleted": {"$exists": False}}, {"is_deleted": False}]}),  # New CRM leads
+        db.solar_service_bookings.count_documents({}),
+        db.solar_service_bookings.count_documents({"created_at": {"$gte": this_month_iso}}),
+        db.shop_orders.count_documents({}),
+        db.shop_orders.count_documents({"payment_status": "paid"}),
     )
     
     # Use max of both collections
     total_leads = max(results[0], results[4])
     new_leads = max(results[2], results[5])
+    total_bookings = results[6]
+    bookings_this_month = results[7]
+    total_shop_orders = results[8]
+    paid_shop_orders = results[9]
     
     response = {
         "total_leads": total_leads,
-        "total_orders": results[1],
+        "total_orders": max(results[1], total_shop_orders),
         "new_leads": new_leads,
         "pending_orders": results[3],
         "crm_leads": results[4],
-        "website_leads": results[0]
+        "website_leads": results[0],
+        "total_bookings": total_bookings,
+        "bookings_this_month": bookings_this_month,
+        "total_shop_orders": total_shop_orders,
+        "paid_shop_orders": paid_shop_orders,
     }
     
     await cache_set(cache_key, response, ttl=10)  # Shorter cache for fresh data
@@ -3387,16 +3402,45 @@ async def get_revenue_widget():
     now = datetime.now(timezone.utc)
     this_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
     
-    pipeline = [
+    # Revenue = sum of ALL paid Cashfree transactions this month (booking fees,
+    # service bookings, shop orders — `_mark_order_paid` flips them all to
+    # status=paid). Falls back to legacy `orders.total` for any historical
+    # sales created before Cashfree was wired up.
+    cf_pipeline = [
+        {"$match": {
+            "status": "paid",
+            "$or": [
+                {"paid_at": {"$gte": this_month}},
+                {"created_at": {"$gte": this_month}},
+            ],
+        }},
+        {"$group": {
+            "_id": None,
+            "total": {"$sum": {"$ifNull": ["$payment_amount_received", "$amount"]}},
+            "count": {"$sum": 1},
+        }},
+    ]
+    legacy_pipeline = [
         {"$match": {"status": {"$in": ["confirmed", "delivered", "completed"]}, "created_at": {"$gte": this_month}}},
-        {"$group": {"_id": None, "total_revenue": {"$sum": "$total"}, "order_count": {"$sum": 1}}}
+        {"$group": {"_id": None, "total_revenue": {"$sum": "$total"}, "order_count": {"$sum": 1}}},
     ]
     
-    result = await db.orders.aggregate(pipeline).to_list(1)
+    cf_result, legacy_result = await asyncio.gather(
+        db.cashfree_orders.aggregate(cf_pipeline).to_list(1),
+        db.orders.aggregate(legacy_pipeline).to_list(1),
+    )
+    
+    cf_revenue = float(cf_result[0]["total"]) if cf_result else 0.0
+    cf_orders = int(cf_result[0]["count"]) if cf_result else 0
+    legacy_revenue = float(legacy_result[0]["total_revenue"]) if legacy_result else 0.0
+    legacy_orders = int(legacy_result[0]["order_count"]) if legacy_result else 0
     
     response = {
-        "this_month_revenue": result[0]["total_revenue"] if result else 0,
-        "this_month_orders": result[0]["order_count"] if result else 0
+        "this_month_revenue": cf_revenue + legacy_revenue,
+        "this_month_orders": cf_orders + legacy_orders,
+        "cashfree_revenue": cf_revenue,
+        "cashfree_orders": cf_orders,
+        "legacy_revenue": legacy_revenue,
     }
     
     await cache_set(cache_key, response, ttl=60)

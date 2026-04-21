@@ -755,39 +755,17 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"WhatsApp retry loop not started: {e}")
     
-    # Default-lead-owner auto-assign sweeper — every 30s picks up any lead
-    # that slipped in via a code path we missed and routes it to Rimjhim
-    # (ASR1003). This keeps the "all online/inbound leads → Rimjhim" rule
-    # consistent no matter which collection-insert site created the record.
-    async def _default_owner_sweeper(interval_seconds: int = 30):
-        while True:
-            try:
-                owner_id = await get_default_lead_owner_id()
-                if owner_id:
-                    res = await db.crm_leads.update_many(
-                        {"$or": [
-                            {"assigned_to": None},
-                            {"assigned_to": {"$exists": False}},
-                            {"assigned_to": ""},
-                        ]},
-                        {"$set": {
-                            "assigned_to": owner_id,
-                            "assigned_by": "system_default",
-                            "assigned_at": datetime.now(timezone.utc).isoformat(),
-                            "auto_assigned_reason": "default_lead_owner_sweeper",
-                        }}
-                    )
-                    if res.modified_count:
-                        logger.info(f"[default-owner-sweeper] assigned {res.modified_count} leads → Rimjhim (ASR1003)")
-            except Exception as _sw_err:
-                logger.warning(f"[default-owner-sweeper] error: {_sw_err}")
-            await asyncio.sleep(interval_seconds)
-
-    try:
-        asyncio.create_task(_default_owner_sweeper(30))
-        logger.info("Default-lead-owner sweeper started (every 30 seconds → Rimjhim ASR1003)")
-    except Exception as e:
-        logger.warning(f"Default-lead-owner sweeper not started: {e}")
+    # Default-lead-owner assignment is NOT a blanket rule. Per business policy
+    # (set by Super Admin), leads are auto-assigned to Rimjhim (ASR1003) ONLY
+    # when the lead was created via one of these three paths:
+    #   1. Customer reply in WhatsApp inbox after a template message (campaign reply)
+    #   2. Inquiry captured at the website (form / chatbot / capture)
+    #   3. Inquiry received directly on WhatsApp
+    # All three of those code sites already stamp `assigned_to` at insert time.
+    # Any other lead-creation path (admin-created, staff-manual, payment trigger,
+    # shop order, etc.) stays unassigned and must be manually allocated.
+    # The previous 30-second blanket sweeper + startup backfill have been
+    # removed deliberately so no other leads are silently rerouted to Rimjhim.
     
     # ==================== OWNER ACCOUNT INITIALIZATION ====================
     # Ensure owner account exists with full privileges — always runs on startup
@@ -987,27 +965,29 @@ async def startup_event():
                 {"$set": {"password_hash": rimjhim_pwd_hash, "is_default_lead_owner": True}},
             )
 
-        # Backfill: every lead that has no assigned_to gets routed to Rimjhim
-        # so historical leads are not stuck in the unassigned queue.
-        rimjhim_doc = await db.crm_staff_accounts.find_one({"staff_id": rimjhim_id}, {"id": 1})
-        if rimjhim_doc:
-            rimjhim_internal = rimjhim_doc["id"]
-            now_iso = datetime.now(timezone.utc).isoformat()
-            bf = await db.crm_leads.update_many(
-                {"$or": [
-                    {"assigned_to": None},
-                    {"assigned_to": {"$exists": False}},
-                    {"assigned_to": ""},
-                ]},
+        # Undo the previous blanket auto-assignment: any lead that was stamped
+        # by the deprecated startup backfill or 30-second sweeper gets put
+        # back into the unassigned queue. Leads that were assigned for a
+        # *specific* reason (WhatsApp reply, website chatbot, manual assign)
+        # are left untouched.
+        try:
+            un = await db.crm_leads.update_many(
+                {"auto_assigned_reason": {"$in": [
+                    "default_lead_owner_rimjhim_asr1003",
+                    "default_lead_owner_sweeper",
+                ]}},
                 {"$set": {
-                    "assigned_to": rimjhim_internal,
-                    "assigned_by": "system_default",
-                    "assigned_at": now_iso,
-                    "auto_assigned_reason": "default_lead_owner_rimjhim_asr1003",
-                }},
+                    "assigned_to": None,
+                    "assigned_by": None,
+                    "assigned_at": None,
+                    "auto_assigned_reason": None,
+                    "unassigned_reason": "blanket_autoassign_reverted_2026_04_21",
+                }}
             )
-            if bf.modified_count:
-                logger.info(f"✅ Backfilled {bf.modified_count} unassigned leads → Rimjhim ({rimjhim_id})")
+            if un.modified_count:
+                logger.info(f"♻️ Reverted {un.modified_count} blanket-assigned leads back to unassigned queue")
+        except Exception as _ue:
+            logger.warning(f"Blanket-assignment revert skipped: {_ue}")
     except Exception as e:
         logger.warning(f"Rimjhim seed/backfill skipped: {e}")
 
@@ -2928,6 +2908,16 @@ async def create_secure_lead(request: Request, data: Dict[str, Any]):
         )
         crm_doc = crm_lead.model_dump()
         crm_doc['timestamp'] = crm_doc['timestamp'].isoformat()
+        # Auto-assign website-inquiry leads to Rimjhim (ASR1003), per business
+        # policy. This is one of the three explicit paths (website, WhatsApp
+        # inquiry, WhatsApp campaign reply) where default-owner assignment is
+        # allowed; every other creation path stays unassigned.
+        _website_owner = await get_default_lead_owner_id()
+        if _website_owner:
+            crm_doc["assigned_to"] = _website_owner
+            crm_doc["assigned_by"] = "system_default"
+            crm_doc["assigned_at"] = datetime.now(timezone.utc).isoformat()
+            crm_doc["auto_assigned_reason"] = "website_inquiry_auto_assign_rimjhim"
         await db.crm_leads.insert_one(crm_doc)
         
         # AI Auto-Response: Generate and send instant quotation via WhatsApp

@@ -148,6 +148,34 @@ MAX_FAILED_LOGINS = 5      # Max failed logins before lockout
 # ============================================================
 OWNER_EMAIL    = "asrenterprisespatna@gmail.com"
 OWNER_MOBILE   = "8877896889"
+# Default lead owner — every inbound inquiry (website, WhatsApp, bulk-campaign
+# reply) is auto-assigned to this staff_id unless a lead already has an owner.
+DEFAULT_LEAD_OWNER_STAFF_ID = os.environ.get("DEFAULT_LEAD_OWNER_STAFF_ID", "ASR1003")
+# Cached internal id for the default lead owner; populated on first use.
+_DEFAULT_LEAD_OWNER_INTERNAL_ID: Optional[str] = None
+
+
+async def get_default_lead_owner_id() -> Optional[str]:
+    """Return the internal staff `id` (uuid) of the default lead owner.
+    
+    Reads once from `crm_staff_accounts` keyed on `DEFAULT_LEAD_OWNER_STAFF_ID`
+    (defaults to Rimjhim ASR1003). Returns None if that account doesn't exist
+    yet — callers then fall back to assigning `None` (unassigned queue).
+    """
+    global _DEFAULT_LEAD_OWNER_INTERNAL_ID
+    if _DEFAULT_LEAD_OWNER_INTERNAL_ID:
+        return _DEFAULT_LEAD_OWNER_INTERNAL_ID
+    try:
+        doc = await db.crm_staff_accounts.find_one(
+            {"staff_id": DEFAULT_LEAD_OWNER_STAFF_ID, "is_active": True},
+            {"id": 1}
+        )
+        if doc:
+            _DEFAULT_LEAD_OWNER_INTERNAL_ID = doc["id"]
+            return _DEFAULT_LEAD_OWNER_INTERNAL_ID
+    except Exception as e:
+        logger.warning(f"get_default_lead_owner_id failed: {e}")
+    return None
 OWNER_STAFF_ID = "ASR1001"
 OWNER_NAME     = "ABHIJEET KUMAR"
 OWNER_PASSWORD = "Abhi@9745"   # fallback if DB has no hash
@@ -727,6 +755,40 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"WhatsApp retry loop not started: {e}")
     
+    # Default-lead-owner auto-assign sweeper — every 30s picks up any lead
+    # that slipped in via a code path we missed and routes it to Rimjhim
+    # (ASR1003). This keeps the "all online/inbound leads → Rimjhim" rule
+    # consistent no matter which collection-insert site created the record.
+    async def _default_owner_sweeper(interval_seconds: int = 30):
+        while True:
+            try:
+                owner_id = await get_default_lead_owner_id()
+                if owner_id:
+                    res = await db.crm_leads.update_many(
+                        {"$or": [
+                            {"assigned_to": None},
+                            {"assigned_to": {"$exists": False}},
+                            {"assigned_to": ""},
+                        ]},
+                        {"$set": {
+                            "assigned_to": owner_id,
+                            "assigned_by": "system_default",
+                            "assigned_at": datetime.now(timezone.utc).isoformat(),
+                            "auto_assigned_reason": "default_lead_owner_sweeper",
+                        }}
+                    )
+                    if res.modified_count:
+                        logger.info(f"[default-owner-sweeper] assigned {res.modified_count} leads → Rimjhim (ASR1003)")
+            except Exception as _sw_err:
+                logger.warning(f"[default-owner-sweeper] error: {_sw_err}")
+            await asyncio.sleep(interval_seconds)
+
+    try:
+        asyncio.create_task(_default_owner_sweeper(30))
+        logger.info("Default-lead-owner sweeper started (every 30 seconds → Rimjhim ASR1003)")
+    except Exception as e:
+        logger.warning(f"Default-lead-owner sweeper not started: {e}")
+    
     # ==================== OWNER ACCOUNT INITIALIZATION ====================
     # Ensure owner account exists with full privileges — always runs on startup
     # Uses global OWNER_* constants so credentials are defined in one place only.
@@ -856,6 +918,98 @@ async def startup_event():
             logger.info(f"Anamika ({anamika_id}) staff account already exists — Super Admin's credentials preserved")
     except Exception as e:
         logger.warning(f"Anamika seed skipped: {e}")
+
+    # ==================== SEED RIMJHIM (ASR1003) - LEAD OWNER ====================
+    # Rimjhim is the default owner of every inbound lead — website form, WhatsApp
+    # inquiry, bulk-campaign reply, any online source — so every new inquiry
+    # automatically lands in her tray. Tele-caller / sales role.
+    try:
+        rimjhim_id = "ASR1003"
+        rimjhim_name = "Rimjhim"
+        rimjhim_email = os.environ.get("RIMJHIM_EMAIL", "rimjhim.asr@asrenterprises.in").lower()
+        rimjhim_phone = os.environ.get("RIMJHIM_PHONE", "9999100003")
+        rimjhim_password = os.environ.get("RIMJHIM_PASSWORD", "rimjhim@123")
+        rimjhim_pwd_hash = hashlib.sha256(rimjhim_password.encode()).hexdigest()
+
+        rhr = await db.hr_employees.find_one({"employee_id": rimjhim_id})
+        if not rhr:
+            await db.hr_employees.insert_one({
+                "id": str(uuid.uuid4()),
+                "employee_id": rimjhim_id,
+                "name": rimjhim_name,
+                "email": rimjhim_email,
+                "phone": rimjhim_phone,
+                "department": "sales",
+                "designation": "Tele-caller / Lead Owner",
+                "role": "staff",
+                "is_active": True,
+                "status": "active",
+                "employment_type": "full_time",
+                "joining_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "state": "Bihar",
+                "salary_type": "monthly",
+                "base_salary": 0.0,
+                "allowances": 0.0,
+                "incentive_percentage": 0.0,
+                "documents": {},
+                "total_leaves": 18,
+                "leaves_taken": 0,
+                "leaves_remaining": 18,
+                "onboarding_completed": True,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info(f"✅ Seeded lead owner {rimjhim_name} ({rimjhim_id})")
+
+        rstaff = await db.crm_staff_accounts.find_one({"staff_id": rimjhim_id})
+        if not rstaff:
+            await db.crm_staff_accounts.insert_one({
+                "id": str(uuid.uuid4()),
+                "staff_id": rimjhim_id,
+                "name": rimjhim_name,
+                "email": rimjhim_email,
+                "phone": rimjhim_phone,
+                "mobile": rimjhim_phone,
+                "role": "staff",
+                "department": "sales",
+                "is_active": True,
+                "is_default_lead_owner": True,
+                "otp_login_enabled": True,
+                "password_hash": rimjhim_pwd_hash,
+                "leads_assigned": 0,
+                "leads_converted": 0,
+                "total_revenue": 0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info(f"✅ Created CRM staff account for {rimjhim_name} ({rimjhim_id})")
+        elif os.environ.get("RIMJHIM_PASSWORD"):
+            await db.crm_staff_accounts.update_one(
+                {"staff_id": rimjhim_id},
+                {"$set": {"password_hash": rimjhim_pwd_hash, "is_default_lead_owner": True}},
+            )
+
+        # Backfill: every lead that has no assigned_to gets routed to Rimjhim
+        # so historical leads are not stuck in the unassigned queue.
+        rimjhim_doc = await db.crm_staff_accounts.find_one({"staff_id": rimjhim_id}, {"id": 1})
+        if rimjhim_doc:
+            rimjhim_internal = rimjhim_doc["id"]
+            now_iso = datetime.now(timezone.utc).isoformat()
+            bf = await db.crm_leads.update_many(
+                {"$or": [
+                    {"assigned_to": None},
+                    {"assigned_to": {"$exists": False}},
+                    {"assigned_to": ""},
+                ]},
+                {"$set": {
+                    "assigned_to": rimjhim_internal,
+                    "assigned_by": "system_default",
+                    "assigned_at": now_iso,
+                    "auto_assigned_reason": "default_lead_owner_rimjhim_asr1003",
+                }},
+            )
+            if bf.modified_count:
+                logger.info(f"✅ Backfilled {bf.modified_count} unassigned leads → Rimjhim ({rimjhim_id})")
+    except Exception as e:
+        logger.warning(f"Rimjhim seed/backfill skipped: {e}")
 
     logger.info("🚀 Application started with database optimizations and automated cleanup")
 
@@ -2118,8 +2272,11 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
                         }
                     )
                 else:
-                    # Create new lead
+                    # Create new lead — auto-assigned to Rimjhim (ASR1003)
+                    # as the default owner of online/inbound inquiries.
                     lead_id = str(uuid.uuid4())
+                    _owner = await get_default_lead_owner_id()
+                    _now_iso = datetime.now(timezone.utc).isoformat()
                     new_lead = {
                         "id": lead_id,
                         "name": visitor_info.get("name", f"Website Chat {clean_phone[-4:]}"),
@@ -2129,13 +2286,17 @@ async def public_ai_chat(request: Request, data: Dict[str, Any]):
                         "stage": "new",
                         "tags": ["whatsapp_lead", "new_inquiry", "website_chat"],
                         "chat_session_id": session_id,
-                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "assigned_to": _owner,
+                        "assigned_by": "system_default" if _owner else None,
+                        "assigned_at": _now_iso if _owner else None,
+                        "auto_assigned_reason": "default_lead_owner_rimjhim_asr1003" if _owner else None,
+                        "created_at": _now_iso,
                         "activities": [{
                             "id": str(uuid.uuid4()),
                             "type": "lead_created",
                             "title": "Lead Created from Website Chat",
                             "description": f"Customer initiated chat: {message[:100]}",
-                            "timestamp": datetime.now(timezone.utc).isoformat()
+                            "timestamp": _now_iso,
                         }]
                     }
                     await db.crm_leads.insert_one(new_lead)

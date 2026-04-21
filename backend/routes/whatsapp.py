@@ -2317,6 +2317,18 @@ async def process_incoming_message(message: Dict, value: Dict):
         new_lead_id = str(uuid.uuid4())
         lead_source = detected_source or "whatsapp_reply"
         
+        # Auto-assign to the default lead owner (Rimjhim ASR1003) so every
+        # WhatsApp inquiry / bulk-campaign reply lands directly in her queue.
+        _default_owner = None
+        try:
+            rimjhim = await db.crm_staff_accounts.find_one(
+                {"staff_id": "ASR1003", "is_active": True}, {"id": 1}
+            )
+            if rimjhim:
+                _default_owner = rimjhim["id"]
+        except Exception:
+            _default_owner = None
+        _now_iso = datetime.now(timezone.utc).isoformat()
         await db.crm_leads.insert_one({
             "id": new_lead_id,
             "name": contact_name or f"WhatsApp {cleaned_phone[-4:]}",
@@ -2324,13 +2336,17 @@ async def process_incoming_message(message: Dict, value: Dict):
             "source": lead_source,
             "stage": "new",
             "tags": [],
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "assigned_to": _default_owner,
+            "assigned_by": "system_default" if _default_owner else None,
+            "assigned_at": _now_iso if _default_owner else None,
+            "auto_assigned_reason": "whatsapp_reply_auto_assign_rimjhim" if _default_owner else None,
+            "created_at": _now_iso,
             "activities": [{
                 "id": str(uuid.uuid4()),
                 "type": "whatsapp_reply",
                 "title": "WhatsApp Reply Received",
                 "description": content[:200] if content else "New WhatsApp contact",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": _now_iso
             }]
         })
         

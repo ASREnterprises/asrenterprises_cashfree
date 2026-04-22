@@ -52,6 +52,14 @@ BUSINESS = {
     "logo_url": os.environ.get("BUSINESS_LOGO_URL", "/asr_logo_transparent.png"),
 }
 
+# PM Surya Ghar Yojana: ICICI bank details used exclusively for PMSG invoices/quotations
+PMSG_BANK = {
+    "bank_name": "ICICI BANK LIMITED — Sumitra Sadan Branch",
+    "bank_account": "040405011759",
+    "bank_ifsc": "ICIC0000404",
+    "account_holder": "ASR ENTERPRISES",
+}
+
 # Configurable CA / accountant email for invoice copies
 CA_EMAIL = os.environ.get("CA_EMAIL", "").strip()
 
@@ -64,6 +72,13 @@ LOGO_DATA_URI = ""
 if _LOGO_PATH.exists():
     import base64 as _b64
     LOGO_DATA_URI = "data:image/png;base64," + _b64.b64encode(_LOGO_PATH.read_bytes()).decode()
+
+# Authorized signatory stamp (transparent PNG) — shown above the signature line on PDFs
+_STAMP_PATH = Path("/app/backend/data/signature_stamp.png")
+STAMP_DATA_URI = ""
+if _STAMP_PATH.exists():
+    import base64 as _b64  # noqa: F811
+    STAMP_DATA_URI = "data:image/png;base64," + _b64.b64encode(_STAMP_PATH.read_bytes()).decode()
 
 # HSN / SAC codes
 HSN_SOLAR_PANEL = "8541"
@@ -332,8 +347,9 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .words { margin-top: 3mm; font-size: 10pt; padding: 3mm 4mm; background: #fef3c7; border-left: 4px solid #f59e0b; }
 .footer { margin-top: 6mm; display: flex; justify-content: space-between; gap: 6mm; }
 .footer .bank { flex: 1; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3mm; }
-.footer .sign { flex: 1; text-align: center; padding-top: 18mm; border-top: 1px dashed #94a3b8; }
+.footer .sign { flex: 1; text-align: center; padding-top: 12mm; border-top: 1px dashed #94a3b8; }
 .footer .sign .sig-label { font-weight: bold; color: #0a355e; font-size: 10pt; }
+.footer .sign .stamp { display: block; margin: 2mm auto 0; width: 34mm; height: auto; opacity: 0.95; }
 .badge { display: inline-block; padding: 1mm 3mm; border-radius: 3px; font-size: 9pt; font-weight: bold; }
 .badge.paid { background: #dcfce7; color: #166534; }
 .badge.partial { background: #fef3c7; color: #92400e; }
@@ -409,14 +425,15 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
 
 <div class="footer">
   <div class="bank">
-    <h3 style="margin:0 0 2mm;color:#0a355e;font-size:10pt;">Bank Details (for Direct Transfer)</h3>
+    <h3 style="margin:0 0 2mm;color:#0a355e;font-size:10pt;">{{BANK_HEADING}}</h3>
     <div class="row"><b>Bank:</b> {{BANK_NAME}}</div>
-    <div class="row"><b>A/C Name:</b> {{BUSINESS_NAME}}</div>
+    <div class="row"><b>A/C Name:</b> {{BANK_HOLDER}}</div>
     <div class="row"><b>A/C No:</b> {{BANK_ACC}}</div>
     <div class="row"><b>IFSC:</b> {{BANK_IFSC}}</div>
   </div>
   <div class="sign">
     <div class="sig-label">For {{BUSINESS_NAME}}</div>
+    {{STAMP_IMG}}
     <div style="margin-top:3mm;font-size:9pt;color:#475569;">Authorized Signatory</div>
   </div>
 </div>
@@ -571,9 +588,34 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
         "{{GRAND_TOTAL}}": f"{computed['grand_total']:.2f}",
         "{{AMOUNT_WORDS}}": _esc(doc.get("amount_in_words", "")),
         "{{PAYMENT_SUMMARY}}": payment_summary_html,
-        "{{BANK_NAME}}": _esc(BUSINESS["bank_name"]),
-        "{{BANK_ACC}}": _esc(BUSINESS["bank_account"]),
-        "{{BANK_IFSC}}": _esc(BUSINESS["bank_ifsc"]),
+        # Bank details: PM Surya Ghar invoices/quotations use the dedicated ICICI
+        # account so homeowner subsidy payments route correctly; everyone else
+        # defaults to the regular SBI operating account.
+        "{{BANK_HEADING}}": (
+            "ICICI Bank — PM Surya Ghar Yojana"
+            if (doc.get("scheme") or "").lower() == "pm_surya_ghar"
+            else "Bank Details (for Direct Transfer)"
+        ),
+        "{{BANK_NAME}}": _esc(
+            PMSG_BANK["bank_name"] if (doc.get("scheme") or "").lower() == "pm_surya_ghar"
+            else BUSINESS["bank_name"]
+        ),
+        "{{BANK_ACC}}": _esc(
+            PMSG_BANK["bank_account"] if (doc.get("scheme") or "").lower() == "pm_surya_ghar"
+            else BUSINESS["bank_account"]
+        ),
+        "{{BANK_IFSC}}": _esc(
+            PMSG_BANK["bank_ifsc"] if (doc.get("scheme") or "").lower() == "pm_surya_ghar"
+            else BUSINESS["bank_ifsc"]
+        ),
+        "{{BANK_HOLDER}}": _esc(
+            PMSG_BANK["account_holder"] if (doc.get("scheme") or "").lower() == "pm_surya_ghar"
+            else BUSINESS["name"]
+        ),
+        "{{STAMP_IMG}}": (
+            f'<img src="{STAMP_DATA_URI}" class="stamp" alt="ASR Enterprises Patna — Seal & Signature"/>'
+            if STAMP_DATA_URI else ""
+        ),
         "{{NOTES}}": _esc(doc.get("notes", "")) if doc.get("notes") else "",
     }
     for k, v in mapping.items():

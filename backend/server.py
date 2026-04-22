@@ -8414,7 +8414,41 @@ _Powering Bihar's future with clean energy_ ☀️"""
 
 @api_router.post("/shop/orders")
 async def create_order(order_data: Dict[str, Any]):
-    """Create a new order with Cashfree payment and WhatsApp notification"""
+    """Create a Cashfree payment session for a Shop cart.
+
+    Order is NOT written to `db.orders` here — it's held as a **pending**
+    record in `db.shop_orders_pending` keyed by the Cashfree order id.
+    Once Cashfree confirms payment via webhook (PAID), the Shop order is
+    inserted into `db.orders` and stock is decremented. Pending/failed
+    payments never become real orders.
+
+    Guard rails:
+      • payment_method must be 'online' — COD is no longer accepted.
+      • A verified public OTP (otp_id + otp_verified_phone) is required so
+        the customer's mobile is confirmed before a Cashfree session is
+        spun up, preventing spam / fake orders.
+    """
+    # ---- 1) Payment method gate — COD retired ----
+    payment_method = str(order_data.get("payment_method") or "").lower()
+    if payment_method != "online":
+        raise HTTPException(
+            status_code=400,
+            detail="Cash on Delivery is no longer available. Please choose online payment.",
+        )
+
+    # ---- 2) OTP verification gate ----
+    otp_id = (order_data.get("otp_id") or "").strip()
+    verified_phone = (order_data.get("otp_verified_phone") or order_data.get("customer_phone") or "").strip()
+    try:
+        from routes.public_otp import is_otp_verified as _otp_ok
+    except Exception:
+        _otp_ok = None
+    if not _otp_ok or not otp_id or not await _otp_ok(otp_id, verified_phone):
+        raise HTTPException(
+            status_code=401,
+            detail="Mobile number not verified. Please verify the OTP sent to your WhatsApp/SMS before placing the order.",
+        )
+
     order = Order(
         customer_name=sanitize_input(order_data.get("customer_name", "")),
         customer_phone=sanitize_input(order_data.get("customer_phone", "")),
@@ -8426,166 +8460,136 @@ async def create_order(order_data: Dict[str, Any]):
         delivery_type=order_data.get("delivery_type", "pickup"),
         delivery_address=sanitize_input(order_data.get("delivery_address", "")),
         delivery_district=order_data.get("delivery_district", "Patna"),
-        payment_method=order_data.get("payment_method", "cod"),
+        payment_method="online",
         notes=sanitize_input(order_data.get("notes", ""))
     )
+
+    doc = order.model_dump()
+    doc['created_at'] = doc['created_at'].isoformat()
+    doc['updated_at'] = doc['updated_at'].isoformat()
+    doc['payment_status'] = 'pending'
+
+    cashfree_order_id = None
+    cashfree_session_id = None
+    cashfree_payment_url = None
+
+    try:
+        # Cashfree production credentials — env vars only (see cashfree_orders.py)
+        cf_app_id = os.environ.get("CASHFREE_API_KEY", "")
+        cf_secret = os.environ.get("CASHFREE_SECRET_KEY", "")
+        cf_api_url = "https://api.cashfree.com/pg"
+        if not cf_app_id or not cf_secret:
+            raise HTTPException(
+                status_code=503,
+                detail="Cashfree credentials not configured (CASHFREE_API_KEY / CASHFREE_SECRET_KEY).",
+            )
+
+        cf_order_id = f"SHOP{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{str(uuid.uuid4())[:4].upper()}"
+
+        # Build return URL
+        origin_url = order_data.get("origin_url", "https://asrenterprises.in")
+        return_url = f"{origin_url}/shop?payment_status=success&order_id={cf_order_id}"
+
+        cf_payload = {
+            "order_id": cf_order_id,
+            "order_amount": float(order.total),
+            "order_currency": "INR",
+            "customer_details": {
+                "customer_id": f"CUST_{order.customer_phone[-10:]}",
+                "customer_name": order.customer_name[:50],
+                "customer_phone": order.customer_phone[-10:],
+                "customer_email": order.customer_email or "customer@asrenterprises.in"
+            },
+            "order_meta": {
+                "return_url": return_url,
+                "notify_url": "https://asrenterprises.in/api/cashfree/webhook"
+            },
+            "order_note": f"Shop Order #{order.order_number}"
+        }
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            cf_response = await client.post(
+                f"{cf_api_url}/orders",
+                headers={
+                    "x-client-id": cf_app_id,
+                    "x-client-secret": cf_secret,
+                    "x-api-version": "2023-08-01",
+                    "Content-Type": "application/json"
+                },
+                json=cf_payload
+            )
+
+            if cf_response.status_code in [200, 201]:
+                cf_data = cf_response.json()
+                cashfree_order_id = cf_data.get("order_id", cf_order_id)
+                cashfree_session_id = cf_data.get("payment_session_id", "")
+                cashfree_payment_url = cf_data.get("payment_link", "") or cf_data.get("payments", {}).get("url", "")
+
+                doc['cashfree_order_id'] = cashfree_order_id
+                doc['payment_session_id'] = cashfree_session_id
+                doc['payment_url'] = cashfree_payment_url
+
+                # Persist cashfree_orders row for webhook matching (unchanged behaviour)
+                await db.cashfree_orders.insert_one({
+                    "order_id": cashfree_order_id,
+                    "shop_order_id": order.id,
+                    "shop_order_number": order.order_number,
+                    "customer_name": order.customer_name,
+                    "customer_phone": order.customer_phone,
+                    "customer_email": order.customer_email,
+                    "amount": float(order.total),
+                    "purpose": f"Shop Order #{order.order_number}",
+                    "payment_type": "shop_order",
+                    "status": "active",
+                    "payment_session_id": cashfree_session_id,
+                    "payment_url": cashfree_payment_url,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+
+                # Persist the Shop order as PENDING — NOT in db.orders yet.
+                # Webhook promotes it to db.orders on PAID.
+                await db.shop_orders_pending.insert_one({
+                    **doc,
+                    "pending_id": str(uuid.uuid4()),
+                    "cashfree_order_id": cashfree_order_id,
+                    "otp_id": otp_id,
+                    "otp_verified_phone": verified_phone[-10:],
+                    "status": "awaiting_payment",
+                    "expires_at": (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat(),
+                })
+                logger.info(f"[shop] pending order {order.order_number} ({cashfree_order_id}) — awaiting payment")
+            else:
+                logger.error(f"Cashfree order creation failed: {cf_response.status_code} - {cf_response.text}")
+                raise HTTPException(status_code=500, detail="Payment order creation failed")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Cashfree order creation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Payment order creation failed: {str(e)}")
+
+    # IMPORTANT: Do NOT insert into db.orders here. Stock is NOT decremented
+    # until the webhook confirms successful payment (see _promote_pending_shop_order).
+    return {
+        "success": True,
+        "status": "awaiting_payment",
+        "order": {
+            "id": order.id,
+            "order_number": order.order_number,
+            "customer_name": order.customer_name,
+            "customer_phone": order.customer_phone,
+            "total": order.total,
+            "payment_method": "online",
+            "payment_status": "pending",
+        },
+        "cashfree_order_id": cashfree_order_id,
+        "payment_session_id": cashfree_session_id,
+        "payment_url": cashfree_payment_url,
+    }
     
     doc = order.model_dump()
     doc['created_at'] = doc['created_at'].isoformat()
     doc['updated_at'] = doc['updated_at'].isoformat()
     
-    cashfree_order_id = None
-    cashfree_session_id = None
-    cashfree_payment_url = None
-    
-    # If online payment, create Cashfree order
-    if order.payment_method == "online":
-        try:
-            # Cashfree production credentials — env vars only (see cashfree_orders.py)
-            cf_app_id = os.environ.get("CASHFREE_API_KEY", "")
-            cf_secret = os.environ.get("CASHFREE_SECRET_KEY", "")
-            cf_api_url = "https://api.cashfree.com/pg"
-            if not cf_app_id or not cf_secret:
-                raise HTTPException(
-                    status_code=503,
-                    detail="Cashfree credentials not configured (CASHFREE_API_KEY / CASHFREE_SECRET_KEY).",
-                )
-            
-            cf_order_id = f"SHOP{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}{str(uuid.uuid4())[:4].upper()}"
-            
-            # Build return URL
-            origin_url = order_data.get("origin_url", "https://asrenterprises.in")
-            return_url = f"{origin_url}/shop?payment_status=success&order_id={cf_order_id}"
-            
-            cf_payload = {
-                "order_id": cf_order_id,
-                "order_amount": float(order.total),
-                "order_currency": "INR",
-                "customer_details": {
-                    "customer_id": f"CUST_{order.customer_phone[-10:]}",
-                    "customer_name": order.customer_name[:50],
-                    "customer_phone": order.customer_phone[-10:],
-                    "customer_email": order.customer_email or "customer@asrenterprises.in"
-                },
-                "order_meta": {
-                    "return_url": return_url,
-                    "notify_url": "https://asrenterprises.in/api/cashfree/webhook"
-                },
-                "order_note": f"Shop Order #{order.order_number}"
-            }
-            
-            async with httpx.AsyncClient(timeout=30) as client:
-                cf_response = await client.post(
-                    f"{cf_api_url}/orders",
-                    headers={
-                        "x-client-id": cf_app_id,
-                        "x-client-secret": cf_secret,
-                        "x-api-version": "2023-08-01",
-                        "Content-Type": "application/json"
-                    },
-                    json=cf_payload
-                )
-                
-                if cf_response.status_code in [200, 201]:
-                    cf_data = cf_response.json()
-                    cashfree_order_id = cf_data.get("order_id", cf_order_id)
-                    cashfree_session_id = cf_data.get("payment_session_id", "")
-                    cashfree_payment_url = cf_data.get("payment_link", "") or cf_data.get("payments", {}).get("url", "")
-                    
-                    doc['cashfree_order_id'] = cashfree_order_id
-                    doc['payment_session_id'] = cashfree_session_id
-                    doc['payment_url'] = cashfree_payment_url
-                    doc['payment_status'] = 'pending'
-                    
-                    # Also save to cashfree_orders collection for webhook matching
-                    await db.cashfree_orders.insert_one({
-                        "order_id": cashfree_order_id,
-                        "shop_order_id": order.id,
-                        "shop_order_number": order.order_number,
-                        "customer_name": order.customer_name,
-                        "customer_phone": order.customer_phone,
-                        "customer_email": order.customer_email,
-                        "amount": float(order.total),
-                        "purpose": f"Shop Order #{order.order_number}",
-                        "payment_type": "shop_order",
-                        "status": "active",
-                        "payment_session_id": cashfree_session_id,
-                        "payment_url": cashfree_payment_url,
-                        "created_at": datetime.now(timezone.utc).isoformat()
-                    })
-                    
-                    logger.info(f"Created Cashfree order: {cashfree_order_id} for shop order {order.order_number}")
-                else:
-                    logger.error(f"Cashfree order creation failed: {cf_response.status_code} - {cf_response.text}")
-                    raise HTTPException(status_code=500, detail="Payment order creation failed")
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"Cashfree order creation error: {e}")
-            raise HTTPException(status_code=500, detail=f"Payment order creation failed: {str(e)}")
-    
-    await db.orders.insert_one(doc)
-    
-    # Update product stock
-    for item in order.items:
-        await db.products.update_one(
-            {"id": item.get("product_id")},
-            {"$inc": {"stock": -item.get("quantity", 0)}}
-        )
-    
-    # Generate WhatsApp notification URL for admin
-    admin_phone = "9296389097"
-    whatsapp_message = generate_order_whatsapp_message(order)
-    whatsapp_notification_url = get_whatsapp_url(admin_phone, whatsapp_message)
-    
-    customer_confirmation_message = generate_customer_order_confirmation(order, is_payment_confirmed=(order.payment_method == "cod"))
-    customer_whatsapp_url = get_whatsapp_url(order.customer_phone, customer_confirmation_message)
-    
-    # Add CRM notification
-    try:
-        crm_message = CRMMessage(
-            sender_id="system",
-            sender_name="ASR Solar Hub",
-            sender_type="system",
-            receiver_id="admin",
-            receiver_name="Admin",
-            message=f"🛒 New Order #{order.order_number} from {order.customer_name} - ₹{order.total:,.0f} ({order.payment_method.upper()})"
-        )
-        msg_doc = crm_message.model_dump()
-        msg_doc['timestamp'] = msg_doc['timestamp'].isoformat()
-        await db.crm_messages.insert_one(msg_doc)
-    except Exception as e:
-        logger.error(f"Failed to create CRM notification for order: {e}")
-    
-    # Auto-send WhatsApp order confirmation ONLY for COD orders.
-    # For online payment orders, WhatsApp is sent after Cashfree payment is verified.
-    whatsapp_sent = False
-    if order.payment_method == "cod":
-        try:
-            order_data_for_whatsapp = {
-                "order_number": order.order_number,
-                "customer_name": order.customer_name,
-                "items": order.items,
-                "total": order.total,
-                "delivery_type": order.delivery_type,
-                "delivery_address": order.delivery_address
-            }
-            whatsapp_sent = await send_whatsapp_order_confirmation(order.customer_phone, order_data_for_whatsapp)
-        except Exception as e:
-            logger.error(f"Failed to send WhatsApp order confirmation: {e}")
-    
-    return {
-        "status": "success", 
-        "order": order,
-        "order_number": order.order_number,
-        "cashfree_order_id": cashfree_order_id,
-        "payment_session_id": cashfree_session_id,
-        "payment_url": cashfree_payment_url,
-        "whatsapp_notification_url": whatsapp_notification_url,
-        "customer_whatsapp_url": customer_whatsapp_url,
-        "whatsapp_auto_sent": whatsapp_sent
-    }
-
 @api_router.post("/shop/cashfree-verify")
 async def verify_cashfree_shop_payment(data: Dict[str, Any]):
     """Verify Cashfree payment for shop order after redirect return"""

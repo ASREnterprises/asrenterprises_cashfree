@@ -7,7 +7,7 @@ import {
   Package, CheckCircle, AlertCircle, Loader2, Search, Eye, Cable,
   Star, Shield, Clock, Tag, Share2, ArrowUpDown, Copy, Mail,
   Facebook, MapPinCheck, Heart, Filter, ChevronDown, ExternalLink,
-  Sparkles, BadgePercent, ThumbsUp, Phone
+  Sparkles, BadgePercent, ThumbsUp, Phone, ShieldCheck, Lock
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -67,9 +67,19 @@ export const ShopPage = () => {
     delivery_type: "pickup",
     delivery_address: "",
     delivery_district: "Patna",
-    payment_method: "cod",
+    payment_method: "online",
     notes: ""
   });
+
+  // ---- Checkout OTP (gate before order placement) ----
+  const [otpStep, setOtpStep] = useState(false);       // shows OTP input panel
+  const [otpId, setOtpId] = useState("");              // server-issued otp session id
+  const [otpCode, setOtpCode] = useState("");
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpVerifying, setOtpVerifying] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [otpResendTimer, setOtpResendTimer] = useState(0);
 
   useEffect(() => {
     fetchProducts();
@@ -239,17 +249,84 @@ export const ShopPage = () => {
     : 0;
   const grandTotal = cartTotal + deliveryFee;
 
+  // ---- OTP helpers ----
+  useEffect(() => {
+    if (otpResendTimer > 0) {
+      const t = setTimeout(() => setOtpResendTimer(otpResendTimer - 1), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [otpResendTimer]);
+
+  // Reset OTP state whenever the phone number changes so a previously-verified
+  // OTP can't be reused for a different mobile.
+  useEffect(() => {
+    setOtpStep(false);
+    setOtpId("");
+    setOtpCode("");
+    setOtpVerified(false);
+    setOtpError("");
+  }, [checkoutData.customer_phone]);
+
+  const sendCheckoutOtp = async () => {
+    const phone = (checkoutData.customer_phone || "").replace(/\D/g, "").slice(-10);
+    const name = (checkoutData.customer_name || "").trim();
+    if (phone.length !== 10 || !/^[6789]/.test(phone)) { setOtpError("Please enter a valid 10-digit Indian mobile."); return; }
+    if (!name) { setOtpError("Please enter your name first."); return; }
+    setOtpSending(true); setOtpError("");
+    try {
+      const r = await axios.post(`${API}/public/otp/send`, { name, phone, purpose: "shop_order" });
+      setOtpId(r.data.otp_id);
+      setOtpStep(true);
+      setOtpResendTimer(60);
+    } catch (err) {
+      setOtpError(err?.response?.data?.detail || err.message || "Failed to send OTP");
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const verifyCheckoutOtp = async () => {
+    if (!otpId || otpCode.length !== 6) { setOtpError("Enter the 6-digit OTP"); return; }
+    const phone10 = (checkoutData.customer_phone || "").replace(/\D/g, "").slice(-10);
+    setOtpVerifying(true); setOtpError("");
+    try {
+      await axios.post(`${API}/public/otp/verify`, { otp_id: otpId, phone: phone10, otp: otpCode });
+      setOtpVerified(true);
+      setOtpError("");
+    } catch (err) {
+      setOtpError(err?.response?.data?.detail || "Invalid OTP. Please try again.");
+    } finally {
+      setOtpVerifying(false);
+    }
+  };
+
   const handleCheckout = async () => {
     if (!checkoutData.customer_name || !checkoutData.customer_phone) { alert("Please fill name and phone"); return; }
     if (checkoutData.delivery_type === "delivery" && !checkoutData.delivery_address) { alert("Please enter delivery address"); return; }
+    if (!otpVerified || !otpId) { setOtpError("Please verify your mobile with OTP first."); setOtpStep(true); return; }
     setPlacingOrder(true);
     try {
-      const orderData = { ...checkoutData, items: cart, subtotal: cartTotal, delivery_charge: deliveryFee, total: grandTotal, origin_url: window.location.origin };
+      const orderData = {
+        ...checkoutData,
+        payment_method: "online",
+        items: cart,
+        subtotal: cartTotal,
+        delivery_charge: deliveryFee,
+        total: grandTotal,
+        origin_url: window.location.origin,
+        otp_id: otpId,
+        otp_verified_phone: checkoutData.customer_phone.replace(/\D/g, "").slice(-10),
+      };
       const res = await axios.post(`${API}/shop/orders`, orderData);
       const orderId = res.data.order?.id;
       const paymentSessionId = res.data.payment_session_id;
-      
-      if (checkoutData.payment_method === "online" && paymentSessionId) {
+
+      // Always online now (COD removed). We MUST have a paymentSessionId.
+      if (!paymentSessionId) {
+        alert("Could not start payment. Please try again.");
+        setPlacingOrder(false);
+        return;
+      }
         // Backend stores the order in cashfree_orders by cf order_id, so
         // /api/cashfree/pay/<cf_order_id> serves a hosted checkout page that
         // works as a reliable fallback if the in-page SDK fails to launch.
@@ -296,15 +373,10 @@ export const ShopPage = () => {
           goHosted(paymentErr && paymentErr.message);
           return;
         }
-      }
-      setOrderSuccess(res.data);
-      setCart([]);
-      localStorage.removeItem("asr_cart");
-      setShowCheckout(false);
-      setPlacingOrder(false);
     } catch (err) {
       console.error("Order error:", err);
-      alert("Failed to place order. Please try again.");
+      const detail = err?.response?.data?.detail || "Failed to place order. Please try again.";
+      alert(detail);
       setPlacingOrder(false);
     }
   };
@@ -769,19 +841,66 @@ export const ShopPage = () => {
               {/* Payment */}
               <div>
                 <h3 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">Payment</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setCheckoutData({...checkoutData, payment_method: "cod"})}
-                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.payment_method === "cod" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`} data-testid="payment-cod">
-                    <Banknote className="w-6 h-6 text-green-600 mx-auto mb-1" />
-                    <p className="text-sm font-semibold text-gray-800">Cash on {checkoutData.delivery_type === "pickup" ? "Store" : "Delivery"}</p>
-                  </button>
-                  <button onClick={() => setCheckoutData({...checkoutData, payment_method: "online"})}
-                    className={`p-4 rounded-lg border-2 transition text-center ${checkoutData.payment_method === "online" ? "border-amber-500 bg-amber-50" : "border-gray-200 hover:border-gray-300"}`} data-testid="payment-online">
-                    <CreditCard className="w-6 h-6 text-blue-500 mx-auto mb-1" />
-                    <p className="text-sm font-semibold text-gray-800">Pay Online</p>
-                    <p className="text-[10px] text-gray-500">UPI / Card / Net Banking</p>
-                  </button>
+                <div className="p-4 rounded-lg border-2 border-amber-500 bg-amber-50 flex items-center gap-3" data-testid="payment-online">
+                  <CreditCard className="w-7 h-7 text-blue-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-800">Pay Online</p>
+                    <p className="text-[11px] text-gray-600">UPI / Card / Net Banking · Secure Cashfree checkout</p>
+                  </div>
                 </div>
+                <p className="text-[11px] text-gray-500 mt-2 flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Cash on Delivery is no longer available. Your order is confirmed only after successful payment.
+                </p>
+              </div>
+
+              {/* Mobile OTP verification gate — mandatory before placing the order */}
+              <div className="border-2 border-dashed rounded-lg p-4 space-y-2"
+                style={{ borderColor: otpVerified ? "#10B981" : "#F59E0B", background: otpVerified ? "#ECFDF5" : "#FFFBEB" }}
+                data-testid="shop-otp-gate">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className={`w-5 h-5 ${otpVerified ? "text-emerald-600" : "text-amber-600"}`} />
+                  <p className={`text-sm font-bold ${otpVerified ? "text-emerald-700" : "text-amber-700"}`}>
+                    {otpVerified ? "Mobile Verified" : "Verify Mobile Before Payment"}
+                  </p>
+                </div>
+                {!otpVerified && !otpStep && (
+                  <button
+                    type="button"
+                    onClick={sendCheckoutOtp}
+                    disabled={otpSending || !checkoutData.customer_phone || !checkoutData.customer_name}
+                    className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white py-2.5 rounded-md font-semibold text-sm"
+                    data-testid="shop-otp-send-btn"
+                  >
+                    {otpSending ? "Sending…" : `Send OTP to +91 ${(checkoutData.customer_phone || "").slice(-10) || "••••••••••"}`}
+                  </button>
+                )}
+                {!otpVerified && otpStep && (
+                  <div className="space-y-2">
+                    <input
+                      type="tel" inputMode="numeric" maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="Enter 6-digit OTP"
+                      className="w-full px-3 py-2 border border-amber-300 rounded-md text-base tracking-widest text-center font-mono focus:border-amber-500 focus:outline-none"
+                      data-testid="shop-otp-code-input"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button" onClick={verifyCheckoutOtp} disabled={otpVerifying || otpCode.length !== 6}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white py-2 rounded-md font-semibold text-sm"
+                        data-testid="shop-otp-verify-btn">
+                        {otpVerifying ? "Verifying…" : "Verify"}
+                      </button>
+                      <button
+                        type="button" onClick={sendCheckoutOtp} disabled={otpResendTimer > 0 || otpSending}
+                        className="px-3 py-2 text-sm font-semibold text-amber-700 disabled:text-gray-400"
+                        data-testid="shop-otp-resend-btn">
+                        {otpResendTimer > 0 ? `Resend in ${otpResendTimer}s` : "Resend"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {otpError && <p className="text-xs text-red-600" data-testid="shop-otp-error">{otpError}</p>}
               </div>
               {/* Notes */}
               <textarea placeholder="Order Notes (Optional)" value={checkoutData.notes} onChange={(e) => setCheckoutData({...checkoutData, notes: e.target.value})} rows={2} className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm text-gray-800 focus:border-amber-500 focus:outline-none" />
@@ -797,10 +916,11 @@ export const ShopPage = () => {
                   <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t"><span>Total</span><span className="text-amber-600">₹{grandTotal.toLocaleString()}</span></div>
                 </div>
               </div>
-              <button onClick={handleCheckout} disabled={placingOrder}
+              <button onClick={handleCheckout} disabled={placingOrder || !otpVerified}
                 className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white py-4 rounded-lg font-bold text-base transition shadow-lg flex items-center justify-center gap-2"
                 data-testid="place-order-btn"
-              >{placingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />} {placingOrder ? "Processing..." : `Pay ₹${grandTotal.toLocaleString()}`}</button>
+                title={!otpVerified ? "Please verify your mobile with OTP first" : ""}
+              >{placingOrder ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />} {placingOrder ? "Processing..." : (otpVerified ? `Pay ₹${grandTotal.toLocaleString()}` : "Verify Mobile First")}</button>
             </div>
           </div>
         </div>

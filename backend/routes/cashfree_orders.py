@@ -1649,6 +1649,38 @@ async def _mark_order_paid(
     # after Cashfree confirmed the UPI payment.
     shop_order_synced = False
     if ptype == "shop_order" or order.get("shop_order_id"):
+        # NEW: Promote `shop_orders_pending` → `db.orders` if present. The shop
+        # checkout flow now holds an order as pending until Cashfree confirms
+        # payment; if we find it here, materialise the real order, decrement
+        # stock, and clean up the pending record.
+        try:
+            pending = await db.shop_orders_pending.find_one({"cashfree_order_id": order_id}, {"_id": 0, "pending_id": 0, "expires_at": 0})
+            if pending:
+                pending.pop("otp_id", None)
+                pending.pop("otp_verified_phone", None)
+                pending["payment_status"] = "paid"
+                pending["payment_received_at"] = payment_time
+                pending["cashfree_payment_id"] = cf_payment_id
+                pending["payment_amount_received"] = float(payment_amount)
+                pending["payment_method"] = payment_method
+                pending["status"] = "confirmed"
+                pending["updated_at"] = received_at
+                await db.orders.update_one(
+                    {"id": pending["id"]},
+                    {"$set": pending},
+                    upsert=True,
+                )
+                # Decrement stock now that the order is real.
+                for item in pending.get("items", []):
+                    await db.products.update_one(
+                        {"id": item.get("product_id")},
+                        {"$inc": {"stock": -int(item.get("quantity", 0))}},
+                    )
+                await db.shop_orders_pending.delete_one({"cashfree_order_id": order_id})
+                logger.info(f"[{source}] Promoted shop order pending→orders: {pending.get('order_number')}")
+        except Exception as promote_err:
+            logger.error(f"[{source}] Shop order promotion failed for {order_id}: {promote_err}")
+
         try:
             shop_update = {
                 "payment_status": "paid",
@@ -1665,6 +1697,8 @@ async def _mark_order_paid(
             if match_query.get("id") or match_query.get("order_number"):
                 shop_result = await db.shop_orders.update_one(match_query, {"$set": shop_update})
                 shop_order_synced = shop_result.modified_count > 0 or shop_result.matched_count > 0
+                # Also ensure db.orders (the actual shop collection) is paid
+                await db.orders.update_one(match_query, {"$set": shop_update})
                 if shop_order_synced:
                     logger.info(
                         f"[{source}] Shop order synced: shop_id={shop_id} "

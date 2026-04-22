@@ -13317,6 +13317,7 @@ async def get_staff_leaderboard():
 class CustomerRegistration(BaseModel):
     mobile: str
     name: str
+    customer_type: str = "residential"  # residential | commercial
     address: str = ""
     district: str = ""
     installation_date: str = ""
@@ -13346,10 +13347,27 @@ async def get_all_customers(request: Request):
 
 @api_router.post("/admin/customers")
 async def create_customer(request: Request, data: CustomerRegistration):
-    """Register a new customer (admin only)"""
+    """Register a new customer (admin only).
+
+    - customer_type must be 'residential' or 'commercial'.
+    - Residential customers are treated as PM Surya Ghar Yojana beneficiaries,
+      so `application_id` (PM Surya Ghar Application ID) is mandatory.
+    """
     mobile_clean = data.mobile.replace(" ", "").replace("+", "")[-10:]
     if len(mobile_clean) != 10 or not mobile_clean.isdigit():
         raise HTTPException(status_code=400, detail="Invalid mobile number")
+
+    customer_type = (data.customer_type or "residential").strip().lower()
+    if customer_type not in ("residential", "commercial"):
+        raise HTTPException(status_code=400, detail="customer_type must be 'residential' or 'commercial'")
+
+    app_id_clean = sanitize_input((data.application_id or "").strip())
+    if customer_type == "residential" and not app_id_clean:
+        raise HTTPException(
+            status_code=400,
+            detail="PM Surya Ghar Application ID is mandatory for Residential customers"
+        )
+
     existing = await db.customers.find_one({"mobile": mobile_clean})
     if existing:
         raise HTTPException(status_code=409, detail="Customer with this mobile number already registered")
@@ -13357,10 +13375,12 @@ async def create_customer(request: Request, data: CustomerRegistration):
         "id": str(uuid.uuid4()),
         "mobile": mobile_clean,
         "name": sanitize_input(data.name),
+        "customer_type": customer_type,
+        "scheme": "PM Surya Ghar Yojana" if customer_type == "residential" else "Commercial",
         "address": sanitize_input(data.address),
         "district": sanitize_input(data.district),
         "installation_date": data.installation_date,
-        "application_id": sanitize_input(data.application_id),
+        "application_id": app_id_clean,
         "application_status": data.application_status,
         "subsidy_amount": data.subsidy_amount,
         "subsidy_status": data.subsidy_status,
@@ -13382,12 +13402,34 @@ async def create_customer(request: Request, data: CustomerRegistration):
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.customers.insert_one(doc)
+    doc.pop("_id", None)
     return {"success": True, "customer": doc}
 
 @api_router.put("/admin/customers/{customer_id}")
 async def update_customer(request: Request, customer_id: str, data: Dict[str, Any]):
     """Update customer details (admin only)"""
     update_fields = {k: v for k, v in data.items() if k not in ["_id", "id", "mobile", "created_at"]}
+
+    # Load the existing doc to resolve the effective customer_type & application_id
+    existing = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    new_type = str(update_fields.get("customer_type", existing.get("customer_type", "residential"))).strip().lower()
+    if new_type not in ("residential", "commercial"):
+        raise HTTPException(status_code=400, detail="customer_type must be 'residential' or 'commercial'")
+    update_fields["customer_type"] = new_type
+
+    effective_app_id = str(update_fields.get("application_id", existing.get("application_id", "") or "")).strip()
+    if new_type == "residential" and not effective_app_id:
+        raise HTTPException(
+            status_code=400,
+            detail="PM Surya Ghar Application ID is mandatory for Residential customers"
+        )
+
+    # Keep scheme field in sync with the customer type
+    update_fields["scheme"] = "PM Surya Ghar Yojana" if new_type == "residential" else "Commercial"
+
     update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = await db.customers.update_one({"id": customer_id}, {"$set": update_fields})
     if result.matched_count == 0:
@@ -13426,76 +13468,15 @@ async def update_customer_portal_settings(request: Request, data: Dict[str, Any]
 
 @api_router.post("/customer/register")
 async def customer_register(request: Request, data: Dict[str, Any]):
-    """Public self-service customer registration.
-    
-    Creates a new customer record so the customer can immediately log in
-    via OTP. Minimal required fields: name + mobile. Additional fields
-    (district, address, installation/system details) are optional and
-    can be filled in later by the customer or admin.
+    """DEPRECATED: Customer self-registration is disabled.
+
+    Customers must be onboarded by an Admin from the Customer Management panel.
+    The Customer Portal login page no longer exposes this endpoint in the UI.
     """
-    name = sanitize_input((data.get("name") or "").strip())
-    mobile = (data.get("mobile") or "").replace(" ", "").replace("+", "").replace("-", "")
-    mobile_clean = mobile[-10:] if len(mobile) >= 10 else mobile
-    if not name or len(name) < 2:
-        raise HTTPException(status_code=400, detail="Please enter your full name")
-    if len(mobile_clean) != 10 or not mobile_clean.isdigit() or not PHONE_PATTERN.match(mobile_clean):
-        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
-    
-    # Block duplicate registrations — the customer should log in instead
-    existing = await db.customers.find_one({"mobile": mobile_clean}, {"_id": 0, "name": 1})
-    if existing:
-        raise HTTPException(
-            status_code=409,
-            detail="This mobile is already registered. Please login with OTP instead."
-        )
-    
-    now_iso = datetime.now(timezone.utc).isoformat()
-    doc = {
-        "id": str(uuid.uuid4()),
-        "mobile": mobile_clean,
-        "name": name,
-        "email": sanitize_input((data.get("email") or "").strip().lower()),
-        "address": sanitize_input((data.get("address") or "").strip()),
-        "district": sanitize_input((data.get("district") or "").strip()),
-        "installation_date": "",
-        "application_id": "",
-        "application_status": "pending",
-        "subsidy_amount": 0.0,
-        "subsidy_status": "pending",
-        "subsidy_credited_date": "",
-        "system_capacity_kw": 0.0,
-        "solar_brand": "",
-        "inverter_brand": "",
-        "panels_count": 0,
-        "panel_warranty_years": 25,
-        "inverter_warranty_years": 5,
-        "installation_warranty_years": 1,
-        "total_cost": 0.0,
-        "amount_paid": 0.0,
-        "payment_status": "pending",
-        "net_metering_status": "not_applied",
-        "notes": "Self-registered via Customer Portal",
-        "service_requests": [],
-        "self_registered": True,
-        "created_at": now_iso,
-        "updated_at": now_iso,
-    }
-    await db.customers.insert_one(doc)
-    logger.info(f"✅ New customer self-registered: {name} ({_mask_phone(mobile_clean)})")
-    
-    # Trigger OTP so UX flows straight into verification after registration
-    try:
-        await _send_otp_impl({"mobile": mobile_clean})
-    except Exception as _e:
-        logger.warning(f"OTP send after customer register failed (non-blocking): {_e}")
-    
-    return {
-        "success": True,
-        "message": "Registered successfully. An OTP has been sent to your mobile.",
-        "customer_id": doc["id"],
-        "mobile": mobile_clean,
-        "name": name,
-    }
+    raise HTTPException(
+        status_code=403,
+        detail="Self-registration is disabled. Please contact ASR Enterprises to register as a customer."
+    )
 
 
 @api_router.post("/customer/send-otp")

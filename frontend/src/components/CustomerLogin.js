@@ -1,17 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { Sun, Phone, ArrowRight, Loader2, CheckCircle, RefreshCw, ShieldCheck, Zap, Star, UserPlus, User, MapPin } from "lucide-react";
+import { Phone, ArrowRight, Loader2, CheckCircle, RefreshCw, ShieldCheck, Zap, Star, Info } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const BIHAR_DISTRICTS = [
-  "Patna","Gaya","Bhagalpur","Muzaffarpur","Purnia","Darbhanga","Bihar Sharif","Arrah","Begusarai","Katihar","Munger","Chhapra","Saharsa","Sasaram","Hajipur","Dehri","Siwan","Motihari","Nawada","Bagaha","Buxar","Kishanganj","Sitamarhi","Jamalpur","Jehanabad","Aurangabad","Samastipur","Madhubani","Vaishali","Nalanda","Rohtas","Saran","East Champaran","West Champaran"
-];
-
 export const CustomerLogin = () => {
-  // mode: "login" (existing mobile -> OTP) or "register" (new customer)
-  const [mode, setMode] = useState("login");
   const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [step, setStep] = useState("mobile"); // mobile | otp
@@ -20,12 +14,6 @@ export const CustomerLogin = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
-
-  // Registration fields
-  const [regName, setRegName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regDistrict, setRegDistrict] = useState("");
-  const [regAddress, setRegAddress] = useState("");
 
   const otpRefs = useRef([]);
   const navigate = useNavigate();
@@ -53,7 +41,6 @@ export const CustomerLogin = () => {
     }
   };
 
-  // LOGIN: send OTP to existing mobile
   const handleSendOtp = async () => {
     const cleaned = cleanMobile();
     if (cleaned.length !== 10) { setError("Please enter a valid 10-digit mobile number"); return; }
@@ -65,41 +52,12 @@ export const CustomerLogin = () => {
       setResendTimer(60);
       setTimeout(() => otpRefs.current[0]?.focus(), 300);
     } catch (err) {
-      // If customer not registered → offer registration
       const msg = err.response?.data?.detail || "Failed to send OTP.";
       if (err.response?.status === 404) {
-        setError("This mobile is not registered. Please use 'Register as New Customer' below.");
+        setError("This mobile is not registered. Please contact ASR Enterprises to get your customer account created.");
       } else {
         setError(msg);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // REGISTER: create customer, server also sends OTP
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    const cleaned = cleanMobile();
-    if (!regName || regName.trim().length < 2) { setError("Please enter your full name"); return; }
-    if (cleaned.length !== 10) { setError("Please enter a valid 10-digit mobile number"); return; }
-    setLoading(true); setError(""); setSuccess("");
-    try {
-      await axios.post(`${API}/customer/register`, {
-        name: regName.trim(),
-        mobile: cleaned,
-        email: regEmail.trim(),
-        district: regDistrict,
-        address: regAddress.trim(),
-      });
-      setMode("login");
-      setStep("otp");
-      setSuccess(`Welcome ${regName}! OTP sent to +91 ${cleaned.slice(0, 2)}XXXXXXXX${cleaned.slice(-2)}`);
-      setResendTimer(60);
-      setTimeout(() => otpRefs.current[0]?.focus(), 300);
-    } catch (err) {
-      const msg = err.response?.data?.detail || "Registration failed. Please try again.";
-      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -158,26 +116,20 @@ export const CustomerLogin = () => {
                 <div className="text-xs text-[#0369A1]">Customer Portal</div>
               </div>
             </Link>
-            <h1 className="text-2xl font-bold text-[#073B4C] mb-1">
-              {mode === "register" ? "Register as New Customer" : "Customer Login"}
-            </h1>
-            <p className="text-slate-500 text-sm">
-              {mode === "register" ? "Create your customer account in 30 seconds" : "Access your solar installation dashboard"}
-            </p>
+            <h1 className="text-2xl font-bold text-[#073B4C] mb-1">Customer Login</h1>
+            <p className="text-slate-500 text-sm">Access your solar installation dashboard</p>
           </div>
 
           <div className="bg-white rounded-3xl shadow-xl border border-sky-100 p-8">
-            {/* === MODE SWITCHER === */}
             {step === "mobile" && (
-              <div className="flex gap-2 mb-6 p-1 bg-slate-100 rounded-xl" data-testid="customer-mode-switch">
-                <button data-testid="customer-login-tab" onClick={() => { setMode("login"); setError(""); setSuccess(""); }} className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${mode === "login" ? "bg-white text-[#0369A1] shadow" : "text-slate-500"}`}>Existing Customer</button>
-                <button data-testid="customer-register-tab" onClick={() => { setMode("register"); setError(""); setSuccess(""); }} className={`flex-1 py-2 rounded-lg text-sm font-semibold transition ${mode === "register" ? "bg-white text-[#0369A1] shadow" : "text-slate-500"}`}>New Customer</button>
-              </div>
-            )}
-
-            {/* ===== LOGIN FLOW ===== */}
-            {step === "mobile" && mode === "login" && (
               <div data-testid="customer-login-form">
+                <div className="mb-5 flex items-start gap-2 bg-sky-50 border border-sky-100 rounded-xl px-3.5 py-2.5" data-testid="customer-admin-only-notice">
+                  <Info className="w-4 h-4 text-[#0369A1] flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-[#0369A1] leading-relaxed">
+                    Only customers registered by ASR Enterprises can log in. If you don't have an account yet, please contact our team to get registered.
+                  </p>
+                </div>
+
                 <label className="block text-sm font-semibold text-[#073B4C] mb-2">Registered Mobile Number</label>
                 <div className="relative mb-4">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0369A1]" />
@@ -206,56 +158,6 @@ export const CustomerLogin = () => {
               </div>
             )}
 
-            {/* ===== REGISTRATION FLOW ===== */}
-            {step === "mobile" && mode === "register" && (
-              <form onSubmit={handleRegister} className="space-y-4" data-testid="customer-register-form">
-                <div>
-                  <label className="block text-sm font-semibold text-[#073B4C] mb-2">Full Name *</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0369A1]" />
-                    <input data-testid="reg-name-input" value={regName} onChange={e => { setRegName(e.target.value); setError(""); }} placeholder="e.g. Anamika Rathod" className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0369A1] text-[#073B4C]" required />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[#073B4C] mb-2">Mobile Number *</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0369A1]" />
-                    <div className="absolute left-11 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium border-r border-slate-200 pr-2">+91</div>
-                    <input data-testid="reg-mobile-input" type="tel" value={mobile} onChange={e => { setMobile(e.target.value.replace(/\D/g, "").slice(0, 10)); setError(""); }} placeholder="10-digit mobile" maxLength={10} className="w-full pl-24 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0369A1] text-[#073B4C]" required />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[#073B4C] mb-2">Email (optional)</label>
-                  <input data-testid="reg-email-input" type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="you@example.com" className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0369A1] text-[#073B4C]" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[#073B4C] mb-2">District (optional)</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0369A1]" />
-                    <select data-testid="reg-district-select" value={regDistrict} onChange={e => setRegDistrict(e.target.value)} className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0369A1] text-[#073B4C] bg-white">
-                      <option value="">Select your district</option>
-                      {BIHAR_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[#073B4C] mb-2">Address (optional)</label>
-                  <textarea data-testid="reg-address-input" value={regAddress} onChange={e => setRegAddress(e.target.value)} placeholder="House, street, landmark" rows={2} className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0369A1] text-[#073B4C]" />
-                </div>
-
-                {error && <div data-testid="customer-register-error" className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{error}</div>}
-
-                <button data-testid="customer-register-submit" type="submit" disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3.5 rounded-xl font-bold text-base flex items-center justify-center gap-2 hover:shadow-lg transition disabled:opacity-50">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><UserPlus className="w-5 h-5" /> Register & Send OTP</>}
-                </button>
-              </form>
-            )}
-
-            {/* ===== OTP VERIFY ===== */}
             {step === "otp" && (
               <div data-testid="customer-otp-form">
                 <div className="text-center mb-6">
@@ -290,8 +192,8 @@ export const CustomerLogin = () => {
           </div>
 
           <p className="text-center text-xs text-slate-400 mt-6">
-            Need help?{" "}
-            <a href="https://wa.me/918298389097?text=Hello%2C%20I%20need%20help%20with%20customer%20registration" target="_blank" rel="noopener noreferrer" className="text-[#0369A1] font-medium underline">Chat with ASR Enterprises on WhatsApp</a>
+            Not registered yet?{" "}
+            <a href="https://wa.me/918298389097?text=Hello%2C%20I%20want%20to%20register%20as%20a%20customer%20with%20ASR%20Enterprises" target="_blank" rel="noopener noreferrer" className="text-[#0369A1] font-medium underline" data-testid="customer-contact-whatsapp">Contact ASR Enterprises on WhatsApp</a>
           </p>
           <p className="text-center text-xs text-slate-400 mt-2">
             <Link to="/" className="hover:text-[#0369A1] transition">← Back to Website</Link>

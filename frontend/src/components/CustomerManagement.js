@@ -17,7 +17,8 @@ const STATUS_OPTIONS = {
 };
 
 const EMPTY_FORM = {
-  mobile: "", name: "", address: "", district: "",
+  mobile: "", name: "", customer_type: "residential",
+  address: "", district: "",
   installation_date: "", application_id: "",
   application_status: "pending", subsidy_amount: 0, subsidy_status: "pending",
   subsidy_credited_date: "", system_capacity_kw: 0, solar_brand: "",
@@ -97,6 +98,13 @@ export const CustomerManagement = () => {
     if (!form.name.trim()) { setError("Customer name is required"); return; }
     if (!editingCustomer && (!form.mobile || form.mobile.replace(/\D/g, "").length !== 10)) {
       setError("Valid 10-digit mobile number is required"); return;
+    }
+    if (!["residential", "commercial"].includes(form.customer_type)) {
+      setError("Please select a valid customer type (Residential / Commercial)"); return;
+    }
+    if (form.customer_type === "residential" && !String(form.application_id || "").trim()) {
+      setError("PM Surya Ghar Application ID is mandatory for Residential customers");
+      return;
     }
     setSaving(true);
     setError("");
@@ -240,6 +248,11 @@ export const CustomerManagement = () => {
                   </div>
 
                   <div className="px-4 pb-3 flex flex-wrap gap-2">
+                    {c.customer_type && (
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${c.customer_type === "commercial" ? "bg-indigo-100 text-indigo-700" : "bg-sky-100 text-sky-700"}`} data-testid={`cust-type-badge-${c.id}`}>
+                        {c.customer_type === "commercial" ? "Commercial" : "Residential · PM Surya Ghar"}
+                      </span>
+                    )}
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[c.application_status] || "bg-slate-100 text-slate-500"}`}>{c.application_status}</span>
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[c.subsidy_status] || "bg-slate-100 text-slate-500"}`}>Subsidy: {c.subsidy_status}</span>
                     {c.system_capacity_kw > 0 && <span className="text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700">{c.system_capacity_kw} kW</span>}
@@ -358,10 +371,24 @@ export const CustomerManagement = () => {
 
             <div className="px-6 py-5 grid sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
               <FormField label="Full Name" required>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputCls} placeholder="Customer name" />
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className={inputCls} placeholder="Customer name" data-testid="cust-name-input" />
               </FormField>
               <FormField label="Mobile Number" required>
-                <input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })} className={inputCls} placeholder="10-digit mobile" disabled={!!editingCustomer} />
+                <input value={form.mobile} onChange={e => setForm({ ...form, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) })} className={inputCls} placeholder="10-digit mobile" disabled={!!editingCustomer} data-testid="cust-mobile-input" />
+              </FormField>
+              <FormField label="Customer Type" required>
+                <select
+                  data-testid="cust-type-select"
+                  value={form.customer_type}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setForm({ ...form, customer_type: v });
+                  }}
+                  className={inputCls}
+                >
+                  <option value="residential">Residential (PM Surya Ghar Yojana)</option>
+                  <option value="commercial">Commercial</option>
+                </select>
               </FormField>
               <FormField label="Address">
                 <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className={inputCls} placeholder="Full address" />
@@ -375,8 +402,17 @@ export const CustomerManagement = () => {
               <FormField label="Installation Date">
                 <input type="date" value={form.installation_date} onChange={e => setForm({ ...form, installation_date: e.target.value })} className={inputCls} />
               </FormField>
-              <FormField label="PM Surya Ghar Application ID">
-                <input value={form.application_id} onChange={e => setForm({ ...form, application_id: e.target.value })} className={inputCls} placeholder="Application ID from portal" />
+              <FormField label="PM Surya Ghar Application ID" required={form.customer_type === "residential"}>
+                <input
+                  data-testid="cust-app-id-input"
+                  value={form.application_id}
+                  onChange={e => setForm({ ...form, application_id: e.target.value })}
+                  className={inputCls}
+                  placeholder={form.customer_type === "residential" ? "Mandatory for Residential" : "Optional for Commercial"}
+                />
+                {form.customer_type === "residential" && (
+                  <p className="text-[11px] text-amber-600 mt-1">Residential customers must have a PM Surya Ghar Application ID.</p>
+                )}
               </FormField>
               <FormField label="Application Status">
                 <select value={form.application_status} onChange={e => setForm({ ...form, application_status: e.target.value })} className={inputCls}>

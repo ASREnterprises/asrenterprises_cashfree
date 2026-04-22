@@ -400,10 +400,10 @@ export const CustomerManagement = () => {
                   className={inputCls}
                 >
                   <option value="">Current (Full EPC — 90/10 @ 5%+18%)</option>
-                  <option value="legacy_2025_12">Legacy 2025 (flat 12%)</option>
+                  <option value="flat_5">Solar Project — Flat 5%</option>
                 </select>
-                {form.gst_mode === "legacy_2025_12" && (
-                  <p className="text-[11px] text-amber-600 mt-1">Invoice will be generated with a flat 12% GST line — use this only for installations completed in 2025 when 12% was the single slab.</p>
+                {form.gst_mode === "flat_5" && (
+                  <p className="text-[11px] text-amber-600 mt-1">Invoice will be generated with a single 5% GST line instead of the 90/10 split.</p>
                 )}
               </FormField>
               <FormField label="Address">

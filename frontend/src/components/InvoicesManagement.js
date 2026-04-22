@@ -11,10 +11,12 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const PROJECT_TYPES = [
   { value: "solar_project", label: "Solar Project (Full EPC — 90/10 split @ 5%+18%)" },
-  { value: "solar_project_2025_12", label: "Solar Project — Legacy 2025 (flat 12% GST)" },
+  { value: "solar_project_flat_5", label: "Solar Project — Flat 5%" },
   { value: "solar_goods", label: "Solar Goods only (5% GST)" },
   { value: "service", label: "Service / AMC (18% GST)" },
 ];
+
+const PAGE_SIZE = 30;
 
 const PAYMENT_MODES = ["ICICI", "SBI", "Cashfree", "Cash", "UPI", "Cheque", "Other"];
 
@@ -40,6 +42,7 @@ export const InvoicesManagement = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ search: "", status: "", doc_type: "invoice" });
+  const [page, setPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [createQuotationBackdate, setCreateQuotationBackdate] = useState(false);
   const [recordPaymentFor, setRecordPaymentFor] = useState(null);
@@ -59,7 +62,10 @@ export const InvoicesManagement = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "100" });
+      const params = new URLSearchParams({
+        limit: String(PAGE_SIZE),
+        page: String(page),
+      });
       if (filters.search) params.set("search", filters.search);
       if (filters.status) params.set("status", filters.status);
       if (filters.doc_type) params.set("doc_type", filters.doc_type);
@@ -77,7 +83,10 @@ export const InvoicesManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, page]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => { setPage(1); }, [filters.search, filters.status, filters.doc_type]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -386,6 +395,56 @@ export const InvoicesManagement = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination — 30 per page */}
+          {total > PAGE_SIZE && (() => {
+            const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            const safePage = Math.min(page, pageCount);
+            const pagesToShow = [];
+            const windowSize = 5;
+            let startP = Math.max(1, safePage - Math.floor(windowSize / 2));
+            let endP = Math.min(pageCount, startP + windowSize - 1);
+            startP = Math.max(1, endP - windowSize + 1);
+            for (let p = startP; p <= endP; p++) pagesToShow.push(p);
+            const firstIdx = (safePage - 1) * PAGE_SIZE + 1;
+            const lastIdx = Math.min(safePage * PAGE_SIZE, total);
+            return (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 py-3 bg-white border-t border-slate-200" data-testid="invoices-pagination">
+                <p className="text-xs text-slate-500">
+                  Showing <span className="font-semibold text-slate-700">{firstIdx}–{lastIdx}</span> of <span className="font-semibold text-slate-700">{total}</span> {filters.doc_type === "quotation" ? "quotations" : (filters.doc_type === "invoice" ? "invoices" : "records")}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button" onClick={() => setPage(1)} disabled={safePage === 1}
+                    className="px-2 py-1 text-xs rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
+                    data-testid="pagination-first">« First
+                  </button>
+                  <button
+                    type="button" onClick={() => setPage(Math.max(1, safePage - 1))} disabled={safePage === 1}
+                    className="px-2 py-1 text-xs rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
+                    data-testid="pagination-prev">‹ Prev
+                  </button>
+                  {pagesToShow.map(p => (
+                    <button
+                      key={p} type="button" onClick={() => setPage(p)}
+                      className={`min-w-[28px] px-2 py-1 text-xs rounded border ${p === safePage ? "bg-[#0a355e] text-white border-[#0a355e] font-semibold" : "border-slate-200 hover:bg-slate-50 text-slate-700"}`}
+                      data-testid={`pagination-page-${p}`}
+                    >{p}</button>
+                  ))}
+                  <button
+                    type="button" onClick={() => setPage(Math.min(pageCount, safePage + 1))} disabled={safePage === pageCount}
+                    className="px-2 py-1 text-xs rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
+                    data-testid="pagination-next">Next ›
+                  </button>
+                  <button
+                    type="button" onClick={() => setPage(pageCount)} disabled={safePage === pageCount}
+                    className="px-2 py-1 text-xs rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
+                    data-testid="pagination-last">Last »
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -939,21 +998,31 @@ const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
     payment_date: today,
     reference: "",
     notes: "",
+    discount_amount: "0",
+    discount_percent: "0",
+    discount_reason: "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const discountAbs = parseFloat(form.discount_amount || "0") || 0;
+  const discountPct = parseFloat(form.discount_percent || "0") || 0;
+  const afterFlat = Math.max(0, grand - discountAbs);
+  const finalGrand = Math.max(0, afterFlat * (1 - discountPct / 100));
+  const discountTotal = grand - finalGrand;
   const received = parseFloat(form.amount_received || "0") || 0;
-  const due = Math.max(0, grand - received);
+  const due = Math.max(0, finalGrand - received);
   const preview =
-    received <= 0 ? "unpaid" : received + 0.01 >= grand ? "paid" : "partial";
+    received <= 0 ? "unpaid" : received + 0.01 >= finalGrand ? "paid" : "partial";
   const statusColor = { paid: "bg-green-100 text-green-800", partial: "bg-amber-100 text-amber-800", unpaid: "bg-red-100 text-red-800" }[preview];
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (received < 0 || received > grand + 0.01) {
-      setError(`Amount received must be between 0 and ₹${grand.toFixed(2)}.`);
+    if (discountAbs > grand) { setError("Flat discount cannot exceed quotation total."); return; }
+    if (discountPct < 0 || discountPct > 100) { setError("Discount % must be between 0 and 100."); return; }
+    if (received < 0 || received > finalGrand + 0.01) {
+      setError(`Amount received must be between 0 and ₹${finalGrand.toFixed(2)} (post-discount).`);
       return;
     }
     setSubmitting(true);
@@ -964,6 +1033,9 @@ const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
         payment_date: form.payment_date,
         reference: form.reference || "",
         notes: form.notes || "",
+        discount_amount: discountAbs,
+        discount_percent: discountPct,
+        discount_reason: form.discount_reason || "",
       });
       onConverted(res.data?.invoice?.invoice_number || "");
     } catch (err) {
@@ -1004,10 +1076,63 @@ const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
             )}
           </div>
 
+          {/* Discount Section */}
+          <div className="bg-amber-50/70 border border-amber-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">Discount (optional)</p>
+              {discountTotal > 0 && (
+                <span className="text-xs font-bold text-emerald-700" data-testid="convert-discount-badge">
+                  - ₹ {discountTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 mb-1">Flat Discount (₹)</label>
+                <input
+                  type="number" step="0.01" min="0" max={grand}
+                  value={form.discount_amount}
+                  onChange={(e) => setForm({ ...form, discount_amount: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="convert-discount-amount"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-600 mb-1">Discount (%)</label>
+                <input
+                  type="number" step="0.01" min="0" max="100"
+                  value={form.discount_percent}
+                  onChange={(e) => setForm({ ...form, discount_percent: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="convert-discount-percent"
+                  placeholder="0"
+                />
+              </div>
+              <div className="col-span-2">
+                <Field label="Discount Reason (optional)" value={form.discount_reason} onChange={(v) => setForm({ ...form, discount_reason: v })} testid="convert-discount-reason" />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2 text-[11px]">
+              {[5, 10, 15].map(p => (
+                <button key={p} type="button"
+                  onClick={() => setForm({ ...form, discount_percent: String(p), discount_amount: "0" })}
+                  className="px-2 py-1 rounded-md bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold" data-testid={`convert-discount-preset-${p}`}>
+                  {p}% off
+                </button>
+              ))}
+              <button type="button"
+                onClick={() => setForm({ ...form, discount_amount: "0", discount_percent: "0", discount_reason: "" })}
+                className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">
+                Clear
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Amount Received *</label>
             <input
-              type="number" step="0.01" min="0" max={grand}
+              type="number" step="0.01" min="0" max={finalGrand}
               value={form.amount_received}
               onChange={(e) => setForm({ ...form, amount_received: e.target.value })}
               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold"
@@ -1015,8 +1140,8 @@ const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
             />
             <div className="flex items-center gap-3 mt-1 text-xs">
               <button type="button" onClick={() => setForm({ ...form, amount_received: "0" })} className="text-sky-600 hover:underline">₹0</button>
-              <button type="button" onClick={() => setForm({ ...form, amount_received: (grand / 2).toFixed(2) })} className="text-sky-600 hover:underline">Half</button>
-              <button type="button" onClick={() => setForm({ ...form, amount_received: grand.toFixed(2) })} className="text-sky-600 hover:underline">Full ₹{grand.toLocaleString("en-IN")}</button>
+              <button type="button" onClick={() => setForm({ ...form, amount_received: (finalGrand / 2).toFixed(2) })} className="text-sky-600 hover:underline">Half</button>
+              <button type="button" onClick={() => setForm({ ...form, amount_received: finalGrand.toFixed(2) })} className="text-sky-600 hover:underline">Full ₹{finalGrand.toLocaleString("en-IN")}</button>
             </div>
           </div>
 
@@ -1050,7 +1175,14 @@ const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
           </div>
 
           <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">Amount Received</span><span className="text-emerald-700 font-semibold">₹ {received.toLocaleString("en-IN")}</span></div>
+            {discountTotal > 0 && (
+              <>
+                <div className="flex justify-between"><span className="text-slate-500">Quotation Total</span><span className="font-medium">₹ {grand.toLocaleString("en-IN")}</span></div>
+                <div className="flex justify-between mt-1"><span className="text-slate-500">Discount</span><span className="text-emerald-700 font-semibold" data-testid="convert-summary-discount">- ₹ {discountTotal.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between mt-1 pt-1 border-t border-slate-200"><span className="text-slate-500 font-semibold">Invoice Total</span><span className="font-bold text-[#0a355e]" data-testid="convert-summary-final">₹ {finalGrand.toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span></div>
+              </>
+            )}
+            <div className="flex justify-between mt-1"><span className="text-slate-500">Amount Received</span><span className="text-emerald-700 font-semibold">₹ {received.toLocaleString("en-IN")}</span></div>
             <div className="flex justify-between mt-1"><span className="text-slate-500">Balance Due</span><span className={`font-semibold ${due > 0 ? "text-red-600" : "text-slate-400"}`}>₹ {due.toLocaleString("en-IN")}</span></div>
             <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-200">
               <span className="text-slate-500">Status will be</span>

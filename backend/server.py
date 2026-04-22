@@ -13318,7 +13318,7 @@ class CustomerRegistration(BaseModel):
     mobile: str
     name: str
     customer_type: str = "residential"  # residential | commercial
-    gst_mode: str = ""  # "" (current 90/10 @ 5%+18%) | "legacy_2025_12" (flat 12%)
+    gst_mode: str = ""  # "" (current 90/10 @ 5%+18%) | "flat_5" (Solar Project — Flat 5%)
     address: str = ""
     district: str = ""
     installation_date: str = ""
@@ -13413,13 +13413,13 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
         )
         is_pmsg = (doc.get("customer_type") or "").lower() == "residential"
         gst_mode = (doc.get("gst_mode") or "").strip().lower()
-        use_legacy_12 = gst_mode == "legacy_2025_12"
+        use_flat_5 = gst_mode == "flat_5"
 
         # --- Pick the project type + reverse-compute pre-GST total ---
-        if use_legacy_12:
-            project_type = "solar_project_2025_12"
-            # flat 12% GST
-            pre_gst_total = round(total_inclusive / 1.12, 2)
+        if use_flat_5:
+            project_type = "solar_project_flat_5"
+            # Flat 5% GST
+            pre_gst_total = round(total_inclusive / 1.05, 2)
         else:
             project_type = "solar_project"
             # Full EPC 90/10: 90%*5% + 10%*18% = 6.3%
@@ -13438,7 +13438,7 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
         if sys_kw: project_name_bits.append(f"{sys_kw} kW")
         project_name_bits.append("Solar Rooftop System")
         if is_pmsg: project_name_bits.append("(PM Surya Ghar Yojana)")
-        if use_legacy_12: project_name_bits.append("[2025 — 12% GST]")
+        if use_flat_5: project_name_bits.append("[Flat 5% GST]")
         project_name = " ".join(project_name_bits).strip()
 
         note_lines = ["Auto-generated on customer onboarding."]
@@ -13456,8 +13456,8 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
             if solar_brand: details.append(f"Panels: {solar_brand}")
             if inv_brand: details.append(f"Inverter: {inv_brand}")
             note_lines.append(" · ".join(details))
-        if use_legacy_12:
-            note_lines.append("GST computed at 12% (2025 slab — legacy installation).")
+        if use_flat_5:
+            note_lines.append("GST computed at flat 5% (Solar Project — Flat 5%).")
 
         req = CreateInvoiceRequest(
             customer=InvoiceCustomer(
@@ -13550,6 +13550,10 @@ async def create_customer(request: Request, data: CustomerRegistration):
             detail="PM Surya Ghar Application ID is mandatory for Residential customers"
         )
 
+    gst_mode_clean = (data.gst_mode or "").strip().lower()
+    if gst_mode_clean not in ("", "flat_5"):
+        raise HTTPException(status_code=400, detail="gst_mode must be '' or 'flat_5'")
+
     existing = await db.customers.find_one({"mobile": mobile_clean})
     if existing:
         raise HTTPException(status_code=409, detail="Customer with this mobile number already registered")
@@ -13564,7 +13568,7 @@ async def create_customer(request: Request, data: CustomerRegistration):
         "mobile": mobile_clean,
         "name": sanitize_input(data.name),
         "customer_type": customer_type,
-        "gst_mode": (data.gst_mode or "").strip().lower() if (data.gst_mode or "").strip().lower() in ("", "legacy_2025_12") else "",
+        "gst_mode": gst_mode_clean,
         "scheme": "PM Surya Ghar Yojana" if customer_type == "residential" else "Commercial",
         "address": sanitize_input(data.address),
         "district": sanitize_input(data.district),
@@ -13648,8 +13652,8 @@ async def update_customer(request: Request, customer_id: str, data: Dict[str, An
     # Validate gst_mode if provided
     if "gst_mode" in update_fields:
         gm = (update_fields["gst_mode"] or "").strip().lower()
-        if gm not in ("", "legacy_2025_12"):
-            raise HTTPException(status_code=400, detail="gst_mode must be '' or 'legacy_2025_12'")
+        if gm not in ("", "flat_5"):
+            raise HTTPException(status_code=400, detail="gst_mode must be '' or 'flat_5'")
         update_fields["gst_mode"] = gm
 
     # Auto-derive financials whenever cost/paid/type is part of the update

@@ -277,7 +277,7 @@ class InvoiceDoc(BaseModel):
 
 class CreateInvoiceRequest(BaseModel):
     customer: InvoiceCustomer
-    project_type: str = "solar_project"  # solar_project | solar_project_2025_12 | solar_goods | service
+    project_type: str = "solar_project"  # solar_project | solar_project_flat_5 | solar_goods | service
     total_amount: Optional[float] = None  # required for solar_project (auto-split)
     line_items: Optional[List[InvoiceLineItem]] = None  # required for other types
     project_name: str = "Solar Rooftop System"
@@ -316,6 +316,13 @@ class ConvertQuotationRequest(BaseModel):
     reference: str = ""
     notes: str = ""
     recorded_by: str = ""
+    discount_amount: float = Field(default=0.0, ge=0)
+    # Flat ₹ discount applied to the quotation's grand_total before the
+    # invoice is created. Reduces every line item proportionally so GST
+    # stays consistent. discount_percent is applied AFTER discount_amount
+    # if both are provided.
+    discount_percent: float = Field(default=0.0, ge=0, le=100)
+    discount_reason: str = ""
 
 
 # ==================== GST CALCULATOR ====================
@@ -328,7 +335,7 @@ def build_line_items(req: CreateInvoiceRequest) -> List[InvoiceLineItem]:
     """Turn the request into concrete GST line items.
 
     • solar_project:          90/10 split — 90% goods(5%) + 10% service(18%)  [Full EPC, current rate]
-    • solar_project_2025_12:  flat 12% GST — for solar installed in 2025 when the single 12% slab applied
+    • solar_project_flat_5:   flat 5% GST — for fully-goods invoicing
     • solar_goods:            single 5% line for the full amount
     • service:                single 18% line for the full amount
     • mixed:                  caller supplies explicit line_items (taxable_value pre-set)
@@ -362,13 +369,13 @@ def build_line_items(req: CreateInvoiceRequest) -> List[InvoiceLineItem]:
                 kind="service",
             ),
         ]
-    if req.project_type == "solar_project_2025_12":
-        # 2025 legacy — flat 12% GST on the full taxable amount (no goods/service split)
+    if req.project_type == "solar_project_flat_5":
+        # Solar Project — Flat 5% GST on the full taxable amount (no split)
         return [InvoiceLineItem(
-            description=f"{req.project_name} — Solar Rooftop System (2025 — 12% GST)",
+            description=f"{req.project_name} — Solar Rooftop System (Flat 5% GST)",
             hsn_sac=HSN_SOLAR_PANEL,
             quantity=1.0, unit_price=float(total), taxable_value=float(total),
-            gst_rate=12.0, kind="goods",
+            gst_rate=5.0, kind="goods",
         )]
     if req.project_type == "solar_goods":
         return [InvoiceLineItem(
@@ -977,7 +984,7 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
             # cgst/sgst/igst on the enriched row (WeasyPrint uses this for print).
             residual = target_d - Decimal(str(gst["grand_total"]))
             if residual != 0 and abs(residual) <= Decimal("0.05"):
-                for row in gst["line_items"]:
+                for row in gst["rows"]:
                     if row.get("kind") == items[idx].kind:
                         row["cgst_amount"] = float(Decimal(str(row["cgst_amount"])) + residual / 2)
                         row["sgst_amount"] = float(Decimal(str(row["sgst_amount"])) + residual / 2)
@@ -1443,9 +1450,52 @@ async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotat
         )
 
     grand = float(quote.get("grand_total") or 0)
+
+    # ---------- Apply optional discount BEFORE computing receipts ----------
+    discount_abs = float(payload.discount_amount or 0)
+    discount_pct = float(payload.discount_percent or 0)
+    if discount_abs > grand:
+        raise HTTPException(400, f"Discount (₹{discount_abs:.2f}) cannot exceed quotation total (₹{grand:.2f}).")
+
+    discounted_items = [dict(it) for it in quote["line_items"]]
+    if discount_abs > 0 or discount_pct > 0:
+        grand_after_abs = grand - discount_abs
+        grand_after = grand_after_abs * (1 - discount_pct / 100.0)
+        if grand_after < 0:
+            raise HTTPException(400, "Combined discount cannot bring invoice total below ₹0.")
+        scale = (grand_after / grand) if grand > 0 else 1.0
+        # Scale every line item's taxable_value proportionally so GST stays correct
+        for it in discounted_items:
+            it["taxable_value"] = _q2(float(it["taxable_value"]) * scale)
+            it["unit_price"] = it["taxable_value"]
+        rebuilt = compute_gst(
+            [InvoiceLineItem(**it) for it in discounted_items],
+            quote["customer"]["state"],
+        )
+        # Snap grand to target for exact match
+        target = _q2(grand_after)
+        drift = target - rebuilt["grand_total"]
+        if abs(drift) <= 0.05 and rebuilt["rows"]:
+            idx = max(range(len(discounted_items)), key=lambda i: discounted_items[i]["taxable_value"])
+            rate = float(discounted_items[idx]["gst_rate"]) / 100
+            nudge = _q2(drift / (1 + rate)) if (1 + rate) else 0
+            discounted_items[idx]["taxable_value"] = _q2(discounted_items[idx]["taxable_value"] + nudge)
+            discounted_items[idx]["unit_price"] = discounted_items[idx]["taxable_value"]
+            rebuilt = compute_gst(
+                [InvoiceLineItem(**it) for it in discounted_items],
+                quote["customer"]["state"],
+            )
+        quote = dict(quote)
+        quote["line_items"] = rebuilt["rows"]
+        quote["subtotal"] = rebuilt["subtotal"]
+        quote["cgst_total"] = rebuilt["cgst_total"]
+        quote["sgst_total"] = rebuilt["sgst_total"]
+        quote["igst_total"] = rebuilt["igst_total"]
+        grand = rebuilt["grand_total"]
+
     received = float(payload.amount_received or 0)
     if received > grand + 0.01:
-        raise HTTPException(400, f"Amount received (₹{received:.2f}) cannot exceed quotation total (₹{grand:.2f}).")
+        raise HTTPException(400, f"Amount received (₹{received:.2f}) cannot exceed invoice total (₹{grand:.2f}).")
 
     scheme = (quote.get("scheme") or "").lower().strip()
     # Auto-select the correct payment mode per business rule
@@ -1479,6 +1529,17 @@ async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotat
             recorded_at=now.isoformat(),
         ).model_dump())
 
+    # Discount audit note (if any)
+    _discount_note = ""
+    if (payload.discount_amount or 0) > 0 or (payload.discount_percent or 0) > 0:
+        parts = []
+        if payload.discount_amount:
+            parts.append(f"₹ {payload.discount_amount:.2f} flat")
+        if payload.discount_percent:
+            parts.append(f"{payload.discount_percent:g}%")
+        reason = f" ({payload.discount_reason.strip()})" if (payload.discount_reason or "").strip() else ""
+        _discount_note = f"Discount applied on conversion: {' + '.join(parts)}{reason}."
+
     new_inv = InvoiceDoc(
         invoice_number=inv_no,
         invoice_date=now.strftime("%d %b %Y"),
@@ -1501,7 +1562,7 @@ async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotat
         scheme=scheme,
         payment_history=[PaymentEntry(**p) for p in history],
         project_type=quote.get("project_type", "mixed"),
-        notes=(quote.get("notes") or "") + (" " + (payload.notes or "") if payload.notes else ""),
+        notes=(quote.get("notes") or "") + (" " + (payload.notes or "") if payload.notes else "") + ((" " + _discount_note) if _discount_note else ""),
         created_at=now.isoformat(),
         paid_at=now.isoformat() if pstatus == "paid" else "",
     ).model_dump()

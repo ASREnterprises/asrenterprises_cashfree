@@ -409,6 +409,51 @@ export const CustomerPortal = () => {
               accent="amber"
               testid="installation-progress"
             />}
+            {/* Free Installation Warranty (5-year, auto-computed from installation_date) */}
+            {progress?.warranty && (
+              <div
+                data-testid="cust-warranty-card"
+                className={`rounded-2xl p-4 border shadow-sm flex items-start gap-3 ${
+                  progress.warranty.expired
+                    ? "bg-red-50 border-red-200"
+                    : (progress.warranty.has_installation_date
+                        ? "bg-emerald-50 border-emerald-200"
+                        : "bg-slate-50 border-slate-200")
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  progress.warranty.expired
+                    ? "bg-red-100 text-red-600"
+                    : (progress.warranty.has_installation_date ? "bg-emerald-100 text-emerald-600" : "bg-slate-200 text-slate-500")
+                }`}>
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Free Installation Warranty · {progress.warranty.total_years} Years
+                  </p>
+                  <p
+                    className={`text-lg font-extrabold mt-0.5 ${
+                      progress.warranty.expired
+                        ? "text-red-600"
+                        : (progress.warranty.has_installation_date ? "text-emerald-700" : "text-slate-500")
+                    }`}
+                    data-testid="cust-warranty-remaining"
+                  >
+                    {progress.warranty.expired
+                      ? "Warranty Expired"
+                      : (progress.warranty.has_installation_date
+                          ? `Remaining: ${progress.warranty.remaining_label}`
+                          : "Will start when installation date is set")}
+                  </p>
+                  {progress.warranty.install_date && (
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Installed on {new Date(progress.warranty.install_date).toLocaleDateString("en-IN")} · Valid till {new Date(progress.warranty.expires_on).toLocaleDateString("en-IN")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="grid sm:grid-cols-2 gap-4">
               <InfoCard label="Solar Brand" value={customer.solar_brand} icon={Sun} color="text-amber-600" />
               <InfoCard label="Inverter Brand" value={customer.inverter_brand} icon={Zap} color="text-sky-600" />
@@ -713,7 +758,7 @@ const ProgressTracker = ({ title, stages, currentIndex, icon: Icon, accent = "am
 
 // ==================== BILLING TAB ====================
 const BillingTab = ({ billing, mobile, loading, onPayNow, onRefresh }) => {
-  const kpi = billing?.kpi || { total_cost: 0, total_paid: 0, total_due: 0, payment_status: "none", invoices_count: 0, unpaid_count: 0 };
+  const kpi = billing?.kpi || { total_cost: 0, total_paid: 0, total_due: 0, payment_status: "none", invoices_count: 0, unpaid_count: 0, payment_mode: "" };
   const inr = (n) => `₹ ${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const statusColor = {
     paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -721,6 +766,10 @@ const BillingTab = ({ billing, mobile, loading, onPayNow, onRefresh }) => {
     unpaid: "bg-red-100 text-red-800 border-red-200",
     none: "bg-slate-100 text-slate-600 border-slate-200",
   }[kpi.payment_status || "none"];
+
+  const paidPct = kpi.total_cost > 0 ? Math.min(100, Math.round((kpi.total_paid / kpi.total_cost) * 100)) : 0;
+  const invoices = billing?.invoices || [];
+  const firstUnpaidInvoice = invoices.find(i => (i.payment_status || "unpaid") !== "paid");
 
   return (
     <div className="space-y-4">
@@ -735,15 +784,64 @@ const BillingTab = ({ billing, mobile, loading, onPayNow, onRefresh }) => {
           <p className="text-xl md:text-2xl font-bold text-emerald-600 mt-1 tabular-nums">{inr(kpi.total_paid)}</p>
         </div>
         <div className={`rounded-2xl p-4 border shadow-sm col-span-2 ${kpi.total_due > 0 ? "bg-red-50 border-red-100" : "bg-white border-slate-100"}`} data-testid="cust-kpi-due">
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <p className="text-xs text-slate-400 uppercase font-semibold">Due Amount</p>
               <p className={`text-2xl md:text-3xl font-extrabold mt-1 tabular-nums ${kpi.total_due > 0 ? "text-red-600" : "text-slate-400"}`}>{inr(kpi.total_due)}</p>
+              {kpi.total_due > 0 && (
+                <p className="text-[11px] font-semibold text-red-600 mt-0.5" data-testid="cust-pending-label">
+                  ₹ {Number(kpi.total_due).toLocaleString("en-IN")} Pending
+                </p>
+              )}
             </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor}`} data-testid="cust-payment-status">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border flex-shrink-0 ${statusColor}`} data-testid="cust-payment-status">
               {(kpi.payment_status || "NONE").toUpperCase()}
             </span>
           </div>
+
+          {/* Paid vs Total progress bar */}
+          {kpi.total_cost > 0 && (
+            <div className="mt-3" data-testid="cust-billing-progressbar">
+              <div className="flex justify-between text-[11px] text-slate-500 mb-1 font-medium">
+                <span>Paid: ₹{Number(kpi.total_paid).toLocaleString("en-IN")}</span>
+                <span>Total: ₹{Number(kpi.total_cost).toLocaleString("en-IN")}</span>
+              </div>
+              <div className="h-2 bg-white rounded-full overflow-hidden border border-slate-100">
+                <div
+                  className={`h-full rounded-full transition-all ${kpi.payment_status === "paid" ? "bg-emerald-500" : "bg-gradient-to-r from-emerald-400 to-emerald-600"}`}
+                  style={{ width: `${paidPct}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 text-right">{paidPct}% paid</p>
+            </div>
+          )}
+
+          {/* Top-level Pay Now CTA — surfaces the earliest unpaid invoice's UPI flow */}
+          {kpi.total_due > 0 && firstUnpaidInvoice && (
+            <button
+              onClick={() => onPayNow(firstUnpaidInvoice)}
+              className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white rounded-xl py-3 text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition"
+              data-testid="cust-top-paynow-btn"
+            >
+              <IndianRupee className="w-4 h-4" /> Pay Now · {inr(kpi.total_due)}
+              {kpi.payment_mode && (
+                <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  via {kpi.payment_mode}
+                </span>
+              )}
+            </button>
+          )}
+          {/* If due exists but invoice not yet synced, show a polite message */}
+          {kpi.total_due > 0 && !firstUnpaidInvoice && (
+            <button
+              onClick={onRefresh}
+              className="mt-3 w-full bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 transition"
+              data-testid="cust-top-paynow-sync-btn"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              Preparing your invoice — tap to refresh
+            </button>
+          )}
         </div>
       </div>
 
@@ -774,7 +872,7 @@ const BillingTab = ({ billing, mobile, loading, onPayNow, onRefresh }) => {
       {(billing?.invoices?.length || 0) === 0 ? (
         <div className="bg-white rounded-2xl p-6 border border-slate-100 text-center text-slate-500 text-sm">
           <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          No invoices yet. They'll show up here automatically after your first payment.
+          No invoices yet. They'll show up here automatically once you've been onboarded.
         </div>
       ) : (
         billing.invoices.map((inv) => (

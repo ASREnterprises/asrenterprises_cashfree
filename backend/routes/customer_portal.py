@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -31,6 +31,84 @@ from db_client import get_db
 router = APIRouter(prefix="/customer", tags=["Customer Portal"])
 logger = logging.getLogger(__name__)
 db = get_db()
+
+
+# ---- 5-year Free Installation Warranty (ASR standard) ----
+INSTALLATION_WARRANTY_YEARS = 5
+
+
+def _parse_install_date(value) -> Optional[date]:
+    """Accept ISO strings, date-only strings, or datetime objects."""
+    if not value:
+        return None
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value
+    if isinstance(value, datetime):
+        return value.date()
+    try:
+        s = str(value).strip()
+        # Handle 'YYYY-MM-DD' and full ISO datetime
+        if "T" in s:
+            s = s.split("T", 1)[0]
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def _compute_warranty(install_date_value) -> Dict:
+    """Return {expired, remaining_years, remaining_months, remaining_label,
+    total_years, install_date, expires_on}. Accepts str or date."""
+    d = _parse_install_date(install_date_value)
+    total = INSTALLATION_WARRANTY_YEARS
+    if not d:
+        return {
+            "has_installation_date": False,
+            "total_years": total,
+            "expired": False,
+            "remaining_years": 0,
+            "remaining_months": 0,
+            "remaining_label": "Awaiting installation",
+            "install_date": "",
+            "expires_on": "",
+        }
+    today = date.today()
+    try:
+        expires = d.replace(year=d.year + total)
+    except ValueError:
+        # 29-Feb edge — fall back to 28-Feb
+        expires = d.replace(year=d.year + total, day=28)
+    delta_days = (expires - today).days
+    expired = delta_days <= 0
+    if expired:
+        return {
+            "has_installation_date": True,
+            "total_years": total,
+            "expired": True,
+            "remaining_years": 0,
+            "remaining_months": 0,
+            "remaining_label": "Warranty Expired",
+            "install_date": d.isoformat(),
+            "expires_on": expires.isoformat(),
+        }
+    years = delta_days // 365
+    months = (delta_days % 365) // 30
+    label_parts = []
+    if years:
+        label_parts.append(f"{years} Year{'s' if years != 1 else ''}")
+    if months:
+        label_parts.append(f"{months} Month{'s' if months != 1 else ''}")
+    if not label_parts:
+        label_parts.append(f"{delta_days} Days")
+    return {
+        "has_installation_date": True,
+        "total_years": total,
+        "expired": False,
+        "remaining_years": years,
+        "remaining_months": months,
+        "remaining_label": " ".join(label_parts),
+        "install_date": d.isoformat(),
+        "expires_on": expires.isoformat(),
+    }
 
 
 def _clean_phone(phone: str) -> str:
@@ -74,12 +152,120 @@ def _public_invoice(inv: dict) -> dict:
 
 
 # ==================== INVOICES ====================
+async def _ensure_invoice_for_customer(cust: dict) -> Optional[dict]:
+    """Self-healing: if a customer has `total_cost > 0` but no invoice in
+    `db.invoices`, auto-create one on-the-fly so the Billing tab always has
+    something to show. Runs best-effort; never blocks the portal load."""
+    mobile = cust.get("mobile") or ""
+    total = float(cust.get("total_cost") or 0)
+    if total <= 0 or not mobile:
+        return None
+    existing = await db.invoices.find_one(
+        {"customer.phone": mobile, "doc_type": "invoice"},
+        {"_id": 0, "id": 1}
+    )
+    if existing:
+        return None
+    try:
+        from routes.gst_invoices import (
+            _create_and_persist_invoice,
+            CreateInvoiceRequest,
+            InvoiceCustomer,
+        )
+        is_pmsg = (cust.get("customer_type") or "").lower() == "residential"
+        WEIGHTED_RATE = 0.70 * 0.05 + 0.30 * 0.18  # solar_project split
+        pre_gst_total = round(total / (1 + WEIGHTED_RATE), 2)
+        req = CreateInvoiceRequest(
+            customer=InvoiceCustomer(
+                name=cust.get("name") or "Customer",
+                phone=mobile,
+                address=cust.get("address") or "",
+                state="Bihar",
+                state_code="10",
+            ),
+            project_type="solar_project",
+            total_amount=pre_gst_total,
+            project_name=(
+                f"{cust.get('system_capacity_kw') or ''} kW Solar Rooftop System"
+                + (" (PM Surya Ghar Yojana)" if is_pmsg else "")
+            ).strip(),
+            notes=(
+                f"Auto-generated (backfill). Application ID: {cust.get('application_id') or '—'}"
+                if is_pmsg else "Auto-generated (backfill)."
+            ),
+            auto_send_whatsapp=False,
+            auto_send_email=False,
+            doc_type="invoice",
+            scheme="pm_surya_ghar" if is_pmsg else "",
+        )
+        inv = await _create_and_persist_invoice(req)
+
+        # Back-fill initial payment so grand/paid/due stay consistent with the customer doc
+        paid = float(cust.get("amount_paid") or 0)
+        if paid > 0 and inv.get("grand_total"):
+            grand = float(inv["grand_total"])
+            paid_clamped = min(paid, grand)
+            new_due = max(0.0, round(grand - paid_clamped, 2))
+            new_status = "paid" if paid_clamped + 0.01 >= grand else "partial"
+            entry = {
+                "id": str(uuid.uuid4()),
+                "amount": round(paid_clamped, 2),
+                "payment_mode": cust.get("payment_mode") or ("ICICI" if is_pmsg else "SBI"),
+                "payment_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "reference": "",
+                "notes": "Backfilled from customer record on portal load",
+                "recorded_by": "system:portal-backfill",
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.invoices.update_one(
+                {"id": inv["id"]},
+                {
+                    "$set": {
+                        "amount_paid": round(paid_clamped, 2),
+                        "due_amount": new_due,
+                        "payment_status": new_status,
+                        "payment_date": entry["payment_date"],
+                        "payment_mode": entry["payment_mode"],
+                        "paid_at": datetime.now(timezone.utc).isoformat() if new_status == "paid" else "",
+                    },
+                    "$push": {"payment_history": entry},
+                },
+            )
+            inv["amount_paid"] = round(paid_clamped, 2)
+            inv["due_amount"] = new_due
+            inv["payment_status"] = new_status
+
+        await db.customers.update_one(
+            {"mobile": mobile},
+            {"$addToSet": {"invoice_ids": inv["id"]}},
+        )
+        logger.info(f"[portal] backfilled invoice for legacy customer {mobile}")
+        return inv
+    except Exception as e:
+        logger.warning(f"[portal] backfill invoice failed for {mobile}: {e}")
+        return None
+
+
 @router.get("/invoices/{phone}")
 async def customer_invoices(phone: str):
-    """All invoices + quick KPI for the customer's dashboard."""
+    """All invoices + quick KPI for the customer's dashboard.
+
+    Source-of-truth hierarchy for the KPI:
+      1) Customer doc's `total_cost / amount_paid / due_amount` when set
+      2) Sum of invoices otherwise
+
+    Self-heals legacy customers (total_cost > 0 but no invoice) by
+    auto-generating the missing invoice so the UI always has one to render.
+    """
     clean = _clean_phone(phone)
     if not clean:
         raise HTTPException(400, "Invalid mobile number")
+
+    cust = await db.customers.find_one({"mobile": clean}, {"_id": 0}) or {}
+
+    # Self-heal: create an invoice if the customer has a total_cost but none on file
+    await _ensure_invoice_for_customer(cust)
+
     cursor = db.invoices.find(
         {"customer.phone": clean},
         {"_id": 0}
@@ -87,12 +273,32 @@ async def customer_invoices(phone: str):
     items = [_public_invoice(i) async for i in cursor]
     invoices = [i for i in items if i["doc_type"] == "invoice"]
     quotations = [i for i in items if i["doc_type"] == "quotation"]
-    total_cost = sum(i["total_amount"] for i in invoices)
-    total_paid = sum(i["amount_paid"] for i in invoices)
-    total_due = sum(i["due_amount"] for i in invoices)
+
+    # Prefer the customer-doc financials (admin-entered, GST-inclusive) over
+    # pure invoice aggregation so legacy customers never see ₹0 again.
+    cust_total = float(cust.get("total_cost") or 0)
+    cust_paid = float(cust.get("amount_paid") or 0)
+    cust_due = float(cust.get("due_amount") if cust.get("due_amount") is not None
+                     else max(0.0, cust_total - cust_paid))
+
+    inv_total = sum(i["total_amount"] for i in invoices)
+    inv_paid = sum(i["amount_paid"] for i in invoices)
+    inv_due = sum(i["due_amount"] for i in invoices)
+
+    total_cost = cust_total if cust_total > 0 else inv_total
+    total_paid = cust_paid if cust_total > 0 else inv_paid
+    total_due = cust_due if cust_total > 0 else inv_due
+
     unpaid_count = sum(1 for i in invoices if i["payment_status"] != "paid")
-    status = "paid" if total_due <= 0.01 and total_cost > 0 else \
-             ("partial" if total_paid > 0 else ("unpaid" if total_cost > 0 else "none"))
+    if total_cost <= 0:
+        status = "none"
+    elif total_due <= 0.01:
+        status = "paid"
+    elif total_paid > 0:
+        status = "partial"
+    else:
+        status = "unpaid"
+
     return {
         "phone": clean,
         "kpi": {
@@ -101,8 +307,11 @@ async def customer_invoices(phone: str):
             "total_due": round(total_due, 2),
             "payment_status": status,
             "invoices_count": len(invoices),
-            "unpaid_count": unpaid_count,
+            "unpaid_count": unpaid_count if total_due > 0 else 0,
             "quotations_count": len(quotations),
+            "customer_name": cust.get("name", ""),
+            "customer_type": cust.get("customer_type", ""),
+            "payment_mode": cust.get("payment_mode") or ("ICICI" if (cust.get("customer_type") or "").lower() == "residential" else "SBI"),
         },
         "invoices": invoices,
         "quotations": quotations,
@@ -374,6 +583,12 @@ async def customer_progress(phone: str):
     if any_solar_paid and install_idx < 1:
         install_idx = 1
 
+    # Most important override: if an installation_date is recorded, treat the
+    # installation as fully complete (100%) regardless of partial status flags.
+    # Admins backdate installations — the date being set is the reliable signal.
+    if cust.get("installation_date"):
+        install_idx = 3
+
     # Subsidy stages
     subsidy_stages = ["applied", "approved", "credited"]
     subsidy_idx = -1
@@ -390,6 +605,7 @@ async def customer_progress(phone: str):
             "current_index": install_idx,
             "current_label": install_stages[install_idx].replace("_", " ").title() if install_idx >= 0 else "Not Started",
             "installation_date": cust.get("installation_date", ""),
+            "progress_percent": int(round(((install_idx + 1) / len(install_stages)) * 100)) if install_idx >= 0 else 0,
         },
         "subsidy": {
             "stages": subsidy_stages,
@@ -399,6 +615,7 @@ async def customer_progress(phone: str):
             "subsidy_amount": cust.get("subsidy_amount", 0),
             "credited_date": cust.get("subsidy_credited_date", ""),
         },
+        "warranty": _compute_warranty(cust.get("installation_date")),
     }
 
 

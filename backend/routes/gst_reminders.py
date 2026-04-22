@@ -77,10 +77,11 @@ def _due_reminder_day(age_days: int, already_sent_days: List[int]) -> Optional[i
 
 async def _send_whatsapp_reminder(invoice: dict, day: int) -> Dict:
     """Send a WhatsApp reminder for one invoice. Tries to attach a UPI QR code
-    as a document first; always includes the UPI intent link in the caption."""
+    as a document first; always includes the UPI intent link in the caption.
+    Respects opt-outs — any customer who sent STOP will be silently skipped."""
     # Lazy import to avoid a circular with gst_invoices at module load
     from routes.gst_invoices import build_upi_link, get_upi_for_invoice, render_qr_png_bytes
-    from routes.whatsapp import get_whatsapp_settings
+    from routes.whatsapp import get_whatsapp_settings, _is_opted_out
 
     cust = invoice.get("customer") or {}
     phone = (cust.get("phone") or "").replace(" ", "").replace("+", "").replace("-", "")
@@ -93,15 +94,23 @@ async def _send_whatsapp_reminder(invoice: dict, day: int) -> Dict:
     if due_amount <= 0:
         return {"success": False, "error": "no due amount"}
 
+    # Respect STOP / opt-out — never message customers who've unsubscribed.
+    try:
+        if await _is_opted_out(phone):
+            return {"success": False, "error": "opted_out", "opted_out": True}
+    except Exception:
+        pass  # Never let opt-out lookup break a reminder run
+
     upi = get_upi_for_invoice(invoice)
     upi_link = build_upi_link(invoice, due_amount)
     text = (
         f"Dear {cust.get('name', 'Customer')[:40]},\n\n"
-        f"Gentle reminder — your invoice {invoice.get('invoice_number')} "
-        f"has an outstanding balance of ₹ {due_amount:,.2f}.\n\n"
-        f"Please pay via UPI — one tap:\n{upi_link}\n\n"
+        f"Your solar payment of ₹ {due_amount:,.2f} is pending on invoice "
+        f"{invoice.get('invoice_number')}.\n\n"
+        f"Pay now — one tap:\n{upi_link}\n\n"
         f"Or use {upi['bank']} UPI: {upi['vpa']}\n\n"
-        f"Thank you!\n— ASR Enterprises Patna"
+        f"ASR Enterprises\nCall/WhatsApp: 9296389097\n\n"
+        f"Reply STOP to unsubscribe."
     )
 
     try:

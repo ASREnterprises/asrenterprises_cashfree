@@ -212,7 +212,7 @@ async def customer_referral(phone: str):
     clean = _clean_phone(phone)
     if not clean:
         raise HTTPException(400, "Invalid mobile number")
-    cust = await db.crm_customers.find_one({"mobile": clean}, {"_id": 0})
+    cust = await db.customers.find_one({"mobile": clean}, {"_id": 0})
     if not cust:
         raise HTTPException(404, "Customer profile not found. Please register first.")
     code = cust.get("referral_code")
@@ -222,13 +222,13 @@ async def customer_referral(phone: str):
         name_part = (_re.sub(r"[^A-Z]", "", (cust.get("name") or "").upper()) + "XXX")[:3]
         code = f"{name_part}{clean[-4:]}"
         # Avoid collision
-        if await db.crm_customers.find_one({"referral_code": code, "mobile": {"$ne": clean}}, {"_id": 0}):
+        if await db.customers.find_one({"referral_code": code, "mobile": {"$ne": clean}}, {"_id": 0}):
             code = code + uuid.uuid4().hex[:2].upper()
-        await db.crm_customers.update_one({"mobile": clean}, {"$set": {"referral_code": code}})
+        await db.customers.update_one({"mobile": clean}, {"$set": {"referral_code": code}})
 
     # Count how many referrals this customer has brought in
-    referred = await db.crm_customers.count_documents({"referred_by_code": code})
-    converted = await db.crm_customers.count_documents({"referred_by_code": code, "application_status": {"$in": ["approved", "installed", "commissioned"]}})
+    referred = await db.customers.count_documents({"referred_by_code": code})
+    converted = await db.customers.count_documents({"referred_by_code": code, "application_status": {"$in": ["approved", "installed", "commissioned"]}})
     visits = await db.referral_visits.count_documents({"code": code})
 
     # Build shareable link using the website's frontend URL
@@ -276,7 +276,7 @@ async def customer_documents(phone: str):
     clean = _clean_phone(phone)
     if not clean:
         raise HTTPException(400, "Invalid mobile number")
-    cust = await db.crm_customers.find_one({"mobile": clean}, {"_id": 0})
+    cust = await db.customers.find_one({"mobile": clean}, {"_id": 0})
     if not cust:
         raise HTTPException(404, "Customer profile not found.")
 
@@ -334,7 +334,7 @@ async def customer_service_requests(phone: str):
     clean = _clean_phone(phone)
     if not clean:
         raise HTTPException(400, "Invalid mobile number")
-    cust = await db.crm_customers.find_one({"mobile": clean}, {"_id": 0, "service_requests": 1})
+    cust = await db.customers.find_one({"mobile": clean}, {"_id": 0, "service_requests": 1})
     if not cust:
         return {"service_requests": []}
     return {"service_requests": cust.get("service_requests") or []}
@@ -347,7 +347,7 @@ async def customer_progress(phone: str):
     clean = _clean_phone(phone)
     if not clean:
         raise HTTPException(400, "Invalid mobile number")
-    cust = await db.crm_customers.find_one({"mobile": clean}, {"_id": 0})
+    cust = await db.customers.find_one({"mobile": clean}, {"_id": 0})
     if not cust:
         raise HTTPException(404, "Customer profile not found")
 
@@ -416,7 +416,7 @@ async def create_service_request(phone: str, payload: ServiceRequestBody):
     clean = _clean_phone(phone)
     if not clean:
         raise HTTPException(400, "Invalid mobile number")
-    cust = await db.crm_customers.find_one({"mobile": clean}, {"_id": 0, "id": 1})
+    cust = await db.customers.find_one({"mobile": clean}, {"_id": 0, "id": 1})
     if not cust:
         raise HTTPException(404, "Customer profile not found.")
     entry = {
@@ -427,6 +427,6 @@ async def create_service_request(phone: str, payload: ServiceRequestBody):
         "created_at": datetime.now(timezone.utc).isoformat(),
         "source": "customer_portal",
     }
-    await db.crm_customers.update_one({"mobile": clean}, {"$push": {"service_requests": entry}})
+    await db.customers.update_one({"mobile": clean}, {"$push": {"service_requests": entry}})
     logger.info(f"[customer-portal] service request {entry['type']} filed by {clean}")
     return {"success": True, "request": entry}

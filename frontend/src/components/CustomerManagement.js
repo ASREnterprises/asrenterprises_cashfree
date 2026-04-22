@@ -160,9 +160,11 @@ export const CustomerManagement = () => {
 
   const STATUS_COLORS = {
     pending: "bg-amber-100 text-amber-700",
+    unpaid: "bg-red-100 text-red-700",
     submitted: "bg-blue-100 text-blue-700",
     approved: "bg-emerald-100 text-emerald-700",
     completed: "bg-emerald-100 text-emerald-800",
+    paid: "bg-emerald-100 text-emerald-700",
     rejected: "bg-red-100 text-red-700",
     applied: "bg-blue-100 text-blue-700",
     credited: "bg-green-100 text-green-800",
@@ -464,16 +466,48 @@ export const CustomerManagement = () => {
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1"><IndianRupee className="w-3.5 h-3.5" /> Financial Details</p>
                 <div className="grid sm:grid-cols-3 gap-4">
                   <FormField label="Total System Cost (₹)">
-                    <input type="number" value={form.total_cost} onChange={e => setForm({ ...form, total_cost: parseFloat(e.target.value) || 0 })} className={inputCls} min={0} />
+                    <input data-testid="cust-total-cost-input" type="number" value={form.total_cost} onChange={e => setForm({ ...form, total_cost: parseFloat(e.target.value) || 0 })} className={inputCls} min={0} />
                   </FormField>
                   <FormField label="Amount Paid (₹)">
-                    <input type="number" value={form.amount_paid} onChange={e => setForm({ ...form, amount_paid: parseFloat(e.target.value) || 0 })} className={inputCls} min={0} />
+                    <input data-testid="cust-amount-paid-input" type="number" value={form.amount_paid} onChange={e => setForm({ ...form, amount_paid: parseFloat(e.target.value) || 0 })} className={inputCls} min={0} />
                   </FormField>
-                  <FormField label="Payment Status">
-                    <select value={form.payment_status} onChange={e => setForm({ ...form, payment_status: e.target.value })} className={inputCls}>
-                      {STATUS_OPTIONS.payment_status.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                    </select>
+                  <FormField label="Due Amount (auto)">
+                    <input
+                      data-testid="cust-due-amount-display"
+                      type="text"
+                      readOnly
+                      value={`₹ ${Math.max(0, (parseFloat(form.total_cost) || 0) - (parseFloat(form.amount_paid) || 0)).toLocaleString("en-IN")}`}
+                      className={`${inputCls} bg-slate-50 font-semibold text-[#0369A1]`}
+                    />
                   </FormField>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  {(() => {
+                    const total = parseFloat(form.total_cost) || 0;
+                    const paid = parseFloat(form.amount_paid) || 0;
+                    const status = total <= 0 || paid <= 0
+                      ? "unpaid"
+                      : (paid + 0.01 < total ? "partial" : "paid");
+                    const chip = {
+                      unpaid: "bg-red-100 text-red-700",
+                      partial: "bg-orange-100 text-orange-700",
+                      paid: "bg-emerald-100 text-emerald-700",
+                    }[status];
+                    return (
+                      <span data-testid="cust-payment-status-chip" className={`px-2 py-1 rounded-full font-semibold ${chip}`}>
+                        Status: {status.toUpperCase()}
+                      </span>
+                    );
+                  })()}
+                  <span className="px-2 py-1 rounded-full font-semibold bg-sky-100 text-[#0369A1]" data-testid="cust-payment-mode-chip">
+                    Payment Rail: {form.customer_type === "residential" ? "ICICI (PM Surya Ghar)" : "SBI"}
+                  </span>
+                  {(parseFloat(form.total_cost) || 0) > 0 && !editingCustomer && (
+                    <span className="px-2 py-1 rounded-full font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                      An invoice will be auto-generated on Register
+                    </span>
+                  )}
                 </div>
               </div>
 

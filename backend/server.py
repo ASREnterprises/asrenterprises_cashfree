@@ -13345,6 +13345,134 @@ async def get_all_customers(request: Request):
     customers = await db.customers.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return customers
 
+# ------------------------------------------------------------
+# Helpers for Customer Management — keep admin writes + invoice
+# collection in lock-step.
+# ------------------------------------------------------------
+def _derive_customer_finance(total_cost: float, amount_paid: float) -> Dict[str, Any]:
+    """Compute due_amount + payment_status from cost + paid."""
+    total = float(total_cost or 0)
+    paid = float(amount_paid or 0)
+    due = max(0.0, round(total - paid, 2))
+    if total <= 0:
+        status = "unpaid"
+    elif paid <= 0:
+        status = "unpaid"
+    elif paid + 0.01 < total:
+        status = "partial"
+    else:
+        status = "paid"
+    return {"due_amount": due, "payment_status": status}
+
+
+def _default_payment_mode(customer_type: str) -> str:
+    """PM Surya Ghar (residential) → ICICI. All other customers → SBI."""
+    return "ICICI" if (customer_type or "").lower() == "residential" else "SBI"
+
+
+async def _generate_referral_code(name: str, mobile: str) -> str:
+    """Unique 6-10 char referral code from name + phone last-4 digits."""
+    base_name = re.sub(r"[^A-Z]", "", (name or "").upper())
+    name_part = (base_name + "XXX")[:3]
+    code = f"{name_part}{mobile[-4:]}"
+    collision = await db.customers.find_one({"referral_code": code}, {"_id": 0, "mobile": 1})
+    if collision and collision.get("mobile") != mobile:
+        code = f"{code}{uuid.uuid4().hex[:2].upper()}"
+    return code
+
+
+async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Auto-create a GST invoice for a freshly registered customer when
+    `total_cost > 0`. Runs best-effort — logs + skips on error so that the
+    registration itself never fails because of an invoicing hiccup.
+
+    Admins enter the **GST-inclusive** total cost (what the customer actually
+    pays). The GST engine treats `total_amount` as the pre-GST taxable value,
+    so we reverse the 70% goods @5% + 30% service @18% weighted rate (~8.9%)
+    to make `invoice.grand_total ≈ customer.total_cost`.
+    """
+    try:
+        total_inclusive = float(doc.get("total_cost") or 0)
+        if total_inclusive <= 0:
+            return None
+        # Reverse-compute pre-GST from the GST-inclusive amount the admin typed.
+        # solar_project split: 70% goods @ 5% + 30% service @ 18%.
+        WEIGHTED_RATE = 0.70 * 0.05 + 0.30 * 0.18  # = 0.089
+        pre_gst_total = round(total_inclusive / (1 + WEIGHTED_RATE), 2)
+
+        from routes.gst_invoices import (
+            _create_and_persist_invoice,
+            CreateInvoiceRequest,
+            InvoiceCustomer,
+        )
+        is_pmsg = (doc.get("customer_type") or "").lower() == "residential"
+        req = CreateInvoiceRequest(
+            customer=InvoiceCustomer(
+                name=doc.get("name") or "Customer",
+                phone=doc.get("mobile") or "",
+                address=doc.get("address") or "",
+                state="Bihar",
+                state_code="10",
+            ),
+            project_type="solar_project",
+            total_amount=pre_gst_total,
+            project_name=(
+                f"{doc.get('system_capacity_kw') or ''} kW Solar Rooftop System"
+                + (" (PM Surya Ghar Yojana)" if is_pmsg else "")
+            ).strip(),
+            notes=(
+                f"Auto-generated on customer onboarding. Application ID: {doc.get('application_id') or '—'}"
+                if is_pmsg else "Auto-generated on customer onboarding."
+            ),
+            auto_send_whatsapp=False,   # avoid sending a template before KYC is complete
+            auto_send_email=False,
+            doc_type="invoice",
+            scheme="pm_surya_ghar" if is_pmsg else "",
+        )
+        inv = await _create_and_persist_invoice(req)
+
+        # If the admin already captured an initial payment, reflect that on the
+        # brand-new invoice so the Billing tab shows the correct paid/due split
+        # from day 1.
+        paid = float(doc.get("amount_paid") or 0)
+        if paid > 0 and inv.get("grand_total"):
+            grand = float(inv["grand_total"])
+            paid_clamped = min(paid, grand)
+            new_due = max(0.0, round(grand - paid_clamped, 2))
+            new_status = "paid" if paid_clamped + 0.01 >= grand else "partial"
+            entry = {
+                "id": str(uuid.uuid4()),
+                "amount": round(paid_clamped, 2),
+                "payment_mode": doc.get("payment_mode") or _default_payment_mode(doc.get("customer_type")),
+                "payment_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "reference": "",
+                "notes": "Initial payment captured at customer onboarding",
+                "recorded_by": "system:admin-onboarding",
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+            }
+            await db.invoices.update_one(
+                {"id": inv["id"]},
+                {
+                    "$set": {
+                        "amount_paid": round(paid_clamped, 2),
+                        "due_amount": new_due,
+                        "payment_status": new_status,
+                        "payment_date": entry["payment_date"],
+                        "payment_mode": entry["payment_mode"],
+                        "paid_at": datetime.now(timezone.utc).isoformat() if new_status == "paid" else inv.get("paid_at", ""),
+                    },
+                    "$push": {"payment_history": entry},
+                },
+            )
+            inv["amount_paid"] = round(paid_clamped, 2)
+            inv["due_amount"] = new_due
+            inv["payment_status"] = new_status
+        return inv
+    except Exception as e:
+        logger.warning(f"[customers] auto-invoice creation failed for {doc.get('mobile')}: {e}")
+        return None
+
+
 @api_router.post("/admin/customers")
 async def create_customer(request: Request, data: CustomerRegistration):
     """Register a new customer (admin only).
@@ -13352,6 +13480,11 @@ async def create_customer(request: Request, data: CustomerRegistration):
     - customer_type must be 'residential' or 'commercial'.
     - Residential customers are treated as PM Surya Ghar Yojana beneficiaries,
       so `application_id` (PM Surya Ghar Application ID) is mandatory.
+    - Auto-derives `due_amount`, `payment_status`, `payment_mode`, and
+      generates a unique `referral_code` for the customer.
+    - When `total_cost > 0`, an invoice is auto-created and linked to the
+      customer so the Customer Portal Billing tab shows the correct numbers
+      from day 1 — no manual invoice creation needed.
     """
     mobile_clean = data.mobile.replace(" ", "").replace("+", "")[-10:]
     if len(mobile_clean) != 10 or not mobile_clean.isdigit():
@@ -13371,6 +13504,12 @@ async def create_customer(request: Request, data: CustomerRegistration):
     existing = await db.customers.find_one({"mobile": mobile_clean})
     if existing:
         raise HTTPException(status_code=409, detail="Customer with this mobile number already registered")
+
+    finance = _derive_customer_finance(data.total_cost, data.amount_paid)
+    payment_mode = _default_payment_mode(customer_type)
+    referral_code = await _generate_referral_code(data.name, mobile_clean)
+
+    now_iso = datetime.now(timezone.utc).isoformat()
     doc = {
         "id": str(uuid.uuid4()),
         "mobile": mobile_clean,
@@ -13392,25 +13531,51 @@ async def create_customer(request: Request, data: CustomerRegistration):
         "panel_warranty_years": data.panel_warranty_years,
         "inverter_warranty_years": data.inverter_warranty_years,
         "installation_warranty_years": data.installation_warranty_years,
-        "total_cost": data.total_cost,
-        "amount_paid": data.amount_paid,
-        "payment_status": data.payment_status,
+        "total_cost": float(data.total_cost or 0),
+        "amount_paid": float(data.amount_paid or 0),
+        "due_amount": finance["due_amount"],
+        "payment_status": finance["payment_status"],
+        "payment_mode": payment_mode,
         "net_metering_status": data.net_metering_status,
+        "referral_code": referral_code,
         "notes": sanitize_input(data.notes),
         "service_requests": [],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "invoice_ids": [],
+        "created_at": now_iso,
+        "updated_at": now_iso,
     }
     await db.customers.insert_one(doc)
     doc.pop("_id", None)
-    return {"success": True, "customer": doc}
+
+    # Auto-create linked invoice (best effort — never blocks registration)
+    invoice = await _auto_create_invoice_for_customer(doc)
+    if invoice:
+        await db.customers.update_one(
+            {"id": doc["id"]},
+            {"$addToSet": {"invoice_ids": invoice["id"]}},
+        )
+        doc["invoice_ids"] = [invoice["id"]]
+        doc["latest_invoice"] = {
+            "id": invoice.get("id"),
+            "invoice_number": invoice.get("invoice_number"),
+            "grand_total": invoice.get("grand_total"),
+            "amount_paid": invoice.get("amount_paid"),
+            "due_amount": invoice.get("due_amount"),
+            "payment_status": invoice.get("payment_status"),
+        }
+
+    logger.info(f"[customers] admin registered {doc['name']} ({mobile_clean}) type={customer_type} invoice={bool(invoice)}")
+    return {"success": True, "customer": doc, "invoice": doc.get("latest_invoice")}
 
 @api_router.put("/admin/customers/{customer_id}")
 async def update_customer(request: Request, customer_id: str, data: Dict[str, Any]):
-    """Update customer details (admin only)"""
+    """Update customer details (admin only).
+
+    Re-derives `due_amount`, `payment_status`, and `payment_mode` whenever
+    financials or customer_type change so the Customer Portal stays in sync.
+    """
     update_fields = {k: v for k, v in data.items() if k not in ["_id", "id", "mobile", "created_at"]}
 
-    # Load the existing doc to resolve the effective customer_type & application_id
     existing = await db.customers.find_one({"id": customer_id}, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -13429,6 +13594,26 @@ async def update_customer(request: Request, customer_id: str, data: Dict[str, An
 
     # Keep scheme field in sync with the customer type
     update_fields["scheme"] = "PM Surya Ghar Yojana" if new_type == "residential" else "Commercial"
+
+    # Auto-derive financials whenever cost/paid/type is part of the update
+    total_cost = float(update_fields.get("total_cost", existing.get("total_cost") or 0))
+    amount_paid = float(update_fields.get("amount_paid", existing.get("amount_paid") or 0))
+    finance = _derive_customer_finance(total_cost, amount_paid)
+    update_fields["total_cost"] = total_cost
+    update_fields["amount_paid"] = amount_paid
+    update_fields["due_amount"] = finance["due_amount"]
+    update_fields["payment_status"] = finance["payment_status"]
+
+    # Only overwrite payment_mode when it's empty or customer_type flipped
+    if not existing.get("payment_mode") or existing.get("customer_type") != new_type:
+        update_fields["payment_mode"] = _default_payment_mode(new_type)
+
+    # Backfill referral_code for older records that were created before this feature
+    if not existing.get("referral_code"):
+        update_fields["referral_code"] = await _generate_referral_code(
+            update_fields.get("name", existing.get("name") or ""),
+            existing.get("mobile") or "",
+        )
 
     update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = await db.customers.update_one({"id": customer_id}, {"$set": update_fields})

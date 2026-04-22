@@ -1035,6 +1035,88 @@ const ServiceRegistration = () => {
   );
 };
 
+// ==================== OTP Verification Block (shared by Book Service + Site Visit) ====================
+const OtpVerificationBlock = ({ name, phone, otpState, setOtpState, onSend, onVerify, onReset }) => {
+  const clean = (phone || "").replace(/\D/g, "").slice(-10);
+  const ready = name && clean.length === 10;
+  const isVerifiedForThisPhone = otpState.verified && otpState.verified_phone === clean;
+
+  // Auto-reset verification if the user edits the phone after verifying
+  useEffect(() => {
+    if (otpState.verified && otpState.verified_phone && otpState.verified_phone !== clean) {
+      onReset();
+    }
+  }, [clean]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4 space-y-2" data-testid="otp-block">
+      <div className="flex items-center justify-between">
+        <label className="text-gray-300 text-sm font-semibold">Verify Mobile (WhatsApp OTP) *</label>
+        {isVerifiedForThisPhone && (
+          <span className="text-green-400 text-xs font-bold" data-testid="otp-verified-badge">✓ VERIFIED</span>
+        )}
+      </div>
+
+      {!otpState.sent && !isVerifiedForThisPhone && (
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={!ready || otpState.sending}
+          className="w-full py-2.5 bg-amber-500/90 hover:bg-amber-500 disabled:bg-gray-600 text-white rounded-lg text-sm font-semibold"
+          data-testid="otp-send-btn"
+        >
+          {otpState.sending ? "Sending..." : "Send OTP on WhatsApp"}
+        </button>
+      )}
+
+      {otpState.sent && !isVerifiedForThisPhone && (
+        <>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otpState.otp_code}
+              onChange={(e) => setOtpState((s) => ({ ...s, otp_code: e.target.value.replace(/\D/g, "").slice(0, 6), error: "" }))}
+              placeholder="Enter 6-digit OTP"
+              className="flex-1 px-3 py-2 bg-gray-900/60 border border-gray-700 rounded-lg text-white text-center tracking-[0.4em] font-bold"
+              data-testid="otp-input"
+            />
+            <button
+              type="button"
+              onClick={onVerify}
+              disabled={otpState.loading || otpState.otp_code.length < 4}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg text-sm font-semibold"
+              data-testid="otp-verify-btn"
+            >
+              {otpState.loading ? "Verifying..." : "Verify"}
+            </button>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-400">Didn't receive it?</span>
+            <button
+              type="button"
+              onClick={onSend}
+              disabled={otpState.resend_in > 0 || otpState.sending}
+              className="text-amber-400 hover:text-amber-300 disabled:text-gray-500 font-semibold"
+              data-testid="otp-resend-btn"
+            >
+              {otpState.resend_in > 0 ? `Resend in ${otpState.resend_in}s` : "Resend OTP"}
+            </button>
+          </div>
+        </>
+      )}
+
+      {otpState.info && !otpState.error && (
+        <p className="text-xs text-emerald-300" data-testid="otp-info">{otpState.info}</p>
+      )}
+      {otpState.error && (
+        <p className="text-xs text-red-400" data-testid="otp-error">{otpState.error}</p>
+      )}
+    </div>
+  );
+};
+
 // HomePage Component
 const HomePage = () => {
   const navigate = useNavigate();
@@ -1049,6 +1131,65 @@ const HomePage = () => {
   const [servicePrice, setServicePrice] = useState(2999); // Book Solar Service price (configurable from backend)
   const SITE_VISIT_PRICE = 500; // Fixed Site Visit price ₹500
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // ---- Customer Mobile OTP Verification (for public bookings) ----
+  // One shared verification state serves both "Book Solar Service" and "Site Visit".
+  // We key the verified phone number so if the user edits it, they must re-verify.
+  const [otpState, setOtpState] = useState({
+    sent: false, verified: false, otp_id: "", otp_code: "",
+    verified_phone: "", loading: false, sending: false, error: "", info: "", resend_in: 0
+  });
+  const resetOtpState = () => setOtpState({ sent: false, verified: false, otp_id: "", otp_code: "", verified_phone: "", loading: false, sending: false, error: "", info: "", resend_in: 0 });
+
+  const sendBookingOtp = async (name, phone, purpose) => {
+    const clean = (phone || "").replace(/\D/g, "").slice(-10);
+    if (!name || !clean || clean.length !== 10) {
+      setOtpState((s) => ({ ...s, error: "Please fill your name and a valid 10-digit mobile first." }));
+      return;
+    }
+    setOtpState((s) => ({ ...s, sending: true, error: "", info: "" }));
+    try {
+      const res = await axios.post(`${API}/public/otp/send`, { name, phone: clean, purpose });
+      setOtpState((s) => ({
+        ...s, sent: true, otp_id: res.data.otp_id, sending: false, resend_in: 45,
+        info: res.data.delivered
+          ? `OTP sent to WhatsApp on +91${clean}. Please enter the 6-digit code.`
+          : `OTP generated. If you don't receive WhatsApp, call 9296389097.`,
+      }));
+      // Cooldown ticker
+      const interval = setInterval(() => {
+        setOtpState((s) => {
+          if (s.resend_in <= 1) { clearInterval(interval); return { ...s, resend_in: 0 }; }
+          return { ...s, resend_in: s.resend_in - 1 };
+        });
+      }, 1000);
+    } catch (err) {
+      setOtpState((s) => ({
+        ...s, sending: false,
+        error: err?.response?.data?.detail || "Could not send OTP. Please try again.",
+      }));
+    }
+  };
+
+  const verifyBookingOtp = async (phone) => {
+    const clean = (phone || "").replace(/\D/g, "").slice(-10);
+    if (!otpState.otp_code || otpState.otp_code.length < 4) {
+      setOtpState((s) => ({ ...s, error: "Please enter the OTP sent on WhatsApp." }));
+      return false;
+    }
+    setOtpState((s) => ({ ...s, loading: true, error: "" }));
+    try {
+      await axios.post(`${API}/public/otp/verify`, { otp_id: otpState.otp_id, phone: clean, otp: otpState.otp_code });
+      setOtpState((s) => ({ ...s, loading: false, verified: true, verified_phone: clean, info: "Mobile number verified ✓", error: "" }));
+      return true;
+    } catch (err) {
+      setOtpState((s) => ({
+        ...s, loading: false,
+        error: err?.response?.data?.detail || "Incorrect OTP. Please try again.",
+      }));
+      return false;
+    }
+  };
   
   // Marquee state from backend
   const [marqueeText, setMarqueeText] = useState("☀Get up to ₹78,000 Subsidy under PM Surya Ghar Yojana Call Now: 9296389097 WhatsApp for Quote");
@@ -1193,6 +1334,11 @@ const HomePage = () => {
       alert("Please fill in your name and phone number");
       return;
     }
+    const cleanPhone = bookingData.customer_phone.replace(/\D/g, '').slice(-10);
+    if (!otpState.verified || otpState.verified_phone !== cleanPhone) {
+      alert("Please verify your mobile number with OTP before proceeding.");
+      return;
+    }
     
     // Create Cashfree order using Orders API (Hosted Checkout)
     setPaymentStep('processing');
@@ -1223,7 +1369,8 @@ const HomePage = () => {
         booking_type: bookingType, // site_visit or book_solar_service
         amount: servicePrice,
         notes: bookingNotes,
-        origin_url: window.location.origin  // CRITICAL: Send current domain for same-origin checkout
+        origin_url: window.location.origin,  // CRITICAL: Send current domain for same-origin checkout
+        otp_id: otpState.otp_id,
       });
       
       console.log('=== FULL API RESPONSE ===');
@@ -1293,6 +1440,11 @@ const HomePage = () => {
       alert("Please fill in your name and phone number");
       return;
     }
+    const cleanPhone = siteVisitData.customer_phone.replace(/\D/g, '').slice(-10);
+    if (!otpState.verified || otpState.verified_phone !== cleanPhone) {
+      alert("Please verify your mobile number with OTP before proceeding.");
+      return;
+    }
     
     setBookingLoading(true);
     
@@ -1308,7 +1460,8 @@ const HomePage = () => {
         booking_type: 'site_visit',
         amount: SITE_VISIT_PRICE, // Fixed ₹500
         notes: 'Site Visit Booking - ₹500',
-        origin_url: window.location.origin
+        origin_url: window.location.origin,
+        otp_id: otpState.otp_id,
       });
       
       console.log('Site Visit Order Response:', res.data);
@@ -1474,14 +1627,14 @@ const HomePage = () => {
         {/* Subtle blue glow effect at top */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-emerald-500 to-sky-400 opacity-80" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-24">
             <Link to="/" className="flex items-center space-x-4 hover:scale-[1.02] transition-transform duration-300">
               <img 
                 src="/asr_logo_transparent.png" 
                 alt="ASR Enterprises Patna - Solar Rooftop Installation" 
-                className="h-16 w-auto"
-                width="64"
-                height="64"
+                className="h-20 w-auto"
+                width="80"
+                height="80"
                 fetchpriority="high"
               />
               <div className="flex flex-col">
@@ -2368,7 +2521,7 @@ const HomePage = () => {
                 <img 
                   src="/asr_logo_transparent.png" 
                   alt="ASR Enterprises Patna" 
-                  className="h-12 w-auto"
+                  className="h-20 w-auto"
                 />
               </div>
               <h3 className="text-xl font-bold mb-2 font-[Poppins] text-[#073B4C]">ASR Enterprises</h3>
@@ -2565,6 +2718,19 @@ const HomePage = () => {
                     className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-amber-500 focus:outline-none"
                     data-testid="booking-email" />
                 </div>
+
+                {/* ---- OTP Verification ---- */}
+                <OtpVerificationBlock
+                  name={bookingData.customer_name}
+                  phone={bookingData.customer_phone}
+                  purpose="book_solar_service"
+                  otpState={otpState}
+                  setOtpState={setOtpState}
+                  onSend={() => sendBookingOtp(bookingData.customer_name, bookingData.customer_phone, "book_solar_service")}
+                  onVerify={() => verifyBookingOtp(bookingData.customer_phone)}
+                  onReset={resetOtpState}
+                />
+
                 <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">Service Amount</span>
@@ -2574,11 +2740,11 @@ const HomePage = () => {
                 </div>
                 <button
                   onClick={handleBookService}
-                  disabled={!bookingData.customer_name || !bookingData.customer_phone || verifyLoading}
+                  disabled={!bookingData.customer_name || !bookingData.customer_phone || !otpState.verified || otpState.verified_phone !== bookingData.customer_phone.replace(/\D/g, '').slice(-10) || verifyLoading}
                   className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-gray-600 disabled:to-gray-600 text-white py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2"
                   data-testid="booking-proceed-btn"
                 >
-                  <CreditCard className="w-5 h-5" /> Proceed to Pay
+                  <CreditCard className="w-5 h-5" /> {otpState.verified ? "Proceed to Pay" : "Verify Mobile to Pay"}
                 </button>
                 <p className="text-gray-500 text-xs text-center">Secure payment powered by Cashfree</p>
               </div>
@@ -2712,6 +2878,18 @@ const HomePage = () => {
                   placeholder="your@email.com"
                 />
               </div>
+
+              {/* ---- OTP Verification ---- */}
+              <OtpVerificationBlock
+                name={siteVisitData.customer_name}
+                phone={siteVisitData.customer_phone}
+                purpose="site_visit"
+                otpState={otpState}
+                setOtpState={setOtpState}
+                onSend={() => sendBookingOtp(siteVisitData.customer_name, siteVisitData.customer_phone, "site_visit")}
+                onVerify={() => verifyBookingOtp(siteVisitData.customer_phone)}
+                onReset={resetOtpState}
+              />
               
               {/* What's Included */}
               <div className="bg-green-900/20 border border-green-700/30 rounded-xl p-4">
@@ -2726,14 +2904,16 @@ const HomePage = () => {
               
               <button
                 onClick={handleSiteVisitBooking}
-                disabled={bookingLoading || !siteVisitData.customer_name || !siteVisitData.customer_phone}
+                disabled={bookingLoading || !siteVisitData.customer_name || !siteVisitData.customer_phone || !otpState.verified || otpState.verified_phone !== siteVisitData.customer_phone.replace(/\D/g, '').slice(-10)}
                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-4 rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 data-testid="site-visit-pay-btn"
               >
                 {bookingLoading ? (
                   <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
-                ) : (
+                ) : otpState.verified ? (
                   <><CreditCard className="w-5 h-5" /> Pay ₹500 & Book Visit</>
+                ) : (
+                  <>Verify Mobile to Pay ₹500</>
                 )}
               </button>
               

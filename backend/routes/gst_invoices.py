@@ -58,6 +58,13 @@ CA_EMAIL = os.environ.get("CA_EMAIL", "").strip()
 INVOICE_DIR = Path(os.environ.get("INVOICE_STORAGE_DIR", "/app/backend/data/invoices"))
 INVOICE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Logo: embed as base64 so WeasyPrint can render without network access.
+_LOGO_PATH = Path("/app/frontend/public/asr_logo_transparent.png")
+LOGO_DATA_URI = ""
+if _LOGO_PATH.exists():
+    import base64 as _b64
+    LOGO_DATA_URI = "data:image/png;base64," + _b64.b64encode(_LOGO_PATH.read_bytes()).decode()
+
 # HSN / SAC codes
 HSN_SOLAR_PANEL = "8541"
 SAC_SERVICE = "9954"
@@ -272,7 +279,9 @@ body { font-size: 11pt; color: #0f172a; margin: 0; }
 h1 { font-size: 18pt; color: #0a355e; margin: 0 0 2mm; }
 h2 { font-size: 13pt; color: #0a355e; margin: 0; }
 .title-bar { display: flex; justify-content: space-between; border-bottom: 3px solid #f59e0b; padding-bottom: 4mm; margin-bottom: 5mm; }
-.biz { text-align: left; max-width: 60%; }
+.biz { text-align: left; max-width: 60%; display: flex; gap: 4mm; align-items: flex-start; }
+.biz .logo { width: 22mm; height: 22mm; object-fit: contain; flex-shrink: 0; }
+.biz .info { flex: 1; }
 .biz .muted { color: #475569; font-size: 9pt; line-height: 1.4; }
 .doc-meta { text-align: right; }
 .doc-meta .kv { margin: 1mm 0; font-size: 10pt; }
@@ -304,12 +313,15 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
 <body>
 <div class="title-bar">
   <div class="biz">
+    {{LOGO_IMG}}
+    <div class="info">
     <h1>{{BUSINESS_NAME}}</h1>
     <div class="muted">
       {{BUSINESS_ADDR1}}<br/>
       {{BUSINESS_ADDR2}} — {{BUSINESS_PIN}}<br/>
       GSTIN: <b>{{BUSINESS_GSTIN}}</b> &nbsp;|&nbsp; State: {{BUSINESS_STATE}} ({{BUSINESS_STATE_CODE}})<br/>
       Phone: {{BUSINESS_PHONE}} &nbsp;|&nbsp; Email: {{BUSINESS_EMAIL}}
+    </div>
     </div>
   </div>
   <div class="doc-meta">
@@ -442,6 +454,7 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
     paid = doc.get("payment_status") == "paid"
     html = INVOICE_HTML_TEMPLATE
     mapping = {
+        "{{LOGO_IMG}}": f'<img src="{LOGO_DATA_URI}" class="logo" alt="ASR Enterprises"/>' if LOGO_DATA_URI else '',
         "{{BUSINESS_NAME}}": _esc(BUSINESS["name"]),
         "{{BUSINESS_ADDR1}}": _esc(BUSINESS["address_line1"]),
         "{{BUSINESS_ADDR2}}": _esc(BUSINESS["address_line2"]),
@@ -493,16 +506,36 @@ def render_invoice_pdf(doc: dict, computed: dict) -> bytes:
 
 # ==================== NOTIFICATIONS ====================
 async def send_invoice_whatsapp(doc: dict, pdf_url: str = "") -> Dict:
-    """Send the invoice to the customer via WhatsApp using the existing
-    `send_whatsapp_template` helper. Falls back to a plain text message if
-    template send fails (e.g. 24h window expired)."""
-    from routes.whatsapp import send_whatsapp_template
+    """Send the invoice to the customer via WhatsApp.
+
+    Two-step delivery:
+      1) Upload the PDF to Meta's media endpoint → get a media_id
+      2) Send a WhatsApp document message with that media_id + caption
+
+    Falls back to the approved template text message if the document path fails
+    (e.g. 24h window expired, media upload rejected)."""
     cust = doc.get("customer", {})
     phone = (cust.get("phone") or "").replace(" ", "").replace("+", "").replace("-", "")
     if len(phone) == 10:
         phone = "91" + phone
     if not phone:
         return {"success": False, "error": "no customer phone"}
+
+    # --- Step 1 & 2: try the PDF document message path ---
+    doc_result = await _send_invoice_pdf_as_whatsapp_doc(doc, phone)
+    if doc_result.get("success"):
+        await db.invoices.update_one(
+            {"id": doc["id"]},
+            {"$set": {
+                "whatsapp_sent_at": datetime.now(timezone.utc).isoformat(),
+                "whatsapp_result": "document_sent",
+                "whatsapp_media_id": doc_result.get("media_id", ""),
+            }}
+        )
+        return doc_result
+
+    # --- Fallback: approved template text message ---
+    from routes.whatsapp import send_whatsapp_template
     try:
         resp = await send_whatsapp_template(
             phone=phone,
@@ -520,12 +553,68 @@ async def send_invoice_whatsapp(doc: dict, pdf_url: str = "") -> Dict:
             {"id": doc["id"]},
             {"$set": {
                 "whatsapp_sent_at": datetime.now(timezone.utc).isoformat(),
-                "whatsapp_result": "ok" if resp.get("success") else "failed",
+                "whatsapp_result": "template_fallback_ok" if resp.get("success") else "template_fallback_failed",
+                "whatsapp_doc_error": doc_result.get("error", ""),
             }}
         )
         return resp
     except Exception as e:
-        logger.warning(f"[invoice WhatsApp] send failed for {doc.get('invoice_number')}: {e}")
+        logger.warning(f"[invoice WhatsApp] both doc + template failed for {doc.get('invoice_number')}: {e}")
+        return {"success": False, "error": str(e), "doc_error": doc_result.get("error", "")}
+
+
+async def _send_invoice_pdf_as_whatsapp_doc(doc: dict, phone_e164: str) -> Dict:
+    """Upload invoice PDF to Meta Cloud API → send as WhatsApp document message."""
+    try:
+        from routes.whatsapp import get_whatsapp_settings
+        settings = await get_whatsapp_settings()
+        token = (settings or {}).get("access_token", "").strip()
+        phone_id = (settings or {}).get("phone_number_id", "").strip()
+        if not token or not phone_id:
+            return {"success": False, "error": "whatsapp settings missing"}
+
+        pdf_path = Path(doc.get("pdf_path") or "")
+        if pdf_path.exists():
+            pdf_bytes = pdf_path.read_bytes()
+        else:
+            gst = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]], doc["customer"]["state"])
+            pdf_bytes = render_invoice_pdf(doc, gst)
+
+        safe_name = (doc.get("invoice_number") or "invoice").replace("/", "_") + ".pdf"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            upload_resp = await client.post(
+                f"https://graph.facebook.com/v20.0/{phone_id}/media",
+                headers={"Authorization": f"Bearer {token}"},
+                files={"file": (safe_name, pdf_bytes, "application/pdf")},
+                data={"messaging_product": "whatsapp", "type": "application/pdf"},
+            )
+            if upload_resp.status_code not in (200, 201):
+                return {"success": False, "error": f"media_upload_{upload_resp.status_code}: {upload_resp.text[:200]}"}
+            media_id = upload_resp.json().get("id", "")
+            if not media_id:
+                return {"success": False, "error": "no media_id in upload response"}
+
+            caption = (
+                f"ASR Enterprises — GST Invoice {doc.get('invoice_number')}\n"
+                f"Amount: ₹ {doc.get('grand_total', 0):,.2f}\n"
+                f"Status: {'PAID' if doc.get('payment_status') == 'paid' else 'UNPAID'}"
+            )
+            send_resp = await client.post(
+                f"https://graph.facebook.com/v20.0/{phone_id}/messages",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={
+                    "messaging_product": "whatsapp",
+                    "to": phone_e164,
+                    "type": "document",
+                    "document": {"id": media_id, "filename": safe_name, "caption": caption},
+                },
+            )
+            if send_resp.status_code not in (200, 201):
+                return {"success": False, "error": f"send_{send_resp.status_code}: {send_resp.text[:200]}", "media_id": media_id}
+            return {"success": True, "media_id": media_id, "status": send_resp.status_code}
+    except Exception as e:
+        logger.warning(f"[invoice WhatsApp doc] unexpected error: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -721,6 +810,27 @@ async def resend_email(invoice_id: str):
         gst = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]], doc["customer"]["state"])
         pdf_bytes = render_invoice_pdf(doc, gst)
     return await send_invoice_email(doc, pdf_bytes)
+
+
+@router.delete("/invoices/{invoice_id}")
+async def delete_invoice(invoice_id: str):
+    """Hard-delete an invoice or quotation. Removes the DB record AND the PDF file.
+    Used by the Admin Dashboard to prune test/duplicate/cancelled documents."""
+    doc = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    # Delete PDF file from disk (best-effort)
+    pdf_path = doc.get("pdf_path") or ""
+    if pdf_path:
+        try:
+            p = Path(pdf_path)
+            if p.exists():
+                p.unlink()
+        except Exception as e:
+            logger.warning(f"[gst-invoice] could not remove PDF file {pdf_path}: {e}")
+    await db.invoices.delete_one({"id": invoice_id})
+    logger.info(f"[gst-invoice] deleted {doc.get('doc_type', 'invoice')} {doc.get('invoice_number')}")
+    return {"success": True, "deleted_id": invoice_id, "invoice_number": doc.get("invoice_number")}
 
 
 @router.get("/stats")

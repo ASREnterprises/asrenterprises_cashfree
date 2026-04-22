@@ -128,6 +128,7 @@ class WebsiteOrderRequest(BaseModel):
     address: Optional[str] = None
     district: Optional[str] = None
     payment_type: str = Field(default="booking")
+    booking_type: Optional[str] = None  # site_visit | book_solar_service | shop_order
     amount: float = Field(..., gt=0)
     notes: Optional[str] = None
     origin_url: Optional[str] = None  # For cross-origin checkout (preview vs production)
@@ -136,6 +137,8 @@ class WebsiteOrderRequest(BaseModel):
     customer_state: Optional[str] = None
     customer_state_code: Optional[str] = None
     customer_pincode: Optional[str] = None
+    # --- OTP verification (required for public website bookings) ---
+    otp_id: Optional[str] = None
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -1298,6 +1301,23 @@ async def create_website_order(request: Request, payload: WebsiteOrderRequest):
     """Create order from website - auto-creates lead - USES HARDCODED PRODUCTION CREDENTIALS"""
     # Always active - using hardcoded credentials
     logger.info("Website order creation using HARDCODED PRODUCTION credentials")
+
+    # --- OTP verification gate ---
+    # For public bookings (Book Solar Service / Site Visit), require that the
+    # customer's mobile number was verified via the /api/public/otp/* flow.
+    # Staff-initiated orders (which pass through /create-order) are not affected.
+    try:
+        from routes.public_otp import is_otp_verified
+        if not payload.otp_id or not await is_otp_verified(payload.otp_id, payload.customer_phone):
+            raise HTTPException(
+                status_code=400,
+                detail="Mobile number not verified. Please verify your mobile with the OTP sent on WhatsApp before placing the order.",
+            )
+    except HTTPException:
+        raise
+    except Exception as otp_err:
+        logger.error(f"[website order] OTP check raised unexpected error: {otp_err}")
+        raise HTTPException(status_code=500, detail="OTP verification service unavailable. Please try again.")
     
     try:
         # Create/find lead

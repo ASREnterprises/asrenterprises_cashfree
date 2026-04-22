@@ -245,7 +245,7 @@ export const CustomerPortal = () => {
             <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center gap-1 text-slate-500 hover:text-[#073B4C] transition p-1.5 rounded-lg hover:bg-slate-100" title="Go back / Logout">
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <Link to="/"><img src="/asr_logo_transparent.png" alt="ASR" className="h-9 w-auto" /></Link>
+            <Link to="/"><img src="/asr_logo_transparent.png" alt="ASR" className="h-14 w-auto" /></Link>
             <div>
               <div className="text-sm font-bold text-[#073B4C]">{customer.name}</div>
               <div className="text-xs text-slate-400">Customer Portal</div>

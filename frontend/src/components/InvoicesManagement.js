@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FileText, Download, Send, Mail, Plus, RefreshCw, Search,
-  ArrowLeft, Loader2, X, CheckCircle2, AlertCircle
+  ArrowLeft, Loader2, X, CheckCircle2, AlertCircle, Trash2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -102,6 +102,22 @@ export const InvoicesManagement = () => {
       showToast(res.data?.success ? "Email sent" : `Email: ${res.data?.error || "not configured"}`, res.data?.success ? "ok" : "err");
     } catch { showToast("Resend email failed", "err"); }
     finally { setBusy((b) => { const n = { ...b }; delete n[inv.id]; return n; }); }
+  };
+
+  const deleteInvoice = async (inv) => {
+    const label = inv.doc_type === "quotation" ? "quotation" : "invoice";
+    if (!window.confirm(`Delete ${label} ${inv.invoice_number}? This cannot be undone.`)) return;
+    try {
+      setBusy((b) => ({ ...b, [inv.id]: "delete" }));
+      await axios.delete(`${API}/gst/invoices/${inv.id}`);
+      setInvoices((list) => list.filter((i) => i.id !== inv.id));
+      setTotal((t) => Math.max(0, t - 1));
+      showToast(`${label.charAt(0).toUpperCase() + label.slice(1)} ${inv.invoice_number} deleted`);
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Delete failed", "err");
+    } finally {
+      setBusy((b) => { const n = { ...b }; delete n[inv.id]; return n; });
+    }
   };
 
   return (
@@ -244,6 +260,9 @@ export const InvoicesManagement = () => {
                           <IconBtn onClick={() => resendEmail(inv)} busy={action === "email"} title="Resend Email" testid={`invoice-email-${inv.invoice_number}`} color="blue">
                             <Mail className="w-4 h-4" />
                           </IconBtn>
+                          <IconBtn onClick={() => deleteInvoice(inv)} busy={action === "delete"} title="Delete" testid={`invoice-delete-${inv.invoice_number}`} color="red">
+                            <Trash2 className="w-4 h-4" />
+                          </IconBtn>
                         </div>
                       </td>
                     </tr>
@@ -288,6 +307,7 @@ const IconBtn = ({ children, onClick, busy, title, testid, color = "slate" }) =>
     slate: "bg-slate-100 hover:bg-slate-200 text-slate-700",
     green: "bg-emerald-100 hover:bg-emerald-200 text-emerald-700",
     blue: "bg-sky-100 hover:bg-sky-200 text-sky-700",
+    red: "bg-red-100 hover:bg-red-200 text-red-700",
   };
   return (
     <button

@@ -66,7 +66,7 @@ export const StaffPortal = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [updatingLeadId, setUpdatingLeadId] = useState(null);
   const [calledLeads, setCalledLeads] = useState(new Set()); // Track called leads locally
-  const [callFilter, setCallFilter] = useState('new'); // new, contacted, all — default to "new" so staff always lands on uncalled leads first
+  const [callFilter, setCallFilter] = useState('new'); // new, contacted, all — default to "new" so staff always lands on uncalled leads first. For Rimjhim (ASR1003) we flip to "all" in a useEffect below.
   const [pipelineStageFilter, setPipelineStageFilter] = useState(null); // Filter leads by pipeline stage
   const [leadSearchQuery, setLeadSearchQuery] = useState(''); // Search leads by name/phone
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -140,6 +140,13 @@ export const StaffPortal = () => {
   useEffect(() => {
     if (staffData?.staff_id) fetchAllData();
   }, [staffData]);
+
+  // Rimjhim (ASR1003) — lands on "All Leads" first per her workflow preference
+  useEffect(() => {
+    if (staffData?.staff_id === "ASR1003") {
+      setCallFilter('all');
+    }
+  }, [staffData?.staff_id]);
 
   // Auto-sync leads and data every 30 seconds when enabled
   useEffect(() => {
@@ -904,30 +911,58 @@ export const StaffPortal = () => {
               </div>
             )}
             
-            {/* Filter Buttons — ordered: New Leads → Contacted/Called → All Leads
-                so staff always lands on New first for calling priority */}
+            {/* Filter Buttons — default order (New → Called → All) for most staff;
+                Rimjhim (ASR1003) sees (All → New → Called) per her workflow preference */}
             <div className="grid grid-cols-3 gap-2">
-              <button
-                data-testid="staff-filter-new"
-                onClick={() => { setCallFilter('new'); setPipelineStageFilter(null); }}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'new' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                New Leads ({leads.filter(l => (l.stage || 'new') === 'new' && !calledLeads.has(l.id) && l.call_status !== 'called').length})
-              </button>
-              <button
-                data-testid="staff-filter-contacted"
-                onClick={() => { setCallFilter('contacted'); setPipelineStageFilter(null); }}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'contacted' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called' || l.stage === 'contacted' || l.stage === 'site_visit').length})
-              </button>
-              <button
-                data-testid="staff-filter-all"
-                onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }}
-                className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' && !pipelineStageFilter ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                All Leads ({leads.length})
-              </button>
+              {staffData?.staff_id === "ASR1003" ? (
+                <>
+                  <button
+                    data-testid="staff-filter-all"
+                    onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }}
+                    className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' && !pipelineStageFilter ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    All Leads ({leads.length})
+                  </button>
+                  <button
+                    data-testid="staff-filter-new"
+                    onClick={() => { setCallFilter('new'); setPipelineStageFilter(null); }}
+                    className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'new' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    New Leads ({leads.filter(l => (l.stage || 'new') === 'new' && !calledLeads.has(l.id) && l.call_status !== 'called').length})
+                  </button>
+                  <button
+                    data-testid="staff-filter-contacted"
+                    onClick={() => { setCallFilter('contacted'); setPipelineStageFilter(null); }}
+                    className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'contacted' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called' || l.stage === 'contacted' || l.stage === 'site_visit').length})
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    data-testid="staff-filter-new"
+                    onClick={() => { setCallFilter('new'); setPipelineStageFilter(null); }}
+                    className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'new' ? 'bg-red-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    New Leads ({leads.filter(l => (l.stage || 'new') === 'new' && !calledLeads.has(l.id) && l.call_status !== 'called').length})
+                  </button>
+                  <button
+                    data-testid="staff-filter-contacted"
+                    onClick={() => { setCallFilter('contacted'); setPipelineStageFilter(null); }}
+                    className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'contacted' ? 'bg-green-500 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    Called ({leads.filter(l => calledLeads.has(l.id) || l.call_status === 'called' || l.stage === 'contacted' || l.stage === 'site_visit').length})
+                  </button>
+                  <button
+                    data-testid="staff-filter-all"
+                    onClick={() => { setCallFilter('all'); setPipelineStageFilter(null); }}
+                    className={`py-3 px-2 rounded-xl text-sm font-semibold transition ${callFilter === 'all' && !pipelineStageFilter ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    All Leads ({leads.length})
+                  </button>
+                </>
+              )}
             </div>
             
             {/* Search Bar for Staff Leads */}

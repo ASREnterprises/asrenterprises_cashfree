@@ -220,7 +220,7 @@ export const AdminDashboard = ({ onLogout }) => {
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center gap-4">
-            <img src="/asr_logo_transparent.png" alt="ASR" className="h-14 w-14 object-contain" />
+            <img src="/asr_logo_transparent.png" alt="ASR" className="h-20 w-20 object-contain" />
             <div>
               <h1 className="text-3xl font-extrabold text-[#0a355e] mb-1">Admin Dashboard</h1>
               <p className="text-gray-500">ASR ENTERPRISES Management Panel</p>

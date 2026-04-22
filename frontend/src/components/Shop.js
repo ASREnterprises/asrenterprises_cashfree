@@ -346,7 +346,7 @@ export const ShopPage = () => {
           <div className="flex items-center h-16 gap-3">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <img src="/asr_logo_transparent.png" alt="ASR" className="h-10 w-10 object-contain" />
+              <img src="/asr_logo_transparent.png" alt="ASR" className="h-14 w-14 object-contain" />
               <span className="text-white font-bold text-xl hidden sm:block font-[Poppins]">ASR Solar Hub</span>
             </Link>
 

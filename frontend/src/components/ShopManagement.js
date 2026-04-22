@@ -216,6 +216,18 @@ export const ShopManagement = () => {
     } catch (err) { alert("Error deleting product"); }
   };
 
+  const handleDeleteShopOrder = async (order) => {
+    const label = order.order_number || order.id;
+    if (!window.confirm(`Delete order ${label}? This cannot be undone.`)) return;
+    try {
+      await axios.delete(`${API}/shop/orders/${order.id}`);
+      setOrders((prev) => prev.filter((o) => o.id !== order.id));
+      if (selectedOrder?.id === order.id) setSelectedOrder(null);
+    } catch (err) {
+      alert(err?.response?.data?.detail || "Error deleting order");
+    }
+  };
+
   const handleEditProduct = (product) => {
     setEditingProduct(product);
     const mrp = product.price || 0;
@@ -660,7 +672,16 @@ export const ShopManagement = () => {
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-500">{order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN') : '-'}</td>
                           <td className="px-4 py-3">
-                            <button onClick={() => setSelectedOrder(order)} className="text-blue-600 hover:text-blue-700 text-xs font-medium">View</button>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => setSelectedOrder(order)} className="text-blue-600 hover:text-blue-700 text-xs font-medium" data-testid={`shop-order-view-${order.order_number}`}>View</button>
+                              <button
+                                onClick={() => handleDeleteShopOrder(order)}
+                                className="text-red-600 hover:text-red-700 text-xs font-medium"
+                                data-testid={`shop-order-delete-${order.order_number}`}
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

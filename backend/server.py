@@ -13561,6 +13561,10 @@ api_router.include_router(cashfree_orders_router)
 from routes.gst_invoices import router as gst_invoices_router
 api_router.include_router(gst_invoices_router)
 
+# Include Public OTP router (customer mobile verification before booking)
+from routes.public_otp import router as public_otp_router
+api_router.include_router(public_otp_router)
+
 app.include_router(api_router)
 
 # CORS configuration with security (env-driven; strict in production)

@@ -101,6 +101,18 @@ class InvoiceLineItem(BaseModel):
     kind: str = "goods"  # goods | service
 
 
+class PaymentEntry(BaseModel):
+    """A single payment installment recorded against an invoice."""
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    amount: float = Field(..., gt=0)
+    payment_mode: str = "Cashfree"    # SBI | ICICI | Cashfree | Cash | UPI | Cheque | Other
+    payment_date: str = ""            # ISO date (yyyy-mm-dd); defaults to today if omitted
+    reference: str = ""               # UTR / txn id / cheque no (optional)
+    notes: str = ""
+    recorded_by: str = ""             # staff id / name
+    recorded_at: str = ""             # ISO datetime
+
+
 class InvoiceDoc(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     invoice_number: str = ""
@@ -114,7 +126,15 @@ class InvoiceDoc(BaseModel):
     igst_total: float = 0.0
     grand_total: float = 0.0
     amount_in_words: str = ""
-    payment_status: str = "unpaid"  # unpaid | paid | partial
+    payment_status: str = "unpaid"  # unpaid | partial | paid
+    # --- Payment tracking fields (added 2026-04-22) ---
+    amount_paid: float = 0.0         # Running total of all recorded payments
+    due_amount: float = 0.0          # grand_total - amount_paid (never negative)
+    payment_mode: str = ""           # Last payment mode (SBI/ICICI/Cashfree/...)
+    payment_date: str = ""           # Date of last payment (ISO yyyy-mm-dd)
+    scheme: str = ""                 # "pm_surya_ghar" | "" (empty = normal) — drives defaults
+    payment_history: List[PaymentEntry] = []  # Per-installment log
+    # --- Existing ---
     cashfree_order_id: str = ""
     cashfree_payment_id: str = ""
     payment_method: str = ""
@@ -139,6 +159,16 @@ class CreateInvoiceRequest(BaseModel):
     auto_send_whatsapp: bool = True
     auto_send_email: bool = True
     doc_type: str = "invoice"
+    scheme: str = ""  # "pm_surya_ghar" → default payment_mode ICICI
+
+
+class RecordPaymentRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    payment_mode: str = "Cashfree"
+    payment_date: Optional[str] = None  # ISO yyyy-mm-dd; today if blank
+    reference: str = ""
+    notes: str = ""
+    recorded_by: str = ""
 
 
 # ==================== GST CALCULATOR ====================
@@ -306,7 +336,9 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .footer .sign .sig-label { font-weight: bold; color: #0a355e; font-size: 10pt; }
 .badge { display: inline-block; padding: 1mm 3mm; border-radius: 3px; font-size: 9pt; font-weight: bold; }
 .badge.paid { background: #dcfce7; color: #166534; }
+.badge.partial { background: #fef3c7; color: #92400e; }
 .badge.unpaid { background: #fee2e2; color: #991b1b; }
+.badge.quotation { background: #dbeafe; color: #1e3a8a; }
 .notes { font-size: 9pt; color: #475569; margin-top: 3mm; line-height: 1.4; }
 .hsn-meta { font-size: 8pt; color: #475569; }
 </style></head>
@@ -372,6 +404,8 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
 </table>
 
 <div class="words"><b>Amount in Words:</b> {{AMOUNT_WORDS}}</div>
+
+{{PAYMENT_SUMMARY}}
 
 <div class="footer">
   <div class="bank">
@@ -451,7 +485,51 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
         if doc.get("cashfree_payment_id"):
             cashfree_line += f"<div class='row hsn-meta'>Payment ID: {_esc(doc['cashfree_payment_id'])}</div>"
 
-    paid = doc.get("payment_status") == "paid"
+    pstatus = (doc.get("payment_status") or "unpaid").lower()
+    amount_paid = float(doc.get("amount_paid") or 0)
+    due_amount = float(doc.get("due_amount") or max(0.0, float(doc.get("grand_total") or 0) - amount_paid))
+    last_mode = doc.get("payment_mode") or ""
+    last_date = doc.get("payment_date") or ""
+
+    # Payment summary block (shown on invoices only, not quotations)
+    payment_summary_html = ""
+    if doc.get("doc_type") != "quotation":
+        status_label = {"paid": "PAID IN FULL", "partial": "PARTIALLY PAID", "unpaid": "UNPAID"}.get(pstatus, pstatus.upper())
+        status_color = {"paid": "#065f46", "partial": "#92400e", "unpaid": "#991b1b"}.get(pstatus, "#1f2937")
+        status_bg = {"paid": "#d1fae5", "partial": "#fef3c7", "unpaid": "#fee2e2"}.get(pstatus, "#f3f4f6")
+        extra_rows = ""
+        if last_mode:
+            extra_rows += f"<tr><td class='label'>Payment Mode</td><td class='val'>{_esc(last_mode)}</td></tr>"
+        if last_date:
+            extra_rows += f"<tr><td class='label'>Last Payment Date</td><td class='val'>{_esc(last_date)}</td></tr>"
+        payment_summary_html = (
+            f"<div class='pay-summary' style='margin-top:4mm;border:1.2px solid {status_color};border-radius:2mm;padding:3mm;background:{status_bg};'>"
+            f"<div style='font-weight:700;color:{status_color};font-size:10pt;margin-bottom:2mm;'>PAYMENT STATUS: {status_label}</div>"
+            f"<table style='width:100%;font-size:9pt;'>"
+            f"<tr><td class='label'>Amount Paid</td><td class='val'><b>₹ {amount_paid:,.2f}</b></td></tr>"
+            f"<tr><td class='label'>Amount Due</td><td class='val' style='color:{status_color};'><b>₹ {due_amount:,.2f}</b></td></tr>"
+            f"{extra_rows}"
+            f"</table></div>"
+        )
+
+        # Payment history table (only if there are entries)
+        history = doc.get("payment_history") or []
+        if history:
+            rows = "".join(
+                f"<tr><td>{i+1}</td><td>{_esc(p.get('payment_date', ''))}</td>"
+                f"<td>{_esc(p.get('payment_mode', ''))}</td>"
+                f"<td>{_esc(p.get('reference', '')) or '—'}</td>"
+                f"<td class='num'>₹ {float(p.get('amount') or 0):,.2f}</td></tr>"
+                for i, p in enumerate(history)
+            )
+            payment_summary_html += (
+                "<div class='pay-history' style='margin-top:3mm;'>"
+                "<div style='font-weight:700;font-size:9pt;margin-bottom:1.5mm;'>Payment History</div>"
+                "<table class='items' style='font-size:8.5pt;'>"
+                "<thead><tr><th>#</th><th>Date</th><th>Mode</th><th>Reference</th><th class='num'>Amount</th></tr></thead>"
+                f"<tbody>{rows}</tbody></table></div>"
+            )
+
     html = INVOICE_HTML_TEMPLATE
     mapping = {
         "{{LOGO_IMG}}": f'<img src="{LOGO_DATA_URI}" class="logo" alt="ASR Enterprises"/>' if LOGO_DATA_URI else '',
@@ -467,8 +545,12 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
         "{{DOC_TITLE}}": "TAX INVOICE" if doc.get("doc_type") != "quotation" else "QUOTATION",
         "{{INVOICE_NUMBER}}": _esc(doc.get("invoice_number", "")),
         "{{INVOICE_DATE}}": _esc(doc.get("invoice_date", "")),
-        "{{PAID_CLASS}}": "paid" if paid else "unpaid",
-        "{{PAID_LABEL}}": "PAID" if paid else ("UNPAID" if doc.get("doc_type") != "quotation" else "QUOTED"),
+        "{{PAID_CLASS}}": pstatus if doc.get("doc_type") != "quotation" else "quotation",
+        "{{PAID_LABEL}}": (
+            "PAID" if pstatus == "paid"
+            else ("PARTIAL" if pstatus == "partial"
+                  else ("UNPAID" if doc.get("doc_type") != "quotation" else "QUOTED"))
+        ),
         "{{CUST_NAME}}": _esc(cust.get("name", "")),
         "{{CUST_ADDR}}": _esc(cust.get("address", "")),
         "{{CUST_STATE}}": _esc(cust.get("state", "")),
@@ -488,6 +570,7 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
         "{{TAX_TOTAL_ROWS}}": tax_total_rows,
         "{{GRAND_TOTAL}}": f"{computed['grand_total']:.2f}",
         "{{AMOUNT_WORDS}}": _esc(doc.get("amount_in_words", "")),
+        "{{PAYMENT_SUMMARY}}": payment_summary_html,
         "{{BANK_NAME}}": _esc(BUSINESS["bank_name"]),
         "{{BANK_ACC}}": _esc(BUSINESS["bank_account"]),
         "{{BANK_IFSC}}": _esc(BUSINESS["bank_ifsc"]),
@@ -679,6 +762,35 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
     gst = compute_gst(items, req.customer.state)
     inv_no = await next_invoice_number(req.doc_type)
     now = datetime.now(timezone.utc)
+
+    # --- Payment-tracking initial state ---
+    # A full Cashfree payment at creation time means fully paid upfront.
+    # PM Surya Ghar invoices default to ICICI as the expected payment rail.
+    is_paid_upfront = bool(req.cashfree_payment_id)
+    scheme = (req.scheme or "").strip().lower()
+    # Auto-detect PM Surya Ghar from project name or notes for convenience
+    if not scheme:
+        hint = f"{req.project_name or ''} {req.notes or ''}".lower()
+        if "pm surya ghar" in hint or "pmsurya" in hint or "surya ghar" in hint:
+            scheme = "pm_surya_ghar"
+    default_mode = "ICICI" if scheme == "pm_surya_ghar" else (req.payment_method or "Cashfree")
+    grand = gst["grand_total"]
+    amount_paid = grand if is_paid_upfront else 0.0
+    due = max(0.0, grand - amount_paid)
+    status = "paid" if amount_paid >= grand and grand > 0 else ("partial" if amount_paid > 0 else "unpaid")
+
+    payment_history: List[dict] = []
+    if is_paid_upfront:
+        payment_history.append(PaymentEntry(
+            amount=grand,
+            payment_mode="Cashfree",
+            payment_date=now.strftime("%Y-%m-%d"),
+            reference=req.cashfree_payment_id,
+            notes="Auto-recorded from Cashfree PAYMENT_SUCCESS",
+            recorded_by="system:cashfree",
+            recorded_at=now.isoformat(),
+        ).model_dump())
+
     doc = InvoiceDoc(
         invoice_number=inv_no,
         invoice_date=now.strftime("%d %b %Y"),
@@ -689,16 +801,22 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
         cgst_total=gst["cgst_total"],
         sgst_total=gst["sgst_total"],
         igst_total=gst["igst_total"],
-        grand_total=gst["grand_total"],
-        amount_in_words=amount_to_words(gst["grand_total"]),
-        payment_status="paid" if req.cashfree_payment_id else "unpaid",
+        grand_total=grand,
+        amount_in_words=amount_to_words(grand),
+        payment_status=status,
+        amount_paid=_q2(amount_paid),
+        due_amount=_q2(due),
+        payment_mode=default_mode if is_paid_upfront else ("" if not scheme else "ICICI"),
+        payment_date=now.strftime("%Y-%m-%d") if is_paid_upfront else "",
+        scheme=scheme,
+        payment_history=[PaymentEntry(**p) for p in payment_history],
         cashfree_order_id=req.cashfree_order_id,
         cashfree_payment_id=req.cashfree_payment_id,
         payment_method=req.payment_method,
         project_type=req.project_type,
         notes=req.notes,
         created_at=now.isoformat(),
-        paid_at=now.isoformat() if req.cashfree_payment_id else "",
+        paid_at=now.isoformat() if is_paid_upfront else "",
     ).model_dump()
 
     pdf_bytes = render_invoice_pdf(doc, gst)
@@ -810,6 +928,112 @@ async def resend_email(invoice_id: str):
         gst = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]], doc["customer"]["state"])
         pdf_bytes = render_invoice_pdf(doc, gst)
     return await send_invoice_email(doc, pdf_bytes)
+
+
+@router.post("/invoices/{invoice_id}/payments")
+async def record_payment(invoice_id: str, payload: RecordPaymentRequest):
+    """Record a new payment against the invoice. Updates amount_paid / due_amount
+    / payment_status / payment_mode / payment_date + appends to payment_history.
+
+    Idempotent by (invoice_id, reference) when reference is provided — repeat
+    webhooks or double-click submissions won't double-count."""
+    doc = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    if doc.get("doc_type") == "quotation":
+        raise HTTPException(400, "Cannot record payment on a quotation. Convert it to an invoice first.")
+
+    # Duplicate-reference guard (only when reference is non-empty)
+    ref = (payload.reference or "").strip()
+    if ref:
+        for p in doc.get("payment_history", []) or []:
+            if (p or {}).get("reference") == ref:
+                raise HTTPException(409, f"A payment with reference '{ref}' has already been recorded.")
+
+    grand = float(doc.get("grand_total") or 0)
+    already = float(doc.get("amount_paid") or 0)
+    new_paid = _q2(already + float(payload.amount))
+    if new_paid > grand + 0.01:
+        raise HTTPException(400, f"Payment of ₹{payload.amount:.2f} would exceed invoice total. Remaining due: ₹{max(0, grand - already):.2f}.")
+
+    due = _q2(max(0.0, grand - new_paid))
+    new_status = "paid" if due <= 0.01 else "partial"
+
+    now = datetime.now(timezone.utc)
+    pay_date = (payload.payment_date or now.strftime("%Y-%m-%d")).strip()
+    entry = PaymentEntry(
+        amount=_q2(payload.amount),
+        payment_mode=payload.payment_mode or "Cashfree",
+        payment_date=pay_date,
+        reference=ref,
+        notes=payload.notes or "",
+        recorded_by=payload.recorded_by or "",
+        recorded_at=now.isoformat(),
+    ).model_dump()
+
+    update = {
+        "$set": {
+            "amount_paid": new_paid,
+            "due_amount": due,
+            "payment_status": new_status,
+            "payment_mode": entry["payment_mode"],
+            "payment_date": pay_date,
+            "paid_at": now.isoformat() if new_status == "paid" else doc.get("paid_at", ""),
+        },
+        "$push": {"payment_history": entry},
+    }
+    await db.invoices.update_one({"id": invoice_id}, update)
+
+    # Regenerate the PDF so it reflects the updated payment status.
+    try:
+        refreshed = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        if refreshed:
+            gst = compute_gst([InvoiceLineItem(**it) for it in refreshed["line_items"]], refreshed["customer"]["state"])
+            pdf_bytes = render_invoice_pdf(refreshed, gst)
+            safe_name = refreshed["invoice_number"].replace("/", "_")
+            pdf_path = INVOICE_DIR / f"{safe_name}.pdf"
+            pdf_path.write_bytes(pdf_bytes)
+    except Exception as e:
+        logger.warning(f"[gst-invoice] payment recorded but PDF regen failed for {invoice_id}: {e}")
+
+    logger.info(f"[gst-invoice] payment of ₹{payload.amount:.2f} recorded on {doc.get('invoice_number')} → status={new_status}, due=₹{due:.2f}")
+
+    refreshed = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    return {"success": True, "invoice": refreshed, "entry": entry}
+
+
+@router.delete("/invoices/{invoice_id}/payments/{entry_id}")
+async def delete_payment_entry(invoice_id: str, entry_id: str):
+    """Remove a single payment entry (e.g., recorded in error) and recompute totals."""
+    doc = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    history = [p for p in (doc.get("payment_history") or []) if (p or {}).get("id") != entry_id]
+    if len(history) == len(doc.get("payment_history") or []):
+        raise HTTPException(404, "Payment entry not found on this invoice")
+
+    total_paid = _q2(sum(float(p.get("amount") or 0) for p in history))
+    grand = float(doc.get("grand_total") or 0)
+    due = _q2(max(0.0, grand - total_paid))
+    status = "paid" if (grand > 0 and due <= 0.01) else ("partial" if total_paid > 0 else "unpaid")
+
+    # Fall back to the last remaining entry's mode/date, or blank.
+    last = history[-1] if history else {}
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "payment_history": history,
+            "amount_paid": total_paid,
+            "due_amount": due,
+            "payment_status": status,
+            "payment_mode": last.get("payment_mode", "") if history else "",
+            "payment_date": last.get("payment_date", "") if history else "",
+            "paid_at": doc.get("paid_at", "") if status == "paid" else "",
+        }},
+    )
+
+    refreshed = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    return {"success": True, "invoice": refreshed}
 
 
 @router.delete("/invoices/{invoice_id}")

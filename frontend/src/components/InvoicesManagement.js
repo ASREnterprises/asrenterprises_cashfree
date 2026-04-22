@@ -11,6 +11,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const PROJECT_TYPES = [
   { value: "solar_project", label: "Solar Project (Full EPC — 90/10 split @ 5%+18%)" },
+  { value: "solar_project_2025_12", label: "Solar Project — Legacy 2025 (flat 12% GST)" },
   { value: "solar_goods", label: "Solar Goods only (5% GST)" },
   { value: "service", label: "Service / AMC (18% GST)" },
 ];

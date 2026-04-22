@@ -17,7 +17,7 @@ const STATUS_OPTIONS = {
 };
 
 const EMPTY_FORM = {
-  mobile: "", name: "", customer_type: "residential",
+  mobile: "", name: "", customer_type: "residential", gst_mode: "",
   address: "", district: "",
   installation_date: "", application_id: "",
   application_status: "pending", subsidy_amount: 0, subsidy_status: "pending",
@@ -391,6 +391,20 @@ export const CustomerManagement = () => {
                   <option value="residential">Residential (PM Surya Ghar Yojana)</option>
                   <option value="commercial">Commercial</option>
                 </select>
+              </FormField>
+              <FormField label="GST Mode">
+                <select
+                  data-testid="cust-gst-mode-select"
+                  value={form.gst_mode}
+                  onChange={e => setForm({ ...form, gst_mode: e.target.value })}
+                  className={inputCls}
+                >
+                  <option value="">Current (Full EPC — 90/10 @ 5%+18%)</option>
+                  <option value="legacy_2025_12">Legacy 2025 (flat 12%)</option>
+                </select>
+                {form.gst_mode === "legacy_2025_12" && (
+                  <p className="text-[11px] text-amber-600 mt-1">Invoice will be generated with a flat 12% GST line — use this only for installations completed in 2025 when 12% was the single slab.</p>
+                )}
               </FormField>
               <FormField label="Address">
                 <input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} className={inputCls} placeholder="Full address" />

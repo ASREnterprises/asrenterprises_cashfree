@@ -277,7 +277,7 @@ class InvoiceDoc(BaseModel):
 
 class CreateInvoiceRequest(BaseModel):
     customer: InvoiceCustomer
-    project_type: str = "solar_project"  # solar_project | solar_goods | service
+    project_type: str = "solar_project"  # solar_project | solar_project_2025_12 | solar_goods | service
     total_amount: Optional[float] = None  # required for solar_project (auto-split)
     line_items: Optional[List[InvoiceLineItem]] = None  # required for other types
     project_name: str = "Solar Rooftop System"
@@ -292,6 +292,12 @@ class CreateInvoiceRequest(BaseModel):
     invoice_date: Optional[str] = None   # Optional ISO 'YYYY-MM-DD' override
                                          # — lets admin back-date quotations/invoices
                                          # for legacy PM Surya Ghar projects.
+    target_grand_total: Optional[float] = None
+    # When set, after GST computation the engine nudges the biggest line item by
+    # ≤ ₹1 so the final grand_total exactly matches this GST-inclusive number.
+    # Used when admin-facing customer cost is GST-inclusive and we want the
+    # printed invoice total to match the customer portal figure exactly
+    # (no ₹0.01 drift from Decimal rounding).
 
 
 class RecordPaymentRequest(BaseModel):
@@ -320,18 +326,19 @@ def _q2(x) -> float:
 
 def build_line_items(req: CreateInvoiceRequest) -> List[InvoiceLineItem]:
     """Turn the request into concrete GST line items.
-    
-    • solar_project: split total 70/30 into goods(5%) + service(18%).
-    • solar_goods:   single 5% line for the full amount.
-    • service:       single 18% line for the full amount.
-    • mixed:         caller supplies explicit line_items (taxable_value pre-set).
+
+    • solar_project:          90/10 split — 90% goods(5%) + 10% service(18%)  [Full EPC, current rate]
+    • solar_project_2025_12:  flat 12% GST — for solar installed in 2025 when the single 12% slab applied
+    • solar_goods:            single 5% line for the full amount
+    • service:                single 18% line for the full amount
+    • mixed:                  caller supplies explicit line_items (taxable_value pre-set)
     """
     if req.line_items:
         return req.line_items
     total = Decimal(str(req.total_amount or 0))
     if total <= 0:
         raise HTTPException(400, "total_amount or line_items required")
-    
+
     if req.project_type == "solar_project":
         goods_taxable = (total * PROJECT_GOODS_SPLIT).quantize(Decimal("0.01"), ROUND_HALF_UP)
         service_taxable = (total - goods_taxable).quantize(Decimal("0.01"), ROUND_HALF_UP)
@@ -355,6 +362,14 @@ def build_line_items(req: CreateInvoiceRequest) -> List[InvoiceLineItem]:
                 kind="service",
             ),
         ]
+    if req.project_type == "solar_project_2025_12":
+        # 2025 legacy — flat 12% GST on the full taxable amount (no goods/service split)
+        return [InvoiceLineItem(
+            description=f"{req.project_name} — Solar Rooftop System (2025 — 12% GST)",
+            hsn_sac=HSN_SOLAR_PANEL,
+            quantity=1.0, unit_price=float(total), taxable_value=float(total),
+            gst_rate=12.0, kind="goods",
+        )]
     if req.project_type == "solar_goods":
         return [InvoiceLineItem(
             description=req.project_name, hsn_sac=HSN_SOLAR_PANEL,
@@ -939,6 +954,38 @@ async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
 async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
     items = build_line_items(req)
     gst = compute_gst(items, req.customer.state)
+
+    # ----- Exact grand-total match (nudge ≤ ₹1) ----------------------------
+    # When target_grand_total is set, adjust the largest line item's
+    # taxable_value by ≤ ₹1 so the printed invoice grand_total exactly
+    # matches the GST-inclusive amount shown in the Customer Portal.
+    target = req.target_grand_total
+    if target is not None:
+        target_d = Decimal(str(target)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        current = Decimal(str(gst["grand_total"]))
+        drift = target_d - current
+        if drift != 0 and abs(drift) <= Decimal("1.00"):
+            # Nudge the largest line item's taxable_value by `drift / (1+rate)`
+            # so the resulting grand_total shifts by exactly `drift`.
+            idx = max(range(len(items)), key=lambda i: float(items[i].taxable_value))
+            rate = Decimal(str(items[idx].gst_rate)) / Decimal("100")
+            tax_adjust = (drift / (Decimal("1") + rate)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            items[idx].taxable_value = float(Decimal(str(items[idx].taxable_value)) + tax_adjust)
+            items[idx].unit_price = items[idx].taxable_value
+            gst = compute_gst(items, req.customer.state)
+            # Residual tweak: if there's still ±₹0.01 drift, just overwrite
+            # cgst/sgst/igst on the enriched row (WeasyPrint uses this for print).
+            residual = target_d - Decimal(str(gst["grand_total"]))
+            if residual != 0 and abs(residual) <= Decimal("0.05"):
+                for row in gst["line_items"]:
+                    if row.get("kind") == items[idx].kind:
+                        row["cgst_amount"] = float(Decimal(str(row["cgst_amount"])) + residual / 2)
+                        row["sgst_amount"] = float(Decimal(str(row["sgst_amount"])) + residual / 2)
+                        break
+                gst["cgst_total"] = float(Decimal(str(gst["cgst_total"])) + residual / 2)
+                gst["sgst_total"] = float(Decimal(str(gst["sgst_total"])) + residual / 2)
+                gst["grand_total"] = float(target_d)
+
     inv_no = await next_invoice_number(req.doc_type)
     now = datetime.now(timezone.utc)
 

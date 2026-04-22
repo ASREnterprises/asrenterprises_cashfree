@@ -13318,6 +13318,7 @@ class CustomerRegistration(BaseModel):
     mobile: str
     name: str
     customer_type: str = "residential"  # residential | commercial
+    gst_mode: str = ""  # "" (current 90/10 @ 5%+18%) | "legacy_2025_12" (flat 12%)
     address: str = ""
     district: str = ""
     installation_date: str = ""
@@ -13387,18 +13388,23 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
     registration itself never fails because of an invoicing hiccup.
 
     Admins enter the **GST-inclusive** total cost (what the customer actually
-    pays). The GST engine treats `total_amount` as the pre-GST taxable value,
-    so we reverse the 70% goods @5% + 30% service @18% weighted rate (~8.9%)
-    to make `invoice.grand_total ≈ customer.total_cost`.
+    pays). The invoice is generated so that `grand_total == total_cost` to
+    the paisa — using the engine's `target_grand_total` nudge — so the
+    Customer Portal Billing tab and the printed PDF both show the exact
+    same figure.
+
+    GST mode selection:
+      - If `gst_mode == 'legacy_2025_12'` → flat 12% GST (2025 slab)
+      - Otherwise → Full EPC 90/10 split @ 5% + 18%
+
+    For PM Surya Ghar (residential) customers, the invoice is enriched
+    with the PMSG Application ID, installation date/year, system capacity
+    and panel details so the printed invoice is self-contained.
     """
     try:
         total_inclusive = float(doc.get("total_cost") or 0)
         if total_inclusive <= 0:
             return None
-        # Reverse-compute pre-GST from the GST-inclusive amount the admin typed.
-        # Full EPC split: 90% goods @ 5% + 10% service @ 18%.
-        WEIGHTED_RATE = 0.90 * 0.05 + 0.10 * 0.18  # = 0.063
-        pre_gst_total = round(total_inclusive / (1 + WEIGHTED_RATE), 2)
 
         from routes.gst_invoices import (
             _create_and_persist_invoice,
@@ -13406,6 +13412,53 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
             InvoiceCustomer,
         )
         is_pmsg = (doc.get("customer_type") or "").lower() == "residential"
+        gst_mode = (doc.get("gst_mode") or "").strip().lower()
+        use_legacy_12 = gst_mode == "legacy_2025_12"
+
+        # --- Pick the project type + reverse-compute pre-GST total ---
+        if use_legacy_12:
+            project_type = "solar_project_2025_12"
+            # flat 12% GST
+            pre_gst_total = round(total_inclusive / 1.12, 2)
+        else:
+            project_type = "solar_project"
+            # Full EPC 90/10: 90%*5% + 10%*18% = 6.3%
+            pre_gst_total = round(total_inclusive / 1.063, 2)
+
+        # --- Build a rich, self-contained project name + notes for PMSG ---
+        sys_kw = doc.get("system_capacity_kw") or ""
+        panels = doc.get("panels_count") or ""
+        install_date = (doc.get("installation_date") or "").strip()
+        install_year = install_date[:4] if len(install_date) >= 4 and install_date[:4].isdigit() else ""
+        app_id = (doc.get("application_id") or "").strip()
+        solar_brand = (doc.get("solar_brand") or "").strip()
+        inv_brand = (doc.get("inverter_brand") or "").strip()
+
+        project_name_bits = []
+        if sys_kw: project_name_bits.append(f"{sys_kw} kW")
+        project_name_bits.append("Solar Rooftop System")
+        if is_pmsg: project_name_bits.append("(PM Surya Ghar Yojana)")
+        if use_legacy_12: project_name_bits.append("[2025 — 12% GST]")
+        project_name = " ".join(project_name_bits).strip()
+
+        note_lines = ["Auto-generated on customer onboarding."]
+        if is_pmsg:
+            note_lines.append("Scheme: PM Surya Ghar Muft Bijli Yojana")
+            if app_id:
+                note_lines.append(f"PMSG Application / Serial No: {app_id}")
+            if install_date:
+                note_lines.append(f"Installation Date: {install_date}")
+            elif install_year:
+                note_lines.append(f"Installation Year: {install_year}")
+        if sys_kw:
+            details = [f"{sys_kw} kW"]
+            if panels: details.append(f"{panels} panels")
+            if solar_brand: details.append(f"Panels: {solar_brand}")
+            if inv_brand: details.append(f"Inverter: {inv_brand}")
+            note_lines.append(" · ".join(details))
+        if use_legacy_12:
+            note_lines.append("GST computed at 12% (2025 slab — legacy installation).")
+
         req = CreateInvoiceRequest(
             customer=InvoiceCustomer(
                 name=doc.get("name") or "Customer",
@@ -13414,20 +13467,16 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
                 state="Bihar",
                 state_code="10",
             ),
-            project_type="solar_project",
+            project_type=project_type,
             total_amount=pre_gst_total,
-            project_name=(
-                f"{doc.get('system_capacity_kw') or ''} kW Solar Rooftop System"
-                + (" (PM Surya Ghar Yojana)" if is_pmsg else "")
-            ).strip(),
-            notes=(
-                f"Auto-generated on customer onboarding. Application ID: {doc.get('application_id') or '—'}"
-                if is_pmsg else "Auto-generated on customer onboarding."
-            ),
-            auto_send_whatsapp=False,   # avoid sending a template before KYC is complete
+            target_grand_total=total_inclusive,   # ensure grand == what the portal shows
+            project_name=project_name,
+            notes="\n".join(note_lines),
+            auto_send_whatsapp=False,
             auto_send_email=False,
             doc_type="invoice",
             scheme="pm_surya_ghar" if is_pmsg else "",
+            invoice_date=install_date or None,   # back-date to installation date when known
         )
         inv = await _create_and_persist_invoice(req)
 
@@ -13515,6 +13564,7 @@ async def create_customer(request: Request, data: CustomerRegistration):
         "mobile": mobile_clean,
         "name": sanitize_input(data.name),
         "customer_type": customer_type,
+        "gst_mode": (data.gst_mode or "").strip().lower() if (data.gst_mode or "").strip().lower() in ("", "legacy_2025_12") else "",
         "scheme": "PM Surya Ghar Yojana" if customer_type == "residential" else "Commercial",
         "address": sanitize_input(data.address),
         "district": sanitize_input(data.district),
@@ -13594,6 +13644,13 @@ async def update_customer(request: Request, customer_id: str, data: Dict[str, An
 
     # Keep scheme field in sync with the customer type
     update_fields["scheme"] = "PM Surya Ghar Yojana" if new_type == "residential" else "Commercial"
+
+    # Validate gst_mode if provided
+    if "gst_mode" in update_fields:
+        gm = (update_fields["gst_mode"] or "").strip().lower()
+        if gm not in ("", "legacy_2025_12"):
+            raise HTTPException(status_code=400, detail="gst_mode must be '' or 'legacy_2025_12'")
+        update_fields["gst_mode"] = gm
 
     # Auto-derive financials whenever cost/paid/type is part of the update
     total_cost = float(update_fields.get("total_cost", existing.get("total_cost") or 0))

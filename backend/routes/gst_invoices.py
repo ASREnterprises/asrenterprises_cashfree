@@ -1409,19 +1409,29 @@ async def dashboard_data(limit: int = 20):
     stats = await invoice_stats()
     now = datetime.now(timezone.utc)
 
-    # Monthly revenue chart — last 6 months
+    # Monthly revenue chart — last 6 months (proper month arithmetic, no 30-day drift).
     months: List[dict] = []
+    cur_year = now.year
+    cur_month = now.month
     for i in range(5, -1, -1):
-        month_date = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
-        m_start = month_date.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-        m_next = (month_date.replace(day=28) + timedelta(days=7)).replace(day=1)
-        m_end = m_next.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        # Step back `i` calendar months from the current month
+        total = cur_month - i
+        y = cur_year + (total - 1) // 12
+        m = ((total - 1) % 12) + 1
+        m_start_dt = datetime(y, m, 1, tzinfo=timezone.utc)
+        # First day of the next month
+        if m == 12:
+            m_end_dt = datetime(y + 1, 1, 1, tzinfo=timezone.utc)
+        else:
+            m_end_dt = datetime(y, m + 1, 1, tzinfo=timezone.utc)
+        m_start = m_start_dt.isoformat()
+        m_end = m_end_dt.isoformat()
         agg = await db.invoices.aggregate([
             {"$match": {"doc_type": "invoice", "created_at": {"$gte": m_start, "$lt": m_end}}},
             {"$group": {"_id": None, "revenue": {"$sum": {"$ifNull": ["$amount_paid", 0]}}, "count": {"$sum": 1}}},
         ]).to_list(1)
         months.append({
-            "label": month_date.strftime("%b %Y"),
+            "label": m_start_dt.strftime("%b %Y"),
             "revenue": _q2(agg[0]["revenue"]) if agg else 0,
             "count": agg[0]["count"] if agg else 0,
         })

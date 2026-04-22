@@ -13557,6 +13557,10 @@ api_router.include_router(payments_router)
 # Include Cashfree Orders router (Live Production Payments via Hosted Checkout)
 api_router.include_router(cashfree_orders_router)
 
+# Include GST Invoice router (automated GST billing + PDF + WhatsApp/Email delivery)
+from routes.gst_invoices import router as gst_invoices_router
+api_router.include_router(gst_invoices_router)
+
 app.include_router(api_router)
 
 # CORS configuration with security (env-driven; strict in production)

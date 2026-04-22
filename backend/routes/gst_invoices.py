@@ -496,7 +496,7 @@ async def send_invoice_whatsapp(doc: dict, pdf_url: str = "") -> Dict:
     """Send the invoice to the customer via WhatsApp using the existing
     `send_whatsapp_template` helper. Falls back to a plain text message if
     template send fails (e.g. 24h window expired)."""
-    from routes.cashfree_orders import send_whatsapp_template
+    from routes.whatsapp import send_whatsapp_template
     cust = doc.get("customer", {})
     phone = (cust.get("phone") or "").replace(" ", "").replace("+", "").replace("-", "")
     if len(phone) == 10:
@@ -757,21 +757,29 @@ async def invoice_auto_issue_from_payment(order: dict) -> Optional[dict]:
         cf_order_id = order.get("order_id") or order.get("cashfree_order_id")
         if not cf_order_id:
             return None
+
+        # Skip Site Visit ₹500 booking tokens — these are lead-generation
+        # deposits, not GST-taxable sales.
+        ptype = (order.get("payment_type") or "").lower()
+        booking = (order.get("booking_type") or "").lower()
+        amount_check = float(order.get("payment_amount_received") or order.get("amount") or 0)
+        if ptype == "site_visit" or booking == "site_visit":
+            logger.info(f"[gst-invoice] skipping site-visit token {cf_order_id} (₹{amount_check})")
+            return None
+
         existing = await db.invoices.find_one({"cashfree_order_id": cf_order_id}, {"_id": 0, "id": 1})
         if existing:
             return existing
 
         # Derive project type from the order metadata
-        ptype = (order.get("payment_type") or "").lower()
-        booking = (order.get("booking_type") or "").lower()
-        if ptype == "shop_order" or booking in {"book_solar_service", "service"}:
-            project_type = "solar_goods" if ptype == "shop_order" else "service"
-        elif booking in {"site_visit"}:
-            project_type = "service"
+        if ptype == "shop_order":
+            project_type = "solar_goods"   # shop sales default to 5% goods
+        elif booking == "book_solar_service" or ptype in {"book_solar_service", "service", "booking"}:
+            project_type = "service"       # paid service bookings = 18% SAC
         else:
-            project_type = "solar_project"  # default = full 70/30 split
+            project_type = "solar_project"  # full 70/30 split (default for EPC projects)
 
-        amount = float(order.get("payment_amount_received") or order.get("amount") or 0)
+        amount = amount_check
         if amount <= 0:
             return None
 

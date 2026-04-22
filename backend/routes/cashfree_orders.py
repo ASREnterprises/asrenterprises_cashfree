@@ -114,6 +114,12 @@ class CreateOrderRequest(BaseModel):
     created_by_staff_id: Optional[str] = None
     return_url: Optional[str] = None
     origin_url: Optional[str] = None  # For cross-origin checkout (preview vs production)
+    # --- GST invoice (optional, captured at checkout when provided) ---
+    customer_gstin: Optional[str] = None
+    customer_state: Optional[str] = None
+    customer_state_code: Optional[str] = None
+    customer_pincode: Optional[str] = None
+    customer_address: Optional[str] = None
 
 class WebsiteOrderRequest(BaseModel):
     customer_name: str
@@ -125,6 +131,11 @@ class WebsiteOrderRequest(BaseModel):
     amount: float = Field(..., gt=0)
     notes: Optional[str] = None
     origin_url: Optional[str] = None  # For cross-origin checkout (preview vs production)
+    # --- GST invoice (optional, captured at checkout when provided) ---
+    customer_gstin: Optional[str] = None
+    customer_state: Optional[str] = None
+    customer_state_code: Optional[str] = None
+    customer_pincode: Optional[str] = None
 
 # ==================== HELPER FUNCTIONS ====================
 
@@ -1198,6 +1209,12 @@ async def _create_cashfree_order_impl(payload: CreateOrderRequest):
                 "payment_type": payload.payment_type,
                 "purpose": payload.purpose,
                 "notes": payload.notes,
+                # GST invoice captured fields (all optional)
+                "customer_gstin": payload.customer_gstin or "",
+                "customer_state": payload.customer_state or "",
+                "customer_state_code": payload.customer_state_code or "",
+                "customer_pincode": payload.customer_pincode or "",
+                "customer_address": payload.customer_address or "",
                 "status": "active",
                 "source": "crm" if payload.lead_id else "website",
                 "created_by": payload.created_by_staff_id,
@@ -1309,7 +1326,12 @@ async def create_website_order(request: Request, payload: WebsiteOrderRequest):
             purpose=purpose,
             notes=payload.notes,
             send_via_whatsapp=False,  # Will be sent via webhook on success
-            origin_url=payload.origin_url  # Pass through for same-origin checkout
+            origin_url=payload.origin_url,  # Pass through for same-origin checkout
+            customer_gstin=payload.customer_gstin,
+            customer_state=payload.customer_state,
+            customer_state_code=payload.customer_state_code,
+            customer_pincode=payload.customer_pincode,
+            customer_address=payload.address,
         )
         
         result = await _create_cashfree_order_impl(order_request)
@@ -1669,6 +1691,17 @@ async def _mark_order_paid(
         )
     except Exception as persist_err:
         logger.warning(f"[{source}] Could not persist confirmation outcome for {order_id}: {persist_err}")
+
+    # Auto-generate GST invoice for taxable sales (skips site-visit ₹500 tokens
+    # inside invoice_auto_issue_from_payment itself — idempotent by cashfree order_id).
+    try:
+        from routes.gst_invoices import invoice_auto_issue_from_payment
+        fresh_order = await db.cashfree_orders.find_one({"order_id": order_id}, {"_id": 0}) or order
+        invoice_result = await invoice_auto_issue_from_payment(fresh_order)
+        if invoice_result and invoice_result.get("invoice_number"):
+            logger.info(f"[{source}] GST invoice {invoice_result['invoice_number']} issued for {order_id}")
+    except Exception as inv_err:
+        logger.error(f"[{source}] GST invoice auto-issue failed for {order_id}: {inv_err}")
 
     logger.info(
         f"Payment SUCCESS via {source}: order={order_id}, amount={payment_amount}, "

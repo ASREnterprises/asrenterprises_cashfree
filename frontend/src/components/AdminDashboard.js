@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle } from "lucide-react";
+import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -113,6 +113,14 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "Shop"
     },
     {
+      title: "GST Invoices",
+      description: "Automated GST billing, PDF & delivery",
+      icon: <FileText className="w-10 h-10" />,
+      link: "/admin/invoices",
+      color: "from-amber-600 to-orange-700",
+      count: "Billing"
+    },
+    {
       title: "Customer Portal",
       description: "Manage customers & their solar data",
       icon: <Sun className="w-10 h-10" />,
@@ -198,7 +206,8 @@ export const AdminDashboard = ({ onLogout }) => {
     "Testimonials",
     "Festival Posts",
     "WhatsApp API",
-    "Solar Advisor"
+    "Solar Advisor",
+    "GST Invoices"
   ];
 
   const visibleModules = isAdminManager

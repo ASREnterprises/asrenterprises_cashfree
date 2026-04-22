@@ -13576,6 +13576,10 @@ api_router.include_router(gst_reminders_router)
 from routes.public_otp import router as public_otp_router
 api_router.include_router(public_otp_router)
 
+# Include Customer Portal router (billing dashboard, referrals, documents, progress)
+from routes.customer_portal import router as customer_portal_router
+api_router.include_router(customer_portal_router)
+
 app.include_router(api_router)
 
 # CORS configuration with security (env-driven; strict in production)

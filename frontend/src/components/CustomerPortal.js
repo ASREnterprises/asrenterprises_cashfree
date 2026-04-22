@@ -4,7 +4,8 @@ import axios from "axios";
 import {
   Sun, Zap, CheckCircle, Clock, AlertCircle, FileText, Phone, Mail, MessageCircle,
   LogOut, Shield, Battery, Home, TrendingUp, Star, RefreshCw, Send, ChevronRight,
-  Award, Calendar, Wrench, IndianRupee, ArrowUpRight, Info, X, ArrowLeft
+  Award, Calendar, Wrench, IndianRupee, ArrowUpRight, Info, X, ArrowLeft,
+  Download, Share2, Gift, Copy, Bell, Loader2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -160,6 +161,13 @@ export const CustomerPortal = () => {
   const [showServiceModal, setShowServiceModal] = useState(false);
   const [serviceSuccess, setServiceSuccess] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // Billing & portal-extension state
+  const [billing, setBilling] = useState(null);    // {kpi, invoices, quotations}
+  const [progress, setProgress] = useState(null);  // {installation, subsidy}
+  const [documents, setDocuments] = useState([]);  // download list
+  const [referral, setReferral] = useState(null);  // {code, link, stats}
+  const [payNow, setPayNow] = useState(null);      // {invoice, upi} — modal state
+  const [billingLoading, setBillingLoading] = useState(false);
   const navigate = useNavigate();
 
   // Auto-logout after 15 minutes of inactivity
@@ -201,6 +209,40 @@ export const CustomerPortal = () => {
     };
   }, [navigate, resetCustomerTimer, CUSTOMER_TIMEOUT]);
 
+  // --- Load billing/portal extensions once we have a mobile ---
+  const fetchPortalData = useCallback(async (mob) => {
+    if (!mob) return;
+    setBillingLoading(true);
+    try {
+      const [bRes, pRes, dRes, rRes] = await Promise.all([
+        axios.get(`${API}/customer/invoices/${mob}`).catch(() => ({ data: null })),
+        axios.get(`${API}/customer/progress/${mob}`).catch(() => ({ data: null })),
+        axios.get(`${API}/customer/documents/${mob}`).catch(() => ({ data: { documents: [] } })),
+        axios.get(`${API}/customer/referral/${mob}`).catch(() => ({ data: null })),
+      ]);
+      if (bRes.data) setBilling(bRes.data);
+      if (pRes.data) setProgress(pRes.data);
+      if (dRes.data) setDocuments(dRes.data.documents || []);
+      if (rRes.data) setReferral(rRes.data);
+    } finally {
+      setBillingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const mob = sessionStorage.getItem("asrCustomerMobile") || customer?.mobile;
+    if (mob) fetchPortalData(mob);
+  }, [customer, fetchPortalData]);
+
+  const openPayNow = async (inv, mob) => {
+    try {
+      const res = await axios.get(`${API}/customer/invoices/${mob}/${inv.id}/upi`);
+      setPayNow({ invoice: inv, upi: res.data });
+    } catch {
+      alert("Could not generate UPI link. Please try again.");
+    }
+  };
+
   const handleLogout = () => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     sessionStorage.removeItem("asrCustomerData");
@@ -226,8 +268,11 @@ export const CustomerPortal = () => {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Home },
+    { id: "billing", label: "Billing", icon: IndianRupee },
     { id: "installation", label: "Installation", icon: Sun },
-    { id: "subsidy", label: "Subsidy & Finance", icon: IndianRupee },
+    { id: "subsidy", label: "Subsidy & Finance", icon: Award },
+    { id: "documents", label: "Documents", icon: FileText },
+    { id: "referral", label: "Refer & Earn", icon: Gift },
     { id: "savings", label: "Savings", icon: TrendingUp },
     { id: "service", label: "Service", icon: Wrench },
   ];
@@ -355,21 +400,40 @@ export const CustomerPortal = () => {
 
         {/* TAB: Installation */}
         {activeTab === "installation" && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            <InfoCard label="Solar Brand" value={customer.solar_brand} icon={Sun} color="text-amber-600" />
-            <InfoCard label="Inverter Brand" value={customer.inverter_brand} icon={Zap} color="text-sky-600" />
-            <InfoCard label="Capacity" value={customer.system_capacity_kw ? `${customer.system_capacity_kw} kW` : "—"} icon={Battery} sub="System size" />
-            <InfoCard label="Solar Panels" value={customer.panels_count ? `${customer.panels_count} Panels` : "—"} icon={Sun} />
-            <InfoCard label="Panel Warranty" value={customer.panel_warranty_years ? `${customer.panel_warranty_years} Years` : "—"} icon={Shield} color="text-emerald-600" sub="Performance guaranteed" />
-            <InfoCard label="Inverter Warranty" value={customer.inverter_warranty_years ? `${customer.inverter_warranty_years} Years` : "—"} icon={Shield} color="text-sky-600" />
-            <InfoCard label="Installation Warranty" value={customer.installation_warranty_years ? `${customer.installation_warranty_years} Year(s)` : "—"} icon={Wrench} sub="ASR workmanship guarantee" />
-            <InfoCard label="Net Metering Status" value={statusConfig.net_metering_status[customer.net_metering_status]?.label} icon={ArrowUpRight} />
+          <div className="space-y-4">
+            {progress && <ProgressTracker
+              title="Installation Progress"
+              stages={progress.installation.stages}
+              currentIndex={progress.installation.current_index}
+              icon={Sun}
+              accent="amber"
+              testid="installation-progress"
+            />}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <InfoCard label="Solar Brand" value={customer.solar_brand} icon={Sun} color="text-amber-600" />
+              <InfoCard label="Inverter Brand" value={customer.inverter_brand} icon={Zap} color="text-sky-600" />
+              <InfoCard label="Capacity" value={customer.system_capacity_kw ? `${customer.system_capacity_kw} kW` : "—"} icon={Battery} sub="System size" />
+              <InfoCard label="Solar Panels" value={customer.panels_count ? `${customer.panels_count} Panels` : "—"} icon={Sun} />
+              <InfoCard label="Panel Warranty" value={customer.panel_warranty_years ? `${customer.panel_warranty_years} Years` : "—"} icon={Shield} color="text-emerald-600" sub="Performance guaranteed" />
+              <InfoCard label="Inverter Warranty" value={customer.inverter_warranty_years ? `${customer.inverter_warranty_years} Years` : "—"} icon={Shield} color="text-sky-600" />
+              <InfoCard label="Installation Warranty" value={customer.installation_warranty_years ? `${customer.installation_warranty_years} Year(s)` : "—"} icon={Wrench} sub="ASR workmanship guarantee" />
+              <InfoCard label="Net Metering Status" value={statusConfig.net_metering_status[customer.net_metering_status]?.label} icon={ArrowUpRight} />
+            </div>
           </div>
         )}
 
         {/* TAB: Subsidy & Finance */}
         {activeTab === "subsidy" && (
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {progress && <ProgressTracker
+              title="Subsidy Progress — PM Surya Ghar Yojana"
+              stages={progress.subsidy.stages}
+              currentIndex={progress.subsidy.current_index}
+              icon={Award}
+              accent="emerald"
+              testid="subsidy-progress"
+            />}
+            <div className="grid sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-5 text-white shadow">
                 <p className="text-emerald-100 text-sm">PM Surya Ghar Application ID</p>
@@ -406,7 +470,29 @@ export const CustomerPortal = () => {
               <p className="text-xs text-sky-700 font-semibold mb-2 flex items-center gap-1"><Info className="w-3.5 h-3.5" /> About PM Surya Ghar Yojana</p>
               <p className="text-xs text-sky-600">The PM Surya Ghar Muft Bijli Yojana provides up to ₹78,000 subsidy for 3kW solar rooftop systems. The subsidy is directly credited to your bank account by the government within 30 days of installation approval. For application status, visit <a href="https://pmsuryaghar.gov.in" target="_blank" rel="noopener noreferrer" className="underline font-semibold">pmsuryaghar.gov.in</a>.</p>
             </div>
+            </div>
           </div>
+        )}
+
+        {/* TAB: Billing */}
+        {activeTab === "billing" && (
+          <BillingTab
+            billing={billing}
+            mobile={mobile}
+            loading={billingLoading}
+            onPayNow={(inv) => openPayNow(inv, mobile)}
+            onRefresh={() => fetchPortalData(mobile)}
+          />
+        )}
+
+        {/* TAB: Documents */}
+        {activeTab === "documents" && (
+          <DocumentsTab documents={documents} loading={billingLoading} />
+        )}
+
+        {/* TAB: Referral */}
+        {activeTab === "referral" && (
+          <ReferralTab referral={referral} loading={billingLoading} />
         )}
 
         {/* TAB: Savings */}
@@ -577,6 +663,328 @@ export const CustomerPortal = () => {
           </div>
         </div>
       )}
+
+      {/* Pay Now modal */}
+      {payNow && <PayNowModal payNow={payNow} onClose={() => setPayNow(null)} />}
     </div>
   );
 };
+
+// ==================== PROGRESS TRACKER ====================
+const ProgressTracker = ({ title, stages, currentIndex, icon: Icon, accent = "amber", testid }) => {
+  const pct = currentIndex < 0 ? 0 : Math.round(((currentIndex + 1) / stages.length) * 100);
+  const accents = {
+    amber: { bar: "bg-gradient-to-r from-amber-400 to-orange-500", dot: "bg-amber-500", text: "text-amber-700" },
+    emerald: { bar: "bg-gradient-to-r from-emerald-400 to-emerald-600", dot: "bg-emerald-500", text: "text-emerald-700" },
+  };
+  const a = accents[accent] || accents.amber;
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm" data-testid={testid}>
+      <div className="flex items-center gap-2 mb-4">
+        {Icon && <Icon className={`w-4 h-4 ${a.text}`} />}
+        <h3 className="text-sm font-bold text-[#073B4C]">{title}</h3>
+        <span className={`ml-auto text-xs font-bold ${a.text}`}>{pct}%</span>
+      </div>
+      <div className="relative">
+        <div className="absolute top-4 left-4 right-4 h-1 bg-slate-200 rounded-full" />
+        <div
+          className={`absolute top-4 left-4 h-1 ${a.bar} rounded-full transition-all duration-500`}
+          style={{ width: currentIndex < 0 ? 0 : `calc(${(currentIndex / Math.max(1, stages.length - 1)) * 100}% - ${currentIndex === stages.length - 1 ? '0px' : '16px'} + 16px * ${currentIndex === 0 ? 0 : 1})` }}
+        />
+        <div className="relative flex justify-between">
+          {stages.map((s, i) => {
+            const done = i <= currentIndex;
+            return (
+              <div key={s} className="flex flex-col items-center flex-1 text-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${done ? `${a.dot} border-transparent text-white` : "bg-white border-slate-300 text-slate-400"}`}>
+                  {done ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs font-bold">{i + 1}</span>}
+                </div>
+                <div className={`mt-1.5 text-[11px] font-semibold ${done ? a.text : "text-slate-400"}`}>
+                  {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== BILLING TAB ====================
+const BillingTab = ({ billing, mobile, loading, onPayNow, onRefresh }) => {
+  const kpi = billing?.kpi || { total_cost: 0, total_paid: 0, total_due: 0, payment_status: "none", invoices_count: 0, unpaid_count: 0 };
+  const inr = (n) => `₹ ${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const statusColor = {
+    paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
+    partial: "bg-amber-100 text-amber-800 border-amber-200",
+    unpaid: "bg-red-100 text-red-800 border-red-200",
+    none: "bg-slate-100 text-slate-600 border-slate-200",
+  }[kpi.payment_status || "none"];
+
+  return (
+    <div className="space-y-4">
+      {/* Top KPI strip */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm" data-testid="cust-kpi-total">
+          <p className="text-xs text-slate-400 uppercase font-semibold">Total Cost</p>
+          <p className="text-xl md:text-2xl font-bold text-[#073B4C] mt-1 tabular-nums">{inr(kpi.total_cost)}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm" data-testid="cust-kpi-paid">
+          <p className="text-xs text-slate-400 uppercase font-semibold">Amount Paid</p>
+          <p className="text-xl md:text-2xl font-bold text-emerald-600 mt-1 tabular-nums">{inr(kpi.total_paid)}</p>
+        </div>
+        <div className={`rounded-2xl p-4 border shadow-sm col-span-2 ${kpi.total_due > 0 ? "bg-red-50 border-red-100" : "bg-white border-slate-100"}`} data-testid="cust-kpi-due">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-400 uppercase font-semibold">Due Amount</p>
+              <p className={`text-2xl md:text-3xl font-extrabold mt-1 tabular-nums ${kpi.total_due > 0 ? "text-red-600" : "text-slate-400"}`}>{inr(kpi.total_due)}</p>
+            </div>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusColor}`} data-testid="cust-payment-status">
+              {(kpi.payment_status || "NONE").toUpperCase()}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Alert banner if there are unpaid/partial invoices */}
+      {kpi.unpaid_count > 0 && (
+        <div className="bg-gradient-to-r from-red-50 to-amber-50 border border-red-200 rounded-2xl p-4 flex gap-3" data-testid="cust-alert-banner">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-bold text-red-700 text-sm">Payment Pending</p>
+            <p className="text-xs text-slate-700 mt-0.5">
+              You have {kpi.unpaid_count} invoice{kpi.unpaid_count > 1 ? "s" : ""} with <span className="font-bold">₹ {Number(kpi.total_due).toLocaleString("en-IN")} outstanding</span>. Pay directly below via UPI.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice list */}
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-[#073B4C] text-sm">Your Invoices</h3>
+        <button
+          onClick={onRefresh}
+          className="text-xs text-sky-600 hover:text-sky-700 flex items-center gap-1"
+          data-testid="cust-billing-refresh"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+        </button>
+      </div>
+      {(billing?.invoices?.length || 0) === 0 ? (
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 text-center text-slate-500 text-sm">
+          <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+          No invoices yet. They'll show up here automatically after your first payment.
+        </div>
+      ) : (
+        billing.invoices.map((inv) => (
+          <BillingInvoiceCard key={inv.id} inv={inv} mobile={mobile} onPayNow={() => onPayNow(inv)} inr={inr} />
+        ))
+      )}
+    </div>
+  );
+};
+
+const BillingInvoiceCard = ({ inv, mobile, onPayNow, inr }) => {
+  const pstatus = (inv.payment_status || "unpaid").toLowerCase();
+  const isPaid = pstatus === "paid";
+  const statusMap = {
+    paid: "bg-emerald-100 text-emerald-800",
+    partial: "bg-amber-100 text-amber-800",
+    unpaid: "bg-red-100 text-red-800",
+  };
+  const pct = inv.total_amount > 0 ? Math.min(100, Math.round((inv.amount_paid / inv.total_amount) * 100)) : 0;
+  return (
+    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm" data-testid={`cust-inv-${inv.invoice_number}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Invoice</p>
+          <p className="font-mono font-bold text-[#073B4C]">{inv.invoice_number}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{inv.invoice_date}{inv.scheme === "pm_surya_ghar" && " · PM Surya Ghar"}</p>
+        </div>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${statusMap[pstatus]}`}>{pstatus.toUpperCase()}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+        <div><p className="text-slate-400">Total</p><p className="font-bold text-[#073B4C]">{inr(inv.total_amount)}</p></div>
+        <div><p className="text-slate-400">Paid</p><p className="font-bold text-emerald-600">{inr(inv.amount_paid)}</p></div>
+        <div><p className="text-slate-400">Due</p><p className={`font-bold ${inv.due_amount > 0 ? "text-red-600" : "text-slate-400"}`}>{inr(inv.due_amount)}</p></div>
+      </div>
+      <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-3 flex gap-2">
+        {!isPaid && (
+          <button
+            onClick={onPayNow}
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 text-sm font-bold flex items-center justify-center gap-1.5"
+            data-testid={`cust-paynow-${inv.invoice_number}`}
+          >
+            <IndianRupee className="w-4 h-4" /> Pay {inr(inv.due_amount)}
+          </button>
+        )}
+        <a
+          href={`${API}/customer/invoices/${mobile}/${inv.id}/pdf`} target="_blank" rel="noopener noreferrer"
+          className={`${isPaid ? "flex-1" : ""} bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2.5 px-4 text-sm font-bold flex items-center justify-center gap-1.5`}
+          data-testid={`cust-pdf-${inv.invoice_number}`}
+        >
+          <Download className="w-4 h-4" /> PDF
+        </a>
+      </div>
+      {inv.reminder_count > 0 && inv.payment_status !== "paid" && (
+        <p className="mt-2 text-[11px] text-amber-700 flex items-center gap-1">
+          <Bell className="w-3 h-3" /> Reminders sent: {inv.reminder_count} (last {inv.last_reminder_at ? new Date(inv.last_reminder_at).toLocaleDateString("en-IN") : "—"})
+        </p>
+      )}
+    </div>
+  );
+};
+
+// ==================== PAY-NOW MODAL ====================
+const PayNowModal = ({ payNow, onClose }) => {
+  const { invoice, upi } = payNow;
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(upi.upi_link); } catch { /* ignore */ }
+  };
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md max-h-[95vh] overflow-y-auto" onClick={(e) => e.stopPropagation()} data-testid="cust-paynow-modal">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h3 className="font-bold text-[#073B4C]">Pay via UPI</h3>
+          <button onClick={onClose} data-testid="cust-paynow-close"><X className="w-5 h-5 text-slate-400" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="text-center">
+            <p className="text-xs text-slate-500">Amount Due</p>
+            <p className="text-3xl font-extrabold text-[#0a355e]">₹ {Number(upi.due_amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{invoice.invoice_number}</p>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wide mb-1">Scan & Pay • {upi.bank}</p>
+            {upi.qr_data_uri ? (
+              <img src={upi.qr_data_uri} alt="UPI QR" className="w-56 h-56 mx-auto" data-testid="cust-paynow-qr" />
+            ) : (
+              <div className="text-xs text-red-600">QR unavailable</div>
+            )}
+            <p className="text-xs text-slate-500 mt-1 break-all">{upi.vpa}</p>
+          </div>
+          <a
+            href={upi.upi_link}
+            className="block w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3.5 font-bold text-center"
+            data-testid="cust-paynow-intent-btn"
+          >
+            Open UPI App →
+          </a>
+          <button
+            onClick={copyLink}
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+            data-testid="cust-paynow-copy"
+          >
+            <Copy className="w-4 h-4" /> Copy UPI Link
+          </button>
+          <p className="text-[11px] text-slate-400 text-center leading-4">
+            Pay securely via any UPI app — GPay · PhonePe · Paytm · BHIM · BankApp. Payment will reflect within a few hours of receipt.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== DOCUMENTS TAB ====================
+const DocumentsTab = ({ documents, loading }) => (
+  <div className="space-y-3" data-testid="cust-docs-tab">
+    <h3 className="font-bold text-[#073B4C] text-sm">Downloads & Documents</h3>
+    {loading && documents.length === 0 ? (
+      <div className="bg-white rounded-2xl p-6 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin inline" /></div>
+    ) : documents.length === 0 ? (
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 text-center text-slate-500 text-sm">
+        <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+        No documents attached yet. Invoices will appear here after every payment. Warranty & certificates are added by our team.
+      </div>
+    ) : documents.map((d, i) => (
+      <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-center gap-3" data-testid={`cust-doc-${i}`}>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+          d.type === "invoice" ? "bg-emerald-50 text-emerald-600"
+          : d.type === "warranty" ? "bg-amber-50 text-amber-600"
+          : "bg-sky-50 text-sky-600"
+        }`}>
+          <FileText className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-[#073B4C] text-sm truncate">{d.label}</p>
+          <p className="text-xs text-slate-500 truncate">{d.meta || d.date}</p>
+        </div>
+        {d.url ? (
+          <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700">
+            <Download className="w-5 h-5" />
+          </a>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+      </div>
+    ))}
+  </div>
+);
+
+// ==================== REFERRAL TAB ====================
+const ReferralTab = ({ referral, loading }) => {
+  const [copied, setCopied] = useState(false);
+  if (loading && !referral) return <div className="bg-white rounded-2xl p-6 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin inline" /></div>;
+  if (!referral) return <div className="bg-white rounded-2xl p-6 border border-slate-100 text-sm text-slate-500">Referral data unavailable.</div>;
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(referral.link); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* ignore */ }
+  };
+  return (
+    <div className="space-y-4" data-testid="cust-referral-tab">
+      <div className="bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 rounded-2xl p-5 text-white shadow-lg">
+        <div className="flex items-center gap-2 mb-1">
+          <Gift className="w-5 h-5" />
+          <h3 className="font-bold">Refer Friends, Earn ₹1,000</h3>
+        </div>
+        <p className="text-xs text-amber-50">For every friend who installs solar through your referral, you earn ₹1,000 cashback/service credit.</p>
+      </div>
+
+      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+        <p className="text-xs text-slate-400 uppercase font-semibold">Your Referral Code</p>
+        <p className="font-mono font-extrabold text-2xl text-[#073B4C] mt-1 tracking-wider" data-testid="cust-ref-code">{referral.code}</p>
+        <p className="text-xs text-slate-500 mt-2 break-all" data-testid="cust-ref-link">{referral.link}</p>
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={copyLink}
+            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+            data-testid="cust-ref-copy"
+          >
+            <Copy className="w-4 h-4" /> {copied ? "Copied!" : "Copy Link"}
+          </button>
+          <a
+            href={referral.whatsapp_share_link} target="_blank" rel="noopener noreferrer"
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+            data-testid="cust-ref-share"
+          >
+            <Share2 className="w-4 h-4" /> Share
+          </a>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <RefStat label="Link Clicks" value={referral.stats.link_clicks} testid="cust-ref-clicks" />
+        <RefStat label="Referrals" value={referral.stats.referrals} testid="cust-ref-referrals" />
+        <RefStat label="Converted" value={referral.stats.converted} accent="emerald" testid="cust-ref-converted" />
+      </div>
+
+      <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+        <p className="text-xs text-slate-600">Total Rewards Earned</p>
+        <p className="text-2xl font-extrabold text-emerald-700 mt-1">₹ {Number(referral.stats.reward_earned || 0).toLocaleString("en-IN")}</p>
+        <p className="text-[11px] text-slate-500 mt-1">Paid out as cashback / free annual service. Admin verifies each conversion manually.</p>
+      </div>
+    </div>
+  );
+};
+
+const RefStat = ({ label, value, accent = "slate", testid }) => (
+  <div className="bg-white rounded-2xl p-3 border border-slate-100 text-center" data-testid={testid}>
+    <p className="text-xs text-slate-400 uppercase font-semibold">{label}</p>
+    <p className={`text-2xl font-extrabold mt-0.5 ${accent === "emerald" ? "text-emerald-600" : "text-[#073B4C]"}`}>{value}</p>
+  </div>
+);
+

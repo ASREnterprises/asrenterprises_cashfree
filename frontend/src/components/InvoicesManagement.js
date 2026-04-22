@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   FileText, Download, Send, Mail, Plus, RefreshCw, Search, IndianRupee,
-  ArrowLeft, Loader2, X, CheckCircle2, AlertCircle, Trash2, History
+  ArrowLeft, Loader2, X, CheckCircle2, AlertCircle, Trash2, History,
+  ArrowRightLeft, Bell, TrendingUp, Wallet, Receipt
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -41,6 +42,8 @@ export const InvoicesManagement = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [recordPaymentFor, setRecordPaymentFor] = useState(null);
   const [historyFor, setHistoryFor] = useState(null);
+  const [convertFor, setConvertFor] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
   const [toast, setToast] = useState(null);
   const [busy, setBusy] = useState({});  // id -> action name
 
@@ -56,13 +59,14 @@ export const InvoicesManagement = () => {
       if (filters.search) params.set("search", filters.search);
       if (filters.status) params.set("status", filters.status);
       if (filters.doc_type) params.set("doc_type", filters.doc_type);
-      const [listRes, statsRes] = await Promise.all([
+      const [listRes, dashRes] = await Promise.all([
         axios.get(`${API}/gst/invoices?${params.toString()}`),
-        axios.get(`${API}/gst/stats`),
+        axios.get(`${API}/gst/dashboard`),
       ]);
       setInvoices(listRes.data.invoices || []);
       setTotal(listRes.data.total || 0);
-      setStats(statsRes.data);
+      setDashboard(dashRes.data);
+      setStats(dashRes.data?.kpi || null);
     } catch (e) {
       console.error("Invoice fetch failed:", e);
       showToast("Failed to load invoices", "err");
@@ -124,6 +128,25 @@ export const InvoicesManagement = () => {
     }
   };
 
+  const sendReminder = async (inv) => {
+    if (!window.confirm(`Send WhatsApp payment reminder for ${inv.invoice_number} to ${inv.customer?.phone}?`)) return;
+    try {
+      setBusy((b) => ({ ...b, [inv.id]: "reminder" }));
+      const res = await axios.post(`${API}/gst/reminders/invoices/${inv.id}/send`);
+      showToast(
+        res.data?.success
+          ? `Reminder sent via ${res.data?.result?.channel || "WhatsApp"}`
+          : `Reminder: ${res.data?.result?.error || "failed"}`,
+        res.data?.success ? "ok" : "err"
+      );
+      fetchAll();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Could not send reminder", "err");
+    } finally {
+      setBusy((b) => { const n = { ...b }; delete n[inv.id]; return n; });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -161,13 +184,40 @@ export const InvoicesManagement = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Stats */}
+        {/* KPI Strip — Revenue / Pending / Total / Paid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <StatCard label="Total Invoices" value={stats?.total_invoices ?? "—"} color="bg-slate-900" />
-          <StatCard label="This Month" value={stats?.this_month_count ?? "—"} color="bg-indigo-700" />
-          <StatCard label="This Month Value" value={formatINR(stats?.this_month_value || 0)} color="bg-emerald-700" small />
-          <StatCard label="Paid This Month" value={`${stats?.this_month_paid_count || 0} • ${formatINR(stats?.this_month_paid_value || 0)}`} color="bg-amber-700" small />
+          <KpiCard
+            label="Total Revenue" value={formatINR(stats?.total_revenue || 0)}
+            icon={<TrendingUp className="w-5 h-5" />} color="from-emerald-600 to-emerald-700"
+            testid="kpi-revenue"
+          />
+          <KpiCard
+            label="Pending Amount" value={formatINR(stats?.total_due || 0)}
+            icon={<Wallet className="w-5 h-5" />} color="from-red-600 to-red-700"
+            subtitle={`${(stats?.unpaid_count || 0) + (stats?.partial_count || 0)} invoices outstanding`}
+            testid="kpi-pending"
+          />
+          <KpiCard
+            label="Total Invoices" value={stats?.total_invoices ?? "—"}
+            icon={<Receipt className="w-5 h-5" />} color="from-indigo-700 to-indigo-800"
+            subtitle={`${stats?.this_month_count || 0} this month`}
+            testid="kpi-total"
+          />
+          <KpiCard
+            label="Paid Invoices" value={stats?.paid_count ?? "—"}
+            icon={<CheckCircle2 className="w-5 h-5" />} color="from-amber-600 to-amber-700"
+            subtitle={`${stats?.partial_count || 0} partial · ${stats?.unpaid_count || 0} unpaid`}
+            testid="kpi-paid"
+          />
         </div>
+
+        {/* Monthly revenue spark (optional) */}
+        {dashboard?.monthly_revenue?.length > 0 && (
+          <div className="bg-white rounded-lg border border-slate-200 p-4 mb-5 hidden md:block">
+            <div className="text-xs font-semibold text-slate-600 uppercase mb-3">Revenue — last 6 months</div>
+            <MonthlyBarChart data={dashboard.monthly_revenue} />
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-lg border border-slate-200 p-3 mb-4 flex flex-wrap gap-2 items-center">
@@ -255,7 +305,11 @@ export const InvoicesManagement = () => {
                       </td>
                       <td className="px-3 py-2 text-center">
                         {isQuote ? (
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">QUOTE</span>
+                          inv.status === "converted" ? (
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-800" data-testid={`invoice-status-${inv.invoice_number}`}>CONVERTED</span>
+                          ) : (
+                            <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800" data-testid={`invoice-status-${inv.invoice_number}`}>QUOTE</span>
+                          )
                         ) : pstatus === "paid" ? (
                           <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800" data-testid={`invoice-status-${inv.invoice_number}`}>PAID</span>
                         ) : pstatus === "partial" ? (
@@ -269,9 +323,19 @@ export const InvoicesManagement = () => {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-center gap-1 flex-wrap">
+                          {isQuote && inv.status !== "converted" && (
+                            <IconBtn onClick={() => setConvertFor(inv)} busy={false} title="Convert to Invoice" testid={`invoice-convert-${inv.invoice_number}`} color="indigo">
+                              <ArrowRightLeft className="w-4 h-4" />
+                            </IconBtn>
+                          )}
                           {!isQuote && pstatus !== "paid" && (
                             <IconBtn onClick={() => setRecordPaymentFor(inv)} busy={false} title="Record Payment" testid={`invoice-record-payment-${inv.invoice_number}`} color="emerald-strong">
                               <IndianRupee className="w-4 h-4" />
+                            </IconBtn>
+                          )}
+                          {!isQuote && pstatus !== "paid" && (
+                            <IconBtn onClick={() => sendReminder(inv)} busy={action === "reminder"} title="Send Payment Reminder (WhatsApp)" testid={`invoice-reminder-${inv.invoice_number}`} color="amber">
+                              <Bell className="w-4 h-4" />
                             </IconBtn>
                           )}
                           {!isQuote && (inv.payment_history?.length || 0) > 0 && (
@@ -319,6 +383,12 @@ export const InvoicesManagement = () => {
         onDeleted={(msg) => { fetchAll(); showToast(msg || "Entry removed"); }}
       />}
 
+      {convertFor && <ConvertQuotationModal
+        quotation={convertFor}
+        onClose={() => setConvertFor(null)}
+        onConverted={(invoiceNumber) => { setConvertFor(null); fetchAll(); showToast(`Converted to invoice ${invoiceNumber}`); }}
+      />}
+
       {toast && (
         <div
           data-testid="invoice-toast"
@@ -335,12 +405,15 @@ export const InvoicesManagement = () => {
 };
 
 const StatCard = ({ label, value, color, small }) => (
-  <div className="bg-white rounded-lg border border-slate-200 p-3">
+  <div className="bg-white rounded-lg border border-slate-200 p-3" data-testid="stat-card-legacy">
     <div className={`w-1 h-6 rounded-full ${color} inline-block mr-2 align-middle`} />
     <span className="text-xs text-slate-500 uppercase tracking-wide">{label}</span>
     <div className={`mt-1 font-bold text-[#0a355e] ${small ? "text-sm" : "text-2xl"}`}>{value}</div>
   </div>
 );
+// Note: StatCard retained for backwards-compatibility; KpiCard is the new dashboard card.
+// eslint-disable-next-line no-unused-vars
+const _legacyStatCard = StatCard;
 
 const IconBtn = ({ children, onClick, busy, title, testid, color = "slate" }) => {
   const colorMap = {
@@ -348,6 +421,8 @@ const IconBtn = ({ children, onClick, busy, title, testid, color = "slate" }) =>
     green: "bg-emerald-100 hover:bg-emerald-200 text-emerald-700",
     "emerald-strong": "bg-emerald-600 hover:bg-emerald-700 text-white",
     blue: "bg-sky-100 hover:bg-sky-200 text-sky-700",
+    indigo: "bg-indigo-600 hover:bg-indigo-700 text-white",
+    amber: "bg-amber-100 hover:bg-amber-200 text-amber-700",
     red: "bg-red-100 hover:bg-red-200 text-red-700",
   };
   return (
@@ -747,6 +822,197 @@ const PaymentHistoryModal = ({ invoice, onClose, onDeleted }) => {
             </ul>
           )}
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== DASHBOARD KPI CARD ====================
+const KpiCard = ({ label, value, subtitle, icon, color, testid }) => (
+  <div className="bg-white rounded-lg border border-slate-200 p-4 relative overflow-hidden" data-testid={testid}>
+    <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${color}`} />
+    <div className="flex items-start justify-between">
+      <div>
+        <div className="text-xs text-slate-500 uppercase tracking-wide font-semibold">{label}</div>
+        <div className="mt-1.5 text-xl md:text-2xl font-bold text-[#0a355e] tabular-nums">{value}</div>
+        {subtitle && <div className="text-xs text-slate-500 mt-1">{subtitle}</div>}
+      </div>
+      <div className={`bg-gradient-to-br ${color} text-white p-2 rounded-lg shadow-sm`}>{icon}</div>
+    </div>
+  </div>
+);
+
+// ==================== MONTHLY REVENUE BAR CHART ====================
+const MonthlyBarChart = ({ data }) => {
+  const max = Math.max(1, ...data.map((d) => Number(d.revenue || 0)));
+  return (
+    <div className="flex items-end gap-2 h-32" data-testid="monthly-chart">
+      {data.map((m, i) => {
+        const h = Math.max(4, (Number(m.revenue || 0) / max) * 110);
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center gap-1">
+            <div className="text-[10px] font-semibold text-[#0a355e] tabular-nums">
+              ₹{(Number(m.revenue) / 1000).toFixed(0)}k
+            </div>
+            <div
+              className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t hover:from-emerald-700 hover:to-emerald-500 transition"
+              style={{ height: `${h}px` }}
+              title={`${m.label}: ₹${Number(m.revenue).toLocaleString("en-IN")}`}
+            />
+            <div className="text-[10px] text-slate-500">{m.label.split(" ")[0]}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ==================== CONVERT QUOTATION TO INVOICE MODAL ====================
+const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
+  const grand = Number(quotation.grand_total || 0);
+  const scheme = (quotation.scheme || "").toLowerCase();
+  const defaultMode = scheme === "pm_surya_ghar" ? "ICICI" : "SBI";
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [form, setForm] = useState({
+    amount_received: "0",
+    payment_mode: defaultMode,
+    payment_date: today,
+    reference: "",
+    notes: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const received = parseFloat(form.amount_received || "0") || 0;
+  const due = Math.max(0, grand - received);
+  const preview =
+    received <= 0 ? "unpaid" : received + 0.01 >= grand ? "paid" : "partial";
+  const statusColor = { paid: "bg-green-100 text-green-800", partial: "bg-amber-100 text-amber-800", unpaid: "bg-red-100 text-red-800" }[preview];
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (received < 0 || received > grand + 0.01) {
+      setError(`Amount received must be between 0 and ₹${grand.toFixed(2)}.`);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await axios.post(`${API}/gst/quotations/${quotation.id}/convert`, {
+        amount_received: received,
+        payment_mode: form.payment_mode,
+        payment_date: form.payment_date,
+        reference: form.reference || "",
+        notes: form.notes || "",
+      });
+      onConverted(res.data?.invoice?.invoice_number || "");
+    } catch (err) {
+      setError(err?.response?.data?.detail || err.message || "Conversion failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md my-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h2 className="text-lg font-bold text-[#0a355e] flex items-center gap-2">
+            <ArrowRightLeft className="w-5 h-5" /> Convert Quotation to Invoice
+          </h2>
+          <button onClick={onClose} data-testid="convert-close"><X className="w-5 h-5 text-slate-500" /></button>
+        </div>
+
+        <form onSubmit={submit} className="p-5 space-y-4">
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">Quotation #</span>
+              <span className="font-mono font-semibold text-[#0a355e]">{quotation.invoice_number}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-slate-500">Customer</span>
+              <span className="font-medium">{quotation.customer?.name}</span>
+            </div>
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-slate-500">Quotation Total</span>
+              <span className="font-semibold">₹ {grand.toLocaleString("en-IN")}</span>
+            </div>
+            {scheme === "pm_surya_ghar" && (
+              <div className="mt-2 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                PM Surya Ghar — default mode <b>ICICI</b> (cannot switch to SBI)
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Amount Received *</label>
+            <input
+              type="number" step="0.01" min="0" max={grand}
+              value={form.amount_received}
+              onChange={(e) => setForm({ ...form, amount_received: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold"
+              data-testid="convert-amount"
+            />
+            <div className="flex items-center gap-3 mt-1 text-xs">
+              <button type="button" onClick={() => setForm({ ...form, amount_received: "0" })} className="text-sky-600 hover:underline">₹0</button>
+              <button type="button" onClick={() => setForm({ ...form, amount_received: (grand / 2).toFixed(2) })} className="text-sky-600 hover:underline">Half</button>
+              <button type="button" onClick={() => setForm({ ...form, amount_received: grand.toFixed(2) })} className="text-sky-600 hover:underline">Full ₹{grand.toLocaleString("en-IN")}</button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Payment Mode *</label>
+              <select
+                value={form.payment_mode}
+                onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                data-testid="convert-mode"
+              >
+                {PAYMENT_MODES.map((m) => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Payment Date</label>
+              <input
+                type="date" value={form.payment_date}
+                onChange={(e) => setForm({ ...form, payment_date: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                data-testid="convert-date"
+              />
+            </div>
+            <div className="col-span-2">
+              <Field label="Reference (UTR / Txn ID)" value={form.reference} onChange={(v) => setForm({ ...form, reference: v })} testid="convert-ref" />
+            </div>
+            <div className="col-span-2">
+              <Field label="Notes" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="convert-notes" />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-sm">
+            <div className="flex justify-between"><span className="text-slate-500">Amount Received</span><span className="text-emerald-700 font-semibold">₹ {received.toLocaleString("en-IN")}</span></div>
+            <div className="flex justify-between mt-1"><span className="text-slate-500">Balance Due</span><span className={`font-semibold ${due > 0 ? "text-red-600" : "text-slate-400"}`}>₹ {due.toLocaleString("en-IN")}</span></div>
+            <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-200">
+              <span className="text-slate-500">Status will be</span>
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${statusColor}`} data-testid="convert-preview-status">{preview.toUpperCase()}</span>
+            </div>
+          </div>
+
+          {error && <div className="p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700" data-testid="convert-error">{error}</div>}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-md text-sm font-medium">Cancel</button>
+            <button
+              type="submit" disabled={submitting}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-semibold flex items-center gap-2 disabled:opacity-50"
+              data-testid="convert-submit"
+            >
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              <ArrowRightLeft className="w-4 h-4" /> Convert to Invoice
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

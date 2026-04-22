@@ -18,7 +18,7 @@ import os
 import re
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -59,6 +59,116 @@ PMSG_BANK = {
     "bank_ifsc": "ICIC0000404",
     "account_holder": "ASR ENTERPRISES",
 }
+
+# ======================= UPI CONFIGURATION =======================
+# Per business policy:
+#   • PM Surya Ghar invoices/quotations  →  ICICI VPA
+#   • Everything else                    →  SBI VPA
+# STRICT validation in get_upi_for_invoice() guarantees PMSG never
+# accidentally routes to the SBI UPI.
+UPI_CONFIG = {
+    "sbi": {
+        "vpa": os.environ.get("UPI_SBI_VPA", "abhirajput8763@ybl"),
+        "bank": "SBI",
+        "payee": os.environ.get("UPI_PAYEE_NAME", "ASR ENTERPRISES"),
+    },
+    "icici": {
+        "vpa": os.environ.get("UPI_ICICI_VPA", "8877896889.ibz@icici"),
+        "bank": "ICICI",
+        "payee": os.environ.get("UPI_PAYEE_NAME", "ASR ENTERPRISES"),
+    },
+}
+
+
+def get_upi_for_invoice(doc: dict) -> Dict[str, str]:
+    """Return the UPI VPA + bank for the given invoice/quotation doc.
+
+    Rule (hard-enforced):
+        scheme == 'pm_surya_ghar' → ICICI VPA
+        otherwise                  → SBI VPA
+
+    Returns: { 'vpa': str, 'bank': str, 'payee': str, 'scheme': str }
+    """
+    scheme = (doc.get("scheme") or "").lower().strip()
+    if scheme == "pm_surya_ghar":
+        return {**UPI_CONFIG["icici"], "scheme": scheme}
+    return {**UPI_CONFIG["sbi"], "scheme": scheme}
+
+
+def build_upi_link(doc: dict, amount: Optional[float] = None) -> str:
+    """Build a standard UPI intent link for the given invoice.
+
+    `amount` overrides the default (due_amount) — useful when generating
+    a reminder for a partial balance.
+    """
+    from urllib.parse import quote
+    upi = get_upi_for_invoice(doc)
+    if amount is None:
+        amount = float(doc.get("due_amount") or 0)
+        if amount <= 0:
+            amount = float(doc.get("grand_total") or 0)
+    amount = round(float(amount), 2)
+    inv_no = doc.get("invoice_number", "")
+    tn = quote(f"Invoice {inv_no}", safe="")
+    pn = quote(upi["payee"], safe="")
+    return f"upi://pay?pa={upi['vpa']}&pn={pn}&am={amount:.2f}&cu=INR&tn={tn}"
+
+
+def render_qr_png_bytes(data: str, box: int = 8, border: int = 2) -> bytes:
+    """Render the given string into a PNG QR code (returned as bytes)."""
+    import qrcode
+    import io
+    q = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=box,
+        border=border,
+    )
+    q.add_data(data)
+    q.make(fit=True)
+    img = q.make_image(fill_color="#0a355e", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def upi_qr_data_uri(doc: dict, amount: Optional[float] = None) -> str:
+    """Return a base64 data-URI PNG suitable for <img src=...> inside the PDF."""
+    import base64
+    link = build_upi_link(doc, amount)
+    png = render_qr_png_bytes(link)
+    return "data:image/png;base64," + base64.b64encode(png).decode()
+
+
+def _build_pdf_upi_qr_block(doc: dict) -> str:
+    """Produce the HTML for the 'Scan & Pay' QR block shown inside every
+    invoice/quotation PDF footer. Uses the due amount for invoices and the
+    full grand_total for quotations."""
+    # Skip the block entirely if the invoice is fully paid — no reason to ask
+    # the customer to pay again.
+    if doc.get("payment_status") == "paid":
+        return (
+            '<div class="upi-qr" style="border-color:#16a34a;">'
+            '<div class="qr-title" style="color:#166534;">✓ PAID IN FULL</div>'
+            '<div class="qr-bank" style="color:#166534;">Thank you!</div>'
+            '</div>'
+        )
+    upi = get_upi_for_invoice(doc)
+    # For quotations, there's no due_amount yet — use grand_total
+    amt = float(doc.get("due_amount") or doc.get("grand_total") or 0)
+    if amt <= 0:
+        amt = float(doc.get("grand_total") or 0)
+    try:
+        data_uri = upi_qr_data_uri(doc, amt)
+    except Exception as e:
+        logger.warning(f"[upi-qr] failed to render QR for {doc.get('invoice_number')}: {e}")
+        return ""
+    return (
+        '<div class="qr-title">Scan &amp; Pay</div>'
+        f'<img class="qr" src="{data_uri}" alt="UPI QR Code"/>'
+        f'<div class="qr-bank"><b>{_esc(upi["bank"])} UPI</b></div>'
+        f'<div class="qr-vpa">{_esc(upi["vpa"])}</div>'
+    )
 
 # Configurable CA / accountant email for invoice copies
 CA_EMAIL = os.environ.get("CA_EMAIL", "").strip()
@@ -133,6 +243,9 @@ class InvoiceDoc(BaseModel):
     invoice_number: str = ""
     invoice_date: str = ""
     doc_type: str = "invoice"  # invoice | quotation
+    status: str = "active"     # active | converted | cancelled  (primarily for quotations)
+    converted_to_invoice_id: str = ""  # set on the source quotation after conversion
+    converted_from_quotation_id: str = ""  # set on the child invoice
     customer: InvoiceCustomer
     line_items: List[InvoiceLineItem] = []
     subtotal: float = 0.0
@@ -149,6 +262,7 @@ class InvoiceDoc(BaseModel):
     payment_date: str = ""           # Date of last payment (ISO yyyy-mm-dd)
     scheme: str = ""                 # "pm_surya_ghar" | "" (empty = normal) — drives defaults
     payment_history: List[PaymentEntry] = []  # Per-installment log
+    reminders_sent: List[dict] = []  # Auto WhatsApp reminder log: [{day:int, sent_at:iso, result:str}]
     # --- Existing ---
     cashfree_order_id: str = ""
     cashfree_payment_id: str = ""
@@ -180,6 +294,15 @@ class CreateInvoiceRequest(BaseModel):
 class RecordPaymentRequest(BaseModel):
     amount: float = Field(..., gt=0)
     payment_mode: str = "Cashfree"
+    payment_date: Optional[str] = None  # ISO yyyy-mm-dd; today if blank
+    reference: str = ""
+    notes: str = ""
+    recorded_by: str = ""
+
+
+class ConvertQuotationRequest(BaseModel):
+    amount_received: float = Field(default=0.0, ge=0)
+    payment_mode: Optional[str] = None  # Auto-defaults per scheme: PMSG→ICICI, else→SBI
     payment_date: Optional[str] = None  # ISO yyyy-mm-dd; today if blank
     reference: str = ""
     notes: str = ""
@@ -346,7 +469,12 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .totals tr.grand td { font-size: 12pt; font-weight: bold; color: #0a355e; border-top: 2px solid #f59e0b; padding-top: 3mm; }
 .words { margin-top: 3mm; font-size: 10pt; padding: 3mm 4mm; background: #fef3c7; border-left: 4px solid #f59e0b; }
 .footer { margin-top: 6mm; display: flex; justify-content: space-between; gap: 6mm; }
-.footer .bank { flex: 1; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3mm; }
+.footer .bank { flex: 1.1; border: 1px solid #e2e8f0; border-radius: 4px; padding: 3mm; }
+.footer .upi-qr { flex: 0.7; text-align: center; border: 1.5px solid #0a355e; border-radius: 4px; padding: 2mm; }
+.footer .upi-qr .qr-title { font-weight: 700; color: #0a355e; font-size: 9pt; margin-bottom: 1.5mm; }
+.footer .upi-qr img.qr { width: 28mm; height: 28mm; display: block; margin: 0 auto; }
+.footer .upi-qr .qr-bank { font-size: 8pt; color: #475569; margin-top: 1mm; }
+.footer .upi-qr .qr-vpa { font-size: 7.5pt; color: #94a3b8; word-break: break-all; }
 .footer .sign { flex: 1; text-align: center; padding-top: 12mm; border-top: 1px dashed #94a3b8; }
 .footer .sign .sig-label { font-weight: bold; color: #0a355e; font-size: 10pt; }
 .footer .sign .stamp { display: block; margin: 2mm auto 0; width: 34mm; height: auto; opacity: 0.95; }
@@ -430,6 +558,10 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
     <div class="row"><b>A/C Name:</b> {{BANK_HOLDER}}</div>
     <div class="row"><b>A/C No:</b> {{BANK_ACC}}</div>
     <div class="row"><b>IFSC:</b> {{BANK_IFSC}}</div>
+    <div class="row" style="margin-top:1.5mm;"><b>UPI:</b> {{UPI_VPA}}</div>
+  </div>
+  <div class="upi-qr">
+    {{UPI_QR_BLOCK}}
   </div>
   <div class="sign">
     <div class="sig-label">For {{BUSINESS_NAME}}</div>
@@ -616,6 +748,8 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
             f'<img src="{STAMP_DATA_URI}" class="stamp" alt="ASR Enterprises Patna — Seal & Signature"/>'
             if STAMP_DATA_URI else ""
         ),
+        "{{UPI_VPA}}": _esc(get_upi_for_invoice(doc)["vpa"]),
+        "{{UPI_QR_BLOCK}}": _build_pdf_upi_qr_block(doc),
         "{{NOTES}}": _esc(doc.get("notes", "")) if doc.get("notes") else "",
     }
     for k, v in mapping.items():
@@ -1044,6 +1178,130 @@ async def record_payment(invoice_id: str, payload: RecordPaymentRequest):
     return {"success": True, "invoice": refreshed, "entry": entry}
 
 
+@router.post("/quotations/{quotation_id}/convert")
+async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotationRequest):
+    """Convert a quotation into a real tax invoice.
+
+    • Copies line items, customer, totals, scheme from the quotation
+    • Records any amount already received as the first payment entry
+    • Computes amount_paid / due_amount / payment_status
+    • Marks the source quotation status='converted' and links both ways
+    • Blocks re-conversion (409) if already converted
+    """
+    quote = await db.invoices.find_one({"id": quotation_id}, {"_id": 0})
+    if not quote:
+        raise HTTPException(404, "Quotation not found")
+    if quote.get("doc_type") != "quotation":
+        raise HTTPException(400, "Only quotations can be converted to invoices")
+    if quote.get("status") == "converted" or quote.get("converted_to_invoice_id"):
+        raise HTTPException(
+            409,
+            f"This quotation is already converted to invoice "
+            f"{quote.get('converted_to_invoice_id') or '(unknown)'}"
+        )
+
+    grand = float(quote.get("grand_total") or 0)
+    received = float(payload.amount_received or 0)
+    if received > grand + 0.01:
+        raise HTTPException(400, f"Amount received (₹{received:.2f}) cannot exceed quotation total (₹{grand:.2f}).")
+
+    scheme = (quote.get("scheme") or "").lower().strip()
+    # Auto-select the correct payment mode per business rule
+    default_mode = "ICICI" if scheme == "pm_surya_ghar" else "SBI"
+    payment_mode = (payload.payment_mode or default_mode).strip() or default_mode
+
+    now = datetime.now(timezone.utc)
+    pay_date = (payload.payment_date or now.strftime("%Y-%m-%d")).strip()
+    inv_no = await next_invoice_number("invoice")
+
+    # Compute payment status
+    if received <= 0:
+        pstatus = "unpaid"
+    elif received + 0.01 >= grand:
+        pstatus = "paid"
+        received = grand  # snap to grand to avoid floating-point
+    else:
+        pstatus = "partial"
+
+    due = _q2(max(0.0, grand - received))
+
+    history: List[dict] = []
+    if received > 0:
+        history.append(PaymentEntry(
+            amount=_q2(received),
+            payment_mode=payment_mode,
+            payment_date=pay_date,
+            reference=payload.reference or "",
+            notes=payload.notes or "Received at quotation conversion",
+            recorded_by=payload.recorded_by or "system:conversion",
+            recorded_at=now.isoformat(),
+        ).model_dump())
+
+    new_inv = InvoiceDoc(
+        invoice_number=inv_no,
+        invoice_date=now.strftime("%d %b %Y"),
+        doc_type="invoice",
+        status="active",
+        converted_from_quotation_id=quote["id"],
+        customer=InvoiceCustomer(**quote["customer"]),
+        line_items=[InvoiceLineItem(**it) for it in quote["line_items"]],
+        subtotal=quote.get("subtotal", 0.0),
+        cgst_total=quote.get("cgst_total", 0.0),
+        sgst_total=quote.get("sgst_total", 0.0),
+        igst_total=quote.get("igst_total", 0.0),
+        grand_total=grand,
+        amount_in_words=amount_to_words(grand),
+        payment_status=pstatus,
+        amount_paid=_q2(received),
+        due_amount=due,
+        payment_mode=payment_mode if received > 0 else default_mode,
+        payment_date=pay_date if received > 0 else "",
+        scheme=scheme,
+        payment_history=[PaymentEntry(**p) for p in history],
+        project_type=quote.get("project_type", "mixed"),
+        notes=(quote.get("notes") or "") + (" " + (payload.notes or "") if payload.notes else ""),
+        created_at=now.isoformat(),
+        paid_at=now.isoformat() if pstatus == "paid" else "",
+    ).model_dump()
+
+    # Re-render PDF with fresh totals + payment status
+    gst = compute_gst([InvoiceLineItem(**it) for it in new_inv["line_items"]], new_inv["customer"]["state"])
+    pdf_bytes = render_invoice_pdf(new_inv, gst)
+    safe_name = new_inv["invoice_number"].replace("/", "_")
+    pdf_path = INVOICE_DIR / f"{safe_name}.pdf"
+    pdf_path.write_bytes(pdf_bytes)
+    new_inv["pdf_path"] = str(pdf_path)
+    new_inv["pdf_url"] = f"/api/gst/invoices/{new_inv['id']}/pdf"
+
+    await db.invoices.insert_one(new_inv.copy())
+
+    # Mark source quotation converted (atomic $set so concurrent click can't double-convert)
+    mark_result = await db.invoices.update_one(
+        {"id": quotation_id, "status": {"$ne": "converted"}, "converted_to_invoice_id": ""},
+        {"$set": {
+            "status": "converted",
+            "converted_to_invoice_id": new_inv["id"],
+            "converted_at": now.isoformat(),
+        }},
+    )
+    if mark_result.modified_count == 0:
+        # Race: another request already converted. Roll back our new invoice.
+        await db.invoices.delete_one({"id": new_inv["id"]})
+        try:
+            pdf_path.unlink()
+        except Exception:
+            pass
+        raise HTTPException(409, "Quotation was just converted by another request. Please refresh.")
+
+    # Fire WhatsApp delivery for the brand-new invoice
+    import asyncio
+    asyncio.create_task(send_invoice_whatsapp(new_inv, new_inv["pdf_url"]))
+
+    new_inv.pop("_id", None)
+    logger.info(f"[gst-invoice] quotation {quote.get('invoice_number')} converted → {inv_no} (paid={received}, due={due})")
+    return {"success": True, "invoice": new_inv, "quotation_id": quotation_id}
+
+
 @router.delete("/invoices/{invoice_id}/payments/{entry_id}")
 async def delete_payment_entry(invoice_id: str, entry_id: str):
     """Remove a single payment entry (e.g., recorded in error) and recompute totals."""
@@ -1115,12 +1373,80 @@ async def invoice_stats():
     this_month, paid_month = await db.invoices.aggregate(pipeline_this_month).to_list(1), \
         await db.invoices.aggregate(pipeline_paid_month).to_list(1)
     total_count = await db.invoices.count_documents({"doc_type": "invoice"})
+
+    # Revenue totals (all-time)
+    totals = await db.invoices.aggregate([
+        {"$match": {"doc_type": "invoice"}},
+        {"$group": {
+            "_id": None,
+            "total_revenue": {"$sum": {"$ifNull": ["$amount_paid", 0]}},
+            "total_due": {"$sum": {"$ifNull": ["$due_amount", 0]}},
+            "paid_count": {"$sum": {"$cond": [{"$eq": ["$payment_status", "paid"]}, 1, 0]}},
+            "partial_count": {"$sum": {"$cond": [{"$eq": ["$payment_status", "partial"]}, 1, 0]}},
+            "unpaid_count": {"$sum": {"$cond": [{"$eq": ["$payment_status", "unpaid"]}, 1, 0]}},
+        }},
+    ]).to_list(1)
+    t = totals[0] if totals else {}
+
     return {
         "total_invoices": total_count,
+        "total_revenue": _q2(t.get("total_revenue", 0)),
+        "total_due": _q2(t.get("total_due", 0)),
+        "paid_count": t.get("paid_count", 0),
+        "partial_count": t.get("partial_count", 0),
+        "unpaid_count": t.get("unpaid_count", 0),
         "this_month_count": this_month[0]["count"] if this_month else 0,
         "this_month_value": this_month[0]["total"] if this_month else 0,
         "this_month_paid_count": paid_month[0]["count"] if paid_month else 0,
         "this_month_paid_value": paid_month[0]["total"] if paid_month else 0,
+    }
+
+
+@router.get("/dashboard")
+async def dashboard_data(limit: int = 20):
+    """Full dashboard payload — KPI cards + invoice table + monthly trend.
+    Mobile-friendly — returns everything in one call for fast paint."""
+    stats = await invoice_stats()
+    now = datetime.now(timezone.utc)
+
+    # Monthly revenue chart — last 6 months
+    months: List[dict] = []
+    for i in range(5, -1, -1):
+        month_date = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1)
+        m_start = month_date.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        m_next = (month_date.replace(day=28) + timedelta(days=7)).replace(day=1)
+        m_end = m_next.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        agg = await db.invoices.aggregate([
+            {"$match": {"doc_type": "invoice", "created_at": {"$gte": m_start, "$lt": m_end}}},
+            {"$group": {"_id": None, "revenue": {"$sum": {"$ifNull": ["$amount_paid", 0]}}, "count": {"$sum": 1}}},
+        ]).to_list(1)
+        months.append({
+            "label": month_date.strftime("%b %Y"),
+            "revenue": _q2(agg[0]["revenue"]) if agg else 0,
+            "count": agg[0]["count"] if agg else 0,
+        })
+
+    # Overdue list — unpaid/partial invoices older than 15 days
+    threshold = (now - timedelta(days=15)).isoformat()
+    overdue_docs = await db.invoices.find(
+        {"doc_type": "invoice", "payment_status": {"$in": ["unpaid", "partial"]}, "created_at": {"$lt": threshold}},
+        {"_id": 0, "id": 1, "invoice_number": 1, "customer": 1, "grand_total": 1,
+         "amount_paid": 1, "due_amount": 1, "payment_status": 1, "scheme": 1, "created_at": 1},
+    ).sort("created_at", 1).to_list(limit)
+
+    # Recent activity
+    recent = await db.invoices.find(
+        {"doc_type": "invoice"},
+        {"_id": 0, "id": 1, "invoice_number": 1, "customer": 1, "grand_total": 1,
+         "amount_paid": 1, "due_amount": 1, "payment_status": 1, "scheme": 1, "created_at": 1,
+         "invoice_date": 1, "payment_mode": 1},
+    ).sort("created_at", -1).to_list(limit)
+
+    return {
+        "kpi": stats,
+        "monthly_revenue": months,
+        "overdue": overdue_docs,
+        "recent": recent,
     }
 
 

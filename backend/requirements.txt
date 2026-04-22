@@ -143,3 +143,5 @@ tinycss2==1.5.1
 pyphen==0.17.2
 fonttools==4.62.1
 docopt==0.6.2
+qrcode==7.4.2
+APScheduler==3.11.2

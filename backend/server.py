@@ -993,6 +993,13 @@ async def startup_event():
 
     logger.info("🚀 Application started with database optimizations and automated cleanup")
 
+    # ---- Start GST payment-reminder daily scheduler ----
+    try:
+        from routes.gst_reminders import start_reminder_scheduler
+        start_reminder_scheduler()
+    except Exception as e:
+        logger.warning(f"GST reminder scheduler not started: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean shutdown of background tasks and connections"""
@@ -13560,6 +13567,10 @@ api_router.include_router(cashfree_orders_router)
 # Include GST Invoice router (automated GST billing + PDF + WhatsApp/Email delivery)
 from routes.gst_invoices import router as gst_invoices_router
 api_router.include_router(gst_invoices_router)
+
+# Include GST Reminder router (daily auto WhatsApp reminders for unpaid invoices)
+from routes.gst_reminders import router as gst_reminders_router
+api_router.include_router(gst_reminders_router)
 
 # Include Public OTP router (customer mobile verification before booking)
 from routes.public_otp import router as public_otp_router

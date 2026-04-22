@@ -13396,8 +13396,8 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
         if total_inclusive <= 0:
             return None
         # Reverse-compute pre-GST from the GST-inclusive amount the admin typed.
-        # solar_project split: 70% goods @ 5% + 30% service @ 18%.
-        WEIGHTED_RATE = 0.70 * 0.05 + 0.30 * 0.18  # = 0.089
+        # Full EPC split: 90% goods @ 5% + 10% service @ 18%.
+        WEIGHTED_RATE = 0.90 * 0.05 + 0.10 * 0.18  # = 0.063
         pre_gst_total = round(total_inclusive / (1 + WEIGHTED_RATE), 2)
 
         from routes.gst_invoices import (

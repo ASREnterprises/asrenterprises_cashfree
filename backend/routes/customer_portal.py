@@ -173,7 +173,7 @@ async def _ensure_invoice_for_customer(cust: dict) -> Optional[dict]:
             InvoiceCustomer,
         )
         is_pmsg = (cust.get("customer_type") or "").lower() == "residential"
-        WEIGHTED_RATE = 0.70 * 0.05 + 0.30 * 0.18  # solar_project split
+        WEIGHTED_RATE = 0.90 * 0.05 + 0.10 * 0.18  # solar_project split (Full EPC 90/10)
         pre_gst_total = round(total / (1 + WEIGHTED_RATE), 2)
         req = CreateInvoiceRequest(
             customer=InvoiceCustomer(

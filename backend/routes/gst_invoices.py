@@ -200,8 +200,8 @@ GST_RATES = {
     "other_product": Decimal("18"),
 }
 
-PROJECT_GOODS_SPLIT = Decimal("0.70")    # 70% of solar-project total is goods
-PROJECT_SERVICE_SPLIT = Decimal("0.30")  # 30% is installation/service
+PROJECT_GOODS_SPLIT = Decimal("0.90")    # 90% of solar-project total is goods (Full EPC)
+PROJECT_SERVICE_SPLIT = Decimal("0.10")  # 10% is installation/service
 
 
 # ==================== MODELS ====================
@@ -289,6 +289,9 @@ class CreateInvoiceRequest(BaseModel):
     auto_send_email: bool = True
     doc_type: str = "invoice"
     scheme: str = ""  # "pm_surya_ghar" → default payment_mode ICICI
+    invoice_date: Optional[str] = None   # Optional ISO 'YYYY-MM-DD' override
+                                         # — lets admin back-date quotations/invoices
+                                         # for legacy PM Surya Ghar projects.
 
 
 class RecordPaymentRequest(BaseModel):
@@ -939,6 +942,18 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
     inv_no = await next_invoice_number(req.doc_type)
     now = datetime.now(timezone.utc)
 
+    # Optional back-date for legacy PM Surya Ghar quotations/invoices
+    # Accepts 'YYYY-MM-DD'. Falls back to today.
+    invoice_date_str = now.strftime("%d %b %Y")
+    created_at_iso = now.isoformat()
+    if (req.invoice_date or "").strip():
+        try:
+            back = datetime.strptime(req.invoice_date.strip(), "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            invoice_date_str = back.strftime("%d %b %Y")
+            created_at_iso = back.isoformat()
+        except Exception:
+            pass  # silently ignore malformed dates — use today
+
     # --- Payment-tracking initial state ---
     # A full Cashfree payment at creation time means fully paid upfront.
     # PM Surya Ghar invoices default to ICICI as the expected payment rail.
@@ -969,7 +984,7 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
 
     doc = InvoiceDoc(
         invoice_number=inv_no,
-        invoice_date=now.strftime("%d %b %Y"),
+        invoice_date=invoice_date_str,
         doc_type=req.doc_type,
         customer=req.customer,
         line_items=items,
@@ -991,7 +1006,7 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
         payment_method=req.payment_method,
         project_type=req.project_type,
         notes=req.notes,
-        created_at=now.isoformat(),
+        created_at=created_at_iso,
         paid_at=now.isoformat() if is_paid_upfront else "",
     ).model_dump()
 
@@ -1064,6 +1079,186 @@ async def get_invoice(invoice_id: str):
     if not doc:
         raise HTTPException(404, "Invoice not found")
     return doc
+
+
+# ==================== EDIT INVOICE / QUOTATION ====================
+class EditInvoiceRequest(BaseModel):
+    """Editable surface of an existing invoice or quotation.
+
+    All fields are optional — only those provided will be updated.
+    Recomputes GST and regenerates the PDF whenever line items or total change.
+    `invoice_date` accepts ISO `YYYY-MM-DD` for back-dating (useful for
+    legacy PM Surya Ghar projects already completed).
+    """
+    customer: Optional[InvoiceCustomer] = None
+    line_items: Optional[List[InvoiceLineItem]] = None
+    total_amount: Optional[float] = None   # If set with project_type='solar_project', re-splits via Full EPC 90/10
+    project_type: Optional[str] = None
+    project_name: Optional[str] = None
+    notes: Optional[str] = None
+    invoice_date: Optional[str] = None     # 'YYYY-MM-DD'
+    scheme: Optional[str] = None           # '' | 'pm_surya_ghar'
+
+
+@router.put("/invoices/{invoice_id}")
+async def edit_invoice(invoice_id: str, payload: EditInvoiceRequest):
+    """Edit an existing invoice or quotation.
+
+    Safely re-computes GST + regenerates the PDF when line items change.
+    Preserves payment history, invoice_number, and audit timestamps.
+    """
+    existing = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(404, "Invoice not found")
+
+    doc = dict(existing)
+
+    if payload.customer is not None:
+        doc["customer"] = payload.customer.model_dump()
+
+    if payload.project_type:
+        doc["project_type"] = payload.project_type
+
+    if payload.project_name is not None:
+        # Preserve naming inside line_items' description when we re-split
+        doc["_project_name"] = payload.project_name
+
+    if payload.notes is not None:
+        doc["notes"] = payload.notes
+
+    if payload.scheme is not None:
+        s = (payload.scheme or "").strip().lower()
+        if s not in ("", "pm_surya_ghar"):
+            raise HTTPException(400, "scheme must be '' or 'pm_surya_ghar'")
+        doc["scheme"] = s
+
+    # Allow back-dating
+    if (payload.invoice_date or "").strip():
+        try:
+            back = datetime.strptime(payload.invoice_date.strip(), "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            doc["invoice_date"] = back.strftime("%d %b %Y")
+            doc["created_at"] = back.isoformat()
+        except Exception:
+            raise HTTPException(400, "invoice_date must be in 'YYYY-MM-DD' format")
+
+    # Rebuild line items if either explicit items or total_amount supplied
+    items_source: Optional[List[InvoiceLineItem]] = None
+    if payload.line_items is not None:
+        items_source = payload.line_items
+    elif payload.total_amount is not None and (doc.get("project_type") or "") == "solar_project":
+        # Re-split using the 90/10 Full EPC rule via build_line_items
+        synth_req = CreateInvoiceRequest(
+            customer=InvoiceCustomer(**doc["customer"]),
+            project_type="solar_project",
+            total_amount=float(payload.total_amount),
+            project_name=doc.get("_project_name") or "Solar Rooftop System",
+        )
+        items_source = build_line_items(synth_req)
+
+    if items_source is not None:
+        doc["line_items"] = [it.model_dump() if hasattr(it, "model_dump") else it for it in items_source]
+        gst = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]],
+                          doc["customer"]["state"])
+        doc["subtotal"] = gst["subtotal"]
+        doc["cgst_total"] = gst["cgst_total"]
+        doc["sgst_total"] = gst["sgst_total"]
+        doc["igst_total"] = gst["igst_total"]
+        doc["grand_total"] = gst["grand_total"]
+        doc["amount_in_words"] = amount_to_words(gst["grand_total"])
+
+        # Re-derive due + status against the existing payments
+        paid = float(doc.get("amount_paid") or 0)
+        grand = float(doc["grand_total"])
+        doc["due_amount"] = _q2(max(0.0, grand - paid))
+        doc["payment_status"] = (
+            "paid" if paid + 0.01 >= grand and grand > 0
+            else ("partial" if paid > 0 else "unpaid")
+        )
+
+    # Regenerate PDF so the file on disk matches the edits
+    try:
+        gst = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]], doc["customer"]["state"])
+        pdf_bytes = render_invoice_pdf(doc, gst)
+        safe_name = doc["invoice_number"].replace("/", "_")
+        pdf_path = INVOICE_DIR / f"{safe_name}.pdf"
+        pdf_path.write_bytes(pdf_bytes)
+        doc["pdf_path"] = str(pdf_path)
+    except Exception as e:
+        logger.warning(f"[edit-invoice] PDF regen failed for {invoice_id}: {e}")
+
+    doc["updated_at"] = datetime.now(timezone.utc).isoformat()
+    doc.pop("_project_name", None)
+    doc.pop("_id", None)
+    await db.invoices.update_one({"id": invoice_id}, {"$set": doc})
+    return {"success": True, "invoice": doc}
+
+
+class InvoiceDateChangeRequest(BaseModel):
+    invoice_date: str   # 'YYYY-MM-DD'
+
+
+@router.patch("/invoices/{invoice_id}/invoice-date")
+async def change_invoice_date(invoice_id: str, payload: InvoiceDateChangeRequest):
+    """Change `invoice_date` for a PAID PM Surya Ghar invoice whose payment was
+    recorded BEFORE today. This exists specifically so the admin can correct
+    historical invoice dates for legacy PMSG installations.
+
+    Rules:
+      • Invoice must exist and have `payment_status == 'paid'`
+      • Invoice must belong to the PM Surya Ghar scheme
+      • Payment must be dated strictly before today (not same day)
+      • New date must parse as 'YYYY-MM-DD' and not be in the future
+    """
+    inv = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not inv:
+        raise HTTPException(404, "Invoice not found")
+
+    if (inv.get("scheme") or "").lower() != "pm_surya_ghar":
+        raise HTTPException(400, "Only PM Surya Ghar scheme invoices are editable this way")
+    if (inv.get("payment_status") or "").lower() != "paid":
+        raise HTTPException(400, "Only fully-paid invoices can have their invoice date changed")
+
+    # Parse payment_date (or fall back to paid_at) and ensure it's strictly before today
+    pay_date_str = inv.get("payment_date") or ""
+    if not pay_date_str:
+        paid_at_iso = inv.get("paid_at") or ""
+        pay_date_str = (paid_at_iso or "")[:10]
+    try:
+        pay_date = datetime.strptime(pay_date_str, "%Y-%m-%d").date()
+    except Exception:
+        raise HTTPException(400, "Could not determine original payment date")
+    today = datetime.now(timezone.utc).date()
+    if not (pay_date < today):
+        raise HTTPException(400, "Payment must be recorded before today to edit the invoice date")
+
+    try:
+        new_date = datetime.strptime(payload.invoice_date.strip(), "%Y-%m-%d").date()
+    except Exception:
+        raise HTTPException(400, "invoice_date must be in 'YYYY-MM-DD' format")
+    if new_date > today:
+        raise HTTPException(400, "invoice_date cannot be in the future")
+
+    new_dt = datetime.combine(new_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "invoice_date": new_dt.strftime("%d %b %Y"),
+            "created_at": new_dt.isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+
+    # Regenerate PDF with the new date printed on it
+    try:
+        refreshed = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+        gst = compute_gst([InvoiceLineItem(**it) for it in refreshed["line_items"]], refreshed["customer"]["state"])
+        pdf_bytes = render_invoice_pdf(refreshed, gst)
+        safe_name = refreshed["invoice_number"].replace("/", "_")
+        (INVOICE_DIR / f"{safe_name}.pdf").write_bytes(pdf_bytes)
+    except Exception as e:
+        logger.warning(f"[change-invoice-date] PDF regen failed for {invoice_id}: {e}")
+
+    return {"success": True, "invoice_id": invoice_id, "invoice_date": new_dt.strftime("%d %b %Y")}
 
 
 @router.get("/invoices/{invoice_id}/pdf")

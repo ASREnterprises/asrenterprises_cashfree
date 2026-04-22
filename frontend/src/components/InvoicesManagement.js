@@ -4,13 +4,13 @@ import axios from "axios";
 import {
   FileText, Download, Send, Mail, Plus, RefreshCw, Search, IndianRupee,
   ArrowLeft, Loader2, X, CheckCircle2, AlertCircle, Trash2, History,
-  ArrowRightLeft, Bell, TrendingUp, Wallet, Receipt
+  ArrowRightLeft, Bell, TrendingUp, Wallet, Receipt, Edit3, Calendar
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const PROJECT_TYPES = [
-  { value: "solar_project", label: "Solar Project (Full EPC — 70/30 split @ 5%+18%)" },
+  { value: "solar_project", label: "Solar Project (Full EPC — 90/10 split @ 5%+18%)" },
   { value: "solar_goods", label: "Solar Goods only (5% GST)" },
   { value: "service", label: "Service / AMC (18% GST)" },
 ];
@@ -38,11 +38,14 @@ export const InvoicesManagement = () => {
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ search: "", status: "", doc_type: "" });
+  const [filters, setFilters] = useState({ search: "", status: "", doc_type: "invoice" });
   const [showCreate, setShowCreate] = useState(false);
+  const [createQuotationBackdate, setCreateQuotationBackdate] = useState(false);
   const [recordPaymentFor, setRecordPaymentFor] = useState(null);
   const [historyFor, setHistoryFor] = useState(null);
   const [convertFor, setConvertFor] = useState(null);
+  const [editFor, setEditFor] = useState(null);
+  const [changeDateFor, setChangeDateFor] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [toast, setToast] = useState(null);
   const [busy, setBusy] = useState({});  // id -> action name
@@ -173,11 +176,12 @@ export const InvoicesManagement = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </button>
             <button
-              onClick={() => setShowCreate(true)}
+              onClick={() => { setCreateQuotationBackdate(filters.doc_type === "quotation"); setShowCreate(true); }}
               className="flex items-center gap-2 px-3 py-2 bg-[#0a355e] hover:bg-[#092a4b] text-white rounded-lg font-medium"
               data-testid="invoices-create-btn"
             >
-              <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New Invoice</span>
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">{filters.doc_type === "quotation" ? "New Quotation" : "New Invoice"}</span>
             </button>
           </div>
         </div>
@@ -219,6 +223,26 @@ export const InvoicesManagement = () => {
           </div>
         )}
 
+        {/* Doc-type Tabs (Invoices / Quotations / All) */}
+        <div className="flex gap-1 bg-white rounded-lg border border-slate-200 p-1 mb-3 w-fit">
+          {[
+            { id: "invoice", label: "Invoices", icon: Receipt },
+            { id: "quotation", label: "Quotations", icon: FileText },
+            { id: "", label: "All" },
+          ].map(t => (
+            <button
+              key={t.id || "all"}
+              onClick={() => setFilters({ ...filters, doc_type: t.id })}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition ${
+                filters.doc_type === t.id ? "bg-[#0a355e] text-white shadow" : "text-slate-600 hover:text-[#0a355e]"
+              }`}
+              data-testid={`invoices-doctab-${t.id || "all"}`}
+            >
+              {t.icon && <t.icon className="w-4 h-4" />} {t.label}
+            </button>
+          ))}
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-lg border border-slate-200 p-3 mb-4 flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[200px]">
@@ -241,16 +265,6 @@ export const InvoicesManagement = () => {
             <option value="paid">Paid</option>
             <option value="partial">Partial</option>
             <option value="unpaid">Unpaid</option>
-          </select>
-          <select
-            value={filters.doc_type}
-            onChange={(e) => setFilters({ ...filters, doc_type: e.target.value })}
-            className="px-3 py-2 border border-slate-300 rounded-md text-sm"
-            data-testid="invoices-doctype-filter"
-          >
-            <option value="">Invoices & Quotations</option>
-            <option value="invoice">Invoices only</option>
-            <option value="quotation">Quotations only</option>
           </select>
           <span className="text-xs text-slate-500">{total} result{total === 1 ? "" : "s"}</span>
         </div>
@@ -343,6 +357,14 @@ export const InvoicesManagement = () => {
                               <History className="w-4 h-4" />
                             </IconBtn>
                           )}
+                          <IconBtn onClick={() => setEditFor(inv)} busy={false} title={isQuote ? "Edit Quotation" : "Edit Invoice"} testid={`invoice-edit-${inv.invoice_number}`} color="indigo">
+                            <Edit3 className="w-4 h-4" />
+                          </IconBtn>
+                          {!isQuote && pstatus === "paid" && inv.scheme === "pm_surya_ghar" && (
+                            <IconBtn onClick={() => setChangeDateFor(inv)} busy={false} title="Change Invoice Date (PMSG paid)" testid={`invoice-changedate-${inv.invoice_number}`} color="amber">
+                              <Calendar className="w-4 h-4" />
+                            </IconBtn>
+                          )}
                           <IconBtn onClick={() => downloadPdf(inv)} busy={action === "download"} title="Download PDF" testid={`invoice-download-${inv.invoice_number}`}>
                             <Download className="w-4 h-4" />
                           </IconBtn>
@@ -367,8 +389,22 @@ export const InvoicesManagement = () => {
       </div>
 
       {showCreate && <CreateInvoiceModal
+        initialDocType={filters.doc_type === "quotation" ? "quotation" : "invoice"}
+        allowBackdate={createQuotationBackdate || filters.doc_type === "quotation"}
         onClose={() => setShowCreate(false)}
-        onCreated={() => { setShowCreate(false); fetchAll(); showToast("Invoice created"); }}
+        onCreated={() => { setShowCreate(false); fetchAll(); showToast(filters.doc_type === "quotation" ? "Quotation created" : "Invoice created"); }}
+      />}
+
+      {editFor && <EditInvoiceModal
+        invoice={editFor}
+        onClose={() => setEditFor(null)}
+        onSaved={(msg) => { setEditFor(null); fetchAll(); showToast(msg || "Saved"); }}
+      />}
+
+      {changeDateFor && <ChangeInvoiceDateModal
+        invoice={changeDateFor}
+        onClose={() => setChangeDateFor(null)}
+        onSaved={(msg) => { setChangeDateFor(null); fetchAll(); showToast(msg || "Invoice date updated"); }}
       />}
 
       {recordPaymentFor && <RecordPaymentModal
@@ -436,14 +472,15 @@ const IconBtn = ({ children, onClick, busy, title, testid, color = "slate" }) =>
 };
 
 // ==================== CREATE INVOICE MODAL ====================
-const CreateInvoiceModal = ({ onClose, onCreated }) => {
+const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", allowBackdate = false }) => {
   const [form, setForm] = useState({
     name: "", phone: "", email: "", gstin: "", address: "",
     state: "Bihar", state_code: "10", pincode: "",
     project_type: "solar_project", project_name: "Solar Rooftop System",
-    total_amount: "", notes: "", doc_type: "invoice",
-    is_pm_surya_ghar: false,
+    total_amount: "", notes: "", doc_type: initialDocType,
+    is_pm_surya_ghar: initialDocType === "quotation" && allowBackdate,
     auto_send_whatsapp: true, auto_send_email: true,
+    invoice_date: "",  // Optional back-date
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -476,6 +513,7 @@ const CreateInvoiceModal = ({ onClose, onCreated }) => {
         auto_send_whatsapp: form.auto_send_whatsapp,
         auto_send_email: form.auto_send_email,
       };
+      if (form.invoice_date) body.invoice_date = form.invoice_date;
       await axios.post(`${API}/gst/invoices`, body);
       onCreated();
     } catch (e) {
@@ -555,6 +593,26 @@ const CreateInvoiceModal = ({ onClose, onCreated }) => {
             <div className="md:col-span-2">
               <Field label="Notes (optional)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="inv-notes" />
             </div>
+
+            {/* Back-date for legacy PM Surya Ghar quotations/invoices */}
+            {(form.doc_type === "quotation" || form.is_pm_surya_ghar) && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">
+                  {form.doc_type === "quotation" ? "Quotation Date (back-date allowed)" : "Invoice Date (back-date allowed for PM Surya Ghar)"}
+                </label>
+                <input
+                  type="date"
+                  value={form.invoice_date}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="inv-backdate-input"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Leave empty to use today. Use a past date for legacy projects already completed.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Notifications */}
@@ -1019,3 +1077,188 @@ const ConvertQuotationModal = ({ quotation, onClose, onConverted }) => {
 };
 
 export default InvoicesManagement;
+
+// ==================== EDIT INVOICE / QUOTATION MODAL ====================
+const EditInvoiceModal = ({ invoice, onClose, onSaved }) => {
+  const isQuote = invoice.doc_type === "quotation";
+  const [form, setForm] = useState({
+    name: invoice.customer?.name || "",
+    phone: invoice.customer?.phone || "",
+    email: invoice.customer?.email || "",
+    gstin: invoice.customer?.gstin || "",
+    address: invoice.customer?.address || "",
+    state: invoice.customer?.state || "Bihar",
+    state_code: invoice.customer?.state_code || "10",
+    pincode: invoice.customer?.pincode || "",
+    project_type: invoice.project_type || "solar_project",
+    project_name: (invoice.line_items?.[0]?.description || "").split(" — ")[0] || "Solar Rooftop System",
+    total_amount: String(invoice.grand_total || ""),
+    notes: invoice.notes || "",
+    is_pm_surya_ghar: invoice.scheme === "pm_surya_ghar",
+    invoice_date: invoice.created_at ? new Date(invoice.created_at).toISOString().slice(0, 10) : "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const onStateChange = (name) => {
+    const row = STATES.find(([n]) => n === name);
+    setForm(f => ({ ...f, state: name, state_code: row ? row[1] : f.state_code }));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!form.name || !form.phone) { setError("Name and phone are required."); return; }
+    setSubmitting(true);
+    try {
+      const body = {
+        customer: {
+          name: form.name, phone: form.phone, email: form.email || "",
+          gstin: form.gstin || "", address: form.address || "",
+          state: form.state, state_code: form.state_code, pincode: form.pincode || "",
+        },
+        project_type: form.project_type,
+        project_name: form.project_name || "Solar Service",
+        notes: form.notes || "",
+        scheme: form.is_pm_surya_ghar ? "pm_surya_ghar" : "",
+      };
+      // Only send total_amount when admin wants to re-split the solar project total.
+      if (form.total_amount && Number(form.total_amount) > 0) {
+        body.total_amount = parseFloat(form.total_amount);
+      }
+      if (form.invoice_date) body.invoice_date = form.invoice_date;
+      await axios.put(`${API}/gst/invoices/${invoice.id}`, body);
+      onSaved(isQuote ? "Quotation updated" : "Invoice updated");
+    } catch (e) {
+      setError(e.response?.data?.detail || e.message || "Failed to update");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl my-8" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h2 className="text-lg font-bold text-[#0a355e] flex items-center gap-2">
+            <Edit3 className="w-5 h-5" /> Edit {isQuote ? "Quotation" : "Invoice"} — {invoice.invoice_number}
+          </h2>
+          <button onClick={onClose} data-testid="invoice-edit-close"><X className="w-5 h-5 text-slate-500" /></button>
+        </div>
+        <form onSubmit={submit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Customer Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} testid="edit-inv-name" />
+            <Field label="Phone *" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} testid="edit-inv-phone" />
+            <Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} testid="edit-inv-email" />
+            <Field label="GSTIN" value={form.gstin} onChange={(v) => setForm({ ...form, gstin: v.toUpperCase() })} testid="edit-inv-gstin" />
+            <div className="md:col-span-2">
+              <Field label="Address" value={form.address} onChange={(v) => setForm({ ...form, address: v })} testid="edit-inv-address" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">State</label>
+              <select value={form.state} onChange={(e) => onStateChange(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" data-testid="edit-inv-state">
+                {STATES.map(([n]) => <option key={n}>{n}</option>)}
+              </select>
+            </div>
+            <Field label="Pincode" value={form.pincode} onChange={(v) => setForm({ ...form, pincode: v })} testid="edit-inv-pincode" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Project Type</label>
+              <select value={form.project_type} onChange={(e) => setForm({ ...form, project_type: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" data-testid="edit-inv-project-type">
+                {PROJECT_TYPES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+              </select>
+            </div>
+            <Field label="Project / Item Name" value={form.project_name} onChange={(v) => setForm({ ...form, project_name: v })} testid="edit-inv-project-name" />
+            <Field label="Total (GST-inclusive, leave blank to keep)" value={form.total_amount} onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })} testid="edit-inv-total" type="number" />
+            <div className="md:col-span-2">
+              <Field label="Notes" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="edit-inv-notes" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                {isQuote ? "Quotation Date" : "Invoice Date"} (back-date allowed)
+              </label>
+              <input
+                type="date" value={form.invoice_date} max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                data-testid="edit-inv-date"
+              />
+            </div>
+            <label className="md:col-span-2 flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={form.is_pm_surya_ghar} onChange={(e) => setForm({ ...form, is_pm_surya_ghar: e.target.checked })} data-testid="edit-inv-pmsg" />
+              PM Surya Ghar scheme (default rail ICICI)
+            </label>
+          </div>
+
+          {error && <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" data-testid="edit-inv-error">{error}</div>}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-md text-sm font-medium">Cancel</button>
+            <button type="submit" disabled={submitting} className="px-5 py-2 bg-[#0a355e] hover:bg-[#092a4b] text-white rounded-md text-sm font-semibold flex items-center gap-2 disabled:opacity-50" data-testid="edit-inv-submit">
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ==================== CHANGE INVOICE DATE MODAL (PMSG paid) ====================
+const ChangeInvoiceDateModal = ({ invoice, onClose, onSaved }) => {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [newDate, setNewDate] = useState(invoice.created_at ? new Date(invoice.created_at).toISOString().slice(0, 10) : todayIso);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!newDate) { setError("Please pick a date."); return; }
+    setSubmitting(true);
+    try {
+      await axios.patch(`${API}/gst/invoices/${invoice.id}/invoice-date`, { invoice_date: newDate });
+      onSaved("Invoice date updated");
+    } catch (e) {
+      setError(e.response?.data?.detail || e.message || "Failed to update date");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h2 className="text-base font-bold text-[#0a355e] flex items-center gap-2">
+            <Calendar className="w-5 h-5" /> Change Invoice Date
+          </h2>
+          <button onClick={onClose} data-testid="change-date-close"><X className="w-5 h-5 text-slate-500" /></button>
+        </div>
+        <form onSubmit={submit} className="p-5 space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            Available for <span className="font-semibold">paid PM Surya Ghar invoices</span> whose payment was recorded before today. Useful for correcting historical dates on legacy installations.
+          </div>
+          <div className="text-sm text-slate-700">
+            <div className="flex justify-between py-1"><span className="text-slate-500">Invoice #</span><span className="font-mono font-semibold">{invoice.invoice_number}</span></div>
+            <div className="flex justify-between py-1"><span className="text-slate-500">Current Date</span><span className="font-semibold">{invoice.invoice_date}</span></div>
+            <div className="flex justify-between py-1"><span className="text-slate-500">Payment Date</span><span className="font-semibold text-emerald-700">{invoice.payment_date || "—"}</span></div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">New Invoice Date</label>
+            <input type="date" value={newDate} max={todayIso} onChange={(e) => setNewDate(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" data-testid="change-date-input" />
+          </div>
+          {error && <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700" data-testid="change-date-error">{error}</div>}
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-md text-sm font-medium">Cancel</button>
+            <button type="submit" disabled={submitting} className="px-5 py-2 bg-[#0a355e] hover:bg-[#092a4b] text-white rounded-md text-sm font-semibold flex items-center gap-2 disabled:opacity-50" data-testid="change-date-submit">
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Save Date
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

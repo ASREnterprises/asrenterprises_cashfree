@@ -567,6 +567,9 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
         project_type: form.project_type,
         project_name: form.project_name || "Solar Service",
         total_amount: parseFloat(form.total_amount),
+        // For quotations the number admin enters IS the final quote price (with GST).
+        // The backend reverse-computes taxable values so grand_total matches exactly.
+        total_is_gst_inclusive: form.doc_type === "quotation",
         notes: form.notes || "",
         doc_type: form.doc_type,
         scheme: form.is_pm_surya_ghar ? "pm_surya_ghar" : "",
@@ -649,7 +652,13 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
               </select>
             </div>
             <Field label="Project / Item Name" value={form.project_name} onChange={(v) => setForm({ ...form, project_name: v })} testid="inv-project-name" />
-            <Field label="Total Amount (pre-GST) *" value={form.total_amount} onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })} testid="inv-amount" type="number" />
+            <Field
+              label={form.doc_type === "quotation" ? "Total Amount (GST-inclusive) *" : "Total Amount (pre-GST) *"}
+              value={form.total_amount}
+              onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })}
+              testid="inv-amount"
+              type="number"
+            />
             <div className="md:col-span-2">
               <Field label="Notes (optional)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="inv-notes" />
             </div>
@@ -1258,6 +1267,9 @@ const EditInvoiceModal = ({ invoice, onClose, onSaved }) => {
       // Only send total_amount when admin wants to re-split the solar project total.
       if (form.total_amount && Number(form.total_amount) > 0) {
         body.total_amount = parseFloat(form.total_amount);
+        // The Edit modal label says "GST-inclusive" — honor that on the backend
+        // so final grand_total equals the entered figure exactly.
+        body.total_is_gst_inclusive = true;
       }
       if (form.invoice_date) body.invoice_date = form.invoice_date;
       await axios.put(`${API}/gst/invoices/${invoice.id}`, body);

@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText, Trash2 } from "lucide-react";
+import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText, Trash2, FileCheck2 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -169,6 +169,14 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "Protected"
     },
     {
+      title: "Solar Agreements",
+      description: "PM Surya Ghar Yojana agreement PDFs — view, send, delete",
+      icon: <FileCheck2 className="w-10 h-10" />,
+      link: "/admin/agreements",
+      color: "from-emerald-600 to-teal-700",
+      count: "PMSG Docs"
+    },
+    {
       title: "Trash",
       description: "Restore deleted items within 30 days",
       icon: <Trash2 className="w-10 h-10" />,
@@ -215,7 +223,8 @@ export const AdminDashboard = ({ onLogout }) => {
     "Festival Posts",
     "WhatsApp API",
     "Solar Advisor",
-    "GST Invoices"
+    "GST Invoices",
+    "Solar Agreements"
   ];
 
   const visibleModules = isAdminManager

@@ -299,6 +299,13 @@ class CreateInvoiceRequest(BaseModel):
     # printed invoice total to match the customer portal figure exactly
     # (no ₹0.01 drift from Decimal rounding).
 
+    total_is_gst_inclusive: bool = False
+    # When True, interpret `total_amount` as GST-inclusive. The backend will
+    # reverse-compute the pre-GST taxable value using the project_type's
+    # blended rate so the final grand_total EXACTLY equals the entered figure.
+    # Used by the "New Quotation" form where admins enter the number the
+    # customer is actually quoted (i.e. the final price with GST).
+
 
 class RecordPaymentRequest(BaseModel):
     amount: float = Field(..., gt=0)
@@ -958,7 +965,29 @@ async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
 
 
 # ==================== CORE CREATE ====================
+# Blended effective GST rate per project_type. When `total_is_gst_inclusive`
+# is set, the entered total is divided by (1 + rate) to reverse-compute the
+# taxable base so the final grand_total = entered total.
+_BLENDED_GST_RATE = {
+    "solar_project":        0.063,   # 90% @5% + 10% @18% = 6.3%
+    "solar_project_flat_5": 0.05,
+    "solar_goods":          0.05,
+    "service":              0.18,
+}
+
+
 async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
+    # If the admin entered the total as GST-inclusive, reverse-compute the
+    # pre-GST taxable amount before build_line_items runs. target_grand_total
+    # is set so any residual drift is nudged out at the end.
+    if req.total_is_gst_inclusive and req.total_amount and req.total_amount > 0:
+        rate = _BLENDED_GST_RATE.get(req.project_type or "solar_project", 0.063)
+        gst_inclusive_total = float(req.total_amount)
+        req.total_amount = float(
+            Decimal(str(gst_inclusive_total / (1 + rate))).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        )
+        req.target_grand_total = gst_inclusive_total
+
     items = build_line_items(req)
     gst = compute_gst(items, req.customer.state)
 
@@ -1161,6 +1190,7 @@ class EditInvoiceRequest(BaseModel):
     notes: Optional[str] = None
     invoice_date: Optional[str] = None     # 'YYYY-MM-DD'
     scheme: Optional[str] = None           # '' | 'pm_surya_ghar'
+    total_is_gst_inclusive: bool = False   # If True, `total_amount` is treated as GST-inclusive
 
 
 @router.put("/invoices/{invoice_id}")
@@ -1210,18 +1240,48 @@ async def edit_invoice(invoice_id: str, payload: EditInvoiceRequest):
         items_source = payload.line_items
     elif payload.total_amount is not None and (doc.get("project_type") or "") == "solar_project":
         # Re-split using the 90/10 Full EPC rule via build_line_items
+        total_in = float(payload.total_amount)
+        target_grand = None
+        if payload.total_is_gst_inclusive and total_in > 0:
+            rate = _BLENDED_GST_RATE.get("solar_project", 0.063)
+            target_grand = total_in
+            total_in = float(
+                Decimal(str(total_in / (1 + rate))).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            )
         synth_req = CreateInvoiceRequest(
             customer=InvoiceCustomer(**doc["customer"]),
             project_type="solar_project",
-            total_amount=float(payload.total_amount),
+            total_amount=total_in,
             project_name=doc.get("_project_name") or "Solar Rooftop System",
         )
         items_source = build_line_items(synth_req)
+        # Stash target so the block below can nudge grand_total to the exact entered figure
+        doc["_edit_target_grand"] = target_grand
 
     if items_source is not None:
         doc["line_items"] = [it.model_dump() if hasattr(it, "model_dump") else it for it in items_source]
-        gst = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]],
-                          doc["customer"]["state"])
+        items_model = [InvoiceLineItem(**it) for it in doc["line_items"]]
+        gst = compute_gst(items_model, doc["customer"]["state"])
+
+        # If the admin entered the total as GST-inclusive on edit, nudge the
+        # biggest line item's taxable_value so final grand_total = target exactly.
+        target_grand = doc.pop("_edit_target_grand", None)
+        if target_grand:
+            target_d = Decimal(str(target_grand)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            current = Decimal(str(gst["grand_total"]))
+            drift = target_d - current
+            if drift != 0 and abs(drift) <= Decimal("1.00"):
+                idx = max(range(len(items_model)), key=lambda i: float(items_model[i].taxable_value))
+                rate = Decimal(str(items_model[idx].gst_rate)) / Decimal("100")
+                tax_adjust = (drift / (Decimal("1") + rate)).quantize(Decimal("0.01"), ROUND_HALF_UP)
+                items_model[idx].taxable_value = float(Decimal(str(items_model[idx].taxable_value)) + tax_adjust)
+                items_model[idx].unit_price = items_model[idx].taxable_value
+                doc["line_items"] = [it.model_dump() for it in items_model]
+                gst = compute_gst(items_model, doc["customer"]["state"])
+                residual = target_d - Decimal(str(gst["grand_total"]))
+                if residual != 0 and abs(residual) <= Decimal("0.05"):
+                    gst["grand_total"] = float(target_d)
+
         doc["subtotal"] = gst["subtotal"]
         doc["cgst_total"] = gst["cgst_total"]
         doc["sgst_total"] = gst["sgst_total"]

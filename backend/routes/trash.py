@@ -48,6 +48,7 @@ SOURCE_LABELS = {
     "customers": "Customers",
     "orders": "Shop Orders",
     "agents": "Solar Advisors",
+    "agreements": "Solar Agreements",
 }
 
 
@@ -73,6 +74,11 @@ def _label_for_doc(source: str, doc: Dict) -> Dict[str, str]:
         return {
             "label": doc.get("name", "Unnamed Advisor"),
             "subtitle": f"{doc.get('agent_id', '—')} · {doc.get('phone', '—')}",
+        }
+    if source == "agreements":
+        return {
+            "label": f"Solar Agreement — {doc.get('quotation_number', '—')}",
+            "subtitle": f"{doc.get('customer_name', '—')} · {doc.get('customer_phone', '—')}",
         }
     return {"label": doc.get("name") or doc.get("id", "—"), "subtitle": ""}
 

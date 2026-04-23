@@ -346,6 +346,53 @@ async def auto_generate_for_quotation(quote_doc: Dict) -> Optional[Dict]:
 
 
 # ---------- Endpoints ----------
+@router.get("")
+async def list_agreements(
+    search: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+):
+    """Admin: paginated list of all Solar Agreements (not in trash)."""
+    import re as _re
+    q: Dict = {}
+    if search:
+        safe = _re.escape(search)
+        q["$or"] = [
+            {"customer_name": {"$regex": safe, "$options": "i"}},
+            {"customer_phone": {"$regex": safe, "$options": "i"}},
+            {"quotation_number": {"$regex": safe, "$options": "i"}},
+        ]
+    skip = max(0, (page - 1) * limit)
+    total = await db.agreements.count_documents(q)
+    cur = db.agreements.find(q, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    items = await cur.to_list(length=limit)
+    return {"total": total, "page": page, "limit": limit, "agreements": items}
+
+
+@router.delete("/{agreement_id}")
+async def delete_agreement(agreement_id: str):
+    """Soft-delete the agreement into the 30-day Trash. PDF file preserved on disk."""
+    doc = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Agreement not found")
+    try:
+        from routes.trash import move_to_trash
+        entry = await move_to_trash("agreements", doc, deleted_by="admin")
+    except Exception as e:
+        logger.error(f"[agreement] move to trash failed: {e}")
+        raise HTTPException(500, f"Failed to move to trash: {e}")
+    await db.agreements.delete_one({"id": agreement_id})
+    # Unlink from customer.agreement_ids so the Customer Portal hides it
+    try:
+        await db.customers.update_many(
+            {"agreement_ids": agreement_id},
+            {"$pull": {"agreement_ids": agreement_id}},
+        )
+    except Exception:
+        pass
+    return {"success": True, "moved_to_trash": True, "trash_id": entry["id"]}
+
+
 @router.get("/customer/{phone}")
 async def list_customer_agreements(phone: str):
     """All Solar Agreements for a customer (most-recent first)."""

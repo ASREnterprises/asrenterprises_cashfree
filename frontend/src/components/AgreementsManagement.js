@@ -47,7 +47,10 @@ export const AgreementsManagement = () => {
   }, [toast]);
 
   const openPdf = (a) => {
-    const url = `${API}/agreements/${a.id}/pdf`;
+    // Append a cache-buster so Chrome / WhatsApp's embedded PDF viewer never
+    // serves a stale copy after the backend template is updated.
+    const v = a.regenerated_at || a.created_at || Date.now();
+    const url = `${API}/agreements/${a.id}/pdf?v=${encodeURIComponent(v)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

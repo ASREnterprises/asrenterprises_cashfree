@@ -539,11 +539,18 @@ async def customer_documents(phone: str):
         {"customer_phone": clean}, {"_id": 0}
     ).sort("created_at", -1).to_list(None)
     for a in agreements:
+        # Include regenerated_at (or created_at) as a cache-buster so browsers
+        # / WhatsApp viewers never serve a stale PDF after the template is
+        # updated on the backend.
+        v = a.get("regenerated_at") or a.get("created_at") or ""
+        url = f"/api/agreements/{a['id']}/pdf"
+        if v:
+            url = f"{url}?v={v}"
         documents.append({
             "type": "agreement",
             "label": f"Solar Agreement — PM Surya Ghar Yojana (Quote {a.get('quotation_number', '')})".strip(" ()"),
             "date": (a.get("created_at") or "")[:10],
-            "url": f"/api/agreements/{a['id']}/pdf",
+            "url": url,
             "meta": f"Scheme: PM Surya Ghar · {a.get('status', 'generated').title()}",
         })
 

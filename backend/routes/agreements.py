@@ -536,11 +536,18 @@ async def agreement_pdf(agreement_id: str):
     # (container restart, deploy rotation, etc.).
     p = await _ensure_pdf_on_disk(doc)
     # Serve inline so the browser previews instead of auto-downloading.
+    # Cache-Control: no-store so Chrome / WhatsApp's embedded viewer don't
+    # stick to an older copy after the template is updated.
     return FileResponse(
         str(p),
         media_type="application/pdf",
         filename=p.name,
-        headers={"Content-Disposition": f'inline; filename="{p.name}"'},
+        headers={
+            "Content-Disposition": f'inline; filename="{p.name}"',
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
     )
 
 

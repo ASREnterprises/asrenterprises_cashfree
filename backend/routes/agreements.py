@@ -43,7 +43,12 @@ AGREEMENT_DIR = Path("/app/backend/agreements")
 AGREEMENT_DIR.mkdir(parents=True, exist_ok=True)
 
 STAMP_PATH = Path("/app/backend/data/signature_stamp.png")
-OVERLAY_PAGES = {0, 1, 2, 4}   # 0-indexed: pages 1, 2, 3, 5 of the PDF
+# 0-indexed: pages 1, 2, 3 + last (signature) page of the PDF.
+# The signature/agreement terms are always finalised on the last page, so
+# stamping that one guarantees the seal lands next to the signature block
+# regardless of how the dynamic content paginates.
+OVERLAY_FIRST_PAGES = {0, 1, 2}
+STAMP_ON_LAST_PAGE = True
 
 DEFAULT_PAYMENT_TERMS = (
     "Advance 25% at booking · 50% at material delivery · 20% at installation · "
@@ -196,7 +201,11 @@ def _build_stamp_overlay_pdf(target_bytes: bytes) -> bytes:
     target_w = 65 * mm
 
     for idx in range(len(source.pages)):
-        if idx in OVERLAY_PAGES and stamp_exists:
+        is_last = idx == len(source.pages) - 1
+        should_stamp = stamp_exists and (
+            idx in OVERLAY_FIRST_PAGES or (STAMP_ON_LAST_PAGE and is_last)
+        )
+        if should_stamp:
             try:
                 from PIL import Image
                 img = Image.open(STAMP_PATH)
@@ -234,13 +243,22 @@ def _build_stamp_overlay_pdf(target_bytes: bytes) -> bytes:
 def _build_agreement_pdf(*, customer_name: str, customer_address: str,
                          payment_terms: str = DEFAULT_PAYMENT_TERMS) -> bytes:
     now = datetime.now(timezone.utc).astimezone()
-    html = _TEMPLATE.format(
-        customer_name=(customer_name or "—").strip(),
-        customer_address=(customer_address or "—").strip(),
-        payment_terms=(payment_terms or DEFAULT_PAYMENT_TERMS).strip(),
-        day=now.strftime("%d"),
-        month=now.strftime("%B"),
-        year=now.strftime("%Y"),
+    # Use str.replace (NOT str.format) because the template contains CSS braces
+    # like "@page { size: A4; ... }" that would blow up str.format with
+    # KeyError: ' size'.
+    import html as _html_mod
+
+    def _esc(val: str) -> str:
+        return _html_mod.escape((val or "—").strip())
+
+    html = (
+        _TEMPLATE
+        .replace("{customer_name}", _esc(customer_name))
+        .replace("{customer_address}", _esc(customer_address))
+        .replace("{payment_terms}", _esc(payment_terms or DEFAULT_PAYMENT_TERMS))
+        .replace("{day}", now.strftime("%d"))
+        .replace("{month}", now.strftime("%B"))
+        .replace("{year}", now.strftime("%Y"))
     )
     pdf_bytes = _render_html_to_pdf_bytes(html)
     try:

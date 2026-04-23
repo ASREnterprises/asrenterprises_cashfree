@@ -61,82 +61,87 @@ DEFAULT_PAYMENT_TERMS = (
 # day, month, year, payment_terms}. Do not edit copy.
 _TEMPLATE = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <style>
-  /* A4 with running header (matches the sample PDF: every page carries the
-     "Guidelines for PM-Surya Ghar: Muft Bijli Yojana / Central Financial
-     Assistance to Residential Consumers" banner at the top.) */
+  /* Running footer (matches the physical signed copy — the "Guidelines for
+     PM-Surya Ghar" banner is printed in the bottom-centre of every page,
+     NOT at the top). Generous top margin on page 1 so content sits mid-page. */
   @page {
     size: A4;
-    margin: 28mm 18mm 20mm 18mm;
-    @top-left {
-      content: "Guidelines for PM-Surya Ghar: Muft Bijli Yojana";
-      font-family: "DejaVu Serif", "Times New Roman", serif;
-      font-size: 10pt;
+    margin: 22mm 20mm 32mm 20mm;
+    @bottom-center {
+      content: "Guidelines for PM-Surya Ghar: Muft Bijli Yojana\\A Central Financial Assistance to Residential Consumers";
+      white-space: pre;
+      font-family: "DejaVu Sans", "Arial", sans-serif;
+      font-size: 9.5pt;
       color: #111;
-      padding-top: 6mm;
-    }
-    @top-right {
-      content: "Central Financial Assistance to Residential Consumers";
-      font-family: "DejaVu Serif", "Times New Roman", serif;
-      font-size: 10pt;
-      color: #111;
-      padding-top: 6mm;
+      padding-bottom: 3mm;
+      text-align: center;
+      line-height: 1.25;
+      font-weight: 600;
     }
   }
-  body { font-family: "DejaVu Serif", "Times New Roman", serif; color:#111; font-size:11pt; line-height:1.45; }
-  h1 { font-size:12.5pt; margin: 0 0 10px; font-weight: 600; }
-  .annex { text-align:center; margin: 14mm 0 2mm; font-weight: 600; font-size: 11pt; }
-  p { margin: 6px 0 8px; text-align: justify; }
-  ol { padding-left: 22px; margin: 4px 0 8px; }
-  ol li { margin: 4px 0 6px; text-align: justify; }
-  ol.first-party > li { margin: 3px 0 5px; }
-  .between { margin-top: 6mm; }
-  .between p { margin: 10px 0; }
-  .party-head { margin-top: 14mm; font-weight: 600; }
-  .sig-line { margin-top: 12mm; }
-  .sig-line p { margin: 10px 0; }
-  .disclaimer { margin-top: 18mm; font-size: 10.5pt; }
-  .disclaimer strong { font-weight: 700; }
+  @page :first {
+    /* Content should sit vertically-centred on page 1 the way the handwritten
+       copy does. Increase the top margin significantly. */
+    margin-top: 85mm;
+  }
+  body { font-family: "DejaVu Sans", "Arial", sans-serif; color:#111; font-size:10.5pt; line-height:1.38; }
+  .center { text-align:center; }
+  .annex { text-align:center; font-weight: 700; margin: 0 0 6mm; font-size: 11pt; }
+  h1.title { text-align:center; font-size:11.5pt; font-weight:700; margin: 0 0 6mm; line-height:1.4; }
+  p { margin: 3mm 0; text-align: justify; }
+  p.block-center { text-align:center; font-weight:700; margin: 5mm 0 3mm; }
+  ol { padding-left: 8mm; margin: 2mm 0 3mm; }
+  ol li { margin: 2.5mm 0; text-align: justify; }
+  ol.first-party { padding-left: 14mm; }
+  ol.first-party > li { margin: 2.5mm 0; }
+  .indent { padding-left: 10mm; }
+  .indent p { margin: 2mm 0; }
+  .section-title { font-weight: 700; text-decoration: underline; margin-top: 4mm; margin-bottom: 2mm; }
+  .party-head { margin-top: 10mm; }
+  .party-head p { margin: 4mm 0; }
+  .sig-block { margin-top: 8mm; }
+  .sig-block p { margin: 7mm 0; }
+  .disclaimer { margin-top: 10mm; font-size: 10.5pt; }
   .page-break { page-break-before: always; }
-  .no-break-after { page-break-after: avoid; }
+  sup { font-size: 65%; vertical-align: super; line-height: 0; }
 </style></head><body>
 
 <!-- ====================== PAGE 1 ====================== -->
-<p class="annex">Annexure 2</p>
+<p class="annex">Annexure2</p>
 
-<h1>Agreement between Consumer &amp; Vendor for installation of grid connected rooftop solar (RTS)
-project under PM- Surya Ghar: Muft Bijli Yojana</h1>
+<h1 class="title">Model Draft Agreement between Consumer &amp; Vendor for installation of grid connected rooftop solar (RTS) project under PM- Surya Ghar: Muft Bijli Yojana</h1>
 
-<p>This agreement is executed on <strong>{day}</strong> (Day)
+<p>This agreement is executed on <strong>{day}<sup>{day_sfx}</sup></strong> (Day)
 <strong>{month}</strong> (Month) <strong>{year}</strong> (Year) for design, supply, installation,
 commissioning and 5 year comprehensive maintenance of RTS project/system along with warranty
 under PM Surya Ghar: Muft Bijli Yojana</p>
 
-<div class="between">
-  <p><strong>Between</strong></p>
-  <p><strong>{customer_name}</strong> having address <strong>{customer_address}</strong>
-  (here in after referred to as first Party, i.e./consumer/consumer/purchaser/owner of system).</p>
+<p class="block-center">Between</p>
 
-  <p><strong>And</strong></p>
-  <p><strong>ASR ENTERPRISES</strong> (Name of Vendor) having registered office at
-  <strong>Dawarikapuri Road no 2C Khagaul Patna Bihar 801105</strong>
-  (Here in after referred to as second Party i.e. Vendor/contractor /System Integrator).</p>
-</div>
+<p><strong>{customer_name}</strong> (Name of Consumer) having address <strong>{customer_address}</strong>
+(here in after referred to as first Party, i.e./consumer/consumer/purchaser/owner of system).</p>
+
+<p class="block-center">And</p>
 
 <!-- ====================== PAGE 2 ====================== -->
 <div class="page-break"></div>
 
-<p><strong>Whereas</strong></p>
+<p><strong>ASR ENTERPRISES</strong> (Name of Vendor) having registered office at
+<strong>Dawarikapuri Road no 2C Khagaul Patna Bihar 801105</strong>
+(Here in after referred to as second Party i.e. Vendor/contractor /System Integrator).</p>
+
+<p class="section-title">Whereas</p>
 <p>First party wishes to install a Grid Connected Rooftop Solar Plant on the roof top of the residential
 building of the Consumer under PM Surya Ghar: Muft Bijli Yojana.</p>
 
-<p><strong>And whereas</strong></p>
+<p class="section-title">And whereas</p>
 <p>Second Party has verified availability of appropriate roof and found it feasible to install a Grid Connected
 rooftop Solar plant and that second party is willing to design, supply, install, test, commission and carry
 out Operation &amp; Maintenance of the Rooftop Solar plant for 5 year period.</p>
 
 <p>On this day, the First Party and Second Party agree to the following:</p>
 
-<p><strong>The First Party here by undertakes to perform the following activities:</strong></p>
+<p class="section-title">The First Party here by undertakes to perform the following activities:</p>
 <p>Submission of online application at national Portal for installation of RTS project/system, Submission of
 application for net-metering and system inspection and upload of the relevant documents on the
 National portal of the scheme</p>
@@ -149,35 +154,37 @@ National portal of the scheme</p>
   <li>Pay the amount as per the payment schedule as mutually agreed with the vendor, including any additional amount to the second party for any additional work/customization required depending upon the building condition.</li>
 </ol>
 
-<p><strong>The Second Party here by undertakes to perform the following activities:</strong></p>
+<p class="section-title">The Second Party here by undertakes to perform the following activities:</p>
 <ol>
-  <li>The vendor must follow all standards and safety guidelines prescribed under state regulation and technical standards prescribed by MNRE for RTS project, failing which the vendor is liable for blacklisting from participation in the govt. Project/ scheme and other penal action in accordance with the law. The responsibility of supply, installation and commissioning of the rooftop solar project/system in complete compliance with MNRE scheme guidelines lies with the vendor.</li>
+  <li>The vendor must follow all standards and safety guidelines prescribed under state regulation and technical standards prescribed by MNRE for RTS project, failing which the vendor is liable for blacklisting from participation in the govt. Project/ scheme and other penal action in accordance with the law. The</li>
 </ol>
 
 <!-- ====================== PAGE 3 ====================== -->
 <div class="page-break"></div>
 
+<p>responsibility of supply, installation and commissioning of the rooftop solar project/system in complete compliance with MNRE scheme guidelines lies with the vendor.</p>
+
 <ol start="2">
   <li><strong>Site Survey:</strong> Site visit, survey and development of detailed project report for installation of RTS system. This also includes feasibility study of roof, strength of roof and shadow free area. If any additional work or customization is involved for the plant installation as per site condition and requirement of the consumer building, the vendor shall prepare an estimate and can raise separate invoice including GST in addition to the amount towards standard plant cost. The consumer shall pay the amount for such additional work directly to the vendor.</li>
   <li><strong>Design &amp; Engineering:</strong> Design of plant along with drawings and selection of components s per standard provided by the DISCOM/SERC/MNRE for best performance and safety of the plant.
-    <p><strong>Module and Inverter:</strong> The solar modules, including the solar cells, should be manufactured in India. Both the solar modules and inverters shall conform to the relevant standards and specifications prescribed by MNRE. Any other requirement, viz. star labeling (solar modules), quality control orders and standards &amp; labeling (inverters) etc., shall also be complied.</p>
-    <p><strong>Procurement &amp; Supply:</strong> Procurement of complete system as per BIS/IS/IEC standard (whatever applicable) &amp; safety guidelines for installation of rooftop solar plants. The supplied materials should comply with all MNRE standards for release of subsidy.</p>
-    <p><strong>Installation &amp; Civil work:</strong> Complete civil work, structure work and electrical work (including drawings) following all the safety and relevant BIS standards.</p>
-    <p><strong>Documentation (Technical Catalogue/Warranty Certificates/BIS certificates/other test reports etc):</strong> All such documents shall be provided to the consumer for online uploading and submission of technical specifications, IEC/BIS report, Sr. Nos, Warranty Card of Solar Panel &amp; Inverter, Layout &amp; Electrical SLD, Structure Design and Drawing, Cable and other detailed documents.</p>
+    <div class="indent">
+      <p><strong>Module and Inverter:</strong> The solar modules, including the solar cells, should be manufactured in India. Both the solar modules and inverters shall conform to the relevant standards and specifications prescribed by MNRE. Any other requirement, viz. star labeling (solar modules), quality control orders and standards &amp; labeling (inverters) etc., shall also be complied.</p>
+      <p><strong>Procurement &amp; Supply:</strong> Procurement of complete system as per BIS/IS/IEC standard (whatever applicable) &amp; safety guidelines for installation of rooftop solar plants. The supplied materials should comply with all MNRE standards for release of subsidy.</p>
+      <p><strong>Installation &amp; Civil work:</strong> Complete civil work, structure work and electrical work (including drawings) following all the safety and relevant BIS standards.</p>
+      <p><strong>Documentation (Technical Catalogue/Warranty Certificates/BIS certificates/other test reports etc):</strong> All such documents shall be provided to the consumer for online uploading and submission of technical specifications, IEC/BIS report, Sr. Nos, Warranty Card of Solar Panel &amp; Inverter, Layout &amp; Electrical SLD, Structure Design and Drawing, Cable and other detailed documents.</p>
+    </div>
   </li>
   <li><strong>Project completion report (PCR):</strong> Assisting the consumer in filling and uploading of signed documents (Consumer &amp; Vendor) on the national portal.</li>
   <li><strong>Warranty:</strong> System warranty certificates should be provided to the consumer. The complete system should be warranted for 5 years from the date of commissioning by DISCOM. Individual component warranty documents provided by the manufacturer shall be provided to the consumer and all possible assistance should be extended to the consumer for claiming the warranty from manufacturer.</li>
   <li><strong>NET meter &amp; Grid Connectivity:</strong> Net meter supply/procurement, testing and approvals shall be In the scope of vendor. Grid connection of the plant shall be in the scope of the vendor.</li>
   <li><strong>Testing and Commissioning:</strong> The vendor shall be present at the time of testing and commissioning by the DISCOM.</li>
-  <li><strong>Operation &amp; Maintenance:</strong> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in</li>
 </ol>
 
 <!-- ====================== PAGE 4 ====================== -->
 <div class="page-break"></div>
 
-<p>the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</p>
-
-<ol start="9">
+<ol start="8">
+  <li><strong>Operation &amp; Maintenance:</strong> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</li>
   <li><strong>Insurance:</strong> Any insurance cost pertaining to material transfer/storage before Commissioning of the system shall be in the scope of the vendor.</li>
   <li><strong>Applicable Standard:</strong> The system must meet the technical standards and specifications notified by MNRE. The vendor is solely responsible to supply component and service which meets the technical standards and specification prescribed by MNRE and State DISCOMS.</li>
   <li><strong>Project/system cost &amp; payment terms:</strong> The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</li>
@@ -191,7 +198,7 @@ National portal of the scheme</p>
   <p><strong>First Party</strong></p>
   <p>Name: <strong>{customer_name}</strong></p>
   <p>Address: {customer_address}</p>
-  <div class="sig-line">
+  <div class="sig-block">
     <p>Sign</p>
     <p>Date</p>
   </div>
@@ -203,10 +210,10 @@ National portal of the scheme</p>
 <div class="party-head">
   <p><strong>Second Party</strong></p>
   <p>Name : <strong>ASR ENTERPRISES</strong></p>
-  <p>Address : Dwarikapuri Khagaul Patna Bihar 801105</p>
-  <div class="sig-line">
+  <p>Address : <strong>DAWARIKAPURI ROAD NO 2C KHAGAUL, PATNA-801105, PATNA BIHAR.</strong></p>
+  <div class="sig-block">
     <p>Sign</p>
-    <p>Date</p>
+    <p>Date <strong>{day}/{month_num}/{year}</strong></p>
   </div>
 </div>
 
@@ -224,10 +231,13 @@ def _render_html_to_pdf_bytes(html: str) -> bytes:
 
 
 def _build_stamp_overlay_pdf(target_bytes: bytes) -> bytes:
-    """Produce a one-page-per-target-page overlay PDF that stamps the
-    signature image at the bottom-right of pages 0,1,2,4 (= 1,2,3,5).
-
-    Uses reportlab to draw the PNG at native aspect ratio, sized ~65mm wide.
+    """Stamp the ASR ENTERPRISES signature image at positions that match the
+    physical signed copy provided by the user:
+      • Pages 1, 2, 3 → bottom-LEFT, just above the running footer banner.
+      • Page 5 (Second Party / vendor signature page) → overlapping the
+        "Sign" line in the upper-left Second Party block (right-of-Sign label),
+        which is where the vendor physically stamps + signs.
+      • Page 4 (First Party / customer signature page) → NO stamp.
     """
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4
@@ -242,34 +252,36 @@ def _build_stamp_overlay_pdf(target_bytes: bytes) -> bytes:
         logger.warning("[agreement] signature stamp PNG missing at %s — overlay will be empty.", STAMP_PATH)
 
     w, h = A4   # points
-    # Stamp target: 65mm wide, keep aspect
-    target_w = 65 * mm
 
-    for idx in range(len(source.pages)):
-        is_last = idx == len(source.pages) - 1
-        should_stamp = stamp_exists and (
-            idx in OVERLAY_FIRST_PAGES or (STAMP_ON_LAST_PAGE and is_last)
-        )
-        if should_stamp:
-            try:
-                from PIL import Image
-                img = Image.open(STAMP_PATH)
-                iw, ih = img.size
-                aspect = ih / iw
-                target_h = target_w * aspect
-                # Bottom-right, leaving 18mm margin, above footer text
-                x = w - target_w - (20 * mm)
-                y = 22 * mm
-                c.drawImage(
-                    str(STAMP_PATH), x, y, width=target_w, height=target_h,
-                    preserveAspectRatio=True, mask="auto",
-                )
-                # Small "Authorized Signatory" caption
-                c.setFont("Helvetica-Oblique", 7)
-                c.setFillGray(0.4)
-                c.drawString(x, y - 3 * mm, "Authorised Signatory — Abhijeet Kumar, ASR Enterprises")
-            except Exception as e:
-                logger.warning(f"[agreement] overlay draw failed on page {idx}: {e}")
+    def _stamp_at(x_pt: float, y_pt: float, width_mm: float = 45) -> None:
+        """Draw the transparent stamp at a given position (A4 points)."""
+        try:
+            from PIL import Image
+            img = Image.open(STAMP_PATH)
+            iw, ih = img.size
+            target_w = width_mm * mm
+            target_h = target_w * (ih / iw)
+            c.drawImage(
+                str(STAMP_PATH), x_pt, y_pt, width=target_w, height=target_h,
+                preserveAspectRatio=True, mask="auto",
+            )
+        except Exception as e:
+            logger.warning(f"[agreement] stamp draw failed: {e}")
+
+    num_pages = len(source.pages)
+    for idx in range(num_pages):
+        is_last = idx == num_pages - 1
+        is_body = idx in OVERLAY_FIRST_PAGES    # pages 1, 2, 3 (0-indexed 0..2)
+
+        if stamp_exists and is_body:
+            # Bottom-LEFT corner, sitting above the footer banner (matches the
+            # physical copy's position of the round ASR stamp).
+            _stamp_at(x_pt=18 * mm, y_pt=18 * mm, width_mm=40)
+        elif stamp_exists and is_last and STAMP_ON_LAST_PAGE:
+            # Second Party signature page — stamp overlaps the "Sign" line in
+            # the top-left block. Positioned ~55mm from the left, ~218mm from
+            # the bottom (just right of the "Sign" label).
+            _stamp_at(x_pt=55 * mm, y_pt=203 * mm, width_mm=40)
         c.showPage()
     c.save()
 
@@ -296,13 +308,22 @@ def _build_agreement_pdf(*, customer_name: str, customer_address: str,
     def _esc(val: str) -> str:
         return _html_mod.escape((val or "—").strip())
 
+    # English ordinal suffix for the day (e.g. 1st, 2nd, 3rd, 25th)
+    day_int = int(now.strftime("%d"))
+    if 10 <= day_int % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(day_int % 10, "th")
+
     html = (
         _TEMPLATE
         .replace("{customer_name}", _esc(customer_name))
         .replace("{customer_address}", _esc(customer_address))
         .replace("{payment_terms}", _esc(payment_terms or DEFAULT_PAYMENT_TERMS))
-        .replace("{day}", now.strftime("%d"))
+        .replace("{day_sfx}", suffix)
+        .replace("{day}", str(day_int))                     # no leading zero, matches hand-written form
         .replace("{month}", now.strftime("%B"))
+        .replace("{month_num}", now.strftime("%m"))
         .replace("{year}", now.strftime("%Y"))
     )
     pdf_bytes = _render_html_to_pdf_bytes(html)

@@ -8710,18 +8710,26 @@ async def update_order_status(order_id: str, data: Dict[str, Any]):
 
 @api_router.delete("/shop/orders/{order_id}")
 async def delete_order(order_id: str, force: bool = False):
-    """Delete orders (Admin only). Use force=true to delete paid orders."""
+    """Soft-delete a Shop order (Admin only). Moves it to the 30-day Trash
+    from which it can be restored. `force=true` bypasses the paid-order guard
+    but still sends the order to Trash — never hard-deletes immediately."""
     order = await db.orders.find_one({"id": order_id}, {"_id": 0})
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    
-    # Allow force delete for admin
+
     if not force:
         if order.get("order_status") not in ["pending", "cancelled"] and order.get("payment_status") not in ["pending", "failed"]:
             raise HTTPException(status_code=400, detail="This order has been paid/processed. Use force delete option to remove it.")
-    
+
+    try:
+        from routes.trash import move_to_trash
+        await move_to_trash("orders", order, deleted_by="admin")
+    except Exception as e:
+        logger.error(f"[shop-orders] trash move failed for {order_id}: {e}")
+        raise HTTPException(500, detail="Could not move order to trash")
+
     await db.orders.delete_one({"id": order_id})
-    return {"status": "success", "message": "Order deleted"}
+    return {"status": "success", "message": "Order moved to trash (auto-purge in 30 days).", "moved_to_trash": True}
 
 @api_router.post("/shop/track-order")
 async def track_order(data: Dict[str, Any]):
@@ -12267,10 +12275,18 @@ async def admin_set_agent_password(agent_id: str, data: Dict[str, Any]):
 
 @api_router.delete("/admin/agents/{agent_id}")
 async def delete_agent(agent_id: str):
-    res = await db.agents.delete_one({"agent_id": agent_id})
-    if res.deleted_count == 0:
+    """Soft-delete a Solar Advisor — moves to 30-day Trash."""
+    doc = await db.agents.find_one({"agent_id": agent_id}, {"_id": 0})
+    if not doc:
         raise HTTPException(status_code=404, detail="Solar Advisor not found")
-    return {"success": True}
+    try:
+        from routes.trash import move_to_trash
+        await move_to_trash("agents", doc, deleted_by="admin")
+    except Exception as e:
+        logger.error(f"[agents] trash move failed for {agent_id}: {e}")
+        raise HTTPException(500, detail="Could not move Solar Advisor to trash")
+    await db.agents.delete_one({"agent_id": agent_id})
+    return {"success": True, "moved_to_trash": True}
 
 # -------------------- Solar Advisor login & self-service --------------------
 
@@ -13688,11 +13704,18 @@ async def update_customer(request: Request, customer_id: str, data: Dict[str, An
 
 @api_router.delete("/admin/customers/{customer_id}")
 async def delete_customer(request: Request, customer_id: str):
-    """Delete a customer (admin only)"""
-    result = await db.customers.delete_one({"id": customer_id})
-    if result.deleted_count == 0:
+    """Soft-delete a customer — moves to 30-day Trash."""
+    doc = await db.customers.find_one({"id": customer_id}, {"_id": 0})
+    if not doc:
         raise HTTPException(status_code=404, detail="Customer not found")
-    return {"success": True}
+    try:
+        from routes.trash import move_to_trash
+        await move_to_trash("customers", doc, deleted_by="admin")
+    except Exception as e:
+        logger.error(f"[customers] trash move failed for {customer_id}: {e}")
+        raise HTTPException(500, detail="Could not move customer to trash")
+    await db.customers.delete_one({"id": customer_id})
+    return {"success": True, "moved_to_trash": True}
 
 @api_router.get("/admin/customer-portal-settings")
 async def get_customer_portal_settings(request: Request):
@@ -13810,6 +13833,10 @@ api_router.include_router(public_otp_router)
 # Include Customer Portal router (billing dashboard, referrals, documents, progress)
 from routes.customer_portal import router as customer_portal_router
 api_router.include_router(customer_portal_router)
+
+# Include Trash router (30-day soft-delete for Invoices / Customers / Orders / Advisors)
+from routes.trash import router as trash_router, _purge_expired_impl as _trash_purge_expired
+api_router.include_router(trash_router)
 
 app.include_router(api_router)
 

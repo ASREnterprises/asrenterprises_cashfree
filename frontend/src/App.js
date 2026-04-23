@@ -76,6 +76,7 @@ const BusinessDashboard = lazy(() => import("@/components/BusinessDashboard").th
 const StaffTraining = lazy(() => import("@/components/StaffTraining").then(m => ({ default: m.default })));
 const ShopManagement = lazy(() => import("@/components/ShopManagement").then(m => ({ default: m.ShopManagement })));
 const InvoicesManagement = lazy(() => import("@/components/InvoicesManagement").then(m => ({ default: m.InvoicesManagement })));
+const TrashManagement = lazy(() => import("@/components/TrashManagement").then(m => ({ default: m.TrashManagement })));
 const LoginSelector = lazy(() => import("@/components/LoginSelector").then(m => ({ default: m.LoginSelector })));
 const OrderTracking = lazy(() => import("@/components/OrderTracking").then(m => ({ default: m.OrderTrackingPage })));
 
@@ -3161,6 +3162,11 @@ export default function App() {
           <Route path="/admin/invoices" element={
             <ProtectedRoute>
               <InvoicesManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/trash" element={
+            <ProtectedRoute>
+              <TrashManagement />
             </ProtectedRoute>
           } />
           <Route path="/staff/training" element={

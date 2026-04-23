@@ -1641,23 +1641,31 @@ async def delete_payment_entry(invoice_id: str, entry_id: str):
 
 @router.delete("/invoices/{invoice_id}")
 async def delete_invoice(invoice_id: str):
-    """Hard-delete an invoice or quotation. Removes the DB record AND the PDF file.
-    Used by the Admin Dashboard to prune test/duplicate/cancelled documents."""
+    """Soft-delete an invoice or quotation: moves it to the 30-day Trash.
+
+    Admins can restore from /admin/trash within 30 days, after which the
+    daily APScheduler job purges expired items and their PDF files.
+    """
     doc = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Invoice not found")
-    # Delete PDF file from disk (best-effort)
-    pdf_path = doc.get("pdf_path") or ""
-    if pdf_path:
-        try:
-            p = Path(pdf_path)
-            if p.exists():
-                p.unlink()
-        except Exception as e:
-            logger.warning(f"[gst-invoice] could not remove PDF file {pdf_path}: {e}")
+
+    # Keep the PDF file — only drop it on permanent purge (see gst_reminders daily job)
+    try:
+        from routes.trash import move_to_trash
+        await move_to_trash("invoices", doc, deleted_by="admin")
+    except Exception as e:
+        logger.error(f"[gst-invoice] trash move failed for {invoice_id}: {e}")
+        raise HTTPException(500, "Could not move invoice to trash")
+
     await db.invoices.delete_one({"id": invoice_id})
-    logger.info(f"[gst-invoice] deleted {doc.get('doc_type', 'invoice')} {doc.get('invoice_number')}")
-    return {"success": True, "deleted_id": invoice_id, "invoice_number": doc.get("invoice_number")}
+    logger.info(f"[gst-invoice] soft-deleted {doc.get('doc_type', 'invoice')} {doc.get('invoice_number')} → trash")
+    return {
+        "success": True,
+        "deleted_id": invoice_id,
+        "invoice_number": doc.get("invoice_number"),
+        "moved_to_trash": True,
+    }
 
 
 @router.get("/stats")

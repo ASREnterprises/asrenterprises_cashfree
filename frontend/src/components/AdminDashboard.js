@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText } from "lucide-react";
+import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText, Trash2 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -167,6 +167,14 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/security",
       color: "from-red-600 to-rose-700",
       count: "Protected"
+    },
+    {
+      title: "Trash",
+      description: "Restore deleted items within 30 days",
+      icon: <Trash2 className="w-10 h-10" />,
+      link: "/admin/trash",
+      color: "from-slate-600 to-slate-800",
+      count: "Recycle Bin"
     }
   ];
 

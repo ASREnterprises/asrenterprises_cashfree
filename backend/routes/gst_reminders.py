@@ -235,6 +235,20 @@ def start_reminder_scheduler() -> None:
         replace_existing=True,
         misfire_grace_time=3600,
     )
+
+    # Daily trash purge — removes `db.trash` entries older than 30 days.
+    try:
+        from routes.trash import _purge_expired_impl as _trash_purge
+        _scheduler.add_job(
+            _trash_purge,
+            trigger=CronTrigger(hour=3, minute=0),   # 03:00 IST — off-peak
+            id="trash_auto_purge",
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
+    except Exception as _e:
+        logger.warning(f"[scheduler] Could not attach trash auto-purge: {_e}")
+
     _scheduler.start()
     logger.info(
         f"[reminder] scheduler started — daily @ {REMINDER_CRON_HOUR:02d}:{REMINDER_CRON_MINUTE:02d} "

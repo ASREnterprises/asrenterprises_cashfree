@@ -285,9 +285,11 @@ async def _ensure_pdf_on_disk(doc: Dict) -> Path:
     Also updates the stored `pdf_path` on the DB doc if it had to rebuild."""
     AGREEMENT_DIR.mkdir(parents=True, exist_ok=True)
     pdf_path_str = (doc.get("pdf_path") or "").strip()
-    p = Path(pdf_path_str) if pdf_path_str else Path("")
-    if p and p.exists() and p.stat().st_size > 0:
-        return p
+    if pdf_path_str:
+        p = Path(pdf_path_str)
+        # Use is_file() — Path("") or Path(".") would falsely pass exists().
+        if p.is_file() and p.stat().st_size > 0:
+            return p
 
     # Rebuild — include the agreement id suffix to avoid filename collisions
     # when a quotation has more than one agreement record.

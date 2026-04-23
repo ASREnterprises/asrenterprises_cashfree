@@ -61,27 +61,48 @@ DEFAULT_PAYMENT_TERMS = (
 # day, month, year, payment_terms}. Do not edit copy.
 _TEMPLATE = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <style>
-  @page { size: A4; margin: 22mm 20mm 28mm 20mm; }
+  /* A4 with running header (matches the sample PDF: every page carries the
+     "Guidelines for PM-Surya Ghar: Muft Bijli Yojana / Central Financial
+     Assistance to Residential Consumers" banner at the top.) */
+  @page {
+    size: A4;
+    margin: 28mm 18mm 20mm 18mm;
+    @top-left {
+      content: "Guidelines for PM-Surya Ghar: Muft Bijli Yojana";
+      font-family: "DejaVu Serif", "Times New Roman", serif;
+      font-size: 10pt;
+      color: #111;
+      padding-top: 6mm;
+    }
+    @top-right {
+      content: "Central Financial Assistance to Residential Consumers";
+      font-family: "DejaVu Serif", "Times New Roman", serif;
+      font-size: 10pt;
+      color: #111;
+      padding-top: 6mm;
+    }
+  }
   body { font-family: "DejaVu Serif", "Times New Roman", serif; color:#111; font-size:11pt; line-height:1.45; }
-  h1 { text-align:center; font-size:14pt; margin: 0 0 10px; }
-  h2 { text-align:center; font-size:12pt; margin: 10px 0 14px; font-weight: 600; }
-  .center { text-align:center; }
-  .sub { font-size:10.5pt; text-align:center; color:#333; }
-  .hr { height:1px; background:#ccc; margin:12px 0; }
+  h1 { font-size:12.5pt; margin: 0 0 10px; font-weight: 600; }
+  .annex { text-align:center; margin: 14mm 0 2mm; font-weight: 600; font-size: 11pt; }
   p { margin: 6px 0 8px; text-align: justify; }
-  ol { padding-left: 22px; }
+  ol { padding-left: 22px; margin: 4px 0 8px; }
   ol li { margin: 4px 0 6px; text-align: justify; }
-  .sig-row { margin-top: 46px; display: flex; justify-content: space-between; gap: 40px; }
-  .sig-box { flex:1; }
-  .sig-box p { margin: 3px 0; }
-  .disclaimer { margin-top: 28px; font-size: 10pt; font-style: italic; color: #555; }
+  ol.first-party > li { margin: 3px 0 5px; }
+  .between { margin-top: 6mm; }
+  .between p { margin: 10px 0; }
+  .party-head { margin-top: 14mm; font-weight: 600; }
+  .sig-line { margin-top: 12mm; }
+  .sig-line p { margin: 10px 0; }
+  .disclaimer { margin-top: 18mm; font-size: 10.5pt; }
+  .disclaimer strong { font-weight: 700; }
   .page-break { page-break-before: always; }
+  .no-break-after { page-break-after: avoid; }
 </style></head><body>
 
-<h2>Guidelines for PM-Surya Ghar: Muft Bijli Yojana<br/>
-<span style="font-weight:400">Central Financial Assistance to Residential Consumers</span></h2>
+<!-- ====================== PAGE 1 ====================== -->
+<p class="annex">Annexure 2</p>
 
-<p class="center"><strong>Annexure 2</strong></p>
 <h1>Agreement between Consumer &amp; Vendor for installation of grid connected rooftop solar (RTS)
 project under PM- Surya Ghar: Muft Bijli Yojana</h1>
 
@@ -90,13 +111,19 @@ project under PM- Surya Ghar: Muft Bijli Yojana</h1>
 commissioning and 5 year comprehensive maintenance of RTS project/system along with warranty
 under PM Surya Ghar: Muft Bijli Yojana</p>
 
-<p><strong>Between</strong></p>
-<p><strong>{customer_name}</strong> having address <strong>{customer_address}</strong>
-(here in after referred to as first Party, i.e./consumer/consumer/purchaser/owner of system).</p>
+<div class="between">
+  <p><strong>Between</strong></p>
+  <p><strong>{customer_name}</strong> having address <strong>{customer_address}</strong>
+  (here in after referred to as first Party, i.e./consumer/consumer/purchaser/owner of system).</p>
 
-<p><strong>And</strong></p>
-<p><strong>ASR ENTERPRISES</strong> having registered office at Dwarikapuri Khagaul Patna Bihar 801105
-(Here in after referred to as second Party i.e. Vendor/contractor /System Integrator).</p>
+  <p><strong>And</strong></p>
+  <p><strong>ASR ENTERPRISES</strong> (Name of Vendor) having registered office at
+  <strong>Dawarikapuri Road no 2C Khagaul Patna Bihar 801105</strong>
+  (Here in after referred to as second Party i.e. Vendor/contractor /System Integrator).</p>
+</div>
+
+<!-- ====================== PAGE 2 ====================== -->
+<div class="page-break"></div>
 
 <p><strong>Whereas</strong></p>
 <p>First party wishes to install a Grid Connected Rooftop Solar Plant on the roof top of the residential
@@ -114,7 +141,7 @@ out Operation &amp; Maintenance of the Rooftop Solar plant for 5 year period.</p
 application for net-metering and system inspection and upload of the relevant documents on the
 National portal of the scheme</p>
 
-<ol>
+<ol class="first-party">
   <li>Provide secure storage of the material of RTS plant delivered at the premises till handover of the system.</li>
   <li>Provide access to the roof top during installation of plant, operation &amp; maintenance, testing of the plant and equipment and for meter reading from solar meter, inverter etc.</li>
   <li>Provide electricity during plant installation and water for cleaning of panels.</li>
@@ -125,6 +152,12 @@ National portal of the scheme</p>
 <p><strong>The Second Party here by undertakes to perform the following activities:</strong></p>
 <ol>
   <li>The vendor must follow all standards and safety guidelines prescribed under state regulation and technical standards prescribed by MNRE for RTS project, failing which the vendor is liable for blacklisting from participation in the govt. Project/ scheme and other penal action in accordance with the law. The responsibility of supply, installation and commissioning of the rooftop solar project/system in complete compliance with MNRE scheme guidelines lies with the vendor.</li>
+</ol>
+
+<!-- ====================== PAGE 3 ====================== -->
+<div class="page-break"></div>
+
+<ol start="2">
   <li><strong>Site Survey:</strong> Site visit, survey and development of detailed project report for installation of RTS system. This also includes feasibility study of roof, strength of roof and shadow free area. If any additional work or customization is involved for the plant installation as per site condition and requirement of the consumer building, the vendor shall prepare an estimate and can raise separate invoice including GST in addition to the amount towards standard plant cost. The consumer shall pay the amount for such additional work directly to the vendor.</li>
   <li><strong>Design &amp; Engineering:</strong> Design of plant along with drawings and selection of components s per standard provided by the DISCOM/SERC/MNRE for best performance and safety of the plant.
     <p><strong>Module and Inverter:</strong> The solar modules, including the solar cells, should be manufactured in India. Both the solar modules and inverters shall conform to the relevant standards and specifications prescribed by MNRE. Any other requirement, viz. star labeling (solar modules), quality control orders and standards &amp; labeling (inverters) etc., shall also be complied.</p>
@@ -136,7 +169,15 @@ National portal of the scheme</p>
   <li><strong>Warranty:</strong> System warranty certificates should be provided to the consumer. The complete system should be warranted for 5 years from the date of commissioning by DISCOM. Individual component warranty documents provided by the manufacturer shall be provided to the consumer and all possible assistance should be extended to the consumer for claiming the warranty from manufacturer.</li>
   <li><strong>NET meter &amp; Grid Connectivity:</strong> Net meter supply/procurement, testing and approvals shall be In the scope of vendor. Grid connection of the plant shall be in the scope of the vendor.</li>
   <li><strong>Testing and Commissioning:</strong> The vendor shall be present at the time of testing and commissioning by the DISCOM.</li>
-  <li><strong>Operation &amp; Maintenance:</strong> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</li>
+  <li><strong>Operation &amp; Maintenance:</strong> Five (5) years Comprehensive Operation and Maintenance including overhauling, wear and tear and regular checking of healthiness of system at proper interval shall be in</li>
+</ol>
+
+<!-- ====================== PAGE 4 ====================== -->
+<div class="page-break"></div>
+
+<p>the scope of vendor. The vendor shall also educate the consumer on best practices for cleaning of the modules and system maintenance.</p>
+
+<ol start="9">
   <li><strong>Insurance:</strong> Any insurance cost pertaining to material transfer/storage before Commissioning of the system shall be in the scope of the vendor.</li>
   <li><strong>Applicable Standard:</strong> The system must meet the technical standards and specifications notified by MNRE. The vendor is solely responsible to supply component and service which meets the technical standards and specification prescribed by MNRE and State DISCOMS.</li>
   <li><strong>Project/system cost &amp; payment terms:</strong> The cost of the plant and payment schedule should be mutually discussed and decided between the vendor and consumer. The consumer may opt for milestone-based payment to the vendor and the same shall be included in the agreement.</li>
@@ -146,26 +187,30 @@ National portal of the scheme</p>
   <li><strong>Mutually Agreed Terms of Payment:</strong> {payment_terms}</li>
 </ol>
 
-<div class="page-break"></div>
-
-<div class="sig-row">
-  <div class="sig-box">
-    <p><strong>First Party</strong></p>
-    <p>Name: <strong>{customer_name}</strong></p>
-    <p>Address: {customer_address}</p>
-    <p style="margin-top:40px">Sign ________________________</p>
-    <p>Date ________________________</p>
-  </div>
-  <div class="sig-box">
-    <p><strong>Second Party</strong></p>
-    <p>Name : <strong>ASR ENTERPRISES</strong></p>
-    <p>Address : Dwarikapuri Khagaul Patna Bihar 801105</p>
-    <p style="margin-top:40px">Sign ________________________</p>
-    <p>Date ________________________</p>
+<div class="party-head">
+  <p><strong>First Party</strong></p>
+  <p>Name: <strong>{customer_name}</strong></p>
+  <p>Address: {customer_address}</p>
+  <div class="sig-line">
+    <p>Sign</p>
+    <p>Date</p>
   </div>
 </div>
 
-<p class="disclaimer">Disclaimer : This agreement is between vendor and consumer and any dispute related
+<!-- ====================== PAGE 5 ====================== -->
+<div class="page-break"></div>
+
+<div class="party-head">
+  <p><strong>Second Party</strong></p>
+  <p>Name : <strong>ASR ENTERPRISES</strong></p>
+  <p>Address : Dwarikapuri Khagaul Patna Bihar 801105</p>
+  <div class="sig-line">
+    <p>Sign</p>
+    <p>Date</p>
+  </div>
+</div>
+
+<p class="disclaimer"><strong>Disclaimer :</strong> This agreement is between vendor and consumer and any dispute related
 to the same shall not involve any third party including MNRE and Distribution Utilities.</p>
 
 </body></html>

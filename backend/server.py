@@ -13838,6 +13838,10 @@ api_router.include_router(customer_portal_router)
 from routes.trash import router as trash_router, _purge_expired_impl as _trash_purge_expired
 api_router.include_router(trash_router)
 
+# Include Solar Agreement router (auto-generates Agreement PDF on PMSG quotation creation)
+from routes.agreements import router as agreements_router
+api_router.include_router(agreements_router)
+
 app.include_router(api_router)
 
 # CORS configuration with security (env-driven; strict in production)

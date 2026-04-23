@@ -1079,6 +1079,15 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
     if req.auto_send_email:
         asyncio.create_task(send_invoice_email(doc, pdf_bytes))
 
+    # Auto-generate Solar Agreement for PM Surya Ghar quotations.
+    # Best-effort — never blocks or fails the quotation creation.
+    if doc.get("doc_type") == "quotation" and (doc.get("scheme") or "").lower() == "pm_surya_ghar":
+        try:
+            from routes.agreements import auto_generate_for_quotation
+            asyncio.create_task(auto_generate_for_quotation(doc))
+        except Exception as _e:
+            logger.warning(f"[gst-invoice] could not schedule agreement generation: {_e}")
+
     doc.pop("_id", None)
     return doc
 

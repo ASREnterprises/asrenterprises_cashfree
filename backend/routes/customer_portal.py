@@ -534,6 +534,19 @@ async def customer_documents(phone: str):
             "meta": f"Brand: {cust.get('inverter_brand') or 'N/A'}",
         })
 
+    # Solar Agreements (PM Surya Ghar Yojana) — auto-generated on quotation create
+    agreements = await db.agreements.find(
+        {"customer_phone": clean}, {"_id": 0}
+    ).sort("created_at", -1).to_list(None)
+    for a in agreements:
+        documents.append({
+            "type": "agreement",
+            "label": f"Solar Agreement — PM Surya Ghar Yojana (Quote {a.get('quotation_number', '')})".strip(" ()"),
+            "date": (a.get("created_at") or "")[:10],
+            "url": f"/api/agreements/{a['id']}/pdf",
+            "meta": f"Scheme: PM Surya Ghar · {a.get('status', 'generated').title()}",
+        })
+
     return {"phone": clean, "documents": documents}
 
 

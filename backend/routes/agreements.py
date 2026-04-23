@@ -268,6 +268,49 @@ def _build_agreement_pdf(*, customer_name: str, customer_address: str,
     return pdf_bytes
 
 
+# ---------- Self-heal helpers ----------
+def _regenerate_pdf_bytes(doc: Dict) -> bytes:
+    """Rebuild the PDF bytes from the stored agreement record fields.
+    Used when the file on disk is missing (e.g. post-deploy container rotation
+    wiped the ephemeral /app/backend/agreements volume)."""
+    return _build_agreement_pdf(
+        customer_name=doc.get("customer_name") or "Customer",
+        customer_address=doc.get("customer_address") or "",
+        payment_terms=doc.get("payment_terms") or DEFAULT_PAYMENT_TERMS,
+    )
+
+
+async def _ensure_pdf_on_disk(doc: Dict) -> Path:
+    """Return the PDF Path for an agreement, regenerating the file if missing.
+    Also updates the stored `pdf_path` on the DB doc if it had to rebuild."""
+    AGREEMENT_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_path_str = (doc.get("pdf_path") or "").strip()
+    p = Path(pdf_path_str) if pdf_path_str else Path("")
+    if p and p.exists() and p.stat().st_size > 0:
+        return p
+
+    # Rebuild — include the agreement id suffix to avoid filename collisions
+    # when a quotation has more than one agreement record.
+    safe_inv = (doc.get("quotation_number") or "agreement").replace("/", "_")
+    agid_short = (doc.get("id") or "")[:8]
+    filename = f"agreement_{safe_inv}_{agid_short}.pdf" if agid_short else f"agreement_{safe_inv}.pdf"
+    out_path = AGREEMENT_DIR / filename
+    try:
+        pdf_bytes = _regenerate_pdf_bytes(doc)
+    except Exception as e:
+        logger.error(f"[agreement] PDF regeneration failed for {doc.get('id')}: {e}", exc_info=True)
+        raise HTTPException(500, f"Failed to regenerate agreement PDF: {e}")
+    out_path.write_bytes(pdf_bytes)
+    # Persist the new path + size back to the DB
+    await db.agreements.update_one(
+        {"id": doc.get("id")},
+        {"$set": {"pdf_path": str(out_path), "file_size": len(pdf_bytes),
+                  "regenerated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    logger.info(f"[agreement] regenerated missing PDF → {out_path} ({len(pdf_bytes)} bytes)")
+    return out_path
+
+
 # ---------- Auto-trigger (called from gst_invoices.py) ----------
 async def auto_generate_for_quotation(quote_doc: Dict) -> Optional[Dict]:
     """Generate a Solar Agreement PDF for a freshly-created quotation.
@@ -309,7 +352,7 @@ async def auto_generate_for_quotation(quote_doc: Dict) -> Optional[Dict]:
 
         agreement_id = str(uuid.uuid4())
         safe_inv = (quote_doc.get("invoice_number") or "").replace("/", "_")
-        filename = f"agreement_{safe_inv or agreement_id}.pdf"
+        filename = f"agreement_{safe_inv}_{agreement_id[:8]}.pdf" if safe_inv else f"agreement_{agreement_id}.pdf"
         pdf_path = AGREEMENT_DIR / filename
         pdf_path.write_bytes(pdf_bytes)
 
@@ -421,10 +464,16 @@ async def agreement_pdf(agreement_id: str):
     doc = await db.agreements.find_one({"id": agreement_id}, {"_id": 0})
     if not doc:
         raise HTTPException(404, "Agreement not found")
-    p = Path(doc.get("pdf_path") or "")
-    if not p.exists():
-        raise HTTPException(404, "Agreement PDF file missing on disk")
-    return FileResponse(str(p), media_type="application/pdf", filename=p.name)
+    # Self-heal: regenerate the PDF on-the-fly if the file on disk is gone
+    # (container restart, deploy rotation, etc.).
+    p = await _ensure_pdf_on_disk(doc)
+    # Serve inline so the browser previews instead of auto-downloading.
+    return FileResponse(
+        str(p),
+        media_type="application/pdf",
+        filename=p.name,
+        headers={"Content-Disposition": f'inline; filename="{p.name}"'},
+    )
 
 
 class GenerateRequest(BaseModel):
@@ -466,7 +515,11 @@ async def send_agreement_whatsapp(agreement_id: str):
 
     pdf_path = Path(doc.get("pdf_path") or "")
     if not pdf_path.exists():
-        raise HTTPException(400, "Agreement PDF file missing — please regenerate")
+        # Self-heal before sending
+        try:
+            pdf_path = await _ensure_pdf_on_disk(doc)
+        except Exception as e:
+            raise HTTPException(400, f"Agreement PDF missing and regeneration failed: {e}")
 
     phone = doc.get("customer_phone") or ""
     if len(phone) == 10:

@@ -59,7 +59,6 @@ export const CustomerManagement = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
-  const [deleteId, setDeleteId] = useState(null);
   const [activeTab, setActiveTab] = useState("customers");
   const [portalSettings, setPortalSettings] = useState({
     welcome_message: "", contact_number: "", support_email: "",
@@ -129,7 +128,6 @@ export const CustomerManagement = () => {
   const handleDelete = async (id) => {
     // Optimistic UI — remove row instantly, restore on failure.
     const prev = customers;
-    setDeleteId(null);
     setCustomers(prev.filter(c => c.id !== id));
     try {
       await axios.delete(`${API}/admin/customers/${id}`);
@@ -140,6 +138,17 @@ export const CustomerManagement = () => {
       setError(e?.response?.data?.detail || "Failed to delete customer");
       setTimeout(() => setError(""), 5000);
     }
+  };
+
+  const askDelete = async (c) => {
+    const ok = await confirm({
+      title: "Delete customer?",
+      message: `${c.name} (+91 ${c.mobile})\n\nMoved to Trash — recoverable for 30 days. They lose Customer Portal access immediately.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (ok) handleDelete(c.id);
   };
 
   // Activate / Deactivate — blocks portal login when inactive.
@@ -307,7 +316,7 @@ export const CustomerManagement = () => {
                         );
                       })()}
                       <button onClick={() => openEdit(c)} className="p-2 hover:bg-sky-50 rounded-lg transition text-[#0369A1]"><Edit3 className="w-4 h-4" /></button>
-                      <button onClick={() => setDeleteId(c.id)} className="p-2 hover:bg-red-50 rounded-lg transition text-red-500"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => askDelete(c)} className="p-2 hover:bg-red-50 rounded-lg transition text-red-500" data-testid={`cust-delete-${c.id}`}><Trash2 className="w-4 h-4" /></button>
                       <button onClick={() => setExpandedId(expandedId === c.id ? null : c.id)} className="p-2 hover:bg-slate-50 rounded-lg transition text-slate-400">
                         {expandedId === c.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </button>
@@ -412,20 +421,7 @@ export const CustomerManagement = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRM */}
-      {deleteId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center">
-            <Trash2 className="w-10 h-10 text-red-500 mx-auto mb-3" />
-            <h4 className="font-bold text-[#073B4C] mb-2">Delete Customer?</h4>
-            <p className="text-slate-400 text-sm mb-5">This will permanently remove all their data and they'll lose portal access.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteId(null)} className="flex-1 border border-slate-200 rounded-xl py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Cancel</button>
-              <button onClick={() => handleDelete(deleteId)} className="flex-1 bg-red-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-red-600 transition">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* DELETE CONFIRM — migrated to branded confirm() utility in utils/confirm.js */}
 
       {/* ADD / EDIT MODAL */}
       {showModal && (

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Image, MapPin, Upload, Camera, X, ChevronDown, Loader2 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -144,15 +145,22 @@ export const PhotosManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this photo?")) {
-      try {
-        await axios.delete(`${API}/admin/photos/${id}`);
-        // Reset pagination and fetch fresh
-        setPage(1);
-        fetchPhotos(1);
-      } catch (err) {
-        alert("Error deleting photo");
-      }
+    const ok = await confirm({
+      title: "Delete this photo?",
+      message: "It will be removed from the gallery immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = photos;
+    setPhotos(before.filter(p => p.id !== id));
+    try {
+      await axios.delete(`${API}/admin/photos/${id}`);
+    } catch (err) {
+      setPhotos(before);
+      alert("Error deleting photo");
     }
   };
 

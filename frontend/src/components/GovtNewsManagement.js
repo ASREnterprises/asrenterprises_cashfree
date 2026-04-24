@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, RefreshCw, Trash2, Newspaper, Sparkles, ExternalLink } from "lucide-react";
 import axios from "axios";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -38,13 +39,21 @@ export const GovtNewsManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this news item?")) {
-      try {
-        await axios.delete(`${API}/admin/govt-news/${id}`);
-        fetchNews();
-      } catch (err) {
-        alert("Error deleting news");
-      }
+    const ok = await confirm({
+      title: "Delete news item?",
+      message: "It will be removed from the website immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const before = news;
+    setNews(before.filter(n => n.id !== id));
+    try {
+      await axios.delete(`${API}/admin/govt-news/${id}`);
+    } catch (err) {
+      setNews(before);
+      alert("Error deleting news");
     }
   };
 

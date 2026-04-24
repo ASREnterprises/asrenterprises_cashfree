@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Phone, Mail, MapPin, Star, Trash2, Edit, X, Save, Plus, Upload, Download, RefreshCw, UserPlus, FileSpreadsheet, FileText, Image, CheckCircle, AlertCircle, Loader2, Eye, RotateCcw, Archive, Clock } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -264,10 +265,22 @@ export const LeadsManagement = () => {
   };
 
   const handleDeleteAllLeads = async () => {
-    const confirm1 = window.confirm("WARNING: This will permanently delete ALL leads from the database. This cannot be undone!\n\nClick OK to continue.");
-    if (!confirm1) return;
-    const confirm2 = window.confirm("Are you absolutely sure? ALL leads will be wiped. Type OK to confirm.");
-    if (!confirm2) return;
+    const c1 = await confirm({
+      title: "Delete ALL leads?",
+      message: "This will permanently delete every lead from the database.\nThis cannot be undone.",
+      confirmText: "Continue",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!c1) return;
+    const c2 = await confirm({
+      title: "Are you absolutely sure?",
+      message: "ALL leads will be wiped. This is your last chance to cancel.",
+      confirmText: "Yes, wipe all",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!c2) return;
     try {
       const res = await axios.delete(`${API}/crm/leads/delete-all`);
       alert(`Done! ${res.data.deleted_count} leads deleted. Database is now clean.`);
@@ -283,21 +296,28 @@ export const LeadsManagement = () => {
       alert("Please select leads to delete");
       return;
     }
-    
-    if (!window.confirm(`Move ${selectedLeadIds.length} leads to Leads Bin? They will be permanently deleted after 30 days. You can restore them anytime from the Leads Bin tab.`)) {
-      return;
-    }
-    
+    const ok = await confirm({
+      title: `Move ${selectedLeadIds.length} leads to Bin?`,
+      message: "Permanently deleted after 30 days. You can restore them anytime from the Leads Bin tab.",
+      confirmText: "Move to Bin",
+      cancelText: "Cancel",
+      tone: "warning",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = leads;
+    const ids = new Set(selectedLeadIds);
+    setLeads(before.filter(l => !ids.has(l.id)));
+    const beforeSel = selectedLeadIds;
+    setSelectedLeadIds([]);
     setBulkDeleting(true);
     try {
-      const res = await axios.post(`${API}/crm/leads/bulk-delete`, {
-        lead_ids: selectedLeadIds
+      await axios.post(`${API}/crm/leads/bulk-delete`, {
+        lead_ids: beforeSel,
       });
-      
-      alert(res.data.message);
-      setSelectedLeadIds([]);
-      fetchLeads();
     } catch (err) {
+      setLeads(before);
+      setSelectedLeadIds(beforeSel);
       alert(err.response?.data?.detail || "Error moving leads to bin");
     }
     setBulkDeleting(false);
@@ -315,13 +335,22 @@ export const LeadsManagement = () => {
   };
 
   const handleDelete = async (leadId) => {
-    if (window.confirm("Move this lead to Leads Bin? It will be permanently deleted after 30 days. You can restore it from the Leads Bin tab.")) {
-      try {
-        await axios.post(`${API}/crm/leads/bulk-delete`, { lead_ids: [leadId] });
-        fetchLeads();
-      } catch (err) {
-        alert("Error moving lead to bin: " + (err.response?.data?.detail || err.message));
-      }
+    const ok = await confirm({
+      title: "Move lead to Bin?",
+      message: "Permanently deleted after 30 days. Restorable from the Leads Bin tab.",
+      confirmText: "Move to Bin",
+      cancelText: "Cancel",
+      tone: "warning",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = leads;
+    setLeads(before.filter(l => l.id !== leadId));
+    try {
+      await axios.post(`${API}/crm/leads/bulk-delete`, { lead_ids: [leadId] });
+    } catch (err) {
+      setLeads(before);
+      alert("Error moving lead to bin: " + (err.response?.data?.detail || err.message));
     }
   };
 

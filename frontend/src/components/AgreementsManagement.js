@@ -5,6 +5,7 @@ import {
   ArrowLeft, FileCheck2, Search, Download, Send, Trash2,
   Loader2, RefreshCw, CheckCircle2, AlertCircle, Phone, Calendar, FileText,
 } from "lucide-react";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const PAGE_SIZE = 30;
@@ -56,7 +57,14 @@ export const AgreementsManagement = () => {
 
   const sendWhatsapp = async (a) => {
     if (busyId) return;
-    if (!window.confirm(`Send agreement to ${a.customer_name} on WhatsApp (${a.customer_phone})?`)) return;
+    const ok = await confirm({
+      title: "Send agreement on WhatsApp?",
+      message: `${a.customer_name}\n+91 ${a.customer_phone}`,
+      confirmText: "Send",
+      cancelText: "Cancel",
+      tone: "info",
+    });
+    if (!ok) return;
     setBusyId(a.id + ":wa");
     try {
       const r = await axios.post(`${API}/agreements/${a.id}/send-whatsapp`);
@@ -73,13 +81,24 @@ export const AgreementsManagement = () => {
 
   const deleteAgreement = async (a) => {
     if (busyId) return;
-    if (!window.confirm(`Move this agreement to Trash?\n\n${a.quotation_number || ""} · ${a.customer_name}\n\nIt will be auto-purged after 30 days if not restored.`)) return;
+    const ok = await confirm({
+      title: "Move agreement to Trash?",
+      message: `${a.quotation_number || ""} · ${a.customer_name}\n\nAuto-purged after 30 days if not restored.`,
+      confirmText: "Move to Trash",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove — restore on failure.
+    const before = rows;
+    setRows(before.filter(x => x.id !== a.id));
+    setTotal((t) => Math.max(0, t - 1));
     setBusyId(a.id + ":del");
     try {
       await axios.delete(`${API}/agreements/${a.id}`);
       setToast({ type: "ok", msg: "Moved to Trash (30 days)" });
-      fetchAll();
     } catch (e) {
+      setRows(before); setTotal((t) => t + 1);
       setToast({ type: "err", msg: e?.response?.data?.detail || "Delete failed" });
     } finally { setBusyId(null); }
   };

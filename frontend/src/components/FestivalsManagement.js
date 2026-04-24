@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Edit, Calendar, Sparkles } from "lucide-react";
 import axios from "axios";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -63,13 +64,21 @@ export const FestivalsManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this festival post?")) {
-      try {
-        await axios.delete(`${API}/admin/festivals/${id}`);
-        fetchFestivals();
-      } catch (err) {
-        alert("Error deleting festival");
-      }
+    const ok = await confirm({
+      title: "Delete festival post?",
+      message: "It will be removed from the website immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const before = festivals;
+    setFestivals(before.filter(f => f.id !== id));
+    try {
+      await axios.delete(`${API}/admin/festivals/${id}`);
+    } catch (err) {
+      setFestivals(before);
+      alert("Error deleting festival");
     }
   };
 

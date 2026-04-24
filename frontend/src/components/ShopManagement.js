@@ -8,6 +8,7 @@ import {
   ChevronDown, ChevronUp, Copy, ExternalLink, Loader2,
   CheckCircle, AlertCircle, Clock, Tag, Settings, Box
 } from "lucide-react";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -209,21 +210,42 @@ export const ShopManagement = () => {
   };
 
   const handleDeleteProduct = async (productId) => {
-    if (!window.confirm("Delete this product?")) return;
+    const ok = await confirm({
+      title: "Delete this product?",
+      message: "It will be removed from your shop immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = products;
+    setProducts(before.filter(p => p.id !== productId));
     try {
       await axios.delete(`${API}/shop/products/${productId}`);
-      await fetchProducts();
-    } catch (err) { alert("Error deleting product"); }
+    } catch (err) {
+      setProducts(before);
+      alert(err?.response?.data?.detail || "Error deleting product");
+    }
   };
 
   const handleDeleteShopOrder = async (order) => {
     const label = order.order_number || order.id;
-    if (!window.confirm(`Delete order ${label}? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: "Delete order?",
+      message: `${label}\n\nThis cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const before = orders;
+    setOrders((prev) => prev.filter((o) => o.id !== order.id));
+    if (selectedOrder?.id === order.id) setSelectedOrder(null);
     try {
       await axios.delete(`${API}/shop/orders/${order.id}`);
-      setOrders((prev) => prev.filter((o) => o.id !== order.id));
-      if (selectedOrder?.id === order.id) setSelectedOrder(null);
     } catch (err) {
+      setOrders(before);
       alert(err?.response?.data?.detail || "Error deleting order");
     }
   };

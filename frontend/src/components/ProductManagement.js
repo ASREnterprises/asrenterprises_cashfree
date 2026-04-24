@@ -7,6 +7,7 @@ import {
   Sparkles, Loader2, MapPin, RefreshCw, CreditCard, CheckCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -485,13 +486,21 @@ export const ProductManagement = () => {
   };
 
   const handleDelete = async (productId) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) return;
+    const ok = await confirm({
+      title: "Delete this product?",
+      message: "It will be removed from your shop immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const before = products;
+    setProducts(before.filter(p => p.id !== productId));
     try {
       await axios.delete(`${API}/shop/products/${productId}`);
-      fetchProducts();
       fetchShopStats();
     } catch (err) {
-      console.error("Error deleting product:", err);
+      setProducts(before);
       alert("Failed to delete product");
     }
   };
@@ -559,28 +568,29 @@ export const ProductManagement = () => {
 
   const handleDeleteOrder = async (orderId, orderStatus) => {
     const isPaidOrder = orderStatus && !["pending", "cancelled"].includes(orderStatus);
-    
-    if (isPaidOrder) {
-      if (!window.confirm("⚠️ WARNING: This order has been paid/processed.\n\nAre you sure you want to permanently delete it?\n\nThis action cannot be undone!")) return;
-      try {
-        await axios.delete(`${API}/shop/orders/${orderId}?force=true`);
-        fetchOrders();
-        fetchShopStats();
-        alert("Order deleted successfully.");
-      } catch (err) {
-        console.error("Error deleting order:", err);
-        alert(err.response?.data?.detail || "Failed to delete order.");
-      }
-    } else {
-      if (!window.confirm("Are you sure you want to delete this order?")) return;
-      try {
-        await axios.delete(`${API}/shop/orders/${orderId}`);
-        fetchOrders();
-        fetchShopStats();
-      } catch (err) {
-        console.error("Error deleting order:", err);
-        alert(err.response?.data?.detail || "Failed to delete order.");
-      }
+    const ok = await confirm({
+      title: isPaidOrder ? "Delete paid order?" : "Delete order?",
+      message: isPaidOrder
+        ? "⚠ This order has been paid/processed.\n\nThis action cannot be undone!"
+        : "This cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = orders;
+    setOrders(before.filter(o => o.id !== orderId));
+    const url = isPaidOrder
+      ? `${API}/shop/orders/${orderId}?force=true`
+      : `${API}/shop/orders/${orderId}`;
+    try {
+      await axios.delete(url);
+      fetchShopStats();
+      if (isPaidOrder) alert("Order deleted successfully.");
+    } catch (err) {
+      setOrders(before);
+      alert(err.response?.data?.detail || "Failed to delete order.");
     }
   };
 

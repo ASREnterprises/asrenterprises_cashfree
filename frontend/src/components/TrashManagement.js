@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Trash2, RotateCcw, ArrowLeft, AlertCircle, Clock, RefreshCw, Loader2, Receipt, Users, ShoppingBag, UserCog, CheckCircle2, FileCheck2, Target } from "lucide-react";
 import { Link } from "react-router-dom";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -53,25 +54,39 @@ export const TrashManagement = () => {
 
   const restore = async (it) => {
     if (busyId) return;
+    // Optimistic remove — revert on failure.
+    const before = items;
+    setItems(before.filter(x => x.id !== it.id));
     setBusyId(it.id);
     try {
       await axios.post(`${API}/trash/${it.id}/restore`);
       setToast({ type: "ok", msg: `Restored "${it.label}"` });
       fetchTrash();
     } catch (e) {
+      setItems(before);
       setToast({ type: "err", msg: e?.response?.data?.detail || "Restore failed" });
     } finally { setBusyId(null); }
   };
 
   const purge = async (it) => {
     if (busyId) return;
-    if (!window.confirm(`Permanently delete "${it.label}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: "Permanently delete?",
+      message: `"${it.label}"\n\nThis cannot be undone.`,
+      confirmText: "Delete Forever",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const before = items;
+    setItems(before.filter(x => x.id !== it.id));
     setBusyId(it.id);
     try {
       await axios.delete(`${API}/trash/${it.id}`);
       setToast({ type: "ok", msg: `Permanently deleted` });
       fetchTrash();
     } catch (e) {
+      setItems(before);
       setToast({ type: "err", msg: e?.response?.data?.detail || "Delete failed" });
     } finally { setBusyId(null); }
   };

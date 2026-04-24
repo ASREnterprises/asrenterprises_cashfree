@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Edit, Users, Sparkles, CheckCircle, Clock, Calendar, TrendingUp } from "lucide-react";
 import axios from "axios";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -56,13 +57,22 @@ export const StaffManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this staff member?")) {
-      try {
-        await axios.delete(`${API}/admin/staff/${id}`);
-        fetchStaff();
-      } catch (err) {
-        alert("Error deleting staff");
-      }
+    const ok = await confirm({
+      title: "Delete staff member?",
+      message: "They will lose all CRM / portal access immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = staff;
+    setStaff(before.filter(s => s.id !== id));
+    try {
+      await axios.delete(`${API}/admin/staff/${id}`);
+    } catch (err) {
+      setStaff(before);
+      alert("Error deleting staff");
     }
   };
 

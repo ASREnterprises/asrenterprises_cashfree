@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Star, MapPin, User } from "lucide-react";
 import axios from "axios";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -46,13 +47,21 @@ export const ReviewsManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm("Delete this review?")) {
-      try {
-        await axios.delete(`${API}/admin/reviews/${id}`);
-        fetchReviews();
-      } catch (err) {
-        alert("Error deleting review");
-      }
+    const ok = await confirm({
+      title: "Delete this review?",
+      message: "It will be removed from the website immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    const before = reviews;
+    setReviews(before.filter(r => r.id !== id));
+    try {
+      await axios.delete(`${API}/admin/reviews/${id}`);
+    } catch (err) {
+      setReviews(before);
+      alert("Error deleting review");
     }
   };
 

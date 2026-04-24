@@ -6,6 +6,7 @@ import {
   ArrowLeft, Loader2, X, CheckCircle2, AlertCircle, Trash2, History,
   ArrowRightLeft, Bell, TrendingUp, Wallet, Receipt, Edit3, Calendar
 } from "lucide-react";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -127,14 +128,31 @@ export const InvoicesManagement = () => {
 
   const deleteInvoice = async (inv) => {
     const label = inv.doc_type === "quotation" ? "quotation" : "invoice";
-    if (!window.confirm(`Delete ${label} ${inv.invoice_number}? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: `Delete ${label}?`,
+      message: `${inv.invoice_number}\n\nThis cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove — revert on error.
+    const before = null;
+    setInvoices((list) => {
+      const prev = list;
+      // restore closure var
+      // eslint-disable-next-line no-unused-vars
+      const _ = prev;
+      return list.filter((i) => i.id !== inv.id);
+    });
+    setTotal((t) => Math.max(0, t - 1));
     try {
       setBusy((b) => ({ ...b, [inv.id]: "delete" }));
       await axios.delete(`${API}/gst/invoices/${inv.id}`);
-      setInvoices((list) => list.filter((i) => i.id !== inv.id));
-      setTotal((t) => Math.max(0, t - 1));
       showToast(`${label.charAt(0).toUpperCase() + label.slice(1)} ${inv.invoice_number} deleted`);
     } catch (e) {
+      // Revert by re-fetching (simpler than reconstructing filtered list).
+      fetchAll();
       showToast(e?.response?.data?.detail || "Delete failed", "err");
     } finally {
       setBusy((b) => { const n = { ...b }; delete n[inv.id]; return n; });
@@ -142,7 +160,14 @@ export const InvoicesManagement = () => {
   };
 
   const sendReminder = async (inv) => {
-    if (!window.confirm(`Send WhatsApp payment reminder for ${inv.invoice_number} to ${inv.customer?.phone}?`)) return;
+    const ok = await confirm({
+      title: "Send WhatsApp reminder?",
+      message: `${inv.invoice_number}\nTo: +91 ${inv.customer?.phone || "—"}`,
+      confirmText: "Send",
+      cancelText: "Cancel",
+      tone: "info",
+    });
+    if (!ok) return;
     try {
       setBusy((b) => ({ ...b, [inv.id]: "reminder" }));
       const res = await axios.post(`${API}/gst/reminders/invoices/${inv.id}/send`);
@@ -902,7 +927,14 @@ const PaymentHistoryModal = ({ invoice, onClose, onDeleted }) => {
   const [removing, setRemoving] = useState("");
 
   const removeEntry = async (entry) => {
-    if (!window.confirm(`Remove this payment of ₹${entry.amount}? The invoice totals will recompute.`)) return;
+    const ok = await confirm({
+      title: "Remove this payment?",
+      message: `Amount: ₹${entry.amount}\n\nInvoice totals will recompute.`,
+      confirmText: "Remove",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
     setRemoving(entry.id);
     try {
       await axios.delete(`${API}/gst/invoices/${invoice.id}/payments/${entry.id}`);

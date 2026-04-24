@@ -4,6 +4,7 @@ import { ArrowLeft, Users, UserPlus, FileText, Calendar, TrendingUp, Clock, Chec
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 import StaffTraining from "./StaffTraining";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -214,18 +215,25 @@ export const HRManagement = () => {
       alert("ABHIJEET KUMAR (Owner / Super Admin - ASR1001) is a protected account and cannot be deleted or deactivated.");
       return;
     }
-    const confirmMsg = `Are you sure you want to PERMANENTLY DELETE employee "${employee.name}" (${employee.employee_id})?\n\nThis will:\n- Delete all employee data\n- Remove from CRM Teams\n- Delete attendance records\n- Delete leave requests\n\nThis action CANNOT be undone!`;
-    
-    if (window.confirm(confirmMsg)) {
-      try {
-        await axios.delete(`${API}/hr/employees/${employee.employee_id}/permanent`);
-        alert(`Employee ${employee.employee_id} has been permanently deleted.`);
-        setShowDetailsModal(null);
-        fetchEmployees();
-        fetchDashboard();
-      } catch (err) {
-        alert(err.response?.data?.detail || "Error deleting employee");
-      }
+    const ok = await confirm({
+      title: `Permanently delete ${employee.name}?`,
+      message: `Employee ID: ${employee.employee_id}\n\nThis deletes all employee data, CRM team entries, attendance & leave records.\n\nThis action CANNOT be undone.`,
+      confirmText: "Delete Permanently",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = employees;
+    setEmployees(before.filter(e => e.employee_id !== employee.employee_id));
+    setShowDetailsModal(null);
+    try {
+      await axios.delete(`${API}/hr/employees/${employee.employee_id}/permanent`);
+      alert(`Employee ${employee.employee_id} has been permanently deleted.`);
+      fetchDashboard();
+    } catch (err) {
+      setEmployees(before);
+      alert(err.response?.data?.detail || "Error deleting employee");
     }
   };
 

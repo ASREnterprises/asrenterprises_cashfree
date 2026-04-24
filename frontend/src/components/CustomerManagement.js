@@ -5,6 +5,7 @@ import {
   Plus, Search, Edit3, Trash2, X, Loader2, CheckCircle, Users, Sun,  Phone, MapPin, IndianRupee, Zap, Shield, Save, AlertCircle, RefreshCw,
   ChevronDown, ChevronUp, Settings, FileText, Bell, ArrowLeft, Lock, Unlock
 } from "lucide-react";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -126,14 +127,18 @@ export const CustomerManagement = () => {
   };
 
   const handleDelete = async (id) => {
+    // Optimistic UI — remove row instantly, restore on failure.
+    const prev = customers;
+    setDeleteId(null);
+    setCustomers(prev.filter(c => c.id !== id));
     try {
       await axios.delete(`${API}/admin/customers/${id}`);
-      setDeleteId(null);
-      setCustomers(customers.filter(c => c.id !== id));
-      setSuccess("Customer deleted.");
+      setSuccess("Customer moved to Trash (30 days).");
       setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
-      setError("Failed to delete customer");
+      setCustomers(prev); // revert
+      setError(e?.response?.data?.detail || "Failed to delete customer");
+      setTimeout(() => setError(""), 5000);
     }
   };
 
@@ -143,24 +148,35 @@ export const CustomerManagement = () => {
   const handleStatusToggle = async (c) => {
     const current = (c.customer_status || "active").toLowerCase();
     const next = current === "inactive" ? "active" : "inactive";
-    const verb = next === "inactive" ? "DEACTIVATE" : "ACTIVATE";
-    if (!window.confirm(`${verb} customer ${c.name} (+91 ${c.mobile})?\n\n${
-      next === "inactive"
-        ? "Deactivating blocks Customer Portal login + stops all reminders. Fully reversible."
-        : "Customer will regain access to Customer Portal login."
-    }`)) return;
+    const verb = next === "inactive" ? "Deactivate" : "Activate";
+    const ok = await confirm({
+      title: `${verb} ${c.name}?`,
+      message: next === "inactive"
+        ? `+91 ${c.mobile}\n\nDeactivating blocks Customer Portal login and stops all reminders. Fully reversible.`
+        : `+91 ${c.mobile}\n\nCustomer will regain access to Customer Portal login.`,
+      confirmText: verb,
+      cancelText: "Cancel",
+      tone: next === "inactive" ? "warning" : "info",
+    });
+    if (!ok) return;
+    // Optimistic status flip — reverts on error.
+    const before = customers;
+    setCustomers(before.map(x => x.id === c.id ? { ...x, customer_status: next } : x));
     setTogglingStatus(c.id);
     try {
       await axios.patch(`${API}/admin/customers/${c.id}/status`,
         { status: next,
           actor: localStorage.getItem("asrAdminName") || "admin",
           reason: "Manual toggle from Customer Management" });
-      setCustomers(customers.map(x => x.id === c.id ? { ...x, customer_status: next } : x));
       setSuccess(`Customer ${next === "inactive" ? "deactivated" : "activated"} · reversible via Trash → Rollback.`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (e) {
-      setError(e?.response?.data?.detail || "Failed to toggle customer status");
-      setTimeout(() => setError(""), 5000);
+      setCustomers(before); // revert
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail
+        : detail?.message || e?.message || "Failed to toggle customer status";
+      setError(`${msg} (HTTP ${e?.response?.status || "?"})`);
+      setTimeout(() => setError(""), 6000);
     } finally { setTogglingStatus(null); }
   };
 

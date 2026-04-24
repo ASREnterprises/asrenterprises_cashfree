@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
+import { confirm } from "../utils/confirm";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -673,25 +674,47 @@ export const ProfessionalLeadsManagement = () => {
   };
 
   const handleDeleteLead = async (leadId) => {
-    if (!window.confirm("Move this lead to trash? It will be permanently deleted after 30 days.")) return;
+    const ok = await confirm({
+      title: "Move lead to trash?",
+      message: "Permanently deleted after 30 days.",
+      confirmText: "Move to Trash",
+      cancelText: "Cancel",
+      tone: "warning",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = leads;
+    setLeads(before.filter(l => l.id !== leadId));
     try {
       await axios.post(`${API}/crm/leads/${leadId}/trash`);
-      fetchLeads(currentPage);
     } catch (err) {
+      setLeads(before);
       alert("Error deleting lead");
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedLeadIds.length === 0) return;
-    if (!window.confirm(`Move ${selectedLeadIds.length} leads to trash?`)) return;
-    
+    const ok = await confirm({
+      title: `Move ${selectedLeadIds.length} leads to trash?`,
+      message: "Permanently deleted after 30 days.",
+      confirmText: "Move to Trash",
+      cancelText: "Cancel",
+      tone: "warning",
+    });
+    if (!ok) return;
+    // Optimistic remove
+    const before = leads;
+    const ids = new Set(selectedLeadIds);
+    setLeads(before.filter(l => !ids.has(l.id)));
+    const beforeSel = selectedLeadIds;
+    setSelectedLeadIds([]);
     setBulkProcessing(true);
     try {
-      await axios.post(`${API}/crm/leads/bulk-delete`, { lead_ids: selectedLeadIds });
-      setSelectedLeadIds([]);
-      fetchLeads(currentPage);
+      await axios.post(`${API}/crm/leads/bulk-delete`, { lead_ids: beforeSel });
     } catch (err) {
+      setLeads(before);
+      setSelectedLeadIds(beforeSel);
       alert("Error deleting leads");
     }
     setBulkProcessing(false);

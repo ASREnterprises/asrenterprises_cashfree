@@ -259,6 +259,28 @@ def start_reminder_scheduler() -> None:
     except Exception as _e:
         logger.warning(f"[scheduler] Could not attach guardian: {_e}")
 
+    # Monthly CA filing batch — every 5th of the month @ 09:30 IST.
+    # Sends ALL of last month's GST invoices to the configured CA via Email + WhatsApp.
+    # Owner can also trigger via POST /api/gst/ca-monthly-batch/run-now.
+    try:
+        from routes.gst_invoices import _run_ca_monthly_batch, get_ca_contact
+        async def _ca_monthly_tick():
+            ca = await get_ca_contact()
+            if not ca.get("auto_monthly", True):
+                logger.info("[ca-monthly-batch] auto_monthly=False — skipped")
+                return
+            await _run_ca_monthly_batch()
+        _scheduler.add_job(
+            _ca_monthly_tick,
+            trigger=CronTrigger(day=5, hour=9, minute=30),
+            id="ca_monthly_batch",
+            replace_existing=True,
+            misfire_grace_time=21600,  # 6h grace if backend was down
+        )
+        logger.info("[scheduler] CA monthly batch scheduled — every 5th @ 09:30 IST")
+    except Exception as _e:
+        logger.warning(f"[scheduler] Could not attach CA monthly batch: {_e}")
+
     _scheduler.start()
     logger.info(
         f"[reminder] scheduler started — daily @ {REMINDER_CRON_HOUR:02d}:{REMINDER_CRON_MINUTE:02d} "

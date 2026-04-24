@@ -21,7 +21,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Response
@@ -172,6 +172,69 @@ def _build_pdf_upi_qr_block(doc: dict) -> str:
 
 # Configurable CA / accountant email for invoice copies
 CA_EMAIL = os.environ.get("CA_EMAIL", "").strip()
+
+# ============================================================================
+#  CA CONTACT — persistent in db.app_settings (key: "ca_contact")
+#  ──────────────────────────────────────────────────────────────────────
+#  Owner can update CA name / email / WhatsApp from the GST Invoices page.
+#  When the CA changes, the new contact takes effect for every subsequent
+#  email + the monthly auto-batch (5th of next month). Old invoices retain
+#  their `email_recipients` snapshot for audit.
+# ============================================================================
+async def get_ca_contact() -> Dict[str, Any]:
+    """Return the persisted CA contact, falling back to legacy env CA_EMAIL.
+    Shape: {name, email, phone, auto_monthly: bool, last_run_at, updated_at}"""
+    doc = await db.app_settings.find_one({"key": "ca_contact"}, {"_id": 0}) or {}
+    return {
+        "name": doc.get("name") or "Chartered Accountant",
+        "email": doc.get("email") or CA_EMAIL or "",
+        "phone": doc.get("phone") or "",
+        "auto_monthly": bool(doc.get("auto_monthly", True)),
+        "last_run_at": doc.get("last_run_at") or "",
+        "last_run_count": doc.get("last_run_count") or 0,
+        "updated_at": doc.get("updated_at") or "",
+    }
+
+
+@router.get("/ca-contact")
+async def admin_get_ca_contact():
+    """GET — current CA contact configuration."""
+    return await get_ca_contact()
+
+
+@router.put("/ca-contact")
+async def admin_update_ca_contact(payload: Dict[str, Any]):
+    """PUT — owner updates CA name / email / WhatsApp / auto-send toggle.
+    Payload: {name?, email?, phone?, auto_monthly?: bool}.
+    All fields optional — partial update."""
+    update = {}
+    name = (payload.get("name") or "").strip()
+    if name:
+        update["name"] = name[:80]
+    if "email" in payload:
+        em = (payload.get("email") or "").strip().lower()
+        if em and ("@" not in em or "." not in em):
+            raise HTTPException(400, "Invalid email format")
+        update["email"] = em
+    if "phone" in payload:
+        ph_raw = re.sub(r"\D", "", payload.get("phone") or "")
+        ph = ph_raw[-10:] if len(ph_raw) >= 10 else ph_raw
+        if ph and (len(ph) != 10 or not ph.isdigit()):
+            raise HTTPException(400, "Invalid 10-digit mobile number")
+        update["phone"] = ph
+    if "auto_monthly" in payload:
+        update["auto_monthly"] = bool(payload.get("auto_monthly"))
+    if not update:
+        raise HTTPException(400, "No fields to update")
+    update["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.app_settings.update_one(
+        {"key": "ca_contact"},
+        {"$set": update, "$setOnInsert": {"key": "ca_contact", "created_at": update["updated_at"]}},
+        upsert=True,
+    )
+    logger.info(f"[gst-invoice] CA contact updated: {list(update.keys())}")
+    return await get_ca_contact()
+
 
 INVOICE_DIR = Path(os.environ.get("INVOICE_STORAGE_DIR", "/app/backend/data/invoices"))
 INVOICE_DIR.mkdir(parents=True, exist_ok=True)
@@ -990,8 +1053,14 @@ async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
     to_list = []
     if cust.get("email"):
         to_list.append(cust["email"])
-    if CA_EMAIL and CA_EMAIL not in to_list:
-        to_list.append(CA_EMAIL)
+    # CA contact takes precedence over env CA_EMAIL — owner can update from UI
+    try:
+        ca = await get_ca_contact()
+        ca_email_now = (ca.get("email") or "").strip()
+    except Exception:
+        ca_email_now = CA_EMAIL
+    if ca_email_now and ca_email_now not in to_list:
+        to_list.append(ca_email_now)
     if not to_list:
         return {"success": False, "error": "no recipient"}
     subject = f"{BUSINESS['name']} — {label} {doc.get('invoice_number')}"
@@ -1481,6 +1550,213 @@ async def download_invoice_pdf(invoice_id: str):
     fname = doc["invoice_number"].replace("/", "_") + ".pdf"
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+
+
+@router.post("/invoices/{invoice_id}/send-to-ca")
+async def send_invoice_to_ca(invoice_id: str):
+    """Send a single GST invoice to the configured CA via Email + WhatsApp.
+    Used by the per-row 'Send to CA' button on the GST Invoices page."""
+    doc = await db.invoices.find_one({"id": invoice_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    if doc.get("doc_type") == "quotation":
+        raise HTTPException(400, "CA filing receives invoices only, not quotations")
+    ca = await get_ca_contact()
+    ca_email = (ca.get("email") or "").strip()
+    ca_phone = (ca.get("phone") or "").strip()
+    if not (ca_email or ca_phone):
+        raise HTTPException(400, "CA contact not configured. Open 'CA Settings' to add WhatsApp / email.")
+    # Email leg
+    email_result = {"success": False, "error": "not configured"}
+    if ca_email:
+        # Force the email to go ONLY to the CA (override the customer-copy logic).
+        clone = dict(doc)
+        clone["customer"] = dict(doc.get("customer", {}))
+        # Stash an isolated recipients list for this targeted send:
+        # we render the same PDF and send directly with the CA as primary recipient.
+        pdf_path = Path(doc.get("pdf_path") or "")
+        if pdf_path.exists():
+            pdf_bytes = pdf_path.read_bytes()
+        else:
+            gst_payload = compute_gst([InvoiceLineItem(**it) for it in doc["line_items"]], doc["customer"]["state"])
+            pdf_bytes = render_invoice_pdf(doc, gst_payload)
+        email_result = await _send_email_to_recipients(
+            doc=doc, pdf_bytes=pdf_bytes, to_list=[ca_email],
+            subject_prefix=f"[CA Filing] {ca.get('name', 'CA')}",
+        )
+    # WhatsApp leg — uses Meta Cloud API doc-upload with a custom recipient.
+    wa_result = {"success": False, "error": "not configured"}
+    if ca_phone:
+        ca_phone_e164 = ca_phone if ca_phone.startswith("91") else "91" + ca_phone[-10:]
+        wa_result = await _send_invoice_pdf_as_whatsapp_doc(doc, ca_phone_e164)
+    # Audit trail
+    await db.invoices.update_one(
+        {"id": invoice_id},
+        {"$set": {
+            "ca_sent_at": datetime.now(timezone.utc).isoformat(),
+            "ca_email_result": "ok" if email_result.get("success") else f"failed: {email_result.get('error', '')}",
+            "ca_whatsapp_result": "ok" if wa_result.get("success") else f"failed: {wa_result.get('error', '')}",
+            "ca_recipient": {"name": ca.get("name"), "email": ca_email, "phone": ca_phone},
+        }},
+    )
+    return {
+        "success": email_result.get("success") or wa_result.get("success"),
+        "ca": {"name": ca.get("name"), "email": ca_email, "phone": ca_phone},
+        "email": email_result,
+        "whatsapp": wa_result,
+    }
+
+
+async def _send_email_to_recipients(doc: dict, pdf_bytes: bytes, to_list: list,
+                                    subject_prefix: str = "") -> Dict:
+    """Internal: send the invoice PDF to an arbitrary list (used by send-to-CA
+    + monthly auto-send). Mirrors send_invoice_email but accepts custom
+    recipients + subject prefix."""
+    resend_key = os.environ.get("RESEND_API_KEY", "").strip()
+    if not resend_key or not to_list:
+        return {"success": False, "error": "RESEND_API_KEY missing or no recipients"}
+    import base64
+    EMAIL_FROM = "ASR Enterprises <support@asrenterprises.in>"
+    sender_env = (os.environ.get("RESEND_FROM") or os.environ.get("SENDER_EMAIL") or "").strip()
+    sender_low = sender_env.lower()
+    BANNED = ("resend.dev", "@gmail.com", "@yahoo.", "@outlook.", "@hotmail.")
+    sender = sender_env if sender_env and not any(b in sender_low for b in BANNED) else EMAIL_FROM
+    cust = doc.get("customer", {})
+    base_subj = f"GST Invoice {doc.get('invoice_number')} — {cust.get('name', '')} — ₹{doc.get('grand_total', 0):,.2f}"
+    subject = f"{subject_prefix} {base_subj}".strip()
+    body = (
+        f"<p>Hello,</p>"
+        f"<p>Sharing GST Invoice <b>{_esc(doc.get('invoice_number'))}</b> for "
+        f"<b>{_esc(cust.get('name', 'Customer'))}</b> — total <b>₹{doc.get('grand_total', 0):,.2f}</b>.</p>"
+        f"<p>Filing reference is attached.</p>"
+        f"<p>— ASR Enterprises<br/>GSTIN: {BUSINESS['gstin']}</p>"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+                json={
+                    "from": sender, "to": to_list, "subject": subject, "html": body,
+                    "attachments": [{
+                        "filename": f"{doc.get('invoice_number', 'invoice').replace('/', '_')}.pdf",
+                        "content": base64.b64encode(pdf_bytes).decode(),
+                    }],
+                },
+            )
+        ok = resp.status_code in (200, 202)
+        return {"success": ok, "status": resp.status_code,
+                "error": None if ok else (resp.text[:200] if hasattr(resp, "text") else "")}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/ca-monthly-batch/run-now")
+async def ca_monthly_batch_run_now():
+    """Manually trigger 'previous-month invoices to CA' batch — useful for backfills.
+    Sends ALL invoices with invoice_date in the previous calendar month."""
+    return await _run_ca_monthly_batch()
+
+
+async def _run_ca_monthly_batch() -> Dict:
+    """Send all invoices from the previous calendar month to the configured CA.
+    Email is one batch with all PDFs attached; WhatsApp sends one document
+    message per invoice (Meta API doesn't support attachments)."""
+    ca = await get_ca_contact()
+    ca_email = (ca.get("email") or "").strip()
+    ca_phone = (ca.get("phone") or "").strip()
+    if not (ca_email or ca_phone):
+        return {"success": False, "error": "CA contact not configured"}
+    today = datetime.now(timezone.utc).astimezone().date()
+    first_of_this_month = today.replace(day=1)
+    last_month_end = first_of_this_month - timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
+    iso_start = last_month_start.isoformat()
+    iso_end = (last_month_end + timedelta(days=1)).isoformat()
+    cursor = db.invoices.find({
+        "doc_type": {"$ne": "quotation"},
+        "invoice_date": {"$gte": iso_start, "$lt": iso_end},
+        "trashed": {"$ne": True},
+    }, {"_id": 0}).sort("invoice_date", 1)
+    invoices = await cursor.to_list(length=500)
+    if not invoices:
+        await db.app_settings.update_one(
+            {"key": "ca_contact"},
+            {"$set": {"last_run_at": datetime.now(timezone.utc).isoformat(),
+                      "last_run_count": 0,
+                      "last_run_window": f"{iso_start} → {last_month_end.isoformat()}"}},
+        )
+        return {"success": True, "count": 0, "window": f"{iso_start} → {last_month_end.isoformat()}",
+                "message": "No invoices in previous month"}
+    sent_email = 0
+    sent_wa = 0
+    errors = []
+    # WhatsApp per invoice (Meta API doesn't accept multi attachments)
+    for inv in invoices:
+        if ca_phone:
+            ca_phone_e164 = ca_phone if ca_phone.startswith("91") else "91" + ca_phone[-10:]
+            try:
+                wa_resp = await _send_invoice_pdf_as_whatsapp_doc(inv, ca_phone_e164)
+                if wa_resp.get("success"):
+                    sent_wa += 1
+            except Exception as e:
+                errors.append(f"wa:{inv.get('invoice_number')}:{e}")
+    # Email — send one consolidated batch (subject lists count + month)
+    if ca_email:
+        try:
+            import base64
+            attachments = []
+            for inv in invoices[:25]:  # Resend limit ~40 MB total
+                p = Path(inv.get("pdf_path") or "")
+                if p.exists():
+                    attachments.append({
+                        "filename": f"{inv.get('invoice_number', 'invoice').replace('/', '_')}.pdf",
+                        "content": base64.b64encode(p.read_bytes()).decode(),
+                    })
+            EMAIL_FROM = "ASR Enterprises <support@asrenterprises.in>"
+            sender_env = (os.environ.get("RESEND_FROM") or os.environ.get("SENDER_EMAIL") or "").strip()
+            sender_low = sender_env.lower()
+            BANNED = ("resend.dev", "@gmail.com", "@yahoo.", "@outlook.", "@hotmail.")
+            sender = sender_env if sender_env and not any(b in sender_low for b in BANNED) else EMAIL_FROM
+            month_label = last_month_start.strftime("%B %Y")
+            list_html = "<ol>" + "".join(
+                f"<li><b>{_esc(i.get('invoice_number'))}</b> — {_esc(i.get('customer', {}).get('name', ''))} — "
+                f"₹{i.get('grand_total', 0):,.2f}</li>" for i in invoices
+            ) + "</ol>"
+            html = (
+                f"<p>Hello {_esc(ca.get('name', 'CA'))},</p>"
+                f"<p>Sharing all <b>{len(invoices)}</b> GST invoices for <b>{month_label}</b> "
+                f"for filing reference.</p>{list_html}"
+                f"<p>Total billed: <b>₹{sum(i.get('grand_total', 0) for i in invoices):,.2f}</b></p>"
+                f"<p>— ASR Enterprises<br/>GSTIN: {BUSINESS['gstin']}</p>"
+            )
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {os.environ.get('RESEND_API_KEY', '')}",
+                             "Content-Type": "application/json"},
+                    json={"from": sender, "to": [ca_email],
+                          "subject": f"[GST Filing {month_label}] {len(invoices)} invoices — ASR Enterprises",
+                          "html": html, "attachments": attachments},
+                )
+            if resp.status_code in (200, 202):
+                sent_email = len(invoices)
+            else:
+                errors.append(f"email:{resp.status_code}:{resp.text[:100]}")
+        except Exception as e:
+            errors.append(f"email:{e}")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.app_settings.update_one(
+        {"key": "ca_contact"},
+        {"$set": {"last_run_at": now_iso, "last_run_count": len(invoices),
+                  "last_run_window": f"{iso_start} → {last_month_end.isoformat()}",
+                  "last_run_email_count": sent_email, "last_run_wa_count": sent_wa,
+                  "last_run_errors": errors[:10]}},
+    )
+    logger.info(f"[ca-monthly-batch] window={iso_start}→{last_month_end} count={len(invoices)} email={sent_email} wa={sent_wa}")
+    return {"success": True, "count": len(invoices), "email_sent": sent_email,
+            "whatsapp_sent": sent_wa, "errors": errors,
+            "window": f"{iso_start} → {last_month_end.isoformat()}"}
 
 
 @router.post("/invoices/{invoice_id}/resend-whatsapp")

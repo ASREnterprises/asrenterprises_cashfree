@@ -4,7 +4,8 @@ import axios from "axios";
 import {
   FileText, Download, Send, Mail, Plus, RefreshCw, Search, IndianRupee,
   ArrowLeft, Loader2, X, CheckCircle2, AlertCircle, Trash2, History,
-  ArrowRightLeft, Bell, TrendingUp, Wallet, Receipt, Edit3, Calendar
+  ArrowRightLeft, Bell, TrendingUp, Wallet, Receipt, Edit3, Calendar,
+  UserCog, MessageCircle, Save
 } from "lucide-react";
 import { confirm } from "../utils/confirm";
 
@@ -66,6 +67,7 @@ export const InvoicesManagement = () => {
   const [convertFor, setConvertFor] = useState(null);
   const [editFor, setEditFor] = useState(null);
   const [changeDateFor, setChangeDateFor] = useState(null);
+  const [showCASettings, setShowCASettings] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [toast, setToast] = useState(null);
   const [busy, setBusy] = useState({});  // id -> action name
@@ -200,6 +202,35 @@ export const InvoicesManagement = () => {
     }
   };
 
+  // Forward an invoice to the configured CA — Email + WhatsApp (Meta doc upload).
+  const sendToCA = async (inv) => {
+    const ok = await confirm({
+      title: "Send invoice to CA?",
+      message: `${inv.invoice_number} (${inv.customer?.name || "Customer"})\n\nThe configured CA receives the PDF on Email + WhatsApp for filing reference.`,
+      confirmText: "Send to CA",
+      cancelText: "Cancel",
+      tone: "info",
+    });
+    if (!ok) return;
+    try {
+      setBusy((b) => ({ ...b, [inv.id]: "ca" }));
+      const r = await axios.post(`${API}/gst/invoices/${inv.id}/send-to-ca`);
+      const channels = [];
+      if (r.data?.email?.success) channels.push("Email");
+      if (r.data?.whatsapp?.success) channels.push("WhatsApp");
+      if (channels.length) {
+        showToast(`Sent to CA via ${channels.join(" + ")}`);
+        fetchAll();
+      } else {
+        showToast("CA send failed — please verify CA contact in Settings", "err");
+      }
+    } catch (e) {
+      showToast(e?.response?.data?.detail || "Could not send to CA", "err");
+    } finally {
+      setBusy((b) => { const n = { ...b }; delete n[inv.id]; return n; });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -218,6 +249,14 @@ export const InvoicesManagement = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCASettings(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg font-medium text-sm"
+              data-testid="invoices-ca-settings-btn" title="CA Contact & Auto-Send Settings"
+            >
+              <UserCog className="w-4 h-4" />
+              <span className="hidden sm:inline">CA Settings</span>
+            </button>
             <button
               onClick={fetchAll}
               className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
@@ -424,6 +463,11 @@ export const InvoicesManagement = () => {
                           <IconBtn onClick={() => resendEmail(inv)} busy={action === "email"} title="Resend Email" testid={`invoice-email-${inv.invoice_number}`} color="blue">
                             <Mail className="w-4 h-4" />
                           </IconBtn>
+                          {!isQuote && (
+                            <IconBtn onClick={() => sendToCA(inv)} busy={action === "ca"} title="Send to CA (Email + WhatsApp)" testid={`invoice-send-ca-${inv.invoice_number}`} color="amber">
+                              <UserCog className="w-4 h-4" />
+                            </IconBtn>
+                          )}
                           <IconBtn onClick={() => deleteInvoice(inv)} busy={action === "delete"} title="Delete" testid={`invoice-delete-${inv.invoice_number}`} color="red">
                             <Trash2 className="w-4 h-4" />
                           </IconBtn>
@@ -536,6 +580,13 @@ export const InvoicesManagement = () => {
           {toast.message}
         </div>
       )}
+
+      {showCASettings && (
+        <CASettingsModal
+          onClose={() => setShowCASettings(false)}
+          onSaved={(msg) => { showToast(msg || "CA contact saved"); }}
+        />
+      )}
     </div>
   );
 };
@@ -568,6 +619,171 @@ const IconBtn = ({ children, onClick, busy, title, testid, color = "slate" }) =>
     >
       {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : children}
     </button>
+  );
+};
+
+// ==================== CA SETTINGS MODAL ====================
+// Owner sets the CA's WhatsApp + email, toggles the monthly auto-batch, and
+// can fire the previous-month batch on demand. Updates take effect immediately
+// — every subsequent invoice email + the cron use the latest CA contact.
+const CASettingsModal = ({ onClose, onSaved }) => {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", auto_monthly: true });
+  const [last, setLast] = useState({ at: "", count: 0, window: "", email_count: 0, wa_count: 0 });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState("");
+  const [okMsg, setOkMsg] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await axios.get(`${API}/gst/ca-contact`);
+      setForm({
+        name: r.data?.name || "",
+        email: r.data?.email || "",
+        phone: r.data?.phone || "",
+        auto_monthly: r.data?.auto_monthly !== false,
+      });
+      setLast({
+        at: r.data?.last_run_at || "", count: r.data?.last_run_count || 0,
+        window: r.data?.last_run_window || "",
+        email_count: r.data?.last_run_email_count || 0,
+        wa_count: r.data?.last_run_wa_count || 0,
+      });
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Could not load CA contact");
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = async (e) => {
+    e?.preventDefault?.();
+    setError(""); setOkMsg(""); setSaving(true);
+    try {
+      const payload = {
+        name: form.name?.trim() || "",
+        email: form.email?.trim().toLowerCase() || "",
+        phone: form.phone?.replace(/\D/g, "").slice(-10) || "",
+        auto_monthly: !!form.auto_monthly,
+      };
+      if (!payload.email && !payload.phone) {
+        setError("Add at least one of CA email or WhatsApp number"); setSaving(false); return;
+      }
+      const r = await axios.put(`${API}/gst/ca-contact`, payload);
+      setForm({
+        name: r.data?.name || "", email: r.data?.email || "",
+        phone: r.data?.phone || "", auto_monthly: r.data?.auto_monthly !== false,
+      });
+      setOkMsg("CA contact saved · changes apply to every future invoice");
+      onSaved && onSaved();
+    } catch (e2) {
+      setError(e2?.response?.data?.detail || "Failed to save CA contact");
+    } finally { setSaving(false); }
+  };
+
+  const runBatch = async () => {
+    setError(""); setOkMsg(""); setRunning(true);
+    try {
+      const r = await axios.post(`${API}/gst/ca-monthly-batch/run-now`);
+      const c = r.data?.count || 0;
+      setOkMsg(c
+        ? `Sent ${c} invoice(s) for ${r.data?.window || "previous month"} · Email:${r.data?.email_sent || 0}, WhatsApp:${r.data?.whatsapp_sent || 0}`
+        : `No invoices in ${r.data?.window || "previous month"}`);
+      load();
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Could not run batch");
+    } finally { setRunning(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-start md:items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg my-8" onClick={(e) => e.stopPropagation()} data-testid="ca-settings-modal">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <h2 className="text-lg font-bold text-[#0a355e] flex items-center gap-2">
+            <UserCog className="w-5 h-5 text-amber-700" /> CA Contact & Auto-Send
+          </h2>
+          <button onClick={onClose} data-testid="ca-settings-close"><X className="w-5 h-5 text-slate-500" /></button>
+        </div>
+
+        <form onSubmit={save} className="p-5 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 text-slate-500">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-slate-600 leading-relaxed bg-amber-50 border border-amber-200 rounded p-2.5">
+                Update your CA's WhatsApp + email here. Changes apply to every <b>future</b> invoice email + the auto-batch.
+                Old invoices keep their original recipient list (audit trail).
+              </p>
+
+              <Field label="CA Name (optional)" value={form.name}
+                onChange={(v) => setForm({ ...form, name: v })} testid="ca-name" />
+
+              <Field label="CA Email" value={form.email}
+                onChange={(v) => setForm({ ...form, email: v })} testid="ca-email" type="email" />
+
+              <Field label="CA WhatsApp Number (10-digit, no +91)" value={form.phone}
+                onChange={(v) => setForm({ ...form, phone: v.replace(/\D/g, "").slice(0, 10) })}
+                testid="ca-phone" type="tel" />
+
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={form.auto_monthly} className="mt-0.5"
+                  onChange={(e) => setForm({ ...form, auto_monthly: e.target.checked })}
+                  data-testid="ca-auto-monthly" />
+                <span>
+                  <b>Auto-send last month's invoices on the 5th @ 09:30 IST</b>
+                  <br/>
+                  <span className="text-xs text-slate-500">All non-trashed invoices dated in the previous calendar month are sent to the CA via Email (consolidated batch) and WhatsApp (one-by-one).</span>
+                </span>
+              </label>
+
+              {last.at && (
+                <div className="text-xs text-slate-600 bg-slate-50 rounded p-2.5 border border-slate-200" data-testid="ca-last-run">
+                  <div className="font-semibold text-slate-700 mb-0.5">Last run</div>
+                  <div>{new Date(last.at).toLocaleString("en-IN")} · window: {last.window || "—"}</div>
+                  <div>{last.count} invoices · Email {last.email_count} · WhatsApp {last.wa_count}</div>
+                </div>
+              )}
+
+              {error && (
+                <div className="p-2.5 bg-red-50 border border-red-200 rounded text-sm text-red-700 flex items-center gap-2" data-testid="ca-settings-error">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
+                </div>
+              )}
+              {okMsg && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded text-sm text-emerald-700 flex items-center gap-2" data-testid="ca-settings-ok">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> {okMsg}
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-slate-100">
+                <button type="button" onClick={runBatch} disabled={running}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-sky-100 hover:bg-sky-200 text-sky-800 rounded text-sm font-medium border border-sky-200 disabled:opacity-50"
+                  data-testid="ca-run-now-btn">
+                  {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                  Run last-month batch now
+                </button>
+                <div className="flex items-center gap-2 justify-end">
+                  <button type="button" onClick={onClose}
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded text-sm font-medium">
+                    Close
+                  </button>
+                  <button type="submit" disabled={saving}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#0a355e] hover:bg-[#092a4b] text-white rounded text-sm font-semibold disabled:opacity-50"
+                    data-testid="ca-save-btn">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Save
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </form>
+      </div>
+    </div>
   );
 };
 

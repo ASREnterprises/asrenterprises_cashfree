@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { Trash2, RotateCcw, ArrowLeft, AlertCircle, Clock, RefreshCw, Loader2, Receipt, Users, ShoppingBag, UserCog, CheckCircle2, FileCheck2 } from "lucide-react";
+import { Trash2, RotateCcw, ArrowLeft, AlertCircle, Clock, RefreshCw, Loader2, Receipt, Users, ShoppingBag, UserCog, CheckCircle2, FileCheck2, Target } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -12,6 +12,7 @@ const SOURCE_TABS = [
   { key: "orders", label: "Shop Orders", icon: ShoppingBag },
   { key: "agents", label: "Solar Advisors", icon: UserCog },
   { key: "agreements", label: "Solar Agreements", icon: FileCheck2 },
+  { key: "crm_leads", label: "CRM Leads", icon: Target },
 ];
 
 export const TrashManagement = () => {

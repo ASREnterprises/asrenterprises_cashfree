@@ -13641,6 +13641,31 @@ async def create_customer(request: Request, data: CustomerRegistration):
     logger.info(f"[customers] admin registered {doc['name']} ({mobile_clean}) type={customer_type} invoice={bool(invoice)}")
     return {"success": True, "customer": doc, "invoice": doc.get("latest_invoice")}
 
+@api_router.patch("/admin/customers/{customer_id}/status")
+async def toggle_customer_status(customer_id: str, data: Dict[str, Any]):
+    """Admin toggle — activate / deactivate / mark payment_due.
+
+    Uses Guardian's safe-update helper so every change creates a reversible
+    backup in guardian_backups. When status=inactive the customer cannot log
+    into the Customer Portal (blocked at /api/customer/send-otp)."""
+    new_status = (data or {}).get("status", "").strip().lower()
+    if new_status not in ("active", "inactive", "payment_due"):
+        raise HTTPException(status_code=400, detail="status must be 'active', 'inactive' or 'payment_due'")
+    cust = await db.customers.find_one({"id": customer_id}, {"_id": 0, "id": 1, "name": 1, "mobile": 1})
+    if not cust:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    from routes.guardian import _safe_update  # type: ignore
+    bid = await _safe_update(
+        collection="customers", doc_id=customer_id,
+        updates={"customer_status": new_status},
+        module="customer_management",
+        reason=(data or {}).get("reason") or f"admin toggle → {new_status}",
+        actor=(data or {}).get("actor") or "admin",
+    )
+    return {"success": bool(bid), "status": new_status, "backup_id": bid,
+            "customer": {"id": cust["id"], "name": cust.get("name"), "mobile": cust.get("mobile")}}
+
+
 @api_router.put("/admin/customers/{customer_id}")
 async def update_customer(request: Request, customer_id: str, data: Dict[str, Any]):
     """Update customer details (admin only).

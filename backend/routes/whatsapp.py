@@ -2143,7 +2143,7 @@ async def _handle_optout_keyword(
 
     if normalized in _STOP_KEYWORDS:
         now_iso = datetime.now(timezone.utc).isoformat()
-        logger.info(f"OPT-OUT: {phone} sent '{content}'")
+        logger.info(f"OPT-OUT: {phone} sent '{content}' — purging leads + deactivating customer")
 
         # Upsert wa_optouts collection (phone-level, survives even without a lead)
         await db.wa_optouts.update_one(
@@ -2153,7 +2153,62 @@ async def _handle_optout_keyword(
             upsert=True,
         )
 
-        # Update CRM lead if exists
+        # ── AUTO-PURGE ALL LEADS for this phone (soft-delete → 30-day Trash) ──
+        # STOP = "remove me from everywhere". We move the lead into the
+        # existing Trash workflow so admin can still restore within 30 days
+        # via /admin/trash if it was a genuine mistake.
+        phone_variants = [phone, phone[-10:] if len(phone) >= 10 else phone]
+        try:
+            from routes.trash import move_to_trash  # import here to avoid cycles
+        except Exception:
+            move_to_trash = None
+
+        leads_to_purge = await db.crm_leads.find(
+            {"phone": {"$in": phone_variants}, "moved_to_trash": {"$ne": True}},
+            {"_id": 0},
+        ).to_list(length=200)
+        purged_count = 0
+        for ld in leads_to_purge:
+            try:
+                if move_to_trash is not None:
+                    await move_to_trash("crm_leads", ld, deleted_by="whatsapp_stop_auto")
+                    await db.crm_leads.delete_one({"id": ld["id"]})
+                else:
+                    await db.crm_leads.update_one(
+                        {"id": ld["id"]},
+                        {"$set": {"moved_to_trash": True, "trashed_at": now_iso,
+                                  "trashed_reason": "WhatsApp STOP received"}},
+                    )
+                purged_count += 1
+            except Exception as e:
+                logger.warning(f"[optout] could not purge lead {ld.get('id')}: {e}")
+
+        # ── FLIP REGISTERED CUSTOMER to inactive (blocks portal login) ────────
+        # Uses the Guardian safe-update path so every change is backed up and
+        # fully reversible if the customer changes their mind.
+        deactivated = 0
+        try:
+            from routes.guardian import _safe_update  # type: ignore
+            cust = await db.customers.find_one(
+                {"mobile": {"$in": phone_variants}, "moved_to_trash": {"$ne": True}},
+                {"_id": 0, "id": 1, "name": 1, "customer_status": 1},
+            )
+            if cust and (cust.get("customer_status") or "active") != "inactive":
+                bid = await _safe_update(
+                    collection="customers", doc_id=cust["id"],
+                    updates={"customer_status": "inactive"},
+                    module="whatsapp_optout",
+                    reason=f"auto-deactivate on WhatsApp STOP from {phone}",
+                    actor="whatsapp_stop_auto",
+                )
+                if bid:
+                    deactivated = 1
+        except Exception as e:
+            logger.warning(f"[optout] could not deactivate customer for {phone}: {e}")
+
+        # Legacy compatibility — also set wa_opted_out on the primary lead (if
+        # any still exists — should be 0 after the purge, but keeps older code
+        # paths happy).
         if lead:
             await db.crm_leads.update_one(
                 {"id": lead["id"]},
@@ -2164,6 +2219,8 @@ async def _handle_optout_keyword(
                 }}
             )
             logger.info(f"OPT-OUT: CRM lead {lead['id']} ({lead.get('name')}) marked opted-out")
+
+        logger.info(f"OPT-OUT: purged_leads={purged_count}  deactivated_customer={deactivated}")
 
         # Send confirmation reply
         await _send_text_reply(
@@ -2306,6 +2363,41 @@ async def process_incoming_message(message: Dict, value: Dict):
         "referral": referral if referral else None,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
+
+    # ── AUTO-ASSIGN EXISTING LEAD (bulk-campaign reply routing) ──────────────
+    # Spec: any lead that REPLIES on WhatsApp (especially after a bulk
+    # campaign) must land in Rimjhim ASR1003's queue. NEW-lead creation below
+    # already wires this; here we handle the EXISTING-lead case — only if the
+    # lead isn't already assigned to her, so we don't thrash assignments on
+    # every inbound message.
+    if lead and lead_id:
+        current_owner = lead.get("assigned_to")
+        try:
+            rimjhim = await db.crm_staff_accounts.find_one(
+                {"staff_id": "ASR1003", "is_active": True}, {"id": 1}
+            )
+        except Exception:
+            rimjhim = None
+        if rimjhim and current_owner != rimjhim.get("id"):
+            now_iso = datetime.now(timezone.utc).isoformat()
+            await db.crm_leads.update_one(
+                {"id": lead_id},
+                {"$set": {
+                    "assigned_to": rimjhim["id"],
+                    "assigned_by": "system_whatsapp_reply",
+                    "assigned_at": now_iso,
+                    "auto_assigned_reason": "whatsapp_reply_reassigned_to_rimjhim",
+                    "last_reply_at": now_iso,
+                },
+                 "$push": {"activities": {
+                     "id": str(uuid.uuid4()),
+                     "type": "auto_reassign",
+                     "created_at": now_iso,
+                     "description": "Reassigned to Rimjhim (ASR1003) — customer replied on WhatsApp",
+                 }}},
+            )
+            logger.info(f"[campaign-reply] lead {lead_id} reassigned to Rimjhim (ASR1003)")
+    # ──────────────────────────────────────────────────────────────────────
     
     # Create new lead if not found
     if not lead_id and cleaned_phone:

@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  Plus, Search, Edit3, Trash2, X, Loader2, CheckCircle, Users, Sun,
-  Phone, MapPin, IndianRupee, Zap, Shield, Save, AlertCircle, RefreshCw,
-  ChevronDown, ChevronUp, Settings, FileText, Bell, ArrowLeft
+  Plus, Search, Edit3, Trash2, X, Loader2, CheckCircle, Users, Sun,  Phone, MapPin, IndianRupee, Zap, Shield, Save, AlertCircle, RefreshCw,
+  ChevronDown, ChevronUp, Settings, FileText, Bell, ArrowLeft, Lock, Unlock
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -138,6 +137,33 @@ export const CustomerManagement = () => {
     }
   };
 
+  // Activate / Deactivate — blocks portal login when inactive.
+  // Calls Guardian's safe-update which takes a snapshot (rollback-able).
+  const [togglingStatus, setTogglingStatus] = useState(null);
+  const handleStatusToggle = async (c) => {
+    const current = (c.customer_status || "active").toLowerCase();
+    const next = current === "inactive" ? "active" : "inactive";
+    const verb = next === "inactive" ? "DEACTIVATE" : "ACTIVATE";
+    if (!window.confirm(`${verb} customer ${c.name} (+91 ${c.mobile})?\n\n${
+      next === "inactive"
+        ? "Deactivating blocks Customer Portal login + stops all reminders. Fully reversible."
+        : "Customer will regain access to Customer Portal login."
+    }`)) return;
+    setTogglingStatus(c.id);
+    try {
+      await axios.patch(`${API}/admin/customers/${c.id}/status`,
+        { status: next,
+          actor: localStorage.getItem("asrAdminName") || "admin",
+          reason: "Manual toggle from Customer Management" });
+      setCustomers(customers.map(x => x.id === c.id ? { ...x, customer_status: next } : x));
+      setSuccess(`Customer ${next === "inactive" ? "deactivated" : "activated"} · reversible via Trash → Rollback.`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Failed to toggle customer status");
+      setTimeout(() => setError(""), 5000);
+    } finally { setTogglingStatus(null); }
+  };
+
   const savePortalSettings = async () => {
     setSavingSettings(true);
     try {
@@ -241,6 +267,29 @@ export const CustomerManagement = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {(() => {
+                        const status = (c.customer_status || "active").toLowerCase();
+                        const isInactive = status === "inactive";
+                        const isPaymentDue = status === "payment_due";
+                        return (
+                          <button
+                            onClick={() => handleStatusToggle(c)}
+                            disabled={togglingStatus === c.id}
+                            title={isInactive ? "Activate customer" : "Deactivate customer"}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition disabled:opacity-50
+                              ${isInactive
+                                ? "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
+                                : isPaymentDue
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                                  : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"}`}
+                            data-testid={`cust-status-toggle-${c.id}`}
+                          >
+                            {togglingStatus === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : isInactive ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                            {isInactive ? "Inactive · Activate" : isPaymentDue ? "Payment Due" : "Active"}
+                          </button>
+                        );
+                      })()}
                       <button onClick={() => openEdit(c)} className="p-2 hover:bg-sky-50 rounded-lg transition text-[#0369A1]"><Edit3 className="w-4 h-4" /></button>
                       <button onClick={() => setDeleteId(c.id)} className="p-2 hover:bg-red-50 rounded-lg transition text-red-500"><Trash2 className="w-4 h-4" /></button>
                       <button onClick={() => setExpandedId(expandedId === c.id ? null : c.id)} className="p-2 hover:bg-slate-50 rounded-lg transition text-slate-400">

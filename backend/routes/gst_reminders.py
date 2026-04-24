@@ -249,6 +249,16 @@ def start_reminder_scheduler() -> None:
     except Exception as _e:
         logger.warning(f"[scheduler] Could not attach trash auto-purge: {_e}")
 
+    # AI Website Guardian tick — scans enabled monitoring rules every 5 min.
+    try:
+        from routes.guardian import attach_guardian_scheduler, seed_default_rules
+        attach_guardian_scheduler(_scheduler)
+        # Seed default rules on first boot (idempotent — no-op if already present).
+        import asyncio as _asyncio
+        _asyncio.create_task(seed_default_rules())
+    except Exception as _e:
+        logger.warning(f"[scheduler] Could not attach guardian: {_e}")
+
     _scheduler.start()
     logger.info(
         f"[reminder] scheduler started — daily @ {REMINDER_CRON_HOUR:02d}:{REMINDER_CRON_MINUTE:02d} "

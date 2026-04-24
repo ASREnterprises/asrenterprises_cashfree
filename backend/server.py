@@ -13759,9 +13759,13 @@ async def customer_send_otp(request: Request, data: Dict[str, Any]):
     mobile_clean = mobile[-10:] if len(mobile) >= 10 else mobile
     if len(mobile_clean) != 10 or not mobile_clean.isdigit():
         raise HTTPException(status_code=400, detail="Invalid mobile number")
-    customer = await db.customers.find_one({"mobile": mobile_clean}, {"_id": 0, "name": 1})
-    if not customer:
-        raise HTTPException(status_code=404, detail="Mobile number not registered. Please contact ASR Enterprises to register.")
+    # Guardian access-control gate — blocks 'inactive' customers, lets
+    # 'active' + 'payment_due' through (the UI then highlights 'Pay Now').
+    from routes.guardian import check_customer_access
+    gate = await check_customer_access(mobile_clean)
+    if not gate.get("allowed"):
+        raise HTTPException(status_code=403 if gate.get("reason") != "not_registered" else 404,
+                            detail=gate.get("message") or "Access denied")
     return await _send_otp_impl({"mobile": mobile_clean})
 
 @api_router.post("/customer/verify-otp")
@@ -13770,6 +13774,13 @@ async def customer_verify_otp(request: Request, data: Dict[str, Any]):
     mobile = data.get("mobile", "").replace(" ", "").replace("+", "")
     otp = data.get("otp", "").strip()
     mobile_clean = mobile[-10:] if len(mobile) >= 10 else mobile
+    # Re-check gate at verify time too (admin may have deactivated between
+    # send-otp and verify-otp).
+    from routes.guardian import check_customer_access
+    gate = await check_customer_access(mobile_clean)
+    if not gate.get("allowed"):
+        raise HTTPException(status_code=403 if gate.get("reason") != "not_registered" else 404,
+                            detail=gate.get("message") or "Access denied")
     otp_result = await verify_otp(request, {"mobile": mobile_clean, "otp": otp})
     if not otp_result.get("success"):
         raise HTTPException(status_code=400, detail="OTP verification failed")
@@ -13777,7 +13788,8 @@ async def customer_verify_otp(request: Request, data: Dict[str, Any]):
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     portal_settings = await get_customer_portal_settings(request)
-    return {"success": True, "customer": customer, "portal_settings": portal_settings}
+    return {"success": True, "customer": customer, "portal_settings": portal_settings,
+            "customer_status": gate.get("status", "active")}
 
 @api_router.post("/customer/service-request")
 async def customer_service_request(request: Request, data: Dict[str, Any]):
@@ -13841,6 +13853,10 @@ api_router.include_router(trash_router)
 # Include Solar Agreement router (auto-generates Agreement PDF on PMSG quotation creation)
 from routes.agreements import router as agreements_router
 api_router.include_router(agreements_router)
+
+# ── AI Website Guardian — monitoring / approval / rollback / command console ──
+from routes.guardian import router as guardian_router
+api_router.include_router(guardian_router)
 
 app.include_router(api_router)
 

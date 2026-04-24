@@ -761,7 +761,8 @@ def _parse_command(text: str) -> Dict:
     if re.search(r"\b(activate|unblock|enable)\s+(customer|user)\b", t) or re.search(r"\bmark\s+active\b", t):
         if phone:
             return {"kind": "activate_customer", "args": {"phone": phone}}
-    if re.search(r"\b(payment\s*due|owes|unpaid)\b", t) and phone:
+    if (re.search(r"\b(payment\s*due|owes|unpaid|mark\s+payment_?due|flag\s+payment_?due)\b", t)
+            or re.search(r"payment[_\s-]?due", t)) and phone:
         return {"kind": "flag_payment_due", "args": {"phone": phone}}
     if re.search(r"\brun\s+billing\b", t) or re.search(r"\bbilling\s+(sync|check)\b", t):
         return {"kind": "run_billing_sync", "args": {}}

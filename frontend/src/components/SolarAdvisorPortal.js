@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -204,7 +204,10 @@ export const SolarAdvisorLogin = () => {
 // ========== ADVISOR DASHBOARD ==========
 export const SolarAdvisorDashboard = () => {
   const navigate = useNavigate();
-  const session = getAdvisorSession();
+  // Memoise session so the object reference is stable across renders — fixes
+  // the infinite-fetch / "Loading…" loop caused by getAdvisorSession() returning
+  // a fresh object each call.
+  const session = useMemo(() => getAdvisorSession(), []);
   const [tab, setTab] = useState("overview");
   const [data, setData] = useState(null);
   const [customers, setCustomers] = useState([]);
@@ -535,10 +538,20 @@ const OnboardCustomerModal = ({ agentId, onClose, onSuccess }) => {
 
   const submit = async (e) => {
     e.preventDefault();
-    setErr(""); setLoading(true);
+    setErr("");
+    // Client-side validation — matches user's requirements
+    const mobile10 = (f.customer_mobile || "").replace(/\D/g, "").slice(-10);
+    if (mobile10.length !== 10) { setErr("Please enter a valid 10-digit mobile number"); return; }
+    const pin = (f.pincode || "").replace(/\D/g, "");
+    if (pin.length !== 6) { setErr("Please enter a valid 6-digit pincode"); return; }
+    if (!/^\S+@\S+\.\S+$/.test((f.customer_email || "").trim())) { setErr("Please enter a valid email ID"); return; }
+    if (!(f.ca_no || "").trim()) { setErr("Electricity CA No. is required"); return; }
+    setLoading(true);
     try {
       const payload = {
         ...f,
+        customer_mobile: mobile10,
+        pincode: pin,
         required_capacity_kw: f.required_capacity_kw ? parseFloat(f.required_capacity_kw) : null,
         monthly_bill: f.monthly_bill ? parseFloat(f.monthly_bill) : null,
       };
@@ -550,20 +563,20 @@ const OnboardCustomerModal = ({ agentId, onClose, onSuccess }) => {
 
   return (
     <Modal title="Onboard New Customer" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-3">
-        {err && <div className="bg-red-50 text-red-700 text-sm p-2 rounded">{err}</div>}
+      <form onSubmit={submit} className="space-y-3" data-testid="advisor-onboard-form">
+        {err && <div className="bg-red-50 text-red-700 text-sm p-2 rounded" data-testid="advisor-onboard-error">{err}</div>}
         <div className="grid md:grid-cols-2 gap-3">
-          <Input label="Customer Name *" v={f.customer_name} on={(v) => setF({ ...f, customer_name: v })} required />
-          <Input label="Mobile *" v={f.customer_mobile} on={(v) => setF({ ...f, customer_mobile: v })} required type="tel" />
-          <Input label="Email" v={f.customer_email} on={(v) => setF({ ...f, customer_email: v })} type="email" />
-          <Input label="District *" v={f.district} on={(v) => setF({ ...f, district: v })} required />
-          <Input label="Pincode" v={f.pincode} on={(v) => setF({ ...f, pincode: v })} />
-          <Input label="CA No. (Electricity Bill)" v={f.ca_no} on={(v) => setF({ ...f, ca_no: v })} placeholder="Consumer Account Number" />
+          <Input label="Customer Name *" v={f.customer_name} on={(v) => setF({ ...f, customer_name: v })} required testid="onb-name" />
+          <Input label="Mobile No. *" v={f.customer_mobile} on={(v) => setF({ ...f, customer_mobile: v })} required type="tel" testid="onb-mobile" />
+          <Input label="Email ID *" v={f.customer_email} on={(v) => setF({ ...f, customer_email: v })} type="email" required testid="onb-email" />
+          <Input label="Electricity CA No. *" v={f.ca_no} on={(v) => setF({ ...f, ca_no: v })} required placeholder="Consumer Account Number" testid="onb-ca" />
+          <Input label="District *" v={f.district} on={(v) => setF({ ...f, district: v })} required testid="onb-district" />
+          <Input label="Pincode *" v={f.pincode} on={(v) => setF({ ...f, pincode: v })} required placeholder="6-digit" testid="onb-pincode" />
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1">Electricity Provider *</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1">Electricity Provider</label>
             <select value={f.electricity_provider} onChange={(e) => setF({ ...f, electricity_provider: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg" required>
-              <option value="">Select Provider</option>
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg" data-testid="onb-provider">
+              <option value="">Select Provider (optional)</option>
               <option value="SBPDCL">SBPDCL (South Bihar)</option>
               <option value="NBPDCL">NBPDCL (North Bihar)</option>
             </select>
@@ -571,22 +584,23 @@ const OnboardCustomerModal = ({ agentId, onClose, onSuccess }) => {
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Customer Type *</label>
             <select value={f.customer_type} onChange={(e) => setF({ ...f, customer_type: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg" data-testid="onb-type">
               <option value="residential">Residential</option>
               <option value="commercial">Commercial</option>
             </select>
           </div>
-          <Input label="Required Capacity (kW)" v={f.required_capacity_kw} on={(v) => setF({ ...f, required_capacity_kw: v })} type="number" step="0.1" />
-          <Input label="Monthly Bill (₹)" v={f.monthly_bill} on={(v) => setF({ ...f, monthly_bill: v })} type="number" />
+          <Input label="Required Capacity (kW)" v={f.required_capacity_kw} on={(v) => setF({ ...f, required_capacity_kw: v })} type="number" step="0.1" testid="onb-kw" />
+          <Input label="Monthly Bill (₹)" v={f.monthly_bill} on={(v) => setF({ ...f, monthly_bill: v })} type="number" testid="onb-bill" />
         </div>
-        <Input label="Full Address *" v={f.address} on={(v) => setF({ ...f, address: v })} required />
+        <Input label="Customer Full Address *" v={f.address} on={(v) => setF({ ...f, address: v })} required placeholder="House / Street / Area / Village / Town" testid="onb-address" />
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">Notes</label>
           <textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} data-testid="onb-notes" />
         </div>
         <button type="submit" disabled={loading}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-bold disabled:opacity-50">
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-bold disabled:opacity-50"
+          data-testid="advisor-onboard-submit">
           {loading ? "Submitting..." : "Onboard Customer"}
         </button>
       </form>
@@ -643,10 +657,11 @@ const Modal = ({ title, onClose, children }) => (
   </div>
 );
 
-const Input = ({ label, v, on, type = "text", required = false, step }) => (
+const Input = ({ label, v, on, type = "text", required = false, step, placeholder, testid }) => (
   <div>
     <label className="block text-xs font-semibold text-gray-700 mb-1">{label}</label>
     <input type={type} value={v} onChange={(e) => on(e.target.value)} required={required} step={step}
+      placeholder={placeholder} data-testid={testid}
       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500" />
   </div>
 );

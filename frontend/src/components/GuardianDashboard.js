@@ -9,6 +9,27 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api/guardian`;
 
+// Super admin credentials required to access Guardian (mirrors the backend
+// require_super_admin check in /app/backend/routes/guardian.py).
+const SUPER_ADMIN_STAFF_ID = "ASR1001";
+const SUPER_ADMIN_NAME = "ABHIJEET KUMAR";
+
+// Inject x-staff-id + x-admin-name on every guardian API call.
+const adminHeaders = () => ({
+  "x-staff-id": (localStorage.getItem("asrAdminStaffId") || "").trim(),
+  "x-admin-name": (localStorage.getItem("asrAdminName") || "").trim(),
+});
+const apiGet    = (url, opts = {}) => axios.get(url,    { ...opts, headers: { ...(opts.headers || {}), ...adminHeaders() } });
+const apiPost   = (url, body, opts = {}) => axios.post(url,   body, { ...opts, headers: { ...(opts.headers || {}), ...adminHeaders() } });
+const apiPatch  = (url, body, opts = {}) => axios.patch(url,  body, { ...opts, headers: { ...(opts.headers || {}), ...adminHeaders() } });
+const apiDelete = (url, opts = {}) => axios.delete(url, { ...opts, headers: { ...(opts.headers || {}), ...adminHeaders() } });
+
+const RISK_BADGE = {
+  HIGH:   { bg: "bg-red-100 text-red-700 border-red-200",       dot: "bg-red-500",     label: "🔴 HIGH RISK" },
+  MEDIUM: { bg: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-500",   label: "🟡 MEDIUM" },
+  LOW:    { bg: "bg-emerald-100 text-emerald-700 border-emerald-200", dot: "bg-emerald-500", label: "🟢 LOW" },
+};
+
 const MODE_BADGE = {
   alert:    "bg-slate-100 text-slate-700",
   approval: "bg-amber-100 text-amber-800",
@@ -62,11 +83,11 @@ const useGuardian = () => {
     setLoading(true);
     try {
       const [h, r, l, a, b] = await Promise.all([
-        axios.get(`${API}/health`),
-        axios.get(`${API}/rules`),
-        axios.get(`${API}/logs?limit=200`),
-        axios.get(`${API}/approvals?status=pending&limit=100`),
-        axios.get(`${API}/backups?limit=50`),
+        apiGet(`${API}/health`),
+        apiGet(`${API}/rules`),
+        apiGet(`${API}/logs?limit=200`),
+        apiGet(`${API}/approvals?status=pending&limit=100`),
+        apiGet(`${API}/backups?limit=50`),
       ]);
       setHealth(h.data);
       setRules(r.data.rules || []);
@@ -151,13 +172,13 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
   const [busy, setBusy] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API}/rules/templates`).then(r => setTemplates(r.data.templates || [])).catch(() => {});
+    apiGet(`${API}/rules/templates`).then(r => setTemplates(r.data.templates || [])).catch(() => {});
   }, []);
 
   const runNow = async (r) => {
     setBusy(r.id + ":run");
     try {
-      const res = await axios.post(`${API}/rules/${r.id}/run`);
+      const res = await apiPost(`${API}/rules/${r.id}/run`);
       onToast({ type: "ok", msg: `${r.name}: ${res.data.issue_count} issue(s), ${res.data.fixes_applied || 0} fixed` });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Run failed" }); }
@@ -167,7 +188,7 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
   const toggle = async (r) => {
     setBusy(r.id + ":toggle");
     try {
-      await axios.patch(`${API}/rules/${r.id}`, { enabled: !r.enabled });
+      await apiPatch(`${API}/rules/${r.id}`, { enabled: !r.enabled });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Toggle failed" }); }
     finally { setBusy(null); }
@@ -176,7 +197,7 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
   const setMode = async (r, action_mode) => {
     setBusy(r.id + ":mode");
     try {
-      await axios.patch(`${API}/rules/${r.id}`, { action_mode });
+      await apiPatch(`${API}/rules/${r.id}`, { action_mode });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Change failed" }); }
     finally { setBusy(null); }
@@ -185,7 +206,7 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
   const setFreq = async (r, frequency_minutes) => {
     setBusy(r.id + ":freq");
     try {
-      await axios.patch(`${API}/rules/${r.id}`, { frequency_minutes: Number(frequency_minutes) });
+      await apiPatch(`${API}/rules/${r.id}`, { frequency_minutes: Number(frequency_minutes) });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Change failed" }); }
     finally { setBusy(null); }
@@ -195,7 +216,7 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
     if (!window.confirm(`Delete rule "${r.name}"? This only removes the rule — no data changes.`)) return;
     setBusy(r.id + ":del");
     try {
-      await axios.delete(`${API}/rules/${r.id}`);
+      await apiDelete(`${API}/rules/${r.id}`);
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Delete failed" }); }
     finally { setBusy(null); }
@@ -204,7 +225,7 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
   const runAll = async () => {
     setBusy("runall");
     try {
-      const res = await axios.post(`${API}/rules/run-all`);
+      const res = await apiPost(`${API}/rules/run-all`);
       onToast({ type: "ok", msg: `Ran ${res.data.ran} rules` });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Run failed" }); }
@@ -238,6 +259,10 @@ const RulesTab = ({ rules, onRefresh, onToast }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${MODE_BADGE[r.action_mode]}`}>{r.action_mode}</span>
+                {r.risk_level && (() => {
+                  const risk = RISK_BADGE[r.risk_level.toUpperCase()] || RISK_BADGE.MEDIUM;
+                  return <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${risk.bg}`}>{risk.label}</span>;
+                })()}
                 <span className="text-[10px] uppercase font-semibold text-slate-500">{r.module}</span>
                 <span className={`inline-flex items-center gap-1 text-[10px] font-medium ${r.enabled ? "text-emerald-700" : "text-slate-400"}`}>
                   {r.enabled ? <CheckCircle2 className="w-3 h-3" /> : <X className="w-3 h-3" />}
@@ -311,7 +336,7 @@ const AddRuleModal = ({ templates, onClose, onDone }) => {
   const submit = async () => {
     setErr(""); setSaving(true);
     try {
-      await axios.post(`${API}/rules`, form);
+      await apiPost(`${API}/rules`, form);
       onDone();
     } catch (e) { setErr(e?.response?.data?.detail || "Create failed"); }
     finally { setSaving(false); }
@@ -411,49 +436,246 @@ const LogsTab = ({ logs }) => {
 };
 
 // ──────────────────────────────────────────────────────────────────────
-// Tab: Approvals
+// Tab: Approvals (with OTP-gated approval for HIGH risk)
 // ──────────────────────────────────────────────────────────────────────
 const ApprovalsTab = ({ approvals, onRefresh, onToast }) => {
   const [busy, setBusy] = useState(null);
-  const act = async (id, kind) => {
-    setBusy(id + ":" + kind);
+  const [otpModal, setOtpModal] = useState(null);   // {approval} — HIGH risk only
+
+  const approve = async (a) => {
+    // HIGH-risk goes through OTP flow
+    if ((a.risk_level || "HIGH").toUpperCase() === "HIGH") {
+      setOtpModal({ approval: a });
+      return;
+    }
+    // LOW/MEDIUM — direct approve
+    setBusy(a.id + ":approve");
     try {
-      await axios.post(`${API}/approvals/${id}/${kind}`, { actor: "admin" });
-      onToast({ type: "ok", msg: `${kind === "approve" ? "Approved" : "Rejected"} successfully` });
+      await apiPost(`${API}/approvals/${a.id}/approve`, { actor: "admin" });
+      onToast({ type: "ok", msg: "Approved" });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Failed" }); }
     finally { setBusy(null); }
   };
+
+  const reject = async (id) => {
+    setBusy(id + ":reject");
+    try {
+      await apiPost(`${API}/approvals/${id}/reject`, { actor: "admin", note: "rejected via UI" });
+      onToast({ type: "ok", msg: "Rejected" });
+      onRefresh();
+    } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Failed" }); }
+    finally { setBusy(null); }
+  };
+
   return (
     <div>
-      <div className="text-sm text-slate-500 mb-3">{approvals.length} pending approval{approvals.length === 1 ? "" : "s"}</div>
-      {approvals.length === 0 && <EmptyBox icon={<CheckCircle2 />} msg="All caught up — no pending approvals." />}
+      <div className="text-sm text-slate-500 mb-3">
+        {approvals.length === 0 ? "All caught up — no pending approvals." :
+          `${approvals.length} pending approval${approvals.length === 1 ? "" : "s"} · HIGH-risk approvals require OTP.`}
+      </div>
+      {approvals.length === 0 && <EmptyBox icon={<CheckCircle2 />} msg="No pending approvals." />}
       <div className="space-y-2">
-        {approvals.map(a => (
-          <div key={a.id} className="bg-white border border-amber-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-3"
-               data-testid={`guardian-approval-${a.id}`}>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap text-xs font-semibold text-amber-700">
-                <AlertTriangle className="w-4 h-4" /> PENDING · {a.module?.toUpperCase()}
+        {approvals.map(a => {
+          const risk = RISK_BADGE[(a.risk_level || "HIGH").toUpperCase()] || RISK_BADGE.HIGH;
+          const before = a.before_value || {};
+          const after = a.after_value || {};
+          return (
+            <div key={a.id} className="bg-white border border-amber-200 rounded-lg p-4"
+                 data-testid={`guardian-approval-${a.id}`}>
+              <div className="flex items-start gap-2 flex-wrap mb-2">
+                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${risk.bg}`}>{risk.label}</span>
+                <span className="text-[10px] uppercase font-semibold text-slate-500 px-2 py-0.5 bg-slate-100 rounded">{a.module}</span>
+                <span className="text-[11px] text-slate-400 ml-auto">{fmtAgo(a.proposed_at)}</span>
               </div>
-              <div className="font-semibold text-slate-900 mt-1">{a.action}</div>
-              <div className="text-xs text-slate-500 mt-0.5">Target: {a.target} · {fmtAgo(a.proposed_at)}</div>
-              <pre className="text-[11px] mt-1.5 bg-slate-50 rounded p-2 overflow-x-auto">{JSON.stringify(a.proposal, null, 2)}</pre>
+              <div className="font-semibold text-slate-900">{a.customer_name || a.target}</div>
+              <div className="text-xs text-slate-500 font-mono mt-0.5">
+                Action: <span className="text-slate-700">{a.action_type || a.action}</span>
+                {a.customer_id && <> · Customer: <span className="text-slate-700">{a.customer_id.slice(0, 8)}…</span></>}
+              </div>
+              {a.issue_detected && (
+                <div className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 mt-2">
+                  <strong>Issue detected:</strong> {a.issue_detected}
+                </div>
+              )}
+              {(Object.keys(before).length > 0 || Object.keys(after).length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 text-[11px]">
+                  <div className="bg-red-50 border border-red-100 rounded p-2">
+                    <div className="font-semibold text-red-700 mb-1">BEFORE</div>
+                    <pre className="text-slate-700">{JSON.stringify(before, null, 1)}</pre>
+                  </div>
+                  <div className="bg-emerald-50 border border-emerald-100 rounded p-2">
+                    <div className="font-semibold text-emerald-700 mb-1">AFTER</div>
+                    <pre className="text-slate-700">{JSON.stringify(after, null, 1)}</pre>
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => approve(a)} disabled={!!busy}
+                  className="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1"
+                  data-testid={`guardian-approve-${a.id}`}>
+                  {busy === a.id + ":approve" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  {(a.risk_level || "HIGH").toUpperCase() === "HIGH" ? "Approve via OTP" : "Approve"}
+                </button>
+                <button onClick={() => reject(a.id)} disabled={!!busy}
+                  className="px-3 py-1.5 bg-white border border-red-300 text-red-700 text-sm rounded hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
+                  data-testid={`guardian-reject-${a.id}`}>
+                  <X className="w-4 h-4" /> Reject
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <button onClick={() => act(a.id, "approve")} disabled={busy?.startsWith(a.id)}
-                className="px-3 py-1.5 bg-emerald-600 text-white text-sm rounded hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-1"
-                data-testid={`guardian-approve-${a.id}`}>
-                {busy === a.id + ":approve" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Approve
-              </button>
-              <button onClick={() => act(a.id, "reject")} disabled={busy?.startsWith(a.id)}
-                className="px-3 py-1.5 bg-white border border-red-300 text-red-700 text-sm rounded hover:bg-red-50 disabled:opacity-50 flex items-center gap-1"
-                data-testid={`guardian-reject-${a.id}`}>
-                <X className="w-4 h-4" /> Reject
-              </button>
-            </div>
+          );
+        })}
+      </div>
+
+      {otpModal && (
+        <ApprovalOtpModal
+          approval={otpModal.approval}
+          onClose={() => setOtpModal(null)}
+          onDone={() => { setOtpModal(null); onRefresh(); onToast({ type: "ok", msg: "Approved ✓" }); }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────────────
+// OTP Approval Modal (HIGH-risk gate)
+// ──────────────────────────────────────────────────────────────────────
+const ApprovalOtpModal = ({ approval, onClose, onDone }) => {
+  const [stage, setStage] = useState("sending");     // sending → enter → verifying
+  const [otpId, setOtpId] = useState(null);
+  const [otp, setOtp] = useState("");
+  const [err, setErr] = useState("");
+  const [info, setInfo] = useState(null);
+  const [resendIn, setResendIn] = useState(30);
+  const [expiresIn, setExpiresIn] = useState(300);
+  const [attemptsLeft, setAttemptsLeft] = useState(3);
+
+  const sendOtp = useCallback(async () => {
+    setStage("sending"); setErr(""); setOtp("");
+    try {
+      const r = await apiPost(`${API}/approvals/${approval.id}/send-otp`, {});
+      setOtpId(r.data.otp_id);
+      setInfo({ channel: r.data.channel, masked: r.data.phone_masked, delivered: r.data.delivered });
+      setResendIn(r.data.resend_in || 30);
+      setExpiresIn(r.data.expires_in || 300);
+      setAttemptsLeft(r.data.max_attempts || 3);
+      setStage("enter");
+    } catch (e) {
+      setErr(e?.response?.data?.detail || "Failed to send OTP");
+      setStage("enter");
+    }
+  }, [approval.id]);
+
+  useEffect(() => { sendOtp(); }, [sendOtp]);
+
+  // Countdown timers
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resendIn]);
+  useEffect(() => {
+    if (expiresIn <= 0) return;
+    const t = setInterval(() => setExpiresIn((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(t);
+  }, [expiresIn]);
+
+  const verify = async () => {
+    if (otp.trim().length < 4) { setErr("Enter the OTP"); return; }
+    setStage("verifying"); setErr("");
+    try {
+      await apiPost(`${API}/approvals/${approval.id}/verify-otp`, { otp: otp.trim(), otp_id: otpId });
+      onDone();
+    } catch (e) {
+      const detail = e?.response?.data?.detail || "Verification failed";
+      const m = detail.match(/(\d+)\s+attempt/);
+      if (m) setAttemptsLeft(parseInt(m[1], 10));
+      setErr(detail);
+      setStage("enter");
+    }
+  };
+
+  const mm = String(Math.floor(expiresIn / 60)).padStart(2, "0");
+  const ss = String(expiresIn % 60).padStart(2, "0");
+  const risk = RISK_BADGE[(approval.risk_level || "HIGH").toUpperCase()] || RISK_BADGE.HIGH;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${risk.bg}`}>{risk.label}</span>
+          <h2 className="text-lg font-bold text-slate-900">OTP Verification Required</h2>
+          <button onClick={onClose} className="ml-auto text-slate-400 hover:text-slate-700" data-testid="guardian-otp-close"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="space-y-2 text-sm text-slate-700 mb-4">
+          <div><span className="text-slate-500">Customer:</span> <strong>{approval.customer_name || approval.target}</strong></div>
+          <div><span className="text-slate-500">Action:</span> <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{approval.action_type || approval.action}</code></div>
+          {approval.issue_detected && <div className="text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2 text-xs">{approval.issue_detected}</div>}
+        </div>
+
+        {stage === "sending" && (
+          <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 rounded-lg p-3">
+            <Loader2 className="w-4 h-4 animate-spin" /> Sending OTP to Super Admin…
           </div>
-        ))}
+        )}
+
+        {stage !== "sending" && (
+          <>
+            {info && (
+              <div className="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-600 mb-3">
+                {info.delivered ? (
+                  <>📲 OTP delivered via <strong>{info.channel}</strong> to <strong>{info.masked}</strong></>
+                ) : (
+                  <>⚠️ Delivery attempt failed — ask the Super Admin to check WhatsApp/SMS.</>
+                )}
+              </div>
+            )}
+            <label className="block">
+              <span className="text-xs font-semibold text-slate-600">Enter 6-digit OTP</span>
+              <input
+                type="tel" inputMode="numeric" maxLength={8} autoFocus
+                value={otp}
+                onChange={(e) => { setOtp(e.target.value.replace(/\D/g, "")); setErr(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") verify(); }}
+                className="mt-1 w-full border-2 border-slate-300 focus:border-slate-900 rounded-lg px-4 py-3 text-2xl font-mono text-center tracking-[0.4em]"
+                placeholder="• • • • • •"
+                data-testid="guardian-otp-input"
+              />
+            </label>
+            <div className="flex items-center justify-between text-xs mt-2">
+              <span className="text-slate-500">Attempts left: <strong>{attemptsLeft}</strong></span>
+              <span className={`font-mono ${expiresIn < 60 ? "text-red-600" : "text-slate-500"}`}>
+                Expires in {mm}:{ss}
+              </span>
+            </div>
+            {err && <div className="mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded p-2">{err}</div>}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={sendOtp}
+                disabled={resendIn > 0 || stage === "verifying"}
+                className="flex-1 px-3 py-2 border border-slate-200 text-sm rounded-lg text-slate-700 hover:border-slate-400 disabled:opacity-50"
+                data-testid="guardian-otp-resend"
+              >
+                {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend OTP"}
+              </button>
+              <button
+                onClick={verify}
+                disabled={stage === "verifying" || !otp.trim() || expiresIn <= 0}
+                className="flex-1 px-3 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1"
+                data-testid="guardian-otp-verify"
+              >
+                {stage === "verifying" ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Verify &amp; Apply
+              </button>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded p-2 flex gap-2">
+              <Shield className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+              <span>OTP valid for 5 minutes · 3 attempts max · 30s resend cooldown · All attempts are audit-logged.</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -468,7 +690,7 @@ const BackupsTab = ({ backups, onRefresh, onToast }) => {
     if (!window.confirm(`Restore ${b.collection}/${b.doc_id.slice(0, 8)}… to previous state?\n\nFields: ${Object.keys(b.before || {}).join(", ")}`)) return;
     setBusy(b.id);
     try {
-      await axios.post(`${API}/backups/${b.id}/restore`, { actor: "admin", note: "manual rollback" });
+      await apiPost(`${API}/backups/${b.id}/restore`, { actor: "admin", note: "manual rollback" });
       onToast({ type: "ok", msg: "Restored successfully" });
       onRefresh();
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Restore failed" }); }
@@ -529,7 +751,7 @@ const ConsoleTab = ({ onRefresh, onToast }) => {
     if (!cmd.trim()) return;
     setBusy(true); setResult(null);
     try {
-      const r = await axios.post(`${API}/command/preview`, { command: cmd });
+      const r = await apiPost(`${API}/command/preview`, { command: cmd });
       setPreview(r.data);
     } catch (e) { onToast({ type: "err", msg: e?.response?.data?.detail || "Preview failed" }); }
     finally { setBusy(false); }
@@ -538,7 +760,7 @@ const ConsoleTab = ({ onRefresh, onToast }) => {
   const doExecute = async () => {
     setBusy(true);
     try {
-      const r = await axios.post(`${API}/command/execute`, { command: cmd, actor: "admin" });
+      const r = await apiPost(`${API}/command/execute`, { command: cmd, actor: "admin" });
       setResult(r.data);
       if (r.data.success) onToast({ type: "ok", msg: "Executed" });
       else onToast({ type: "err", msg: r.data.error || "Failed" });
@@ -634,9 +856,37 @@ const EmptyBox = ({ icon, msg }) => (
 // ──────────────────────────────────────────────────────────────────────
 // Main page
 // ──────────────────────────────────────────────────────────────────────
+// Super-admin access gate wrapper
+const AccessDenied = () => (
+  <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+    <div className="max-w-md w-full bg-white rounded-2xl border border-red-200 shadow-xl p-8 text-center">
+      <div className="inline-flex w-16 h-16 items-center justify-center rounded-full bg-red-100 text-red-600 mb-4">
+        <Shield className="w-8 h-8" />
+      </div>
+      <h1 className="text-xl font-bold text-slate-900">Access Denied</h1>
+      <p className="text-sm text-slate-600 mt-2">
+        AI Website Guardian is restricted to the Super Admin ({SUPER_ADMIN_NAME}, {SUPER_ADMIN_STAFF_ID}).
+      </p>
+      <p className="text-xs text-slate-400 mt-1">
+        Your session signs in as <strong>{(localStorage.getItem("asrAdminName") || "—")}</strong>.
+      </p>
+      <Link to="/admin/dashboard"
+        className="inline-flex items-center gap-2 mt-6 px-4 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-700">
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </Link>
+    </div>
+  </div>
+);
+
 export const GuardianDashboard = () => {
+  // Super-admin gate — mirrors backend require_super_admin for UX (backend still enforces).
+  const staffId = (localStorage.getItem("asrAdminStaffId") || "").trim().toUpperCase();
+  const adminName = (localStorage.getItem("asrAdminName") || "").trim().toUpperCase();
+  const isSuperAdmin = staffId === SUPER_ADMIN_STAFF_ID.toUpperCase() && adminName === SUPER_ADMIN_NAME.toUpperCase();
   const guardian = useGuardian();
   const [tab, setTab] = useState("rules");
+
+  if (!isSuperAdmin) return <AccessDenied />;
 
   return (
     <div className="min-h-screen bg-slate-50">

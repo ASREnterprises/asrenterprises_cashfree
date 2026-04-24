@@ -28,12 +28,14 @@ All paths rely only on whitelisted fields/collections defined below.
 from __future__ import annotations
 
 import logging
+import os
+import random
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from db_client import get_db
@@ -43,8 +45,109 @@ logger = logging.getLogger(__name__)
 db = get_db()
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  APPROVAL OTP SETTINGS
+# ──────────────────────────────────────────────────────────────────────────────
+APPROVAL_OTP_TTL_SECONDS      = int(os.environ.get("GUARDIAN_OTP_TTL",      "300"))   # 5 min
+APPROVAL_OTP_COOLDOWN_SECONDS = int(os.environ.get("GUARDIAN_OTP_COOLDOWN", "30"))    # 30 s
+APPROVAL_OTP_MAX_ATTEMPTS     = int(os.environ.get("GUARDIAN_OTP_MAX",      "3"))     # 3 tries
+SUPER_ADMIN_MOBILE            = os.environ.get("SUPER_ADMIN_MOBILE", "9296389097")    # ASR1001
+
+
+def _hash_approval_otp(otp: str) -> str:
+    import hashlib
+    salt = os.environ.get("GUARDIAN_OTP_SALT", "asr-guardian-otp-v1")
+    return hashlib.sha256(f"{salt}:{otp}".encode()).hexdigest()
+
+
+async def _send_admin_whatsapp_otp(otp_code: str, approval: Dict) -> Dict:
+    """Deliver the 6-digit OTP to the super admin's WhatsApp. Falls back to
+    plain text if the approved OTP template isn't on the WABA account."""
+    try:
+        from routes.whatsapp import get_whatsapp_settings, send_whatsapp_template
+        settings = await get_whatsapp_settings()
+        token = (settings or {}).get("access_token", "").strip()
+        phone_id = (settings or {}).get("phone_number_id", "").strip()
+        if not token or not phone_id:
+            return {"success": False, "error": "whatsapp not configured"}
+
+        phone_e164 = SUPER_ADMIN_MOBILE.strip().lstrip("+")
+        if len(phone_e164) == 10:
+            phone_e164 = "91" + phone_e164
+
+        for tpl in ["authentication_otp", "otp_verification", "website_otp", "customer_otp"]:
+            try:
+                r = await send_whatsapp_template(phone=phone_e164, template_name=tpl, variables=[otp_code])
+                if r.get("success"):
+                    return {"success": True, "channel": f"template:{tpl}",
+                            "phone_masked": f"*****{phone_e164[-5:]}"}
+            except Exception:
+                continue
+
+        # Plain text fallback
+        import httpx
+        text = (
+            f"🔐 ASR Guardian — Approval Verification\n\n"
+            f"Your OTP: *{otp_code}*\n"
+            f"Valid for {APPROVAL_OTP_TTL_SECONDS // 60} minutes.\n\n"
+            f"Risk Level: {approval.get('risk_level', 'HIGH')}\n"
+            f"Action: {approval.get('action', '?')}\n"
+            f"Customer: {approval.get('customer_name', '—')}\n\n"
+            f"If you didn't request this, do NOT share the code."
+        )
+        async with httpx.AsyncClient(timeout=15.0) as c:
+            resp = await c.post(
+                f"https://graph.facebook.com/v20.0/{phone_id}/messages",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"messaging_product": "whatsapp", "to": phone_e164,
+                      "type": "text", "text": {"body": text}},
+            )
+            if resp.status_code in (200, 201):
+                return {"success": True, "channel": "whatsapp_text",
+                        "phone_masked": f"*****{phone_e164[-5:]}"}
+            return {"success": False, "error": f"whatsapp_text_{resp.status_code}: {resp.text[:200]}"}
+    except Exception as e:
+        logger.warning(f"[guardian.otp] send failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  SUPER ADMIN ACCESS CONTROL
+# ──────────────────────────────────────────────────────────────────────────────
+# Guardian is gated to the super admin (ASR1001 / ABHIJEET KUMAR) only.
+# Every admin request must carry BOTH headers sent by the React shell:
+#   x-staff-id:   ASR1001
+#   x-admin-name: ABHIJEET KUMAR
+# (Header names are case-insensitive in FastAPI.)
+OWNER_STAFF_ID = os.environ.get("OWNER_STAFF_ID", "ASR1001")
+OWNER_NAME     = os.environ.get("OWNER_NAME", "ABHIJEET KUMAR")
+
+
+def require_super_admin(
+    x_staff_id: Optional[str] = Header(default=None, alias="x-staff-id"),
+    x_admin_name: Optional[str] = Header(default=None, alias="x-admin-name"),
+) -> Dict[str, str]:
+    sid = (x_staff_id or "").strip().upper()
+    nm = (x_admin_name or "").strip().upper()
+    if sid != OWNER_STAFF_ID.upper() and nm != OWNER_NAME.upper():
+        raise HTTPException(status_code=403, detail="Access Denied — Guardian is restricted to Super Admin.")
+    # Defence-in-depth: BOTH must match if both provided
+    if sid and sid != OWNER_STAFF_ID.upper():
+        raise HTTPException(status_code=403, detail="Access Denied — staff id mismatch.")
+    if nm and nm != OWNER_NAME.upper():
+        raise HTTPException(status_code=403, detail="Access Denied — admin name mismatch.")
+    return {"staff_id": OWNER_STAFF_ID, "name": OWNER_NAME}
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# Apply the super-admin gate to every route declared on this router.
+# Individual endpoints still Depends() so they can receive the admin dict when
+# they need to log "decided_by" etc. The router-level dependency enforces the
+# gate even on the ones that don't consume the dict.
+router.dependencies.append(Depends(require_super_admin))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -60,6 +163,7 @@ AUTOFIX_ALLOWED_WRITES = {
     ("customers", "install_progress"),
     ("customers", "install_status"),
     ("customers", "pay_now_enabled"),
+    ("customers", "needs_invoice_flag"),
     ("invoices", "payment_status_synced_at"),
     ("invoices", "due_amount"),
     ("shop_orders_pending", "stale_flagged_at"),
@@ -100,60 +204,68 @@ async def _tpl_billing_sync(params: Dict, action_mode: str, rule_id: str) -> Dic
             {"customer.phone": c.get("mobile"), "doc_type": "invoice", "moved_to_trash": {"$ne": True}}
         )
         if total > 0 and inv_count == 0:
-            issues.append({
+            issue = {
                 "module": "billing", "entity": "customer", "entity_id": cid,
                 "name": c.get("name"), "phone": c.get("mobile"),
-                "reason": "total_cost > 0 but no invoice found",
+                "reason": f"total_cost={total} but no invoice found",
                 "severity": "warn",
-            })
+            }
+            issues.append(issue)
             if action_mode == "approval":
                 approvals_created += await _enqueue_approval(
                     rule_id=rule_id, module="billing",
                     action="create_invoice_for_customer", target=cid,
-                    proposal={"customer_id": cid, "name": c.get("name"), "amount": total},
+                    customer_id=cid, customer_name=c.get("name"),
+                    issue_detected=issue["reason"],
+                    before_value={"needs_invoice_flag": False},
+                    after_value={"needs_invoice_flag": True},
+                    risk_level="HIGH",
                 )
     return {"issues": issues, "fixes_applied": fixes_applied, "approvals_created": approvals_created}
 
 
 async def _tpl_payment_due_gate(params: Dict, action_mode: str, rule_id: str) -> Dict:
-    """IF due_amount > 0 AND customer_status != payment_due → set status
-    (safe autofix — only toggles a UI gate field, no money movement)."""
+    """HIGH-RISK: Scan customers with due_amount > 0 whose status isn't already
+    payment_due. Never auto-fixes — always queues an approval that requires
+    OTP verification before the toggle runs."""
     issues: List[Dict] = []
-    fixes_applied = 0
+    approvals_created = 0
     cur = db.customers.find(
         {"moved_to_trash": {"$ne": True}, "due_amount": {"$gt": 0}},
-        {"_id": 0, "id": 1, "name": 1, "mobile": 1, "customer_status": 1, "due_amount": 1},
+        {"_id": 0, "id": 1, "name": 1, "mobile": 1, "customer_status": 1, "due_amount": 1, "pay_now_enabled": 1},
     )
     async for c in cur:
-        if (c.get("customer_status") or "active") in ("payment_due",):
+        current_status = (c.get("customer_status") or "active")
+        if current_status == "payment_due":
             continue
-        issues.append({
+        issue = {
             "module": "payment", "entity": "customer", "entity_id": c.get("id"),
             "name": c.get("name"), "phone": c.get("mobile"),
-            "reason": f"due_amount={c.get('due_amount')} but status='{c.get('customer_status', 'active')}'",
+            "reason": f"due_amount={c.get('due_amount')} but status='{current_status}'",
             "severity": "warn",
-        })
-        if action_mode == "autofix":
-            await _safe_update(
-                collection="customers", doc_id=c.get("id"),
-                updates={"customer_status": "payment_due", "pay_now_enabled": True},
+        }
+        issues.append(issue)
+        if action_mode == "approval":
+            approvals_created += await _enqueue_approval(
                 rule_id=rule_id, module="payment",
-                reason="auto-flip to payment_due because due_amount > 0",
+                action="set_customer_status_payment_due",
+                target=c.get("id"),
+                customer_id=c.get("id"),
+                customer_name=c.get("name"),
+                issue_detected=issue["reason"],
+                before_value={"customer_status": current_status,
+                              "pay_now_enabled": c.get("pay_now_enabled")},
+                after_value={"customer_status": "payment_due", "pay_now_enabled": True},
+                risk_level="HIGH",
             )
-            fixes_applied += 1
-        elif action_mode == "approval":
-            await _enqueue_approval(
-                rule_id=rule_id, module="payment",
-                action="set_customer_status_payment_due", target=c.get("id"),
-                proposal={"customer_id": c.get("id"), "new_status": "payment_due"},
-            )
-    return {"issues": issues, "fixes_applied": fixes_applied}
+    return {"issues": issues, "fixes_applied": 0, "approvals_created": approvals_created}
 
 
 async def _tpl_install_progress(params: Dict, action_mode: str, rule_id: str) -> Dict:
-    """IF installation_date < today AND install_status != completed → mark 100%."""
+    """HIGH-RISK: Flag installations whose scheduled date has passed without
+    status=completed. Never auto-completes — always queues approval."""
     issues: List[Dict] = []
-    fixes_applied = 0
+    approvals_created = 0
     today = datetime.now(timezone.utc).date().isoformat()
     cur = db.customers.find(
         {
@@ -161,26 +273,33 @@ async def _tpl_install_progress(params: Dict, action_mode: str, rule_id: str) ->
             "installation_date": {"$ne": None, "$lte": today, "$ne": ""},
             "install_status": {"$ne": "completed"},
         },
-        {"_id": 0, "id": 1, "name": 1, "mobile": 1, "installation_date": 1, "install_status": 1},
+        {"_id": 0, "id": 1, "name": 1, "mobile": 1, "installation_date": 1,
+         "install_status": 1, "install_progress": 1},
     )
     async for c in cur:
         if not c.get("installation_date"):
             continue
-        issues.append({
+        issue = {
             "module": "installation", "entity": "customer", "entity_id": c.get("id"),
             "name": c.get("name"), "phone": c.get("mobile"),
-            "reason": f"installation_date={c.get('installation_date')} has passed but status is not completed",
+            "reason": f"installation_date={c.get('installation_date')} has passed but status is '{c.get('install_status') or '—'}'",
             "severity": "info",
-        })
-        if action_mode == "autofix":
-            await _safe_update(
-                collection="customers", doc_id=c.get("id"),
-                updates={"install_progress": 100, "install_status": "completed"},
+        }
+        issues.append(issue)
+        if action_mode == "approval":
+            approvals_created += await _enqueue_approval(
                 rule_id=rule_id, module="installation",
-                reason="installation_date has passed — mark 100% complete",
+                action="mark_installation_complete",
+                target=c.get("id"),
+                customer_id=c.get("id"),
+                customer_name=c.get("name"),
+                issue_detected=issue["reason"],
+                before_value={"install_progress": c.get("install_progress"),
+                              "install_status": c.get("install_status")},
+                after_value={"install_progress": 100, "install_status": "completed"},
+                risk_level="HIGH",
             )
-            fixes_applied += 1
-    return {"issues": issues, "fixes_applied": fixes_applied}
+    return {"issues": issues, "fixes_applied": 0, "approvals_created": approvals_created}
 
 
 async def _tpl_whatsapp_retry(params: Dict, action_mode: str, rule_id: str) -> Dict:
@@ -237,22 +356,29 @@ RULE_TEMPLATES: Dict[str, Dict] = {
         "module": "billing",
         "handler": _tpl_billing_sync,
         "supports_modes": ["alert", "approval"],
+        "risk_level": "HIGH",
         "default_frequency_minutes": 60,
         "default_params": {},
     },
     "payment_due_gate": {
-        "title": "Payment Monitor — set status=payment_due when due_amount > 0",
+        "title": "Payment Monitor — flag customers with due_amount > 0",
         "module": "payment",
         "handler": _tpl_payment_due_gate,
-        "supports_modes": ["alert", "approval", "autofix"],
+        # AUTOFIX DISABLED — payment/customer_status writes are HIGH risk and
+        # must go through the OTP-gated approval queue (security upgrade).
+        "supports_modes": ["alert", "approval"],
+        "risk_level": "HIGH",
         "default_frequency_minutes": 30,
         "default_params": {},
     },
     "install_progress": {
-        "title": "Installation Monitor — mark 100% when installation_date has passed",
+        "title": "Installation Monitor — flag jobs overdue for 100% mark",
         "module": "installation",
         "handler": _tpl_install_progress,
-        "supports_modes": ["alert", "autofix"],
+        # AUTOFIX DISABLED — installation status is HIGH risk (affects warranty
+        # calculation + customer portal UI) and now requires approval.
+        "supports_modes": ["alert", "approval"],
+        "risk_level": "HIGH",
         "default_frequency_minutes": 240,
         "default_params": {},
     },
@@ -261,6 +387,7 @@ RULE_TEMPLATES: Dict[str, Dict] = {
         "module": "whatsapp",
         "handler": _tpl_whatsapp_retry,
         "supports_modes": ["alert"],
+        "risk_level": "MEDIUM",
         "default_frequency_minutes": 120,
         "default_params": {},
     },
@@ -269,9 +396,21 @@ RULE_TEMPLATES: Dict[str, Dict] = {
         "module": "shop",
         "handler": _tpl_pending_order_cleanup,
         "supports_modes": ["alert"],
+        "risk_level": "LOW",
         "default_frequency_minutes": 360,
         "default_params": {"stale_hours": 24},
     },
+}
+
+# High-risk action catalog — these NEVER run without an OTP-verified approval.
+HIGH_RISK_ACTIONS = {
+    "set_customer_status_payment_due",
+    "set_customer_status_inactive",
+    "set_customer_status_active",
+    "mark_installation_complete",
+    "create_invoice_for_customer",
+    "trigger_whatsapp_reminder",
+    "adjust_due_amount",
 }
 
 
@@ -326,10 +465,15 @@ async def _safe_update(
 
 
 async def _enqueue_approval(
-    *, rule_id: str, module: str, action: str, target: str, proposal: Dict,
+    *, rule_id: str, module: str, action: str, target: str,
+    customer_id: Optional[str] = None, customer_name: Optional[str] = None,
+    issue_detected: str = "", before_value: Optional[Dict] = None,
+    after_value: Optional[Dict] = None, risk_level: str = "HIGH",
+    proposal: Optional[Dict] = None,
 ) -> int:
-    """Insert a pending approval record. Returns 1 if created, 0 if a pending
-    one for the same (rule, action, target) already exists (de-dupe)."""
+    """Insert a pending approval record with full audit context. Returns 1 if
+    created, 0 if a pending one for the same (rule, action, target) already
+    exists (de-dupe)."""
     existing = await db.guardian_approvals.find_one({
         "rule_id": rule_id, "action": action, "target": target, "status": "pending",
     })
@@ -340,14 +484,24 @@ async def _enqueue_approval(
         "rule_id": rule_id,
         "module": module,
         "action": action,
+        "action_type": action,
         "target": target,
-        "proposal": proposal,
+        "customer_id": customer_id or target,
+        "customer_name": customer_name or "",
+        "issue_detected": issue_detected,
+        "risk_level": risk_level,
+        "before_value": before_value or {},
+        "after_value": after_value or {},
+        "proposal": proposal or {"before": before_value, "after": after_value},
         "status": "pending",
         "proposed_at": _now(),
+        "created_at": _now(),
+        "otp_verified": False,
     }
     await db.guardian_approvals.insert_one(doc.copy())
     await _log(level="info", module=module, rule_id=rule_id,
-               message=f"approval queued: {action} → {target}", details=proposal)
+               message=f"approval queued: {action} → {target} [risk={risk_level}]",
+               details={"customer_id": customer_id, "before": before_value, "after": after_value})
     return 1
 
 
@@ -481,6 +635,7 @@ async def create_rule(payload: RuleCreate):
         "name": payload.name.strip(),
         "template_key": payload.template_key,
         "module": tpl["module"],
+        "risk_level": tpl.get("risk_level", "MEDIUM"),
         "action_mode": payload.action_mode,
         "frequency_minutes": payload.frequency_minutes,
         "enabled": payload.enabled,
@@ -575,31 +730,211 @@ async def list_approvals(status: str = "pending", limit: int = 100):
 
 
 @router.post("/approvals/{approval_id}/approve")
-async def approve(approval_id: str, decision: ApprovalDecision):
+async def approve(approval_id: str, decision: ApprovalDecision, _admin=Depends(require_super_admin)):
+    """Direct approve — only allowed for LOW/MEDIUM risk approvals. HIGH risk
+    approvals REQUIRE the OTP challenge flow below (send-otp + verify-otp)."""
     a = await db.guardian_approvals.find_one({"id": approval_id}, {"_id": 0})
     if not a or a.get("status") != "pending":
         raise HTTPException(404, "Approval not found or already decided")
+    if (a.get("risk_level") or "HIGH").upper() == "HIGH":
+        raise HTTPException(
+            status_code=403,
+            detail="HIGH-risk approvals require OTP verification. "
+                   "Call POST /approvals/{id}/send-otp then /verify-otp instead.",
+        )
+    return await _apply_approval(a, decision, otp_verified=False, actor=_admin.get("name", "admin"))
+
+
+@router.post("/approvals/{approval_id}/send-otp")
+async def approval_send_otp(approval_id: str, _admin=Depends(require_super_admin)):
+    """Send a 6-digit OTP to Super Admin's registered mobile for this approval.
+    Rate-limited: 30s cooldown, max 3 verify attempts per OTP, 5 min expiry."""
+    a = await db.guardian_approvals.find_one({"id": approval_id}, {"_id": 0})
+    if not a or a.get("status") != "pending":
+        raise HTTPException(404, "Approval not found or already decided")
+
+    # Rate limit: find the most recent challenge for this approval
+    prev = await db.guardian_approval_otps.find_one(
+        {"approval_id": approval_id, "consumed": {"$ne": True}},
+        sort=[("sent_at", -1)],
+    )
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if prev:
+        try:
+            last_ts = datetime.fromisoformat(prev["sent_at"].replace("Z", "+00:00")).timestamp()
+            if now_ts - last_ts < APPROVAL_OTP_COOLDOWN_SECONDS:
+                wait = int(APPROVAL_OTP_COOLDOWN_SECONDS - (now_ts - last_ts))
+                raise HTTPException(429, f"Please wait {wait}s before requesting another OTP.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
+    otp_code = f"{random.randint(100000, 999999)}"
+    otp_id = str(uuid.uuid4())
+    expires_at = (datetime.now(timezone.utc) + timedelta(seconds=APPROVAL_OTP_TTL_SECONDS)).isoformat()
+
+    # Invalidate older un-consumed OTPs for this approval
+    await db.guardian_approval_otps.update_many(
+        {"approval_id": approval_id, "consumed": {"$ne": True}},
+        {"$set": {"superseded": True}},
+    )
+
+    record = {
+        "id": otp_id,
+        "approval_id": approval_id,
+        "otp_hash": _hash_approval_otp(otp_code),
+        "attempts": 0,
+        "consumed": False,
+        "sent_at": _now(),
+        "expires_at": expires_at,
+        "admin_name": _admin.get("name", "admin"),
+    }
+    await db.guardian_approval_otps.insert_one(record.copy())
+
+    # Deliver via Meta WhatsApp Cloud API to the super admin's mobile.
+    delivery = await _send_admin_whatsapp_otp(otp_code, a)
+    # Log whether delivery was accepted
+    await db.guardian_approval_otps.update_one(
+        {"id": otp_id},
+        {"$set": {
+            "delivery_status": "ok" if delivery.get("success") else "failed",
+            "delivery_channel": delivery.get("channel", ""),
+            "delivery_error": delivery.get("error", "")[:300],
+        }},
+    )
+    await _log(level="info", module=a.get("module", "guardian"),
+               rule_id=a.get("rule_id"),
+               message=f"approval OTP sent (approval={approval_id}, delivered={delivery.get('success')})",
+               actor=_admin.get("name", "admin"))
+
+    return {
+        "success": True,
+        "otp_id": otp_id,
+        "expires_in": APPROVAL_OTP_TTL_SECONDS,
+        "max_attempts": APPROVAL_OTP_MAX_ATTEMPTS,
+        "resend_in": APPROVAL_OTP_COOLDOWN_SECONDS,
+        "delivered": delivery.get("success", False),
+        "channel": delivery.get("channel", "unknown"),
+        "phone_masked": delivery.get("phone_masked", ""),
+    }
+
+
+class ApprovalOtpVerify(BaseModel):
+    otp: str = Field(..., min_length=4, max_length=8)
+    otp_id: Optional[str] = None     # optional — if omitted, server picks latest
+    note: Optional[str] = ""
+
+
+@router.post("/approvals/{approval_id}/verify-otp")
+async def approval_verify_otp(
+    approval_id: str, body: ApprovalOtpVerify,
+    _admin=Depends(require_super_admin),
+):
+    """Verify the OTP and, if correct, execute the approved action with a
+    guardian_backups snapshot so it's fully reversible."""
+    a = await db.guardian_approvals.find_one({"id": approval_id}, {"_id": 0})
+    if not a or a.get("status") != "pending":
+        raise HTTPException(404, "Approval not found or already decided")
+
+    rec = None
+    if body.otp_id:
+        rec = await db.guardian_approval_otps.find_one(
+            {"id": body.otp_id, "approval_id": approval_id}, {"_id": 0},
+        )
+    if not rec:
+        rec = await db.guardian_approval_otps.find_one(
+            {"approval_id": approval_id, "consumed": {"$ne": True},
+             "superseded": {"$ne": True}},
+            sort=[("sent_at", -1)],
+        )
+    if not rec:
+        raise HTTPException(400, "No active OTP found. Please request a new one.")
+    if rec.get("consumed"):
+        raise HTTPException(400, "OTP already used.")
+    if rec.get("superseded"):
+        raise HTTPException(410, "A newer OTP was sent. Please use the latest code.")
+
+    # Expiry
+    try:
+        exp = datetime.fromisoformat(rec["expires_at"].replace("Z", "+00:00"))
+    except Exception:
+        exp = datetime.now(timezone.utc)
+    if datetime.now(timezone.utc) > exp:
+        await db.guardian_approval_otps.update_one(
+            {"id": rec["id"]}, {"$set": {"consumed": True, "expired": True}},
+        )
+        raise HTTPException(410, "OTP expired. Please request a new one.")
+
+    # Max attempts
+    if int(rec.get("attempts", 0)) >= APPROVAL_OTP_MAX_ATTEMPTS:
+        await db.guardian_approval_otps.update_one(
+            {"id": rec["id"]}, {"$set": {"consumed": True, "locked": True}},
+        )
+        await _log(level="warn", module=a.get("module", "guardian"),
+                   rule_id=a.get("rule_id"),
+                   message=f"approval OTP locked after {APPROVAL_OTP_MAX_ATTEMPTS} failed attempts",
+                   actor=_admin.get("name", "admin"))
+        raise HTTPException(429, "Too many incorrect attempts. Please request a new OTP.")
+
+    # Compare
+    if _hash_approval_otp((body.otp or "").strip()) != rec.get("otp_hash"):
+        await db.guardian_approval_otps.update_one(
+            {"id": rec["id"]}, {"$inc": {"attempts": 1}},
+        )
+        remaining = APPROVAL_OTP_MAX_ATTEMPTS - int(rec.get("attempts", 0)) - 1
+        await _log(level="warn", module=a.get("module", "guardian"),
+                   rule_id=a.get("rule_id"),
+                   message=f"approval OTP incorrect (attempts left={remaining})",
+                   actor=_admin.get("name", "admin"))
+        raise HTTPException(401, f"Incorrect OTP. {remaining} attempt(s) left.")
+
+    # ✓ Correct OTP — mark consumed and execute the action
+    await db.guardian_approval_otps.update_one(
+        {"id": rec["id"]},
+        {"$set": {"consumed": True, "verified_at": _now()}},
+    )
+    return await _apply_approval(
+        a, ApprovalDecision(actor=_admin.get("name", "admin"), note=body.note or ""),
+        otp_verified=True, actor=_admin.get("name", "admin"),
+    )
+
+
+async def _apply_approval(a: Dict, decision: "ApprovalDecision",
+                          otp_verified: bool, actor: str) -> Dict:
+    """Execute the approval's stored before→after. All actions honour the
+    AUTOFIX_ALLOWED_WRITES whitelist (via _safe_update), so even a mis-queued
+    approval can never touch a blocked field."""
     action = a.get("action")
     target = a.get("target")
-    proposal = a.get("proposal") or {}
+    after_val = a.get("after_value") or {}
     applied = False
-    backup_id = None
+    backup_id: Optional[str] = None
     try:
-        if action == "set_customer_status_payment_due":
+        if action in {"set_customer_status_payment_due",
+                      "set_customer_status_inactive", "set_customer_status_active"}:
             backup_id = await _safe_update(
                 collection="customers", doc_id=target,
-                updates={"customer_status": "payment_due", "pay_now_enabled": True},
-                rule_id=a.get("rule_id"), module=a.get("module", "payment"),
-                reason="approved via /approvals", actor=decision.actor or "admin",
+                updates=after_val,
+                rule_id=a.get("rule_id"), module=a.get("module", "access_control"),
+                reason=f"approved via /approvals (otp_verified={otp_verified})",
+                actor=actor,
+            )
+            applied = bool(backup_id)
+        elif action == "mark_installation_complete":
+            backup_id = await _safe_update(
+                collection="customers", doc_id=target,
+                updates=after_val or {"install_progress": 100, "install_status": "completed"},
+                rule_id=a.get("rule_id"), module="installation",
+                reason=f"approved via /approvals (otp_verified={otp_verified})",
+                actor=actor,
             )
             applied = bool(backup_id)
         elif action == "create_invoice_for_customer":
-            # Soft action — we just flag that admin should open the invoice form.
-            # We don't auto-create invoices because amounts/line-items need a
-            # human decision. The flag surfaces in the Customer row.
-            await db.customers.update_one(
-                {"id": target}, {"$set": {"needs_invoice_flag": True}},
-            )
+            # Soft-flag: opens the "needs invoice" badge in CRM. Amounts/line-items
+            # still require a human in the invoice form.
+            await db.customers.update_one({"id": target},
+                                          {"$set": {"needs_invoice_flag": True}})
             applied = True
         else:
             raise HTTPException(400, f"Unknown approval action: {action}")
@@ -607,24 +942,43 @@ async def approve(approval_id: str, decision: ApprovalDecision):
         raise
     except Exception as e:
         await _log(level="error", module=a.get("module", "guardian"),
-                   rule_id=a.get("rule_id"), message=f"approve failed: {e}")
+                   rule_id=a.get("rule_id"),
+                   message=f"apply_approval failed: {e}", actor=actor)
         raise HTTPException(500, f"Apply failed: {e}")
+
     await db.guardian_approvals.update_one(
-        {"id": approval_id},
+        {"id": a["id"]},
         {"$set": {
             "status": "approved" if applied else "rejected",
             "decided_at": _now(),
-            "decided_by": decision.actor or "admin",
+            "decided_by": actor,
             "applied_backup_id": backup_id,
-            "note": decision.note or "",
+            "otp_verified": otp_verified,
+            "note": (decision.note or "") if decision else "",
         }},
     )
-    await _log(level="info", module=a.get("module", "guardian"),
-               rule_id=a.get("rule_id"),
-               message=f"approval {action} applied={applied}",
-               details={"target": target, "backup_id": backup_id},
-               actor=decision.actor or "admin")
-    return {"success": True, "applied": applied, "backup_id": backup_id}
+    # AUDIT LOG entry — mandatory per security spec
+    await _log(
+        level="info",
+        module=a.get("module", "guardian"),
+        rule_id=a.get("rule_id"),
+        message=f"APPROVAL APPLIED action={action} customer={a.get('customer_id')} "
+                f"otp_verified={otp_verified} backup={backup_id}",
+        details={
+            "approval_id": a["id"],
+            "customer_id": a.get("customer_id"),
+            "customer_name": a.get("customer_name"),
+            "action": action,
+            "before": a.get("before_value"),
+            "after": after_val,
+            "otp_verified": otp_verified,
+            "backup_id": backup_id,
+            "risk_level": a.get("risk_level"),
+        },
+        actor=actor,
+    )
+    return {"success": True, "applied": applied, "backup_id": backup_id,
+            "otp_verified": otp_verified}
 
 
 @router.post("/approvals/{approval_id}/reject")
@@ -935,9 +1289,9 @@ async def seed_default_rules() -> None:
     if count > 0:
         return
     defaults = [
-        {"template_key": "billing_sync", "name": "Billing Sync Monitor", "action_mode": "alert"},
-        {"template_key": "payment_due_gate", "name": "Payment Due Gate",  "action_mode": "autofix"},
-        {"template_key": "install_progress", "name": "Installation 100% Auto-Complete", "action_mode": "autofix"},
+        {"template_key": "billing_sync", "name": "Billing Sync Monitor", "action_mode": "approval"},
+        {"template_key": "payment_due_gate", "name": "Payment Due Gate",  "action_mode": "approval"},
+        {"template_key": "install_progress", "name": "Installation 100% Completion", "action_mode": "approval"},
         {"template_key": "whatsapp_retry",  "name": "WhatsApp Failure Alerts", "action_mode": "alert"},
         {"template_key": "pending_order_cleanup", "name": "Stale Pending Orders", "action_mode": "alert"},
     ]
@@ -948,6 +1302,7 @@ async def seed_default_rules() -> None:
             "name": d["name"],
             "template_key": d["template_key"],
             "module": tpl["module"],
+            "risk_level": tpl.get("risk_level", "MEDIUM"),
             "action_mode": d["action_mode"],
             "frequency_minutes": tpl["default_frequency_minutes"],
             "enabled": True,

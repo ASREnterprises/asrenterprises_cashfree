@@ -232,13 +232,19 @@ export const AdminDashboard = ({ onLogout }) => {
     "WhatsApp API",
     "Solar Advisor",
     "GST Invoices",
-    "Solar Agreements",
-    "AI Website Guardian"
+    "Solar Agreements"
+    // Intentional: "AI Website Guardian" is SUPER ADMIN ONLY — not in this whitelist.
   ];
 
-  const visibleModules = isAdminManager
+  // Guardian is restricted to the super admin (ASR1001 / ABHIJEET KUMAR).
+  const rawStaff = (localStorage.getItem("asrAdminStaffId") || "").trim().toUpperCase();
+  const rawName  = (localStorage.getItem("asrAdminName")    || "").trim().toUpperCase();
+  const isSuperAdmin = rawStaff === "ASR1001" && rawName === "ABHIJEET KUMAR";
+
+  const visibleModules = (isAdminManager
     ? modules.filter(m => ALLOWED_FOR_MANAGER.includes(m.title))
-    : modules;
+    : modules
+  ).filter(m => m.title !== "AI Website Guardian" || isSuperAdmin);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100 py-8 px-4">

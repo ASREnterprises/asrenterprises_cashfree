@@ -20,6 +20,13 @@ const PROJECT_TYPES = [
 // Solar Quotation form — ordered per owner's spec.
 const SOLAR_BRANDS = ["Tata", "Adani", "Loom", "Waaree", "Luminous", "Vikram", "UTL"];
 const SOLAR_CAPACITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+// Effective GST rate per scheme (matches backend _BLENDED_GST_RATE in gst_invoices.py)
+const GST_RATES = {
+  "solar_project": 0.063,       // 90%@5% + 10%@18%
+  "solar_project_flat_5": 0.05,
+  "solar_goods": 0.05,
+  "service": 0.18,
+};
 // District master — Bihar is exhaustive (owner operates here), others allow free-text fallback.
 const DISTRICTS = {
   "Bihar": ["Patna","Nalanda","Gaya","Bhagalpur","Muzaffarpur","Darbhanga","Saran","Rohtas","Vaishali","Samastipur","Begusarai","Purnia","Katihar","Madhubani","East Champaran","West Champaran","Sitamarhi","Sheohar","Siwan","Gopalganj","Lakhisarai","Sheikhpura","Jamui","Jehanabad","Nawada","Aurangabad","Arwal","Banka","Buxar","Kaimur","Khagaria","Kishanganj","Madhepura","Munger","Saharsa","Supaul","Arariya"],
@@ -576,8 +583,8 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
     // Solar spec — powers auto-generated item name
     solar_brand: "Tata", capacity_kw: "3", capacity_custom: "",
     // Pricing
-    project_type: "solar_goods", project_name: "",
-    total_amount: "", notes: "", doc_type: initialDocType,
+    project_type: "solar_project_flat_5", project_name: "",
+    total_amount: "", amount_is_inclusive: false, notes: "", doc_type: initialDocType,
     auto_send_whatsapp: true, auto_send_email: true,
     invoice_date: "",
   });
@@ -648,11 +655,13 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
           address: form.address || "",
           state: form.state, state_code: form.state_code, pincode: form.pincode || "",
         },
-        // Residential + PMSG → flat 5% GST per business rule. Commercial → flat 5% goods.
-        project_type: isResidential ? "solar_goods" : form.project_type,
+        // GST Scheme is now user-selectable for BOTH residential + commercial.
+        project_type: form.project_type,
         project_name: form.project_name || "Solar Service",
         total_amount: parseFloat(form.total_amount),
-        total_is_gst_inclusive: form.doc_type === "quotation",
+        // AMOUNT + GST = TOTAL mode: entered amount is pre-GST (backend computes GST).
+        // Inclusive mode: entered amount is final (backend back-calculates).
+        total_is_gst_inclusive: !!form.amount_is_inclusive,
         notes: finalNotes,
         doc_type: form.doc_type,
         // Bank auto-routing: Residential → pm_surya_ghar (ICICI). Commercial → "" (SBI).
@@ -740,7 +749,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Segment</label>
                 <select value={form.customer_segment}
-                  onChange={(e) => setForm({ ...form, customer_segment: e.target.value, project_type: e.target.value === "residential" ? "solar_goods" : "solar_project" })}
+                  onChange={(e) => setForm({ ...form, customer_segment: e.target.value, project_type: e.target.value === "residential" ? "solar_project_flat_5" : "solar_project" })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
                   data-testid="inv-segment">
                   <option value="residential">Residential (PM Surya Ghar)</option>
@@ -760,17 +769,17 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
                   onChange={(v) => setForm({ ...form, gstin: v.toUpperCase() })}
                   testid="inv-gstin" />
               )}
-              {!isResidential && (
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-medium text-slate-600 mb-1">GST Scheme</label>
-                  <select value={form.project_type}
-                    onChange={(e) => setForm({ ...form, project_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                    data-testid="inv-project-type">
-                    {PROJECT_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                  </select>
-                </div>
-              )}
+              {/* GST Scheme dropdown — shown for BOTH Residential + Commercial
+                  (owner spec: Residential must expose the same GST Scheme picker). */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">GST Scheme</label>
+                <select value={form.project_type}
+                  onChange={(e) => setForm({ ...form, project_type: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="inv-project-type">
+                  {PROJECT_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                </select>
+              </div>
             </div>
           </fieldset>
 
@@ -817,16 +826,49 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
                   data-testid="inv-project-name" />
               </div>
               <Field
-                label={form.doc_type === "quotation" ? "Total Amount (GST-inclusive) *" : "Total Amount *"}
+                label={`Amount (${form.amount_is_inclusive ? "GST-inclusive" : "before GST"}) *`}
                 value={form.total_amount}
                 onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })}
                 testid="inv-amount" type="number" />
-              <div className="flex items-end">
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  GST auto-applied: <b>{isResidential ? "5% (PMSG)" : form.project_type === "service" ? "18%" : "5%"}</b>.
-                  <br/>For quotations the amount above is treated as GST-inclusive.
-                </p>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Amount Entry Mode</label>
+                <select value={form.amount_is_inclusive ? "inclusive" : "exclusive"}
+                  onChange={(e) => setForm({ ...form, amount_is_inclusive: e.target.value === "inclusive" })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="inv-amount-mode">
+                  <option value="exclusive">Amount + GST = Total (before GST)</option>
+                  <option value="inclusive">Amount is GST-inclusive (back-calculate)</option>
+                </select>
               </div>
+
+              {/* Live AMOUNT + GST = TOTAL preview — recomputes on every keystroke */}
+              <div className="md:col-span-2 p-3 bg-sky-50 border border-sky-100 rounded-lg" data-testid="inv-gst-preview">
+                {(() => {
+                  const rate = GST_RATES[form.project_type] ?? 0.05;
+                  const amt = parseFloat(form.total_amount || "0") || 0;
+                  const subtotal = form.amount_is_inclusive ? amt / (1 + rate) : amt;
+                  const gst = subtotal * rate;
+                  const total = subtotal + gst;
+                  const fmt = (n) => `₹ ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  return (
+                    <div className="grid grid-cols-3 gap-2 text-center text-[#0a355e]">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-500">Amount</div>
+                        <div className="font-bold text-sm" data-testid="inv-preview-amount">{fmt(subtotal)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-500">+ GST @ {(rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 2)}%</div>
+                        <div className="font-bold text-sm text-amber-700" data-testid="inv-preview-gst">{fmt(gst)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wide text-slate-500">= Total</div>
+                        <div className="font-extrabold text-base text-emerald-700" data-testid="inv-preview-total">{fmt(total)}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div className="md:col-span-2">
                 <Field label="Notes (optional)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="inv-notes" />
               </div>

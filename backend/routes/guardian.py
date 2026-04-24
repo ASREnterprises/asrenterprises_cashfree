@@ -662,6 +662,13 @@ async def update_rule(rule_id: str, payload: RuleUpdate):
         tpl = RULE_TEMPLATES.get(existing["template_key"])
         if tpl and payload.action_mode not in tpl["supports_modes"]:
             raise HTTPException(400, f"Mode '{payload.action_mode}' not supported by template")
+        # Safety rail — CRITICAL/HIGH-risk rules can never run in unattended autofix.
+        # Owner must explicitly approve every write. Downgrade is allowed; autofix is not.
+        if (existing.get("risk_level") or "").upper() == "HIGH" and payload.action_mode == "autofix":
+            raise HTTPException(
+                400,
+                "HIGH-risk rules cannot run in autofix. They must stay in 'approval' mode — every change requires Super Admin OTP approval."
+            )
         updates["action_mode"] = payload.action_mode
     if payload.frequency_minutes is not None:
         if payload.frequency_minutes < 5 or payload.frequency_minutes > 10080:

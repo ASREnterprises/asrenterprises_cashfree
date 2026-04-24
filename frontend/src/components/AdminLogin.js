@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Lock, User, Eye, EyeOff, Send, Loader2, Phone, Key, CheckCircle, RefreshCw } from "lucide-react";
+import { Lock, User, Eye, EyeOff, Send, Loader2, Phone, Mail, Key, CheckCircle, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+const OWNER_EMAIL_DEFAULT = "asrenterprisespatna@gmail.com";
 
 // MSG91 Widget Configuration (read from env; baked in at build time)
 const MSG91_WIDGET_ID = process.env.REACT_APP_MSG91_WIDGET_ID || "";
@@ -12,7 +13,7 @@ const MSG91_AUTH_TOKEN = process.env.REACT_APP_MSG91_TOKEN_AUTH || "";
 
 export const AdminLogin = ({ onLogin }) => {
   const [loginStep, setLoginStep] = useState(1); // 1: email/password, 2: OTP verification
-  const [loginMethod, setLoginMethod] = useState("password"); // "otp" or "password"
+  const [loginMethod, setLoginMethod] = useState("password"); // "otp" or "password" or "email_otp"
   const [userId, setUserId] = useState(""); // Email for password login
   const [mobileNumber, setMobileNumber] = useState(""); // Mobile for OTP login
   const [otp, setOtp] = useState(""); // OTP input
@@ -27,6 +28,10 @@ export const AdminLogin = ({ onLogin }) => {
   const [reqId, setReqId] = useState(""); // MSG91 request ID for OTP verification
   const [resendTimer, setResendTimer] = useState(0);
   const [pendingLoginData, setPendingLoginData] = useState(null); // Store data from step 1 for step 2
+  // Email OTP flow state (uses /api/admin/send-otp + /api/admin/verify-otp via Resend)
+  const [emailOtpStep, setEmailOtpStep] = useState("email"); // 'email' | 'otp'
+  const [emailOtpEmail, setEmailOtpEmail] = useState(OWNER_EMAIL_DEFAULT);
+  const [emailOtpValue, setEmailOtpValue] = useState("");
   const navigate = useNavigate();
   const timerRef = useRef(null);
 
@@ -535,8 +540,21 @@ export const AdminLogin = ({ onLogin }) => {
                     ? "bg-white text-[#0B3C5D] shadow-md" 
                     : "text-gray-500 hover:text-gray-700"
                 }`}
+                data-testid="admin-method-mobile-otp"
               >
                 <Phone className="w-4 h-4" /> Mobile OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginMethod("email_otp"); setError(""); setSuccess(""); setEmailOtpStep("email"); setEmailOtpEmail(OWNER_EMAIL_DEFAULT); setEmailOtpValue(""); }}
+                className={`flex-1 py-3 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 ${
+                  loginMethod === "email_otp"
+                    ? "bg-white text-[#0B3C5D] shadow-md"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+                data-testid="admin-method-email-otp"
+              >
+                <Mail className="w-4 h-4" /> Email OTP
               </button>
             </div>
           )}
@@ -843,6 +861,106 @@ export const AdminLogin = ({ onLogin }) => {
                       <RefreshCw className={`w-4 h-4 ${otpLoading ? 'animate-spin' : ''}`} />
                       {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
                     </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Email OTP Login Form — Resend-backed, owner email only */}
+          {loginMethod === "email_otp" && (
+            <div className="space-y-5" data-testid="admin-email-otp-form">
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#0B3C5D] mb-1 font-[Poppins]">Email OTP Login</h2>
+                <p className="text-gray-500 text-sm">
+                  {emailOtpStep === "email" ? "OTP will be emailed to the registered owner address." : `Enter the 6-digit code sent to ${emailOtpEmail}`}
+                </p>
+              </div>
+
+              {emailOtpStep === "email" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Owner Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="email" value={emailOtpEmail}
+                        onChange={(e) => { setEmailOtpEmail(e.target.value.toLowerCase()); setError(""); }}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623]"
+                        placeholder="owner@asrenterprises.com"
+                        data-testid="admin-email-otp-email" autoFocus
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-2">Only the registered owner email can receive OTP (via Resend).</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={otpLoading}
+                    onClick={async () => {
+                      setError(""); setOtpLoading(true);
+                      try {
+                        await axios.post(`${API}/admin/send-otp`, { email: emailOtpEmail });
+                        setEmailOtpStep("otp"); setResendTimer(60);
+                        setSuccess("OTP emailed. Check your inbox.");
+                      } catch (err) {
+                        setError(err.response?.data?.detail || "Failed to send email OTP");
+                      } finally { setOtpLoading(false); }
+                    }}
+                    className="w-full bg-[#00C389] text-white py-3.5 rounded-xl font-bold hover:bg-[#00A372] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    data-testid="admin-email-otp-send"
+                  >
+                    {otpLoading ? <><Loader2 className="w-5 h-5 animate-spin" /><span>Sending...</span></> : <><Send className="w-5 h-5" /><span>Send Email OTP</span></>}
+                  </button>
+                </>
+              )}
+
+              {emailOtpStep === "otp" && (
+                <>
+                  <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm">
+                    OTP emailed to <strong>{emailOtpEmail}</strong>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Enter OTP</label>
+                    <div className="relative">
+                      <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text" value={emailOtpValue}
+                        onChange={(e) => { setEmailOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6)); setError(""); }}
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-[#F5A623] text-center text-xl tracking-widest"
+                        placeholder="6-digit OTP" maxLength={6}
+                        data-testid="admin-email-otp-input" autoFocus
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={verifyLoading || emailOtpValue.length < 6}
+                    onClick={async () => {
+                      setError(""); setVerifyLoading(true);
+                      try {
+                        const r = await axios.post(`${API}/admin/verify-otp`, { email: emailOtpEmail, otp: emailOtpValue });
+                        if (r.data?.success) {
+                          localStorage.setItem("asrAdminAuth", "true");
+                          localStorage.setItem("asrAdminEmail", r.data.email || emailOtpEmail);
+                          localStorage.setItem("asrAdminRole", r.data.role || "admin");
+                          localStorage.setItem("asrAdminName", "ABHIJEET KUMAR");
+                          localStorage.setItem("asrAdminStaffId", "ASR1001");
+                          localStorage.setItem("asrAdminLastActivity", String(Date.now()));
+                          setSuccess("Login successful! Redirecting...");
+                          setTimeout(() => { onLogin(); navigate("/admin/dashboard"); }, 500);
+                        }
+                      } catch (err) {
+                        setError(err.response?.data?.detail || "Invalid or expired OTP");
+                      } finally { setVerifyLoading(false); }
+                    }}
+                    className="w-full bg-gradient-to-r from-[#F5A623] to-[#FFD166] text-[#071A2E] py-3.5 rounded-xl font-bold hover:shadow-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    data-testid="admin-email-otp-verify"
+                  >
+                    {verifyLoading ? <><Loader2 className="w-5 h-5 animate-spin" /><span>Verifying...</span></> : <><CheckCircle className="w-5 h-5" /><span>Verify & Login</span></>}
+                  </button>
+                  <div className="flex items-center justify-between text-sm">
+                    <button type="button" onClick={() => { setEmailOtpStep("email"); setEmailOtpValue(""); setError(""); }}
+                      className="text-gray-500 hover:text-[#0B3C5D] transition">← Change email</button>
                   </div>
                 </>
               )}

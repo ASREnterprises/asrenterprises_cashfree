@@ -606,13 +606,17 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
     ? (parseFloat(form.capacity_custom) || 0)
     : parseFloat(form.capacity_kw || "0");
 
-  // Dynamic Item Name: "{BRAND} Power Solar System Kit of {N}kW" — unless admin edited it.
+  // Dynamic Item Name: brand-aware naming per owner spec.
+  //   Tata           → "TATA Power Solar System Kit of {N}kW"
+  //   Other brands   → "{BRAND} Solar System Kit of {N}kW"
   useEffect(() => {
     if (nameEdited) return;
     if (form.solar_brand && effectiveCapacity > 0) {
+      const brandUpper = form.solar_brand.toUpperCase();
+      const middle = brandUpper === "TATA" ? "Power Solar System Kit" : "Solar System Kit";
       setForm((f) => ({
         ...f,
-        project_name: `${f.solar_brand.toUpperCase()} Power Solar System Kit of ${effectiveCapacity}kW`,
+        project_name: `${brandUpper} ${middle} of ${effectiveCapacity}kW`,
       }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

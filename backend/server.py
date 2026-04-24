@@ -102,7 +102,22 @@ app_config.validate_or_exit()
 
 # ==================== EMAIL CONFIGURATION ====================
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+# Single source-of-truth sender. Branded ASR Enterprises domain.
+# Per owner policy: NEVER use resend.dev / gmail / any unverified domain.
+EMAIL_FROM = "ASR Enterprises <support@asrenterprises.in>"
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL') or EMAIL_FROM
+# Hard guard — refuse to start with a non-branded sender.
+_BANNED_SENDER_DOMAINS = ("resend.dev", "@gmail.com", "@yahoo.", "@outlook.", "@hotmail.")
+_lower_sender = SENDER_EMAIL.lower()
+if any(b in _lower_sender for b in _BANNED_SENDER_DOMAINS):
+    SENDER_EMAIL = EMAIL_FROM  # silently force-correct + log
+    try:
+        import logging as _lg
+        _lg.getLogger(__name__).warning(
+            f"[email] SENDER_EMAIL had banned domain — forcing to {EMAIL_FROM}"
+        )
+    except Exception:
+        pass
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 

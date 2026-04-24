@@ -1004,10 +1004,14 @@ async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
         + f"<p>— ASR Enterprises<br/>"
         + f"GSTIN: {BUSINESS['gstin']}<br/>Phone: {BUSINESS['phone']}</p>"
     )
-    # Sender: prefer a verified-domain address, fall back to Resend's dev sender
-    sender = (os.environ.get("RESEND_FROM")
-              or os.environ.get("SENDER_EMAIL")
-              or "onboarding@resend.dev")
+    # Sender: ALWAYS the branded ASR Enterprises verified-domain address.
+    # Backend hard-rejects banned domains (resend.dev / gmail / outlook etc.)
+    # to keep deliverability + brand identity strict.
+    EMAIL_FROM = "ASR Enterprises <support@asrenterprises.in>"
+    sender_env = (os.environ.get("RESEND_FROM") or os.environ.get("SENDER_EMAIL") or "").strip()
+    sender_low = sender_env.lower()
+    BANNED = ("resend.dev", "@gmail.com", "@yahoo.", "@outlook.", "@hotmail.")
+    sender = sender_env if sender_env and not any(b in sender_low for b in BANNED) else EMAIL_FROM
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(

@@ -1291,7 +1291,20 @@ def attach_guardian_scheduler(scheduler) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 async def seed_default_rules() -> None:
     """Insert the five starter rules if `guardian_rules` is empty — gives admins
-    a working monitor the first time they open the page."""
+    a working monitor the first time they open the page.
+    Also runs a one-shot SAFETY MIGRATION on every boot: every HIGH-risk rule
+    that is still on `autofix` is force-flipped to `approval` so accidental
+    earlier configurations can never auto-mutate customer / billing data."""
+    # Safety migration first — runs every boot, idempotent.
+    bumped = await db.guardian_rules.update_many(
+        {"risk_level": "HIGH", "action_mode": "autofix"},
+        {"$set": {"action_mode": "approval"}},
+    )
+    if bumped.modified_count:
+        logger.warning(
+            f"[guardian] safety migration — {bumped.modified_count} HIGH-risk rule(s) "
+            f"flipped from 'autofix' to 'approval'. HIGH rules require Super Admin OTP."
+        )
     count = await db.guardian_rules.count_documents({})
     if count > 0:
         return

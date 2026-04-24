@@ -40,6 +40,7 @@ const authHeaders = () => ({ headers: { "X-Advisor-Token": getAdvisorToken() } }
 export const SolarAdvisorLogin = () => {
   const navigate = useNavigate();
   const [mode, setMode] = useState("password"); // password | otp
+  const [otpChannel, setOtpChannel] = useState("email"); // email (primary) | whatsapp (fallback)
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -69,10 +70,15 @@ export const SolarAdvisorLogin = () => {
   const sendOtp = async () => {
     setError(""); setLoading(true);
     try {
-      await axios.post(`${API}/solar-advisor/login-otp`, { user_id: userId });
+      if (otpChannel === "email") {
+        await axios.post(`${API}/solar-advisor/login-otp-email`, { email: userId });
+      } else {
+        await axios.post(`${API}/solar-advisor/login-otp`, { user_id: userId });
+      }
       setOtpSent(true);
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to send OTP");
+      const detail = err.response?.data?.detail || "Failed to send OTP";
+      setError(otpChannel === "email" ? `${detail} You can also try WhatsApp OTP below.` : detail);
     } finally { setLoading(false); }
   };
 
@@ -80,7 +86,9 @@ export const SolarAdvisorLogin = () => {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const res = await axios.post(`${API}/solar-advisor/verify-otp`, { user_id: userId, otp });
+      const res = otpChannel === "email"
+        ? await axios.post(`${API}/solar-advisor/verify-otp-email`, { email: userId, otp })
+        : await axios.post(`${API}/solar-advisor/verify-otp`, { user_id: userId, otp });
       if (res.data.success) {
         saveAdvisorSession(res.data.advisor, res.data.token);
         navigate("/advisor/dashboard");
@@ -158,16 +166,38 @@ export const SolarAdvisorLogin = () => {
             </form>
           ) : (
             <form onSubmit={verifyOtp} className="space-y-4">
+              {/* Email is the primary OTP channel — WhatsApp is fallback. */}
+              <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-lg" data-testid="advisor-otp-channel-switch">
+                <button type="button"
+                  onClick={() => { setOtpChannel("email"); setOtpSent(false); setUserId(""); setError(""); }}
+                  className={`py-2 rounded-md text-xs font-semibold transition ${otpChannel === "email" ? "bg-white text-purple-700 shadow" : "text-gray-500"}`}
+                  data-testid="advisor-otp-channel-email">
+                  Email OTP
+                </button>
+                <button type="button"
+                  onClick={() => { setOtpChannel("whatsapp"); setOtpSent(false); setUserId(""); setError(""); }}
+                  className={`py-2 rounded-md text-xs font-semibold transition ${otpChannel === "whatsapp" ? "bg-white text-purple-700 shadow" : "text-gray-500"}`}
+                  data-testid="advisor-otp-channel-whatsapp">
+                  WhatsApp OTP
+                </button>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Registered Mobile</label>
-                <input type="tel" value={userId} onChange={(e) => setUserId(e.target.value)} required
-                  placeholder="10-digit mobile" disabled={otpSent}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {otpChannel === "email" ? "Registered Email" : "Registered Mobile"}
+                </label>
+                <input type={otpChannel === "email" ? "email" : "tel"}
+                  value={userId} onChange={(e) => setUserId(e.target.value)} required
+                  placeholder={otpChannel === "email" ? "you@example.com" : "10-digit mobile"}
+                  disabled={otpSent}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                  data-testid="advisor-otp-userid" />
               </div>
               {!otpSent ? (
                 <button type="button" onClick={sendOtp} disabled={loading || !userId}
-                  className="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50">
-                  {loading ? "Sending..." : "Send OTP"}
+                  className="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50"
+                  data-testid="advisor-send-otp-btn">
+                  {loading ? "Sending..." : `Send OTP via ${otpChannel === "email" ? "Email" : "WhatsApp"}`}
                 </button>
               ) : (
                 <>
@@ -175,14 +205,16 @@ export const SolarAdvisorLogin = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
                     <input type="text" value={otp} onChange={(e) => setOtp(e.target.value)} required
                       placeholder="6-digit OTP" maxLength={6}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-xl tracking-widest" />
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-center text-xl tracking-widest"
+                      data-testid="advisor-otp-input" />
                   </div>
                   <button type="submit" disabled={loading}
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-bold hover:opacity-90 disabled:opacity-50">
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-bold hover:opacity-90 disabled:opacity-50"
+                    data-testid="advisor-verify-otp-btn">
                     {loading ? "Verifying..." : "Verify & Login"}
                   </button>
                   <button type="button" onClick={() => setOtpSent(false)} className="w-full text-sm text-gray-500 hover:text-purple-700">
-                    Change mobile
+                    Change {otpChannel === "email" ? "email" : "mobile"}
                   </button>
                 </>
               )}

@@ -12403,6 +12403,60 @@ async def solar_advisor_verify_otp(request: Request, data: Dict[str, Any]):
     token = _issue_advisor_token(advisor["agent_id"])
     return {"success": True, "advisor": full, "token": token, "must_reset_password": full.get("must_reset_password", False), "message": "OTP verified"}
 
+@api_router.post("/solar-advisor/login-otp-email")
+async def solar_advisor_login_otp_email(request: Request, data: Dict[str, Any]):
+    """Primary email OTP channel for Solar Advisor login via Resend.
+    If this fails client should offer /solar-advisor/login-otp (WhatsApp)."""
+    email = (data or {}).get("email", "").strip().lower()
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email")
+    advisor = await db.agents.find_one({"email": email}, {"_id": 0})
+    if not advisor:
+        raise HTTPException(status_code=404, detail="Email not registered as Solar Advisor")
+    err = _advisor_status_ok(advisor)
+    if err:
+        raise HTTPException(status_code=403, detail=err)
+    ok, emsg = can_send_otp(f"advisor:{email}")
+    if not ok:
+        raise HTTPException(status_code=429, detail=emsg)
+    otp = generate_secure_otp()
+    store_otp(f"advisor:{email}", otp)
+    sent = await send_otp_email(email, otp, "Solar Advisor")
+    if not sent:
+        raise HTTPException(status_code=502, detail="Could not send email. Please try WhatsApp OTP instead.")
+    return {"success": True, "channel": "email", "message": f"OTP sent to {email}"}
+
+@api_router.post("/solar-advisor/verify-otp-email")
+async def solar_advisor_verify_otp_email(request: Request, data: Dict[str, Any]):
+    email = (data or {}).get("email", "").strip().lower()
+    otp = (data or {}).get("otp", "").strip()
+    if "@" not in email or not otp:
+        raise HTTPException(status_code=400, detail="Email and OTP are required")
+    key = f"advisor:{email}"
+    stored = otp_storage.get(key)
+    if not stored:
+        raise HTTPException(status_code=400, detail="Please request an OTP first")
+    if time.time() - stored["timestamp"] > OTP_EXPIRY_SECONDS:
+        otp_storage.pop(key, None)
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+    if stored["attempts"] >= 3:
+        otp_storage.pop(key, None)
+        raise HTTPException(status_code=400, detail="Too many attempts. Please request a new OTP.")
+    stored["attempts"] += 1
+    if not hmac.compare_digest(stored["otp"], otp):
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    otp_storage.pop(key, None)
+    advisor = await db.agents.find_one({"email": email}, {"_id": 0, "password_hash": 0})
+    if not advisor:
+        raise HTTPException(status_code=404, detail="Solar Advisor not found")
+    err = _advisor_status_ok(advisor)
+    if err:
+        raise HTTPException(status_code=403, detail=err)
+    token = _issue_advisor_token(advisor["agent_id"])
+    return {"success": True, "advisor": advisor, "token": token,
+            "must_reset_password": advisor.get("must_reset_password", False),
+            "channel": "email", "message": "OTP verified"}
+
 @api_router.post("/solar-advisor/{agent_id}/change-password")
 async def advisor_change_password(agent_id: str, data: Dict[str, Any], request: Request):
     _require_advisor(request, agent_id)
@@ -13337,6 +13391,7 @@ async def get_staff_leaderboard():
 class CustomerRegistration(BaseModel):
     mobile: str
     name: str
+    email: str = ""   # primary login channel via Resend email OTP
     customer_type: str = "residential"  # residential | commercial
     gst_mode: str = ""  # "" (current 90/10 @ 5%+18%) | "flat_5" (Solar Project — Flat 5%)
     address: str = ""
@@ -13587,6 +13642,7 @@ async def create_customer(request: Request, data: CustomerRegistration):
         "id": str(uuid.uuid4()),
         "mobile": mobile_clean,
         "name": sanitize_input(data.name),
+        "email": sanitize_input((data.email or "").strip()).lower(),
         "customer_type": customer_type,
         "gst_mode": gst_mode_clean,
         "scheme": "PM Surya Ghar Yojana" if customer_type == "residential" else "Commercial",
@@ -13792,6 +13848,65 @@ async def customer_send_otp(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=403 if gate.get("reason") != "not_registered" else 404,
                             detail=gate.get("message") or "Access denied")
     return await _send_otp_impl({"mobile": mobile_clean})
+
+@api_router.post("/customer/send-otp-email")
+async def customer_send_otp_email(request: Request, data: Dict[str, Any]):
+    """Send OTP to customer's registered email address via Resend.
+    Primary login channel — fallback to /customer/send-otp (WhatsApp) if email fails."""
+    email = (data or {}).get("email", "").strip().lower()
+    if "@" not in email or "." not in email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+    cust = await db.customers.find_one({"email": email}, {"_id": 0, "mobile": 1, "name": 1, "email": 1})
+    if not cust:
+        raise HTTPException(status_code=404, detail="No customer registered with this email. Please contact your installer.")
+    from routes.guardian import check_customer_access
+    gate = await check_customer_access(cust.get("mobile") or "")
+    if not gate.get("allowed") and gate.get("reason") != "not_registered":
+        raise HTTPException(status_code=403, detail=gate.get("message") or "Access denied")
+    ok, err = can_send_otp(f"customer:{email}")
+    if not ok:
+        raise HTTPException(status_code=429, detail=err)
+    otp = generate_secure_otp()
+    store_otp(f"customer:{email}", otp)
+    sent = await send_otp_email(email, otp, "Customer Portal")
+    if not sent:
+        raise HTTPException(status_code=502, detail="Could not send email. Please try WhatsApp OTP instead.")
+    return {"success": True, "channel": "email", "message": f"OTP sent to {email}",
+            "masked_mobile": (cust.get("mobile") or "")[-4:].rjust(10, "•") if cust.get("mobile") else ""}
+
+@api_router.post("/customer/verify-otp-email")
+async def customer_verify_otp_email(request: Request, data: Dict[str, Any]):
+    """Verify email OTP and return customer profile (mirrors verify-otp)."""
+    email = (data or {}).get("email", "").strip().lower()
+    otp = (data or {}).get("otp", "").strip()
+    if "@" not in email or not otp:
+        raise HTTPException(status_code=400, detail="Email and OTP are required")
+    key = f"customer:{email}"
+    stored = otp_storage.get(key)
+    if not stored:
+        raise HTTPException(status_code=400, detail="Please request an OTP first")
+    if time.time() - stored["timestamp"] > OTP_EXPIRY_SECONDS:
+        otp_storage.pop(key, None)
+        raise HTTPException(status_code=400, detail="OTP expired. Please request a new one.")
+    if stored["attempts"] >= 3:
+        otp_storage.pop(key, None)
+        raise HTTPException(status_code=400, detail="Too many attempts. Please request a new OTP.")
+    stored["attempts"] += 1
+    if not hmac.compare_digest(stored["otp"], otp):
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    otp_storage.pop(key, None)
+    customer = await db.customers.find_one({"email": email}, {"_id": 0})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    from routes.guardian import check_customer_access
+    gate = await check_customer_access(customer.get("mobile") or "")
+    if not gate.get("allowed") and gate.get("reason") != "not_registered":
+        raise HTTPException(status_code=403, detail=gate.get("message") or "Access denied")
+    portal_settings = await get_customer_portal_settings(request)
+    return {"success": True, "customer": customer, "portal_settings": portal_settings,
+            "customer_status": gate.get("status", "active"), "channel": "email"}
+
+
 
 @api_router.post("/customer/verify-otp")
 async def customer_verify_otp(request: Request, data: Dict[str, Any]):

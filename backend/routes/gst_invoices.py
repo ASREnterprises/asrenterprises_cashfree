@@ -756,7 +756,7 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
         # account so homeowner subsidy payments route correctly; everyone else
         # defaults to the regular SBI operating account.
         "{{BANK_HEADING}}": (
-            "ICICI Bank — PM Surya Ghar Yojana"
+            "ASR ENTERPRISES — PM Surya Ghar Yojana"
             if (doc.get("scheme") or "").lower() == "pm_surya_ghar"
             else "Bank Details (for Direct Transfer)"
         ),
@@ -909,42 +909,117 @@ async def _send_invoice_pdf_as_whatsapp_doc(doc: dict, phone_e164: str) -> Dict:
         return {"success": False, "error": str(e)}
 
 
+async def _ensure_inactive_customer_from_invoice(inv: dict) -> Optional[dict]:
+    """On quotation→invoice convert, auto-create a Customer Portal record in
+    INACTIVE state so admins can later complete details + activate. Phone is
+    the unique key; we skip if one already exists for the same mobile.
+    Returns the customer doc (if created) or None."""
+    cust = inv.get("customer") or {}
+    phone_raw = (cust.get("phone") or "").replace("+", "").replace(" ", "").replace("-", "")
+    mobile = phone_raw[-10:] if len(phone_raw) >= 10 else phone_raw
+    if len(mobile) != 10 or not mobile.isdigit():
+        return None
+    existing = await db.customers.find_one({"mobile": mobile}, {"_id": 0, "id": 1})
+    if existing:
+        # Make sure missing fields get back-filled without overwriting real data
+        await db.customers.update_one(
+            {"id": existing["id"]},
+            {"$set": {
+                "email": cust.get("email") or "",
+                "invoice_ids": list(set((inv.get("invoice_ids") or []) + [inv["id"]])),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }}
+        )
+        return {"id": existing["id"], "status": "existing"}
+    now_iso = datetime.now(timezone.utc).isoformat()
+    scheme_slug = (inv.get("scheme") or "").lower().strip()
+    is_pmsg = scheme_slug == "pm_surya_ghar"
+    doc = {
+        "id": str(uuid.uuid4()),
+        "mobile": mobile,
+        "name": cust.get("name") or "Customer",
+        "email": (cust.get("email") or "").lower(),
+        "customer_type": "residential" if is_pmsg else "commercial",
+        "gst_mode": "" if is_pmsg else "flat_5",
+        "scheme": "PM Surya Ghar Yojana" if is_pmsg else "Commercial",
+        "address": cust.get("address") or "",
+        "district": "",
+        "installation_date": "",
+        "application_id": "",
+        "application_status": "pending",
+        "subsidy_amount": 0.0,
+        "subsidy_status": "pending",
+        "subsidy_credited_date": "",
+        "system_capacity_kw": 0.0,
+        "solar_brand": "",
+        "inverter_brand": "",
+        "panels_count": 0,
+        "panel_warranty_years": 25,
+        "inverter_warranty_years": 5,
+        "installation_warranty_years": 1,
+        "total_cost": float(inv.get("grand_total") or 0),
+        "amount_paid": float(inv.get("amount_paid") or 0),
+        "due_amount": float(inv.get("due_amount") or 0),
+        "payment_status": inv.get("payment_status") or "unpaid",
+        "payment_mode": inv.get("payment_mode") or ("ICICI" if is_pmsg else "SBI"),
+        "net_metering_status": "not_applied",
+        "referral_code": "",
+        "notes": f"Auto-created from invoice {inv.get('invoice_number', '')}. Complete profile & activate.",
+        "service_requests": [],
+        "invoice_ids": [inv["id"]],
+        "customer_status": "inactive",  # admin must activate manually
+        "created_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.customers.insert_one(doc)
+    logger.info(f"[gst-invoice] auto-created INACTIVE customer {doc['id']} from invoice {inv.get('invoice_number')}")
+    doc.pop("_id", None)
+    return {"id": doc["id"], "status": "created"}
+
+
 async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
-    """Send the invoice PDF to the customer + CA via Resend if key is set.
-    Stays graceful (returns status) if email is not configured."""
+    """Send the invoice / quotation PDF to the customer + CA via Resend.
+    Stays graceful (returns status) if email is not configured or Resend rejects."""
     resend_key = os.environ.get("RESEND_API_KEY", "").strip()
     if not resend_key:
         return {"success": False, "error": "RESEND_API_KEY not configured"}
     import base64
     cust = doc.get("customer", {})
+    is_quote = (doc.get("doc_type") or "").lower() == "quotation"
+    label = "Quotation" if is_quote else "GST Invoice"
     to_list = []
     if cust.get("email"):
         to_list.append(cust["email"])
-    if CA_EMAIL:
+    if CA_EMAIL and CA_EMAIL not in to_list:
         to_list.append(CA_EMAIL)
     if not to_list:
         return {"success": False, "error": "no recipient"}
-    subject = f"{BUSINESS['name']} — GST Invoice {doc.get('invoice_number')}"
+    subject = f"{BUSINESS['name']} — {label} {doc.get('invoice_number')}"
     html_body = (
         f"<p>Dear {_esc(cust.get('name', 'Customer'))},</p>"
-        f"<p>Please find attached your GST invoice <b>{_esc(doc.get('invoice_number'))}</b> "
-        f"for ₹{doc.get('grand_total', 0):,.2f}.</p>"
-        f"<p>Thank you for choosing <b>{BUSINESS['name']}</b>.</p>"
-        f"<p>— ASR Enterprises<br/>"
-        f"GSTIN: {BUSINESS['gstin']}<br/>Phone: {BUSINESS['phone']}</p>"
+        f"<p>Please find attached your <b>{label.lower()}</b> "
+        f"<b>{_esc(doc.get('invoice_number'))}</b> for ₹{doc.get('grand_total', 0):,.2f}.</p>"
+        + (f"<p>This quotation is valid for 15 days from the date of issue.</p>" if is_quote else "")
+        + f"<p>Thank you for choosing <b>{BUSINESS['name']}</b>.</p>"
+        + f"<p>— ASR Enterprises<br/>"
+        + f"GSTIN: {BUSINESS['gstin']}<br/>Phone: {BUSINESS['phone']}</p>"
     )
+    # Sender: prefer a verified-domain address, fall back to Resend's dev sender
+    sender = (os.environ.get("RESEND_FROM")
+              or os.environ.get("SENDER_EMAIL")
+              or "onboarding@resend.dev")
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
                 json={
-                    "from": os.environ.get("RESEND_FROM", f"{BUSINESS['name']} <invoice@asrenterprises.in>"),
+                    "from": sender,
                     "to": to_list,
                     "subject": subject,
                     "html": html_body,
                     "attachments": [{
-                        "filename": f"{doc.get('invoice_number', 'invoice').replace('/', '_')}.pdf",
+                        "filename": f"{doc.get('invoice_number', label).replace('/', '_')}.pdf",
                         "content": base64.b64encode(pdf_bytes).decode(),
                     }],
                 },
@@ -956,9 +1031,11 @@ async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
                 "email_sent_at": datetime.now(timezone.utc).isoformat(),
                 "email_result": "ok" if ok else f"failed_{resp.status_code}",
                 "email_recipients": to_list,
+                "email_last_error": "" if ok else (resp.text[:300] if hasattr(resp, "text") else ""),
             }}
         )
-        return {"success": ok, "status": resp.status_code, "recipients": to_list}
+        return {"success": ok, "status": resp.status_code, "recipients": to_list,
+                "error": None if ok else (resp.text[:200] if hasattr(resp, "text") else "")}
     except Exception as e:
         logger.warning(f"[invoice email] send failed: {e}")
         return {"success": False, "error": str(e)}
@@ -1665,9 +1742,17 @@ async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotat
             pass
         raise HTTPException(409, "Quotation was just converted by another request. Please refresh.")
 
-    # Fire WhatsApp delivery for the brand-new invoice
+    # Auto-create an INACTIVE customer record in the Customer Portal so
+    # admin can later complete details + activate. Phone is our unique key.
+    try:
+        await _ensure_inactive_customer_from_invoice(new_inv)
+    except Exception as _e:
+        logger.warning(f"[gst-invoice] auto-create customer failed: {_e}")
+
+    # Fire WhatsApp + Email delivery for the brand-new invoice
     import asyncio
     asyncio.create_task(send_invoice_whatsapp(new_inv, new_inv["pdf_url"]))
+    asyncio.create_task(send_invoice_email(new_inv, pdf_bytes))
 
     new_inv.pop("_id", None)
     logger.info(f"[gst-invoice] quotation {quote.get('invoice_number')} converted → {inv_no} (paid={received}, due={due})")

@@ -17,6 +17,14 @@ const PROJECT_TYPES = [
   { value: "service", label: "Service / AMC (18% GST)" },
 ];
 
+// Solar Quotation form — ordered per owner's spec.
+const SOLAR_BRANDS = ["Tata", "Adani", "Loom", "Waaree", "Luminous", "Vikram", "UTL"];
+const SOLAR_CAPACITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+// District master — Bihar is exhaustive (owner operates here), others allow free-text fallback.
+const DISTRICTS = {
+  "Bihar": ["Patna","Nalanda","Gaya","Bhagalpur","Muzaffarpur","Darbhanga","Saran","Rohtas","Vaishali","Samastipur","Begusarai","Purnia","Katihar","Madhubani","East Champaran","West Champaran","Sitamarhi","Sheohar","Siwan","Gopalganj","Lakhisarai","Sheikhpura","Jamui","Jehanabad","Nawada","Aurangabad","Arwal","Banka","Buxar","Kaimur","Khagaria","Kishanganj","Madhepura","Munger","Saharsa","Supaul","Arariya"],
+};
+
 const PAGE_SIZE = 30;
 
 const PAYMENT_MODES = ["ICICI", "SBI", "Cashfree", "Cash", "UPI", "Cheque", "Other"];
@@ -559,45 +567,96 @@ const IconBtn = ({ children, onClick, busy, title, testid, color = "slate" }) =>
 // ==================== CREATE INVOICE MODAL ====================
 const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", allowBackdate = false }) => {
   const [form, setForm] = useState({
+    // Customer
     name: "", phone: "", email: "", gstin: "", address: "",
-    state: "Bihar", state_code: "10", pincode: "",
-    project_type: "solar_project", project_name: "Solar Rooftop System",
+    state: "Bihar", state_code: "10", district: "Patna", pincode: "",
+    // Segmentation — drives bank + scheme
+    customer_segment: initialDocType === "quotation" ? "residential" : "commercial",
+    pm_surya_ghar_app_no: "",
+    // Solar spec — powers auto-generated item name
+    solar_brand: "Tata", capacity_kw: "3", capacity_custom: "",
+    // Pricing
+    project_type: "solar_goods", project_name: "",
     total_amount: "", notes: "", doc_type: initialDocType,
-    is_pm_surya_ghar: initialDocType === "quotation" && allowBackdate,
     auto_send_whatsapp: true, auto_send_email: true,
-    invoice_date: "",  // Optional back-date
+    invoice_date: "",
   });
+  // Track whether admin has manually edited the item name (so we stop auto-overwriting it).
+  const [nameEdited, setNameEdited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const onStateChange = (name) => {
     const row = STATES.find(([n]) => n === name);
-    setForm((f) => ({ ...f, state: name, state_code: row ? row[1] : f.state_code }));
+    setForm((f) => ({
+      ...f, state: name, state_code: row ? row[1] : f.state_code,
+      // Reset district when state changes
+      district: name === "Bihar" ? "Patna" : "",
+    }));
   };
+
+  const effectiveCapacity = form.capacity_kw === "custom"
+    ? (parseFloat(form.capacity_custom) || 0)
+    : parseFloat(form.capacity_kw || "0");
+
+  // Dynamic Item Name: "{BRAND} Power Solar System Kit of {N}kW" — unless admin edited it.
+  useEffect(() => {
+    if (nameEdited) return;
+    if (form.solar_brand && effectiveCapacity > 0) {
+      setForm((f) => ({
+        ...f,
+        project_name: `${f.solar_brand.toUpperCase()} Power Solar System Kit of ${effectiveCapacity}kW`,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.solar_brand, form.capacity_kw, form.capacity_custom, nameEdited]);
+
+  const isResidential = form.customer_segment === "residential";
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!form.name || !form.phone || !form.total_amount) {
-      setError("Name, phone and total amount are required."); return;
+    if (!form.name || !form.phone || !form.email) {
+      setError("Customer Name, Phone and Email are required."); return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
+      setError("Please enter a valid email address."); return;
+    }
+    if (!form.total_amount || parseFloat(form.total_amount) <= 0) {
+      setError("Total Amount is required."); return;
+    }
+    if (effectiveCapacity <= 0) {
+      setError("Solar Capacity is required."); return;
     }
     setSubmitting(true);
     try {
+      // Build a rich note trailer so nothing gets lost on the PDF.
+      const trailerBits = [];
+      if (isResidential && form.pm_surya_ghar_app_no) {
+        trailerBits.push(`PM Surya Ghar App No: ${form.pm_surya_ghar_app_no}`);
+      }
+      if (!isResidential && form.gstin) {
+        trailerBits.push(`GSTIN: ${form.gstin}`);
+      }
+      trailerBits.push(`Solar Brand: ${form.solar_brand} · Capacity: ${effectiveCapacity} kW`);
+      const finalNotes = [form.notes || "", trailerBits.join(" | ")].filter(Boolean).join("\n");
+
       const body = {
         customer: {
           name: form.name, phone: form.phone, email: form.email || "",
-          gstin: form.gstin || "", address: form.address || "",
+          gstin: isResidential ? "" : (form.gstin || ""),
+          address: form.address || "",
           state: form.state, state_code: form.state_code, pincode: form.pincode || "",
         },
-        project_type: form.project_type,
+        // Residential + PMSG → flat 5% GST per business rule. Commercial → flat 5% goods.
+        project_type: isResidential ? "solar_goods" : form.project_type,
         project_name: form.project_name || "Solar Service",
         total_amount: parseFloat(form.total_amount),
-        // For quotations the number admin enters IS the final quote price (with GST).
-        // The backend reverse-computes taxable values so grand_total matches exactly.
         total_is_gst_inclusive: form.doc_type === "quotation",
-        notes: form.notes || "",
+        notes: finalNotes,
         doc_type: form.doc_type,
-        scheme: form.is_pm_surya_ghar ? "pm_surya_ghar" : "",
+        // Bank auto-routing: Residential → pm_surya_ghar (ICICI). Commercial → "" (SBI).
+        scheme: isResidential ? "pm_surya_ghar" : "",
         auto_send_whatsapp: form.auto_send_whatsapp,
         auto_send_email: form.auto_send_email,
       };
@@ -605,7 +664,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
       await axios.post(`${API}/gst/invoices`, body);
       onCreated();
     } catch (e) {
-      setError(e.response?.data?.detail || e.message || "Failed to create invoice");
+      setError(e.response?.data?.detail || e.message || "Failed to create document");
     } finally {
       setSubmitting(false);
     }
@@ -616,7 +675,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl my-8" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
           <h2 className="text-lg font-bold text-[#0a355e] flex items-center gap-2">
-            <FileText className="w-5 h-5" /> New {form.doc_type === "quotation" ? "Quotation" : "Invoice"}
+            <FileText className="w-5 h-5" /> New {form.doc_type === "quotation" ? "Solar Quotation" : "Tax Invoice"}
           </h2>
           <button onClick={onClose} data-testid="invoice-create-close">
             <X className="w-5 h-5 text-slate-500" />
@@ -640,84 +699,155 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
             ))}
           </div>
 
-          {/* Customer */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field label="Customer Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} testid="inv-name" />
-            <Field label="Phone *" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} testid="inv-phone" />
-            <Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} testid="inv-email" />
-            <Field label="GSTIN (if B2B)" value={form.gstin} onChange={(v) => setForm({ ...form, gstin: v.toUpperCase() })} testid="inv-gstin" />
-            <div className="md:col-span-2">
-              <Field label="Address" value={form.address} onChange={(v) => setForm({ ...form, address: v })} testid="inv-address" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">State</label>
-              <select
-                value={form.state}
-                onChange={(e) => onStateChange(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                data-testid="inv-state"
-              >
-                {STATES.map(([n]) => <option key={n}>{n}</option>)}
-              </select>
-            </div>
-            <Field label="Pincode" value={form.pincode} onChange={(v) => setForm({ ...form, pincode: v })} testid="inv-pincode" />
-          </div>
-
-          {/* Project */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 mb-1">Project Type</label>
-              <select
-                value={form.project_type}
-                onChange={(e) => setForm({ ...form, project_type: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                data-testid="inv-project-type"
-              >
-                {PROJECT_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </div>
-            <Field label="Project / Item Name" value={form.project_name} onChange={(v) => setForm({ ...form, project_name: v })} testid="inv-project-name" />
-            <Field
-              label={form.doc_type === "quotation" ? "Total Amount (GST-inclusive) *" : "Total Amount (pre-GST) *"}
-              value={form.total_amount}
-              onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })}
-              testid="inv-amount"
-              type="number"
-            />
-            <div className="md:col-span-2">
-              <Field label="Notes (optional)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="inv-notes" />
-            </div>
-
-            {/* Back-date for legacy PM Surya Ghar quotations/invoices */}
-            {(form.doc_type === "quotation" || form.is_pm_surya_ghar) && (
+          {/* Section 1 — Basic Details */}
+          <fieldset className="border border-slate-200 rounded-lg px-4 pt-3 pb-4 space-y-3">
+            <legend className="text-xs font-bold text-[#0a355e] px-1">1. Customer Details</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="Customer Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} testid="inv-name" />
+              <Field label="Phone *" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} testid="inv-phone" />
+              <Field label="Email *" value={form.email} onChange={(v) => setForm({ ...form, email: v })} testid="inv-email" />
+              <Field label="Pincode" value={form.pincode} onChange={(v) => setForm({ ...form, pincode: v.replace(/\D/g, "").slice(0, 6) })} testid="inv-pincode" />
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-600 mb-1">
-                  {form.doc_type === "quotation" ? "Quotation Date (back-date allowed)" : "Invoice Date (back-date allowed for PM Surya Ghar)"}
-                </label>
-                <input
-                  type="date"
-                  value={form.invoice_date}
-                  max={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
+                <Field label="Address" value={form.address} onChange={(v) => setForm({ ...form, address: v })} testid="inv-address" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">State</label>
+                <select value={form.state} onChange={(e) => onStateChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" data-testid="inv-state">
+                  {STATES.map(([n]) => <option key={n}>{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">District</label>
+                {DISTRICTS[form.state] ? (
+                  <select value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" data-testid="inv-district">
+                    {DISTRICTS[form.state].map((d) => <option key={d}>{d}</option>)}
+                  </select>
+                ) : (
+                  <input type="text" value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })}
+                    placeholder="Enter district"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm" data-testid="inv-district" />
+                )}
+              </div>
+            </div>
+          </fieldset>
+
+          {/* Section 2 — Project Type + Conditional */}
+          <fieldset className="border border-slate-200 rounded-lg px-4 pt-3 pb-4 space-y-3">
+            <legend className="text-xs font-bold text-[#0a355e] px-1">2. Project Type</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Segment</label>
+                <select value={form.customer_segment}
+                  onChange={(e) => setForm({ ...form, customer_segment: e.target.value, project_type: e.target.value === "residential" ? "solar_goods" : "solar_project" })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                  data-testid="inv-backdate-input"
-                />
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Leave empty to use today. Use a past date for legacy projects already completed.
+                  data-testid="inv-segment">
+                  <option value="residential">Residential (PM Surya Ghar)</option>
+                  <option value="commercial">Commercial</option>
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1" data-testid="inv-bank-hint">
+                  Bank: <b>{isResidential ? "ICICI — PMSG" : "SBI"}</b> · Auto-assigned
                 </p>
               </div>
-            )}
-          </div>
+              {isResidential ? (
+                <Field label="PM Surya Ghar Application Number (optional)"
+                  value={form.pm_surya_ghar_app_no}
+                  onChange={(v) => setForm({ ...form, pm_surya_ghar_app_no: v })}
+                  testid="inv-pmsg-appno" />
+              ) : (
+                <Field label="GSTIN (optional)" value={form.gstin}
+                  onChange={(v) => setForm({ ...form, gstin: v.toUpperCase() })}
+                  testid="inv-gstin" />
+              )}
+              {!isResidential && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">GST Scheme</label>
+                  <select value={form.project_type}
+                    onChange={(e) => setForm({ ...form, project_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                    data-testid="inv-project-type">
+                    {PROJECT_TYPES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          </fieldset>
 
-          {/* Notifications */}
+          {/* Section 3 — Solar Configuration */}
+          <fieldset className="border border-slate-200 rounded-lg px-4 pt-3 pb-4 space-y-3">
+            <legend className="text-xs font-bold text-[#0a355e] px-1">3. Solar Configuration</legend>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Solar Panel Brand *</label>
+                <select value={form.solar_brand}
+                  onChange={(e) => { setForm({ ...form, solar_brand: e.target.value }); setNameEdited(false); }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="inv-brand">
+                  {SOLAR_BRANDS.map((b) => <option key={b}>{b}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Capacity *</label>
+                <select value={form.capacity_kw}
+                  onChange={(e) => { setForm({ ...form, capacity_kw: e.target.value }); setNameEdited(false); }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="inv-capacity">
+                  {SOLAR_CAPACITIES.map((n) => <option key={n} value={n}>{n} kW</option>)}
+                  <option value="custom">Custom…</option>
+                </select>
+              </div>
+              {form.capacity_kw === "custom" && (
+                <Field label="Custom Capacity (kW)" value={form.capacity_custom}
+                  onChange={(v) => { setForm({ ...form, capacity_custom: v.replace(/[^\d.]/g, "") }); setNameEdited(false); }}
+                  testid="inv-capacity-custom" type="number" />
+              )}
+            </div>
+          </fieldset>
+
+          {/* Section 4 — Pricing */}
+          <fieldset className="border border-slate-200 rounded-lg px-4 pt-3 pb-4 space-y-3">
+            <legend className="text-xs font-bold text-[#0a355e] px-1">4. Pricing</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">Item Name (auto-generated, editable)</label>
+                <input type="text" value={form.project_name}
+                  onChange={(e) => { setForm({ ...form, project_name: e.target.value }); setNameEdited(true); }}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                  data-testid="inv-project-name" />
+              </div>
+              <Field
+                label={form.doc_type === "quotation" ? "Total Amount (GST-inclusive) *" : "Total Amount *"}
+                value={form.total_amount}
+                onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })}
+                testid="inv-amount" type="number" />
+              <div className="flex items-end">
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  GST auto-applied: <b>{isResidential ? "5% (PMSG)" : form.project_type === "service" ? "18%" : "5%"}</b>.
+                  <br/>For quotations the amount above is treated as GST-inclusive.
+                </p>
+              </div>
+              <div className="md:col-span-2">
+                <Field label="Notes (optional)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="inv-notes" />
+              </div>
+              {(form.doc_type === "quotation" || isResidential) && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    {form.doc_type === "quotation" ? "Quotation Date (back-date allowed)" : "Invoice Date (back-date allowed for PM Surya Ghar)"}
+                  </label>
+                  <input type="date" value={form.invoice_date}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(e) => setForm({ ...form, invoice_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                    data-testid="inv-backdate-input" />
+                  <p className="text-[11px] text-slate-500 mt-1">Leave empty to use today.</p>
+                </div>
+              )}
+            </div>
+          </fieldset>
+
+          {/* Section 5 — Delivery channels */}
           <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-100">
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" checked={form.is_pm_surya_ghar}
-                onChange={(e) => setForm({ ...form, is_pm_surya_ghar: e.target.checked })}
-                data-testid="inv-pmsg" />
-              <span className="font-medium">PM Surya Ghar scheme</span>
-              <span className="text-xs text-slate-500">(default payment mode = ICICI)</span>
-            </label>
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input type="checkbox" checked={form.auto_send_whatsapp}
                 onChange={(e) => setForm({ ...form, auto_send_whatsapp: e.target.checked })}
@@ -728,7 +858,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
               <input type="checkbox" checked={form.auto_send_email}
                 onChange={(e) => setForm({ ...form, auto_send_email: e.target.checked })}
                 data-testid="inv-auto-email" />
-              Send by Email (if configured)
+              Send by Email (Resend)
             </label>
           </div>
 

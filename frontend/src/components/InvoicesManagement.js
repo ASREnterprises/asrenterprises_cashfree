@@ -275,6 +275,30 @@ export const InvoicesManagement = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={async () => {
+                const ok = await confirm({
+                  title: "Regenerate ALL invoice PDFs?",
+                  message: "Re-renders every invoice + quotation PDF using the current branded header, bank, and UPI details.\n\nSafe to run anytime — recommended after global config changes.",
+                  confirmText: "Regenerate All",
+                  cancelText: "Cancel",
+                  tone: "info",
+                });
+                if (!ok) return;
+                try {
+                  const r = await axios.post(`${API}/gst/invoices/regenerate-all-pdfs`);
+                  showToast(`${r.data.regenerated} PDFs regenerated · ${r.data.failed} failed`);
+                  fetchAll();
+                } catch (e) {
+                  showToast(e?.response?.data?.detail || "Regenerate failed", "err");
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg font-medium text-sm"
+              data-testid="invoices-regen-all-btn" title="Regenerate ALL invoice PDFs with current branded header"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">Regenerate All</span>
+            </button>
+            <button
               onClick={() => setShowCASettings(true)}
               className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg font-medium text-sm"
               data-testid="invoices-ca-settings-btn" title="CA Contact & Auto-Send Settings"

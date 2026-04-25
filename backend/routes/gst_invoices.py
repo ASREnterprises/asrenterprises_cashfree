@@ -1492,6 +1492,43 @@ async def edit_invoice(invoice_id: str, payload: EditInvoiceRequest):
     return {"success": True, "invoice": doc}
 
 
+@router.post("/invoices/regenerate-all-pdfs")
+async def regenerate_all_invoice_pdfs(scope: str = "all"):
+    """Re-render every invoice/quotation PDF using the CURRENT BUSINESS header,
+    bank, UPI + branded sender. Useful after global config updates (new GST
+    address, new branded email, new bank). Idempotent — safe to run anytime.
+    Query: scope = 'all' | 'invoice' | 'quotation'.
+    Returns count of regenerated docs + any errors."""
+    q = {"trashed": {"$ne": True}}
+    if scope == "invoice":
+        q["doc_type"] = {"$ne": "quotation"}
+    elif scope == "quotation":
+        q["doc_type"] = "quotation"
+    cursor = db.invoices.find(q, {"_id": 0})
+    docs = await cursor.to_list(length=2000)
+    ok, fail = 0, 0
+    errors = []
+    for d in docs:
+        try:
+            gst = compute_gst([InvoiceLineItem(**it) for it in d["line_items"]], d["customer"]["state"])
+            pdf_bytes = render_invoice_pdf(d, gst)
+            safe_name = (d.get("invoice_number") or d.get("id"))[:60].replace("/", "_")
+            pdf_path = INVOICE_DIR / f"{safe_name}.pdf"
+            pdf_path.write_bytes(pdf_bytes)
+            await db.invoices.update_one({"id": d["id"]}, {"$set": {
+                "pdf_path": str(pdf_path),
+                "regenerated_at": datetime.now(timezone.utc).isoformat(),
+            }})
+            ok += 1
+        except Exception as e:
+            fail += 1
+            errors.append(f"{d.get('invoice_number')}: {e}")
+            logger.warning(f"[regen-all] {d.get('invoice_number')} failed: {e}")
+    logger.info(f"[regen-all] scope={scope} ok={ok} fail={fail}")
+    return {"success": True, "regenerated": ok, "failed": fail,
+            "errors": errors[:20], "scope": scope, "total_scanned": len(docs)}
+
+
 class InvoiceDateChangeRequest(BaseModel):
     invoice_date: str   # 'YYYY-MM-DD'
 

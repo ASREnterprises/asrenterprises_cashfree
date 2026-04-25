@@ -540,8 +540,17 @@ export const StaffLogin = () => {
               type="button"
               onClick={() => { setLoginMethod("mobile_otp"); setError(""); setSuccess(""); resetMobileOTPFlow(); }}
               className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "mobile_otp" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+              data-testid="staff-method-mobile-otp"
             >
               <Phone className="w-3.5 h-3.5" />Mobile OTP
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMethod("email_otp"); setError(""); setSuccess(""); setOtpSent(false); setStep("email"); setEmailOtp(""); }}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 whitespace-nowrap ${loginMethod === "email_otp" ? "bg-white text-[#0B3C5D] shadow-md" : "text-gray-500"}`}
+              data-testid="staff-method-email-otp"
+            >
+              <Mail className="w-3.5 h-3.5" />Email OTP
             </button>
           </div>
 

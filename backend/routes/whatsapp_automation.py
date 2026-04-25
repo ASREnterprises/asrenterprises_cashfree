@@ -46,7 +46,7 @@ BUSINESS_INFO = {
     "whatsapp": "9296389097",
     "website": "www.asrenterprises.in",
     "email": "support@asrenterprises.in",
-    "address": "Shop no 10 AMAN SKS COMPLEX, Khagaul Saguna Road, Patna, Bihar 801503",
+    "address": "Dwarikapuri, Khagaul, Patna - 801105 (GST) | Shop No 10, Aman SKS Complex, Saguna Road, Patna - 801503 (Office)",
     "location": "Patna, Bihar",
     "business_type": "Rooftop Solar Installation",
     # Business hours (IST - UTC+5:30)

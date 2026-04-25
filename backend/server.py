@@ -7296,8 +7296,10 @@ _Please contact the customer within 24 hours to schedule the service!_"""
                     <p style="color: #666; font-size: 13px;">Need immediate help? Call us at <strong>9296389097</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
-                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
-                    <p style="color: #999; font-size: 11px; margin: 5px 0 0 0;">Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503</p>
+                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises &nbsp;·&nbsp; GSTIN 10CCFPK3447Q3ZD</p>
+                    <p style="color: #999; font-size: 11px; margin: 5px 0 0 0;">GST Address: Dwarikapuri, Khagaul, Patna - 801105</p>
+                    <p style="color: #999; font-size: 11px; margin: 2px 0 0 0;">Office: Shop No 10, Aman SKS Complex, Saguna Road, Patna - 801503</p>
+                    <p style="color: #999; font-size: 11px; margin: 2px 0 0 0;">support@asrenterprises.in &nbsp;·&nbsp; 9296389097</p>
                 </div>
             </div>"""
             
@@ -8376,7 +8378,7 @@ Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FRE
 *Total: ₹{order.total:,.0f}*
 
 📍 *Delivery Type:* {"🏪 Store Pickup" if order.delivery_type == "pickup" else "🚚 Home Delivery"}
-{f"Address: {order.delivery_address}" if order.delivery_type == "delivery" else "Pickup: Shop 10, AMAN SKS COMPLEX, Khagaul Saguna Road"}
+{f"Address: {order.delivery_address}" if order.delivery_type == "delivery" else "Pickup: Shop No 10, Aman SKS Complex, Saguna Road, Patna - 801503"}
 
 💳 *Payment Method:* {"💵 Cash on " + ("Store" if order.delivery_type == "pickup" else "Delivery") if order.payment_method == "cod" else "💳 Razorpay Online"}
 
@@ -8414,7 +8416,7 @@ Delivery: {f"₹{order.delivery_charge:,.0f}" if order.delivery_charge else "FRE
 💳 *Payment:* {payment_status}
 
 📍 *{"Pickup Location" if order.delivery_type == "pickup" else "Delivery Address"}:*
-{("Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503" if order.delivery_type == "pickup" else order.delivery_address)}
+{("Shop No 10, Aman SKS Complex, Saguna Road, Patna - 801503" if order.delivery_type == "pickup" else order.delivery_address)}
 
 📞 *Need Help?*
 Call: 9296389097
@@ -9028,8 +9030,10 @@ _Powering Bihar's future with clean energy_ ☀️"""
                     <p style="color: #666; font-size: 13px;">Need help? Call us at <strong>9296389097</strong> | WhatsApp: <strong>9296389097</strong></p>
                 </div>
                 <div style="background: #f8fafc; padding: 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
-                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises - Bihar's Trusted Solar Rooftop Company</p>
-                    <p style="color: #999; font-size: 11px; margin: 5px 0 0 0;">Shop no 10, AMAN SKS COMPLEX, Khagaul Saguna Road, Patna 801503</p>
+                    <p style="color: #999; font-size: 12px; margin: 0;">ASR Enterprises &nbsp;·&nbsp; GSTIN 10CCFPK3447Q3ZD</p>
+                    <p style="color: #999; font-size: 11px; margin: 5px 0 0 0;">GST Address: Dwarikapuri, Khagaul, Patna - 801105</p>
+                    <p style="color: #999; font-size: 11px; margin: 2px 0 0 0;">Office: Shop No 10, Aman SKS Complex, Saguna Road, Patna - 801503</p>
+                    <p style="color: #999; font-size: 11px; margin: 2px 0 0 0;">support@asrenterprises.in &nbsp;·&nbsp; 9296389097</p>
                 </div>
             </div>"""
             

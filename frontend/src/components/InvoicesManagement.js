@@ -21,6 +21,31 @@ const PROJECT_TYPES = [
 // Solar Quotation form — ordered per owner's spec.
 const SOLAR_BRANDS = ["Tata", "Adani", "Loom", "Waaree", "Luminous", "Vikram", "UTL"];
 const SOLAR_CAPACITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// Detailed Technical Breakdown — NEW (panels + inverter + system type)
+// Panel wattage range is segment-aware: residential PMSG caps at 600W, commercial unlocks 730W.
+const PANEL_WATT_RESIDENTIAL = [540, 545, 550, 555, 560, 565, 570, 580, 590, 600];
+const PANEL_WATT_COMMERCIAL  = [540, 550, 560, 580, 600, 620, 650, 680, 700, 720, 730];
+const INVERTER_CAPACITIES_KW = [1, 2, 3, 3.3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 50, 75, 100];
+// Brand list with sub-OEM suggestions for TATA per owner spec.
+const INVERTER_BRANDS = [
+  { name: "TATA", note: "Solis / Solax / Goodwe" },
+  { name: "Loom", note: "" },
+  { name: "Luminous", note: "" },
+  { name: "Microtek", note: "" },
+  { name: "Havells", note: "" },
+  { name: "Polycab", note: "" },
+  { name: "Waaree", note: "" },
+  { name: "Deye", note: "" },
+  { name: "Eastman", note: "" },
+  { name: "UTL", note: "" },
+];
+const SYSTEM_TYPES = [
+  { value: "Ongrid", label: "Ongrid System" },
+  { value: "Hybrid", label: "Hybrid System" },
+  { value: "Offgrid", label: "Off Grid System" },
+];
+
 // Effective GST rate per scheme (matches backend _BLENDED_GST_RATE in gst_invoices.py)
 const GST_RATES = {
   "solar_project": 0.063,       // 90%@5% + 10%@18%
@@ -798,9 +823,24 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
     pm_surya_ghar_app_no: "",
     // Solar spec — powers auto-generated item name
     solar_brand: "Tata", capacity_kw: "3", capacity_custom: "",
+    // Detailed Technical Breakdown (NEW)
+    show_detailed_breakdown: false,
+    panel_watt: 550,                 // selected dropdown value
+    panel_count: 6,                  // numeric input
+    inverter_brand: "TATA",
+    inverter_capacity_kw: 3,
+    system_type: "Ongrid",
     // Pricing
     project_type: "solar_project_flat_5", project_name: "",
     total_amount: "", amount_is_inclusive: false, notes: "", doc_type: initialDocType,
+    // Billing Type — Standard (single line) or Detailed (item-wise breakdown)
+    billing_type: "standard",
+    // Detailed line items — editable table
+    line_items: [],
+    // PMSG residential extras
+    subsidy_amount: "", show_savings: false, expected_savings_per_year: "",
+    // Bank override (defaults: residential→icici, commercial→sbi)
+    payment_mode_override: "",
     auto_send_whatsapp: true, auto_send_email: true,
     invoice_date: "",
   });
@@ -818,27 +858,108 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
     }));
   };
 
-  const effectiveCapacity = form.capacity_kw === "custom"
-    ? (parseFloat(form.capacity_custom) || 0)
-    : parseFloat(form.capacity_kw || "0");
-
-  // Dynamic Item Name: brand-aware naming per owner spec.
-  //   Tata           → "TATA Power Solar System Kit of {N}kW"
-  //   Other brands   → "{BRAND} Solar System Kit of {N}kW"
-  useEffect(() => {
-    if (nameEdited) return;
-    if (form.solar_brand && effectiveCapacity > 0) {
-      const brandUpper = form.solar_brand.toUpperCase();
-      const middle = brandUpper === "TATA" ? "Power Solar System Kit" : "Solar System Kit";
-      setForm((f) => ({
-        ...f,
-        project_name: `${brandUpper} ${middle} of ${effectiveCapacity}kW`,
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.solar_brand, form.capacity_kw, form.capacity_custom, nameEdited]);
+  // Detailed-breakdown derived capacity: (Watt × Panels) ÷ 1000.
+  // When detailed breakdown is on, this overrides the simple Capacity dropdown.
+  const detailedCapacityKw = (
+    (parseFloat(form.panel_watt) || 0) * (parseInt(form.panel_count, 10) || 0)
+  ) / 1000;
 
   const isResidential = form.customer_segment === "residential";
+
+  const effectiveCapacity = form.show_detailed_breakdown
+    ? Number(detailedCapacityKw.toFixed(2))
+    : (form.capacity_kw === "custom"
+        ? (parseFloat(form.capacity_custom) || 0)
+        : parseFloat(form.capacity_kw || "0"));
+
+  // Smart suggest: when detailed breakdown is on, snap inverter to the closest standard kW.
+  useEffect(() => {
+    if (!form.show_detailed_breakdown || effectiveCapacity <= 0) return;
+    const closest = INVERTER_CAPACITIES_KW.reduce((best, n) =>
+      Math.abs(n - effectiveCapacity) < Math.abs(best - effectiveCapacity) ? n : best,
+      INVERTER_CAPACITIES_KW[0]);
+    setForm((f) => f.inverter_capacity_kw === closest ? f : { ...f, inverter_capacity_kw: closest });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.show_detailed_breakdown, form.panel_watt, form.panel_count]);
+
+  // When user toggles segment, reset inverter brand default + re-clamp panel watt range.
+  useEffect(() => {
+    setForm((f) => {
+      const allowed = isResidential ? PANEL_WATT_RESIDENTIAL : PANEL_WATT_COMMERCIAL;
+      const newWatt = allowed.includes(f.panel_watt) ? f.panel_watt : allowed[Math.min(2, allowed.length - 1)];
+      const newBrand = isResidential ? "TATA" : f.inverter_brand;
+      return { ...f, panel_watt: newWatt, inverter_brand: newBrand };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.customer_segment]);
+
+  // Dynamic Item Name:
+  //   • Detailed breakdown ON  → "{InverterBrand} {SystemType} Solar System – {N}kW"
+  //   • Default                → brand-aware "TATA Power Solar System Kit of {N}kW" / "{BRAND} Solar System Kit of {N}kW"
+  useEffect(() => {
+    if (nameEdited) return;
+    if (effectiveCapacity > 0) {
+      let name;
+      if (form.show_detailed_breakdown) {
+        const brandUpper = (form.inverter_brand || "TATA").toUpperCase();
+        name = `${brandUpper} ${form.system_type} Solar System – ${effectiveCapacity}kW`;
+      } else {
+        const brandUpper = (form.solar_brand || "TATA").toUpperCase();
+        const middle = brandUpper === "TATA" ? "Power Solar System Kit" : "Solar System Kit";
+        name = `${brandUpper} ${middle} of ${effectiveCapacity}kW`;
+      }
+      setForm((f) => ({ ...f, project_name: name }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.solar_brand, form.capacity_kw, form.capacity_custom,
+      form.show_detailed_breakdown, form.panel_watt, form.panel_count,
+      form.inverter_brand, form.system_type, nameEdited]);
+
+  // Auto-build the 6 standard solar EPC line items from the technical breakdown.
+  // Owner can edit / add / remove rows after auto-fill.
+  const autofillDetailedItems = useCallback(() => {
+    const cap = effectiveCapacity || 1;
+    const totalRupees = parseFloat(form.total_amount || "0") || 0;
+    const split = (pct) => Number((totalRupees * pct).toFixed(0));
+    const items = [
+      { item_name: `Solar Panels — ${form.panel_watt}W × ${form.panel_count} Panels`,
+        hsn: "85414300", quantity: parseInt(form.panel_count, 10) || 1,
+        rate: parseInt(form.panel_count, 10) > 0 ? split(0.60) / (parseInt(form.panel_count, 10) || 1) : split(0.60), kind: "goods" },
+      { item_name: `Solar Inverter — ${form.inverter_brand} ${form.inverter_capacity_kw}kW`,
+        hsn: "85044090", quantity: 1, rate: split(0.18), kind: "goods" },
+      { item_name: "Module Mounting Structure", hsn: "73089090", quantity: 1, rate: split(0.06), kind: "goods" },
+      { item_name: "DC/AC Wiring & Accessories", hsn: "85444290", quantity: 1, rate: split(0.06), kind: "goods" },
+      { item_name: `Installation & Commissioning — ${cap}kW`,
+        hsn: "9954", quantity: 1, rate: split(0.06), kind: "service" },
+      { item_name: "Net Metering / Documentation", hsn: "9983", quantity: 1, rate: split(0.04), kind: "service" },
+    ];
+    setForm((f) => ({ ...f, line_items: items }));
+  }, [effectiveCapacity, form.total_amount, form.panel_watt, form.panel_count,
+      form.inverter_brand, form.inverter_capacity_kw]);
+
+  // When billing_type flips to detailed and items empty, auto-fill once.
+  useEffect(() => {
+    if (form.billing_type === "detailed" && form.line_items.length === 0
+        && form.show_detailed_breakdown && effectiveCapacity > 0
+        && parseFloat(form.total_amount || "0") > 0) {
+      autofillDetailedItems();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.billing_type]);
+
+  const updateLineItem = (idx, patch) => {
+    setForm((f) => ({
+      ...f, line_items: f.line_items.map((it, i) => i === idx ? { ...it, ...patch } : it),
+    }));
+  };
+  const removeLineItem = (idx) => {
+    setForm((f) => ({ ...f, line_items: f.line_items.filter((_, i) => i !== idx) }));
+  };
+  const addLineItem = () => {
+    setForm((f) => ({
+      ...f, line_items: [...f.line_items, { item_name: "", hsn: "85414300", quantity: 1, rate: 0, kind: "goods" }],
+    }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -849,7 +970,13 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
     if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) {
       setError("Please enter a valid email address."); return;
     }
-    if (!form.total_amount || parseFloat(form.total_amount) <= 0) {
+    if (form.billing_type === "detailed") {
+      if (!(form.line_items || []).length) {
+        setError("Please add at least one line item or enable Auto-fill from technical breakdown."); return;
+      }
+      const sum = form.line_items.reduce((s, it) => s + (parseFloat(it.quantity) || 0) * (parseFloat(it.rate) || 0), 0);
+      if (sum <= 0) { setError("Detailed bill total must be greater than zero."); return; }
+    } else if (!form.total_amount || parseFloat(form.total_amount) <= 0) {
       setError("Total Amount is required."); return;
     }
     if (effectiveCapacity <= 0) {
@@ -865,8 +992,37 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
       if (!isResidential && form.gstin) {
         trailerBits.push(`GSTIN: ${form.gstin}`);
       }
-      trailerBits.push(`Solar Brand: ${form.solar_brand} · Capacity: ${effectiveCapacity} kW`);
+      if (form.show_detailed_breakdown) {
+        // Detailed Technical Breakdown — kept inside notes for now so the PDF
+        // shows it; Phase 2 can promote these to dedicated invoice fields.
+        trailerBits.push(
+          `Panels: ${form.panel_watt}W × ${form.panel_count} = ${effectiveCapacity}kW`,
+          `Inverter: ${form.inverter_brand} ${form.inverter_capacity_kw}kW`,
+          `System Type: ${form.system_type}`,
+        );
+      } else {
+        trailerBits.push(`Solar Brand: ${form.solar_brand} · Capacity: ${effectiveCapacity} kW`);
+      }
       const finalNotes = [form.notes || "", trailerBits.join(" | ")].filter(Boolean).join("\n");
+
+      // Detailed billing: convert front-end rows to backend InvoiceLineItem shape.
+      const useDetailed = form.billing_type === "detailed" && (form.line_items || []).length > 0;
+      const lineItemsPayload = useDetailed
+        ? form.line_items.map((it) => {
+            const qty = parseFloat(it.quantity) || 1;
+            const rate = parseFloat(it.rate) || 0;
+            const taxable = qty * rate;
+            return {
+              description: it.item_name || "Item",
+              hsn_sac: (it.hsn || "").toString(),
+              quantity: qty,
+              unit_price: rate,
+              taxable_value: Number(taxable.toFixed(2)),
+              gst_rate: it.kind === "service" ? 18 : 5,
+              kind: it.kind === "service" ? "service" : "goods",
+            };
+          })
+        : null;
 
       const body = {
         customer: {
@@ -876,16 +1032,31 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
           state: form.state, state_code: form.state_code, pincode: form.pincode || "",
         },
         // GST Scheme is now user-selectable for BOTH residential + commercial.
-        project_type: form.project_type,
+        project_type: useDetailed ? "solar_goods" : form.project_type,
         project_name: form.project_name || "Solar Service",
-        total_amount: parseFloat(form.total_amount),
+        // For Detailed Bill the backend recomputes total from line items.
+        total_amount: useDetailed ? null : parseFloat(form.total_amount),
+        line_items: lineItemsPayload,
         // AMOUNT + GST = TOTAL mode: entered amount is pre-GST (backend computes GST).
         // Inclusive mode: entered amount is final (backend back-calculates).
-        total_is_gst_inclusive: !!form.amount_is_inclusive,
+        total_is_gst_inclusive: !useDetailed && !!form.amount_is_inclusive,
         notes: finalNotes,
         doc_type: form.doc_type,
         // Bank auto-routing: Residential → pm_surya_ghar (ICICI). Commercial → "" (SBI).
         scheme: isResidential ? "pm_surya_ghar" : "",
+        // Structured technical breakdown — backend stores as-is; mirrored on convert.
+        technical_breakdown: form.show_detailed_breakdown ? {
+          panel_watt: form.panel_watt,
+          panel_count: parseInt(form.panel_count, 10) || 0,
+          system_capacity_kw: effectiveCapacity,
+          inverter_brand: form.inverter_brand,
+          inverter_capacity_kw: form.inverter_capacity_kw,
+          system_type: form.system_type,
+          billing_type: form.billing_type,
+        } : null,
+        // Residential subsidy + savings (informational — surfaces on PDF + customer record)
+        subsidy_amount: isResidential && form.subsidy_amount ? parseFloat(form.subsidy_amount) : 0,
+        savings_per_year: form.show_savings && form.expected_savings_per_year ? parseFloat(form.expected_savings_per_year) : 0,
         auto_send_whatsapp: form.auto_send_whatsapp,
         auto_send_email: form.auto_send_email,
       };
@@ -1006,37 +1177,136 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
           {/* Section 3 — Solar Configuration */}
           <fieldset className="border border-slate-200 rounded-lg px-4 pt-3 pb-4 space-y-3">
             <legend className="text-xs font-bold text-[#0a355e] px-1">3. Solar Configuration</legend>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Solar Panel Brand *</label>
-                <select value={form.solar_brand}
-                  onChange={(e) => { setForm({ ...form, solar_brand: e.target.value }); setNameEdited(false); }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                  data-testid="inv-brand">
-                  {SOLAR_BRANDS.map((b) => <option key={b}>{b}</option>)}
-                </select>
+
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" checked={form.show_detailed_breakdown}
+                onChange={(e) => { setForm({ ...form, show_detailed_breakdown: e.target.checked }); setNameEdited(false); }}
+                data-testid="inv-detailed-toggle" />
+              <span><b>Show Detailed Technical Breakdown</b> <span className="text-[11px] text-slate-500">(panels + inverter + system type)</span></span>
+            </label>
+
+            {!form.show_detailed_breakdown ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Solar Panel Brand *</label>
+                  <select value={form.solar_brand}
+                    onChange={(e) => { setForm({ ...form, solar_brand: e.target.value }); setNameEdited(false); }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                    data-testid="inv-brand">
+                    {SOLAR_BRANDS.map((b) => <option key={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Capacity *</label>
+                  <select value={form.capacity_kw}
+                    onChange={(e) => { setForm({ ...form, capacity_kw: e.target.value }); setNameEdited(false); }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                    data-testid="inv-capacity">
+                    {SOLAR_CAPACITIES.map((n) => <option key={n} value={n}>{n} kW</option>)}
+                    <option value="custom">Custom…</option>
+                  </select>
+                </div>
+                {form.capacity_kw === "custom" && (
+                  <Field label="Custom Capacity (kW)" value={form.capacity_custom}
+                    onChange={(v) => { setForm({ ...form, capacity_custom: v.replace(/[^\d.]/g, "") }); setNameEdited(false); }}
+                    testid="inv-capacity-custom" type="number" />
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Capacity *</label>
-                <select value={form.capacity_kw}
-                  onChange={(e) => { setForm({ ...form, capacity_kw: e.target.value }); setNameEdited(false); }}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
-                  data-testid="inv-capacity">
-                  {SOLAR_CAPACITIES.map((n) => <option key={n} value={n}>{n} kW</option>)}
-                  <option value="custom">Custom…</option>
-                </select>
+            ) : (
+              <div className="space-y-3">
+                {/* PANEL CONFIG */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Panel Watt Range * <span className="text-[10px] text-slate-400">({isResidential ? "540–600W (PMSG)" : "540–730W"})</span>
+                    </label>
+                    <select value={form.panel_watt}
+                      onChange={(e) => { setForm({ ...form, panel_watt: parseInt(e.target.value, 10) }); setNameEdited(false); }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                      data-testid="inv-panel-watt">
+                      {(isResidential ? PANEL_WATT_RESIDENTIAL : PANEL_WATT_COMMERCIAL).map((w) =>
+                        <option key={w} value={w}>{w} W</option>
+                      )}
+                    </select>
+                  </div>
+                  <Field label="Number of Panels *" type="number" value={form.panel_count}
+                    onChange={(v) => { setForm({ ...form, panel_count: v.replace(/\D/g, "") }); setNameEdited(false); }}
+                    testid="inv-panel-count" />
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">System Capacity (auto)</label>
+                    <input type="text" readOnly value={`${detailedCapacityKw.toFixed(2)} kW`}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm bg-slate-50 font-semibold text-[#0a355e]"
+                      data-testid="inv-detailed-capacity" />
+                  </div>
+                </div>
+                {/* INVERTER */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Inverter Brand *</label>
+                    <select value={form.inverter_brand}
+                      onChange={(e) => { setForm({ ...form, inverter_brand: e.target.value }); setNameEdited(false); }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                      data-testid="inv-inverter-brand">
+                      {INVERTER_BRANDS.map((b) => <option key={b.name} value={b.name}>{b.name}{b.note ? ` (${b.note})` : ""}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Inverter Capacity *</label>
+                    <select value={form.inverter_capacity_kw}
+                      onChange={(e) => setForm({ ...form, inverter_capacity_kw: parseFloat(e.target.value) })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                      data-testid="inv-inverter-capacity">
+                      {INVERTER_CAPACITIES_KW.map((n) => <option key={n} value={n}>{n} kW</option>)}
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1">Snaps to closest kW based on panel total.</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">System Type *</label>
+                    <select value={form.system_type}
+                      onChange={(e) => { setForm({ ...form, system_type: e.target.value }); setNameEdited(false); }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm"
+                      data-testid="inv-system-type">
+                      {SYSTEM_TYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {/* DETAILED BILL ITEMS — preview */}
+                <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-xs text-slate-700" data-testid="inv-bill-breakdown">
+                  <div className="font-semibold text-[#0a355e] mb-1.5">Detailed Bill Items</div>
+                  <ol className="list-decimal pl-5 space-y-0.5">
+                    <li>Solar Panels — <b>{form.panel_watt}W × {form.panel_count || 0} Panels</b></li>
+                    <li>Solar Inverter — <b>{form.inverter_brand} {form.inverter_capacity_kw}kW Inverter</b></li>
+                    <li>Module Mounting Structure</li>
+                    <li>DC/AC Wiring & Accessories</li>
+                    <li>Installation & Commissioning</li>
+                    <li>Net Metering / Documentation</li>
+                  </ol>
+                </div>
               </div>
-              {form.capacity_kw === "custom" && (
-                <Field label="Custom Capacity (kW)" value={form.capacity_custom}
-                  onChange={(v) => { setForm({ ...form, capacity_custom: v.replace(/[^\d.]/g, "") }); setNameEdited(false); }}
-                  testid="inv-capacity-custom" type="number" />
-              )}
-            </div>
+            )}
           </fieldset>
 
           {/* Section 4 — Pricing */}
           <fieldset className="border border-slate-200 rounded-lg px-4 pt-3 pb-4 space-y-3">
             <legend className="text-xs font-bold text-[#0a355e] px-1">4. Pricing</legend>
+
+            {/* Billing Type toggle — Standard or Detailed Bill (item-wise) */}
+            <div className="flex gap-2 bg-slate-100 p-1 rounded-md w-fit" data-testid="billing-type-toggle">
+              {[
+                { value: "standard", label: "Standard (single line)" },
+                { value: "detailed", label: "Detailed Bill (item-wise)" },
+              ].map((b) => (
+                <button key={b.value} type="button"
+                  onClick={() => setForm({ ...form, billing_type: b.value })}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold ${
+                    form.billing_type === b.value ? "bg-white text-[#0a355e] shadow" : "text-slate-600"
+                  }`}
+                  data-testid={`billing-type-${b.value}`}>
+                  {b.label}
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <label className="block text-xs font-medium text-slate-600 mb-1">Item Name (auto-generated, editable)</label>
@@ -1046,7 +1316,7 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
                   data-testid="inv-project-name" />
               </div>
               <Field
-                label={`Amount (${form.amount_is_inclusive ? "GST-inclusive" : "before GST"}) *`}
+                label={`Amount (${form.amount_is_inclusive ? "GST-inclusive" : "before GST"}) ${form.billing_type === "detailed" ? "(used for auto-fill)" : "*"}`}
                 value={form.total_amount}
                 onChange={(v) => setForm({ ...form, total_amount: v.replace(/[^\d.]/g, "") })}
                 testid="inv-amount" type="number" />
@@ -1065,29 +1335,149 @@ const CreateInvoiceModal = ({ onClose, onCreated, initialDocType = "invoice", al
               <div className="md:col-span-2 p-3 bg-sky-50 border border-sky-100 rounded-lg" data-testid="inv-gst-preview">
                 {(() => {
                   const rate = GST_RATES[form.project_type] ?? 0.05;
-                  const amt = parseFloat(form.total_amount || "0") || 0;
-                  const subtotal = form.amount_is_inclusive ? amt / (1 + rate) : amt;
+                  let amt;
+                  if (form.billing_type === "detailed") {
+                    amt = (form.line_items || []).reduce((s, it) => s + (parseFloat(it.quantity) || 0) * (parseFloat(it.rate) || 0), 0);
+                  } else {
+                    amt = parseFloat(form.total_amount || "0") || 0;
+                  }
+                  const subtotal = (form.billing_type === "standard" && form.amount_is_inclusive) ? amt / (1 + rate) : amt;
                   const gst = subtotal * rate;
                   const total = subtotal + gst;
+                  const subsidy = isResidential && form.subsidy_amount ? (parseFloat(form.subsidy_amount) || 0) : 0;
+                  const netPayable = Math.max(0, total - subsidy);
                   const fmt = (n) => `₹ ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                   return (
-                    <div className="grid grid-cols-3 gap-2 text-center text-[#0a355e]">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wide text-slate-500">Amount</div>
-                        <div className="font-bold text-sm" data-testid="inv-preview-amount">{fmt(subtotal)}</div>
+                    <div>
+                      <div className="grid grid-cols-3 gap-2 text-center text-[#0a355e]">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wide text-slate-500">Amount</div>
+                          <div className="font-bold text-sm" data-testid="inv-preview-amount">{fmt(subtotal)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wide text-slate-500">+ GST @ {(rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 2)}%</div>
+                          <div className="font-bold text-sm text-amber-700" data-testid="inv-preview-gst">{fmt(gst)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wide text-slate-500">= Total</div>
+                          <div className="font-extrabold text-base text-emerald-700" data-testid="inv-preview-total">{fmt(total)}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wide text-slate-500">+ GST @ {(rate * 100).toFixed(rate * 100 % 1 === 0 ? 0 : 2)}%</div>
-                        <div className="font-bold text-sm text-amber-700" data-testid="inv-preview-gst">{fmt(gst)}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wide text-slate-500">= Total</div>
-                        <div className="font-extrabold text-base text-emerald-700" data-testid="inv-preview-total">{fmt(total)}</div>
-                      </div>
+                      {subsidy > 0 && (
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-center text-[#0a355e] border-t border-sky-200 pt-2" data-testid="inv-subsidy-preview">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-slate-500">PMSG Subsidy</div>
+                            <div className="font-bold text-sm text-emerald-700">− {fmt(subsidy)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-slate-500">Net Payable</div>
+                            <div className="font-extrabold text-base text-rose-700">{fmt(netPayable)}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
               </div>
+
+              {/* Detailed Line Items Table */}
+              {form.billing_type === "detailed" && (
+                <div className="md:col-span-2 space-y-2" data-testid="detailed-bill-section">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-[#0a355e]">Item-wise Breakdown</div>
+                    <div className="flex gap-1.5">
+                      <button type="button" onClick={autofillDetailedItems}
+                        className="px-2.5 py-1 bg-sky-100 hover:bg-sky-200 text-sky-800 text-[11px] font-semibold rounded border border-sky-200"
+                        data-testid="autofill-items-btn">
+                        Auto-fill from Tech Breakdown
+                      </button>
+                      <button type="button" onClick={addLineItem}
+                        className="px-2.5 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[11px] font-semibold rounded border border-emerald-200"
+                        data-testid="add-line-item-btn">
+                        + Add Row
+                      </button>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto border border-slate-200 rounded-md">
+                    <table className="w-full text-xs">
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th className="text-left px-2 py-1.5 font-semibold text-slate-700">Item Name</th>
+                          <th className="text-left px-2 py-1.5 font-semibold text-slate-700 w-24">HSN/SAC</th>
+                          <th className="text-right px-2 py-1.5 font-semibold text-slate-700 w-16">Qty</th>
+                          <th className="text-right px-2 py-1.5 font-semibold text-slate-700 w-28">Rate (₹)</th>
+                          <th className="text-right px-2 py-1.5 font-semibold text-slate-700 w-28">Amount</th>
+                          <th className="w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(form.line_items || []).map((it, i) => {
+                          const amount = (parseFloat(it.quantity) || 0) * (parseFloat(it.rate) || 0);
+                          return (
+                            <tr key={i} className="border-t border-slate-100">
+                              <td className="px-1.5 py-1">
+                                <input value={it.item_name} onChange={(e) => updateLineItem(i, { item_name: e.target.value })}
+                                  className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs"
+                                  data-testid={`li-name-${i}`} />
+                              </td>
+                              <td className="px-1.5 py-1">
+                                <input value={it.hsn} onChange={(e) => updateLineItem(i, { hsn: e.target.value })}
+                                  className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs"
+                                  data-testid={`li-hsn-${i}`} />
+                              </td>
+                              <td className="px-1.5 py-1">
+                                <input type="number" value={it.quantity} onChange={(e) => updateLineItem(i, { quantity: e.target.value })}
+                                  className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs text-right"
+                                  data-testid={`li-qty-${i}`} />
+                              </td>
+                              <td className="px-1.5 py-1">
+                                <input type="number" value={it.rate} onChange={(e) => updateLineItem(i, { rate: e.target.value })}
+                                  className="w-full px-1.5 py-1 border border-slate-200 rounded text-xs text-right"
+                                  data-testid={`li-rate-${i}`} />
+                              </td>
+                              <td className="px-1.5 py-1 text-right font-semibold text-[#0a355e]" data-testid={`li-amount-${i}`}>
+                                ₹ {amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-1 py-1 text-center">
+                                <button type="button" onClick={() => removeLineItem(i)}
+                                  className="text-red-500 hover:text-red-700 text-base"
+                                  data-testid={`li-remove-${i}`}>×</button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {(form.line_items || []).length === 0 && (
+                          <tr><td colSpan={6} className="px-2 py-3 text-center text-slate-400">No items yet — click "Auto-fill from Tech Breakdown" or "+ Add Row".</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Residential subsidy + savings */}
+              {isResidential && (
+                <>
+                  <Field label="PMSG Subsidy Amount (₹) — optional"
+                    value={form.subsidy_amount} type="number"
+                    onChange={(v) => setForm({ ...form, subsidy_amount: v.replace(/[^\d.]/g, "") })}
+                    testid="inv-subsidy-amount" />
+                  <div className="flex items-end pb-1">
+                    <label className="flex items-center gap-2 text-sm text-slate-700">
+                      <input type="checkbox" checked={form.show_savings}
+                        onChange={(e) => setForm({ ...form, show_savings: e.target.checked })}
+                        data-testid="inv-show-savings" />
+                      <span>Show Savings Estimate</span>
+                    </label>
+                  </div>
+                  {form.show_savings && (
+                    <Field label="Expected Annual Savings (₹/year)"
+                      value={form.expected_savings_per_year} type="number"
+                      onChange={(v) => setForm({ ...form, expected_savings_per_year: v.replace(/[^\d.]/g, "") })}
+                      testid="inv-savings-amount" />
+                  )}
+                </>
+              )}
 
               <div className="md:col-span-2">
                 <Field label="Notes (optional)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} testid="inv-notes" />

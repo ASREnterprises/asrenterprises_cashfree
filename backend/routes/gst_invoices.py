@@ -39,13 +39,18 @@ db = get_db()
 BUSINESS = {
     "name": "ASR ENTERPRISES",
     "gstin": "10CCFPK3447Q3ZD",
-    "address_line1": "Shop no 10, AMAN SKS COMPLEX",
-    "address_line2": "Khagaul Saguna Road, Patna",
+    # GST-registered address (mandatory — appears FIRST on every PDF / email)
+    "address_line1": "Dwarikapuri, Khagaul",
+    "address_line2": "Patna - 801105",
+    # Office / customer-communication address (shown below the GST address)
+    "office_line1": "Shop No 10, Aman SKS Complex",
+    "office_line2": "Saguna Road, Patna - 801503",
     "state": "Bihar",
     "state_code": "10",  # Bihar GST state code
-    "pincode": "801503",
+    "pincode": "801105",  # GST registered pincode
     "phone": "9296389097",
-    "email": os.environ.get("BUSINESS_EMAIL", "asrenterprisespatna@gmail.com"),
+    # Branded support email — same as Resend verified sender
+    "email": os.environ.get("BUSINESS_EMAIL", "support@asrenterprises.in"),
     "bank_name": "SBI",
     "bank_account": "41637349306",
     "bank_ifsc": "SBIN0018105",
@@ -355,6 +360,12 @@ class CreateInvoiceRequest(BaseModel):
     invoice_date: Optional[str] = None   # Optional ISO 'YYYY-MM-DD' override
                                          # — lets admin back-date quotations/invoices
                                          # for legacy PM Surya Ghar projects.
+    # Structured technical breakdown (panels + inverter + system type)
+    # — surfaced on the PDF + mirrored on quotation→invoice convert.
+    technical_breakdown: Optional[Dict[str, Any]] = None
+    # PMSG residential extras (informational)
+    subsidy_amount: float = 0.0
+    savings_per_year: float = 0.0
     target_grand_total: Optional[float] = None
     # When set, after GST computation the engine nudges the biggest line item by
     # ≤ ₹1 so the final grand_total exactly matches this GST-inclusive number.
@@ -588,10 +599,11 @@ table.items td.num { text-align: right; font-variant-numeric: tabular-nums; }
     <div class="info">
     <h1>{{BUSINESS_NAME}}</h1>
     <div class="muted">
-      {{BUSINESS_ADDR1}}<br/>
-      {{BUSINESS_ADDR2}} — {{BUSINESS_PIN}}<br/>
-      GSTIN: <b>{{BUSINESS_GSTIN}}</b> &nbsp;|&nbsp; State: {{BUSINESS_STATE}} ({{BUSINESS_STATE_CODE}})<br/>
-      Phone: {{BUSINESS_PHONE}} &nbsp;|&nbsp; Email: {{BUSINESS_EMAIL}}
+      <b>GSTIN: {{BUSINESS_GSTIN}}</b><br/>
+      <b>GST Address:</b> {{BUSINESS_ADDR1}}, {{BUSINESS_ADDR2}}<br/>
+      <b>Office:</b> {{BUSINESS_OFFICE1}}, {{BUSINESS_OFFICE2}}<br/>
+      State: {{BUSINESS_STATE}} ({{BUSINESS_STATE_CODE}}) &nbsp;|&nbsp; Phone: {{BUSINESS_PHONE}}<br/>
+      Email: {{BUSINESS_EMAIL}}
     </div>
     </div>
   </div>
@@ -780,6 +792,8 @@ def render_invoice_html(doc: dict, computed: dict) -> str:
         "{{BUSINESS_NAME}}": _esc(BUSINESS["name"]),
         "{{BUSINESS_ADDR1}}": _esc(BUSINESS["address_line1"]),
         "{{BUSINESS_ADDR2}}": _esc(BUSINESS["address_line2"]),
+        "{{BUSINESS_OFFICE1}}": _esc(BUSINESS.get("office_line1", "")),
+        "{{BUSINESS_OFFICE2}}": _esc(BUSINESS.get("office_line2", "")),
         "{{BUSINESS_PIN}}": _esc(BUSINESS["pincode"]),
         "{{BUSINESS_GSTIN}}": _esc(BUSINESS["gstin"]),
         "{{BUSINESS_STATE}}": _esc(BUSINESS["state"]),
@@ -1071,7 +1085,10 @@ async def send_invoice_email(doc: dict, pdf_bytes: bytes) -> Dict:
         + (f"<p>This quotation is valid for 15 days from the date of issue.</p>" if is_quote else "")
         + f"<p>Thank you for choosing <b>{BUSINESS['name']}</b>.</p>"
         + f"<p>— ASR Enterprises<br/>"
-        + f"GSTIN: {BUSINESS['gstin']}<br/>Phone: {BUSINESS['phone']}</p>"
+        + f"GSTIN: {BUSINESS['gstin']}<br/>"
+        + f"GST Address: {BUSINESS['address_line1']}, {BUSINESS['address_line2']}<br/>"
+        + f"Office: {BUSINESS.get('office_line1','')}, {BUSINESS.get('office_line2','')}<br/>"
+        + f"Phone: {BUSINESS['phone']} &nbsp;|&nbsp; Email: {BUSINESS['email']}</p>"
     )
     # Sender: ALWAYS the branded ASR Enterprises verified-domain address.
     # Backend hard-rejects banned domains (resend.dev / gmail / outlook etc.)
@@ -1249,6 +1266,15 @@ async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
     pdf_path.write_bytes(pdf_bytes)
     doc["pdf_path"] = str(pdf_path)
     doc["pdf_url"] = f"/api/gst/invoices/{doc['id']}/pdf"
+    # Persist structured technical breakdown (panels + inverter + system type)
+    if getattr(req, "technical_breakdown", None):
+        doc["technical_breakdown"] = req.technical_breakdown
+    if getattr(req, "subsidy_amount", 0):
+        doc["subsidy_amount"] = float(req.subsidy_amount)
+        # PMSG net payable hint stored alongside grand_total for the PDF.
+        doc["net_payable"] = max(0.0, float(doc.get("grand_total", 0)) - float(req.subsidy_amount))
+    if getattr(req, "savings_per_year", 0):
+        doc["savings_per_year"] = float(req.savings_per_year)
     await db.invoices.insert_one(doc.copy())
 
     # Fire-and-forget notifications
@@ -1629,7 +1655,11 @@ async def _send_email_to_recipients(doc: dict, pdf_bytes: bytes, to_list: list,
         f"<p>Sharing GST Invoice <b>{_esc(doc.get('invoice_number'))}</b> for "
         f"<b>{_esc(cust.get('name', 'Customer'))}</b> — total <b>₹{doc.get('grand_total', 0):,.2f}</b>.</p>"
         f"<p>Filing reference is attached.</p>"
-        f"<p>— ASR Enterprises<br/>GSTIN: {BUSINESS['gstin']}</p>"
+        f"<p>— ASR Enterprises<br/>"
+        f"GSTIN: {BUSINESS['gstin']}<br/>"
+        f"GST Address: {BUSINESS['address_line1']}, {BUSINESS['address_line2']}<br/>"
+        f"Office: {BUSINESS.get('office_line1','')}, {BUSINESS.get('office_line2','')}<br/>"
+        f"Phone: {BUSINESS['phone']} &nbsp;|&nbsp; Email: {BUSINESS['email']}</p>"
     )
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -1728,7 +1758,10 @@ async def _run_ca_monthly_batch() -> Dict:
                 f"<p>Sharing all <b>{len(invoices)}</b> GST invoices for <b>{month_label}</b> "
                 f"for filing reference.</p>{list_html}"
                 f"<p>Total billed: <b>₹{sum(i.get('grand_total', 0) for i in invoices):,.2f}</b></p>"
-                f"<p>— ASR Enterprises<br/>GSTIN: {BUSINESS['gstin']}</p>"
+                f"<p>— ASR Enterprises<br/>"
+                f"GSTIN: {BUSINESS['gstin']}<br/>"
+                f"GST Address: {BUSINESS['address_line1']}, {BUSINESS['address_line2']}<br/>"
+                f"Phone: {BUSINESS['phone']} &nbsp;|&nbsp; Email: {BUSINESS['email']}</p>"
             )
             async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.post(
@@ -2001,6 +2034,10 @@ async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotat
     pdf_path.write_bytes(pdf_bytes)
     new_inv["pdf_path"] = str(pdf_path)
     new_inv["pdf_url"] = f"/api/gst/invoices/{new_inv['id']}/pdf"
+    # Mirror structured technical breakdown from the source quotation
+    # so the invoice carries panel / inverter / system-type details.
+    if quote.get("technical_breakdown"):
+        new_inv["technical_breakdown"] = quote["technical_breakdown"]
 
     await db.invoices.insert_one(new_inv.copy())
 

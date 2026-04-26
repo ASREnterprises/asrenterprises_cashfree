@@ -4695,13 +4695,8 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
         security_tracker.record_failed_attempt(client_ip, "Login lockout active")
         raise HTTPException(status_code=429, detail=message)
     
-    # STRICT CHECK: Only the registered owner can access the admin panel.
-    # Accept either the registered email OR the owner Staff ID (e.g. ASR1001) so
-    # Abhijeet can log in with the same Staff ID used elsewhere in the CRM.
-    user_id_norm = user_id.lower()
-    is_owner_email = user_id_norm == OWNER_EMAIL.lower()
-    is_owner_staff_id = user_id.strip().upper() == OWNER_STAFF_ID.upper()
-    if not (is_owner_email or is_owner_staff_id):
+    # STRICT CHECK: Only the registered owner email can access the admin panel
+    if user_id.lower() != OWNER_EMAIL.lower():
         record_failed_login(client_ip, user_id)
         logger.warning(f"Unauthorized admin login attempt with '{user_id}' from IP: {client_ip}")
         raise HTTPException(
@@ -5330,27 +5325,35 @@ async def staff_login(request: Request, data: Dict[str, Any]):
     if not check_login_rate_limit(client_ip):
         raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
     
-    staff_id = data.get("staff_id", "").strip().upper()
+    staff_id_raw = (data.get("staff_id") or data.get("identifier") or "").strip()
     password = data.get("password", "")
-    if not staff_id or not password:
-        raise HTTPException(status_code=400, detail="Staff ID and Password are required")
+    if not staff_id_raw or not password:
+        raise HTTPException(status_code=400, detail="Staff ID / Email and Password are required")
     password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
+
+    # Build a flexible match: accept either Staff ID (ASR1003) or registered Email
+    looks_like_email = "@" in staff_id_raw
+    if looks_like_email:
+        identity_filter = {"email": staff_id_raw.lower()}
+    else:
+        identity_filter = {"staff_id": staff_id_raw.upper()}
+    staff_id = staff_id_raw.upper() if not looks_like_email else staff_id_raw.lower()
+
     # Find staff with hashed password
     staff = await db.crm_staff_accounts.find_one(
-        {"staff_id": staff_id, "password_hash": password_hash, "is_active": True},
+        {**identity_filter, "password_hash": password_hash, "is_active": True},
         {"_id": 0, "password_hash": 0}
     )
-    
+
     # Also try with plain password for backwards compatibility
     if not staff:
         staff = await db.crm_staff_accounts.find_one(
-            {"staff_id": staff_id, "password": password, "is_active": True},
+            {**identity_filter, "password": password, "is_active": True},
             {"_id": 0, "password": 0}
         )
     
     if not staff:
-        raise HTTPException(status_code=401, detail="Invalid Staff ID or Password")
+        raise HTTPException(status_code=401, detail="Invalid Staff ID / Email or Password")
     
     # Block Super Admin / Admin accounts — they must use Admin Login
     if (staff.get("role") or "").lower() in {"super_admin", "admin"} or staff.get("is_owner") is True or staff.get("is_super_admin") is True:
@@ -5360,7 +5363,7 @@ async def staff_login(request: Request, data: Dict[str, Any]):
         )
     
     reset_failed_login(client_ip)
-    logger.info(f"Successful staff login for {staff_id} from IP: {client_ip}")
+    logger.info(f"Successful staff login for {staff.get('staff_id')} ({staff_id_raw}) from IP: {client_ip}")
     
     # Issue a session token for the staff portal
     token = secrets.token_urlsafe(32)
@@ -5653,10 +5656,21 @@ async def staff_send_otp_smart(data: Dict[str, Any]):
     endpoint is intentionally unauthenticated (the Staff Login page hits it
     BEFORE the user has a session)."""
     import asyncio
-    staff_id = (data.get("staff_id") or "").strip().upper()
+    raw_id = (data.get("staff_id") or data.get("identifier") or "").strip()
     channel = (data.get("channel") or "email").lower()
     if channel not in ("email", "whatsapp"):
         raise HTTPException(400, "channel must be 'email' or 'whatsapp'")
+    if not raw_id:
+        raise HTTPException(400, "Staff ID or Email is required")
+
+    # Resolve raw_id (Staff ID or registered email) → staff doc.
+    looks_like_email = "@" in raw_id
+    identity_filter = {"email": raw_id.lower()} if looks_like_email else {"staff_id": raw_id.upper()}
+    staff = await db.crm_staff_accounts.find_one(
+        {**identity_filter, "is_active": True}, {"_id": 0})
+    if not staff:
+        raise HTTPException(404, "Staff ID / Email not found or account inactive")
+    staff_id = (staff.get("staff_id") or raw_id.upper()).strip().upper()
 
     # 60-second cooldown per staff_id (uses otp_storage with a special key)
     cooldown_key = f"staff_otp_cooldown:{staff_id}"
@@ -5665,10 +5679,6 @@ async def staff_send_otp_smart(data: Dict[str, Any]):
         wait = int(60 - (time.time() - last.get("timestamp", 0)))
         raise HTTPException(429, f"Please wait {wait} seconds before requesting another OTP.")
 
-    staff = await db.crm_staff_accounts.find_one(
-        {"staff_id": staff_id, "is_active": True}, {"_id": 0})
-    if not staff:
-        raise HTTPException(404, "Staff ID not found or account inactive")
     if (staff.get("role") or "").lower() in {"super_admin", "admin"}:
         raise HTTPException(403, "Admin account — please use the Admin Login page.")
 
@@ -5748,23 +5758,27 @@ async def staff_verify_otp(request: Request, data: Dict[str, Any]):
     """
     client_ip = get_client_ip(request)
 
-    staff_id = data.get("staff_id", "").strip().upper()
+    raw_id = (data.get("staff_id") or data.get("identifier") or "").strip()
     otp = data.get("otp", "").strip()
+    if not raw_id:
+        raise HTTPException(status_code=400, detail="Staff ID or Email is required")
+
+    # Resolve raw_id (Staff ID or Email) → staff doc + canonical staff_id.
+    looks_like_email = "@" in raw_id
+    identity_filter = {"email": raw_id.lower()} if looks_like_email else {"staff_id": raw_id.upper()}
+    staff = await db.crm_staff_accounts.find_one(
+        {**identity_filter, "is_active": True},
+        {"_id": 0, "password_hash": 0}
+    )
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    staff_id = (staff.get("staff_id") or raw_id.upper()).strip().upper()
 
     # Verify OTP first; only count this attempt against the rate limit if it fails.
     if not verify_login_otp(f"staff:{staff_id}", otp):
         if not check_login_rate_limit(client_ip):
             raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
-    
-    # Get staff details
-    staff = await db.crm_staff_accounts.find_one(
-        {"staff_id": staff_id, "is_active": True},
-        {"_id": 0, "password_hash": 0}
-    )
-    
-    if not staff:
-        raise HTTPException(status_code=404, detail="Staff not found")
     
     # Block admin/super_admin accounts — they must use Admin Login
     if (staff.get("role") or "").lower() in {"super_admin", "admin"}:

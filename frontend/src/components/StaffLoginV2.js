@@ -58,7 +58,12 @@ export const StaffLogin = () => {
 
   const persistLogin = (staff, token) => {
     if (!routeByRole(staff, navigate, setError)) return;
+    // CRITICAL: persist the FULL staff object as JSON so that StaffPortal.js
+    // (which reads localStorage["asrStaffData"]) can hydrate. Earlier versions
+    // only set individual keys → portal kicked the user back to /staff/login
+    // because data was missing. This is the fix for that bounce loop.
     localStorage.setItem("asrStaffAuth", "true");
+    localStorage.setItem("asrStaffData", JSON.stringify(staff || {}));
     localStorage.setItem("asrStaffId", (staff?.staff_id || "").toUpperCase());
     localStorage.setItem("asrStaffName", staff?.name || "");
     localStorage.setItem("asrStaffRole", staff?.role || "staff");
@@ -89,8 +94,10 @@ export const StaffLogin = () => {
     e?.preventDefault?.();
     setError(""); setSuccess(""); setLoading(true);
     try {
+      const raw = (staffId || "").trim();
+      const looksLikeEmail = raw.includes("@");
       const r = await axios.post(`${API}/staff/login`, {
-        staff_id: (staffId || "").trim().toUpperCase(),
+        staff_id: looksLikeEmail ? raw.toLowerCase() : raw.toUpperCase(),
         password,
       });
       if (r.data?.success && r.data?.staff) {
@@ -101,16 +108,18 @@ export const StaffLogin = () => {
       }
     } catch (err) {
       const detail = err?.response?.data?.detail;
-      setError(typeof detail === "string" ? detail : "Invalid Staff ID or password.");
+      setError(typeof detail === "string" ? detail : "Invalid Staff ID / Email or password.");
     } finally { setLoading(false); }
   };
 
   const sendOtp = async () => {
-    if (!staffId || staffId.length < 4) { setError("Enter your Staff ID first"); return; }
+    if (!staffId || staffId.length < 4) { setError("Enter your Staff ID or Email first"); return; }
     setError(""); setSuccess(""); setLoading(true);
+    const raw = staffId.trim();
+    const idNorm = raw.includes("@") ? raw.toLowerCase() : raw.toUpperCase();
     try {
       const r = await axios.post(`${API}/staff/send-otp-smart`, {
-        staff_id: staffId.trim().toUpperCase(), channel: otpChannel,
+        staff_id: idNorm, channel: otpChannel,
       });
       if (r.data?.success) {
         setOtpSent(true);
@@ -129,9 +138,11 @@ export const StaffLogin = () => {
     e?.preventDefault?.();
     if (otp.length < 6) { setError("Enter the 6-digit OTP"); return; }
     setError(""); setLoading(true);
+    const raw = staffId.trim();
+    const idNorm = raw.includes("@") ? raw.toLowerCase() : raw.toUpperCase();
     try {
       const r = await axios.post(`${API}/staff/verify-otp`, {
-        staff_id: staffId.trim().toUpperCase(), otp,
+        staff_id: idNorm, otp,
       });
       if (r.data?.success && r.data?.staff) {
         setSuccess("Verified. Redirecting…");
@@ -189,19 +200,25 @@ export const StaffLogin = () => {
             </div>
           )}
 
-          {/* Staff ID always required */}
+          {/* Staff ID or Email always required */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Staff ID</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Staff ID or Email</label>
             <div className="relative">
               <IdCard className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text" value={staffId} required
-                onChange={(e) => setStaffId(e.target.value.toUpperCase())}
-                placeholder="Staff ID"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // Auto-uppercase only if the user is typing a Staff ID (no '@')
+                  setStaffId(v.includes("@") ? v : v.toUpperCase());
+                }}
+                placeholder="ASR1003 or your.email@asrenterprises.in"
+                autoComplete="username"
                 className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 data-testid="staff-login-staffid"
               />
             </div>
+            <p className="text-[11px] text-gray-400 mt-1">You can sign in with your Staff ID or your registered email.</p>
           </div>
 
           {mode === "password" ? (

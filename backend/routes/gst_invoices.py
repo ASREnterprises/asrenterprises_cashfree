@@ -494,6 +494,13 @@ def compute_gst(items: List[InvoiceLineItem], customer_state: str) -> Dict:
             divisor = (Decimal("1") + rate / Decimal("100"))
             taxable = (gross / divisor).quantize(Decimal("0.01"), ROUND_HALF_UP)
             gst_amount = (gross - taxable).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            # Mutate source line so persisted invoice doc reflects pre-GST values
+            it.taxable_value = float(taxable)
+            try:
+                it.unit_price = float(taxable / Decimal(str(it.quantity or 1)))
+            except Exception:
+                pass
+            it.gst_inclusive = False  # Already converted — don't double-process
         else:
             taxable = gross
             gst_amount = (taxable * rate / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)

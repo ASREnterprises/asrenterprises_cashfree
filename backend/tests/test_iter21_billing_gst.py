@@ -191,7 +191,10 @@ def test_p0_polycab_cable_152_18pct(invoice_helper):
     # Per-line gst_rate respected
     li = inv["line_items"][0]
     assert float(li["gst_rate"]) == 18.0
-    assert li.get("gst_inclusive") is True
+    # Note: compute_gst flips gst_inclusive to False AFTER back-calculating
+    # so subsequent calls (e.g. PDF regenerate) don't double-process. The
+    # taxable_value being 128.81 below proves the flag did its job.
+    assert li.get("gst_inclusive") is False
     # taxable_value must have been overwritten with back-calculated number
     assert abs(float(li["taxable_value"]) - 128.81) <= 0.02, f"line taxable_value not back-calculated: {li['taxable_value']}"
 

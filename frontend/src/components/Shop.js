@@ -668,12 +668,13 @@ export const ShopPage = () => {
                         <span className="text-lg font-bold text-gray-900">₹{product.price.toLocaleString()}</span>
                       )}
                       {product.category === "wire" && <span className="text-gray-400 text-[10px] ml-1">/meter</span>}
+                      <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Inclusive of GST{product.gst_rate ? ` (${product.gst_rate}%)` : ""}</p>
                     </div>
 
                     {/* Delivery Info */}
                     <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-2">
                       <Truck className="w-3 h-3" />
-                      <span>Delivery across Bihar</span>
+                      <span>Free delivery on orders above ₹999 · Bihar-wide</span>
                     </div>
 
                     {/* Stock */}
@@ -771,12 +772,27 @@ export const ShopPage = () => {
               )}
             </div>
             {cart.length > 0 && (
-              <div className="border-t p-4 bg-gray-50">
-                <div className="flex justify-between text-gray-800 font-bold text-lg mb-3"><span>Total</span><span>₹{cartTotal.toLocaleString()}</span></div>
+              <div className="border-t p-4 bg-gray-50 space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Subtotal ({cartItemCount} item{cartItemCount > 1 ? "s" : ""})</span>
+                  <span>₹{cartTotal.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span className="flex items-center gap-1"><BadgePercent className="w-3 h-3 text-emerald-600" /> GST</span>
+                  <span className="text-emerald-600">Included</span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span className="flex items-center gap-1"><Truck className="w-3 h-3 text-emerald-600" /> Delivery</span>
+                  <span className={cartTotal >= 999 ? "text-emerald-600 font-semibold" : ""}>{cartTotal >= 999 ? "FREE" : "Calculated at checkout"}</span>
+                </div>
+                <div className="flex justify-between text-gray-800 font-bold text-lg pt-2 border-t border-gray-200"><span>Total Payable</span><span>₹{cartTotal.toLocaleString()}</span></div>
                 <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
                   className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3.5 rounded-lg font-bold text-base transition shadow-lg shadow-amber-500/30"
                   data-testid="proceed-checkout-btn"
-                >PLACE ORDER</button>
+                >PROCEED TO CHECKOUT</button>
+                <p className="text-[10px] text-center text-gray-400 flex items-center justify-center gap-1 pt-1">
+                  <Lock className="w-3 h-3" /> Secure payment via Cashfree · 100% encrypted
+                </p>
               </div>
             )}
           </div>
@@ -911,9 +927,11 @@ export const ShopPage = () => {
                   <div key={item.product_id} className="flex justify-between text-sm text-gray-600 py-1"><span>{item.product_name} x{item.quantity}</span><span>₹{(item.price * item.quantity).toLocaleString()}</span></div>
                 ))}
                 <div className="border-t mt-2 pt-2 space-y-1">
-                  <div className="flex justify-between text-sm text-gray-600"><span>Subtotal</span><span>₹{cartTotal.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-sm text-gray-600"><span>Delivery</span><span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}</span></div>
-                  <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t"><span>Total</span><span className="text-amber-600">₹{grandTotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-sm text-gray-600"><span>Subtotal ({cartItemCount} item{cartItemCount > 1 ? "s" : ""})</span><span>₹{cartTotal.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs text-gray-500"><span className="flex items-center gap-1"><BadgePercent className="w-3 h-3 text-emerald-600" /> GST</span><span className="text-emerald-600">Included in price</span></div>
+                  <div className="flex justify-between text-sm text-gray-600"><span>Delivery {deliveryFee === 0 && cartTotal >= 999 ? "(FREE on ₹999+)" : ""}</span><span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`}</span></div>
+                  <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t"><span>Total Payable</span><span className="text-amber-600">₹{grandTotal.toLocaleString()}</span></div>
+                  <p className="text-[10px] text-gray-400 flex items-center gap-1 pt-1"><Lock className="w-3 h-3" /> Encrypted via Cashfree · 100% secure</p>
                 </div>
               </div>
               <button onClick={handleCheckout} disabled={placingOrder || !otpVerified}
@@ -1029,6 +1047,17 @@ export const ShopPage = () => {
                     </div>
                   ) : <span className="text-2xl sm:text-3xl font-bold text-gray-900">₹{selectedProduct.price.toLocaleString()}</span>}
                   {selectedProduct.category === "wire" && <p className="text-gray-500 text-sm mt-1">Price per meter</p>}
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap text-xs">
+                    <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded">
+                      <BadgePercent className="w-3 h-3" /> Inclusive of GST{selectedProduct.gst_rate ? ` (${selectedProduct.gst_rate}%)` : ""}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                      <Truck className="w-3 h-3" /> {selectedProduct.price >= 999 || (selectedProduct.sale_price && selectedProduct.sale_price >= 999) ? "FREE delivery in Bihar" : "Delivery from ₹49"}
+                    </span>
+                    {selectedProduct.hsn_sac && (
+                      <span className="text-gray-400 text-[10px]">HSN: {selectedProduct.hsn_sac}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Availability */}

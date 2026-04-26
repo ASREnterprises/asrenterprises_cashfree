@@ -190,6 +190,9 @@ export const ProductManagement = () => {
     stock: "",
     sku: "",
     brand: "",
+    gst_rate: 18,
+    hsn_sac: "",
+    is_gst_inclusive: true,
     warranty: "",
     is_active: true,
     is_featured: false,
@@ -465,6 +468,9 @@ export const ProductManagement = () => {
       stock: product.stock?.toString() || "",
       sku: product.sku || "",
       brand: product.brand || "",
+      gst_rate: product.gst_rate ?? 18,
+      hsn_sac: product.hsn_sac || "",
+      is_gst_inclusive: product.is_gst_inclusive !== false,
       warranty: product.warranty || "",
       is_active: product.is_active,
       is_featured: product.is_featured,
@@ -1360,6 +1366,34 @@ export const ProductManagement = () => {
                       />
                     </div>
                   )}
+
+                  {/* GST settings — applies to ALL categories. All shop prices are GST-inclusive. */}
+                  <div>
+                    <label className="text-gray-500 text-sm mb-1 block">GST Rate <span className="text-red-500">*</span></label>
+                    <select
+                      value={formData.gst_rate}
+                      onChange={(e) => setFormData({...formData, gst_rate: parseFloat(e.target.value)})}
+                      className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200 rounded-lg text-[#0a355e] font-semibold"
+                      data-testid="product-form-gst-rate"
+                    >
+                      <option value={5}>5% — Solar Panel / Inverter / Battery / MC4 / Mounting</option>
+                      <option value={12}>12% — Misc</option>
+                      <option value={18}>18% — Cables, Accessories, AMC, Services (default)</option>
+                      <option value={28}>28% — Luxury</option>
+                    </select>
+                    <p className="text-xs text-emerald-700 mt-1">Note: All shop prices are GST-inclusive — customer pays exactly the displayed price.</p>
+                  </div>
+                  <div>
+                    <label className="text-gray-500 text-sm mb-1 block">HSN / SAC Code</label>
+                    <input
+                      type="text"
+                      value={formData.hsn_sac || ""}
+                      onChange={(e) => setFormData({...formData, hsn_sac: e.target.value})}
+                      className="w-full px-4 py-2 bg-white shadow-lg border border-sky-200 rounded-lg text-[#0a355e]"
+                      placeholder="8541 (panels) · 8504 (inverter) · 9954 (services)"
+                      data-testid="product-form-hsn"
+                    />
+                  </div>
 
                   {/* Warranty - Hidden for Wire and Service */}
                   {formData.category !== "wire" && formData.category !== "service" && (

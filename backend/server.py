@@ -1831,6 +1831,9 @@ class Product(BaseModel):
     stock: int = 0
     sku: str = ""
     brand: str = ""
+    gst_rate: float = 18.0  # 5 for solar PV/inverter/battery/MC4/mounting; 18 for cables/services/accessories
+    hsn_sac: str = ""        # HSN/SAC code (e.g. 8541 for solar cells, 8504 for inverters)
+    is_gst_inclusive: bool = True  # All shop prices are GST-inclusive (customer pays the displayed amount)
     specifications: Dict[str, Any] = {}
     electrical_specs: Dict[str, str] = {}   # e.g. {"Peak Power": "730W", "Efficiency": "23.5%"}
     mechanical_specs: Dict[str, str] = {}   # e.g. {"Weight": "38.3 kg", "Frame": "Anodized Aluminium"}

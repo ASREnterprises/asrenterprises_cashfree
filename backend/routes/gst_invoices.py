@@ -289,9 +289,11 @@ class InvoiceLineItem(BaseModel):
     hsn_sac: str
     quantity: float = 1.0
     unit_price: float
-    taxable_value: float  # qty * unit_price (pre-GST)
+    taxable_value: float  # qty * unit_price (pre-GST). For gst_inclusive=True this is back-calculated.
     gst_rate: float  # 5 or 18
     kind: str = "goods"  # goods | service
+    gst_inclusive: bool = False  # If True, treat unit_price as GST-INCLUSIVE
+                                  # (back-calc taxable so customer pays exactly the displayed price)
 
 
 class PaymentEntry(BaseModel):
@@ -482,9 +484,20 @@ def compute_gst(items: List[InvoiceLineItem], customer_state: str) -> Dict:
     igst_total = Decimal("0")
     enriched_rows = []
     for it in items:
-        taxable = Decimal(str(it.taxable_value))
         rate = Decimal(str(it.gst_rate))
-        gst_amount = (taxable * rate / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        gross = Decimal(str(it.taxable_value))  # the value *as supplied* (may be incl/excl GST)
+
+        if getattr(it, "gst_inclusive", False) and rate > 0:
+            # Back-calculate taxable from the GST-inclusive line value so the
+            # customer pays exactly the displayed price (₹152 stays ₹152, not
+            # ₹159.60). taxable = gross / (1 + rate/100)
+            divisor = (Decimal("1") + rate / Decimal("100"))
+            taxable = (gross / divisor).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            gst_amount = (gross - taxable).quantize(Decimal("0.01"), ROUND_HALF_UP)
+        else:
+            taxable = gross
+            gst_amount = (taxable * rate / Decimal("100")).quantize(Decimal("0.01"), ROUND_HALF_UP)
+
         if is_intra_state:
             cgst = (gst_amount / 2).quantize(Decimal("0.01"), ROUND_HALF_UP)
             sgst = gst_amount - cgst
@@ -496,8 +509,13 @@ def compute_gst(items: List[InvoiceLineItem], customer_state: str) -> Dict:
         cgst_total += cgst
         sgst_total += sgst
         igst_total += igst
+        # Also overwrite the line's taxable_value so downstream consumers
+        # (PDF renderer, frontend table) show the correct pre-GST amount.
+        line_dump = it.model_dump()
+        line_dump["taxable_value"] = float(taxable)
+        line_dump["unit_price"] = float(taxable / Decimal(str(it.quantity or 1))) if it.quantity else line_dump["unit_price"]
         enriched_rows.append({
-            **it.model_dump(),
+            **line_dump,
             "cgst_rate": float(rate / 2) if is_intra_state else 0,
             "sgst_rate": float(rate / 2) if is_intra_state else 0,
             "igst_rate": 0 if is_intra_state else float(rate),
@@ -2304,7 +2322,7 @@ async def invoice_auto_issue_from_payment(order: dict) -> Optional[dict]:
 
         # Derive project type from the order metadata
         if ptype == "shop_order":
-            project_type = "solar_goods"   # shop sales default to 5% goods
+            project_type = "shop_order"     # NEW: per-product GST, GST-INCLUSIVE prices
         elif booking == "book_solar_service" or ptype in {"book_solar_service", "service", "booking"}:
             project_type = "service"       # paid service bookings = 18% SAC
         else:
@@ -2324,11 +2342,64 @@ async def invoice_auto_issue_from_payment(order: dict) -> Optional[dict]:
             state_code=order.get("customer_state_code", "10"),
             pincode=order.get("customer_pincode", ""),
         )
+
+        # ── SHOP ORDER: build per-line items from the actual cart, treating
+        # each line as GST-INCLUSIVE so the invoice grand_total exactly
+        # matches what the customer paid. Uses each product's gst_rate
+        # (defaulting to 18% when missing).
+        explicit_items: Optional[List[InvoiceLineItem]] = None
+        target_total: Optional[float] = None
+        if project_type == "shop_order":
+            target_total = amount
+            shop_doc = await db.orders.find_one(
+                {"$or": [{"cashfree_order_id": cf_order_id},
+                         {"id": order.get("shop_order_id", "__none__")}]},
+                {"_id": 0, "items": 1, "order_number": 1},
+            )
+            cart_items = (shop_doc or {}).get("items") or order.get("items") or []
+            if cart_items:
+                explicit_items = []
+                for it in cart_items:
+                    pid = it.get("product_id")
+                    qty = float(it.get("quantity") or 1)
+                    unit_inclusive = float(it.get("unit_price") or it.get("price") or 0)
+                    line_total_incl = float(it.get("total_price") or unit_inclusive * qty)
+                    if line_total_incl <= 0:
+                        continue
+                    gst_rate = it.get("gst_rate")
+                    hsn = it.get("hsn_sac") or HSN_SOLAR_PANEL
+                    if (gst_rate is None or pid) and pid:
+                        prod = await db.products.find_one({"id": pid}, {"_id": 0, "gst_rate": 1, "hsn_sac": 1})
+                        if prod:
+                            if gst_rate is None:
+                                gst_rate = prod.get("gst_rate")
+                            hsn = prod.get("hsn_sac") or hsn
+                    if gst_rate is None:
+                        # Heuristic fallback: solar/panel/inverter/battery/MC4/mounting → 5%, rest → 18%
+                        nm = (it.get("product_name") or "").lower()
+                        gst_rate = 5.0 if any(k in nm for k in (
+                            "panel", "inverter", "battery", "mc4", "mounting", "solar system"
+                        )) else 18.0
+                    explicit_items.append(InvoiceLineItem(
+                        description=it.get("product_name") or "Product",
+                        hsn_sac=str(hsn or HSN_SOLAR_PANEL),
+                        quantity=qty,
+                        unit_price=unit_inclusive,
+                        taxable_value=line_total_incl,  # GST-inclusive — back-calc happens in compute_gst
+                        gst_rate=float(gst_rate),
+                        kind="goods",
+                        gst_inclusive=True,
+                    ))
+
         req = CreateInvoiceRequest(
             customer=cust,
-            project_type=project_type,
+            project_type=project_type if project_type != "shop_order" else "mixed",
             total_amount=amount,
-            project_name=order.get("purpose") or order.get("notes") or "Solar Service",
+            project_name=order.get("purpose") or order.get("notes") or "Shop Order"
+                          if project_type == "shop_order"
+                          else (order.get("purpose") or order.get("notes") or "Solar Service"),
+            line_items=explicit_items,
+            target_grand_total=target_total,
             cashfree_order_id=cf_order_id,
             cashfree_payment_id=order.get("cf_payment_id") or order.get("cashfree_payment_id", ""),
             payment_method=str(order.get("payment_method", "")),

@@ -693,7 +693,7 @@ async def update_critical_settings(body: SettingsUpdateReq, admin=Depends(requir
     Hot-effective: whatsapp_access_token, whatsapp_phone_number_id, whatsapp_otp_template_name.
     Redeploy-needed: resend_api_key, cashfree_*  (read from env at boot)."""
     _consume_action_token(body.action_token,
-                          ("secure_action", "settings_update", "payment_update"))
+                          ("secure_action", "settings_update"))
 
     now = datetime.now(timezone.utc).isoformat()
     wa_patch: Dict[str, Any] = {}

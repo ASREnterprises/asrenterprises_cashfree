@@ -4648,12 +4648,25 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
     # Verify OTP — try modern prefixed keys first (admin:<email> /
     # admin:<mobile>) then the legacy key (just <email>) so we accept codes
     # issued by /admin/send-otp-smart AND the legacy /admin/send-otp.
+    # Mobile is read live from the admin doc so HR mobile updates take effect
+    # immediately without a process restart.
+    runtime_mobile = OWNER_MOBILE
+    try:
+        admin_doc = await db.crm_staff_accounts.find_one(
+            {"staff_id": OWNER_STAFF_ID, "is_owner": True},
+            {"_id": 0, "mobile": 1},
+        )
+        if admin_doc and admin_doc.get("mobile"):
+            runtime_mobile = re.sub(r"\D", "", str(admin_doc["mobile"]))[-10:] or OWNER_MOBILE
+    except Exception:
+        pass
+
     if (verify_login_otp(f"admin:{user_id}", otp)
-            or verify_login_otp(f"admin:{OWNER_MOBILE}", otp)
+            or verify_login_otp(f"admin:{runtime_mobile}", otp)
             or verify_login_otp(user_id, otp)):
         # Burn any sibling key still hanging around so the OTP can't be reused
         otp_storage.pop(f"admin:{user_id}", None)
-        otp_storage.pop(f"admin:{OWNER_MOBILE}", None)
+        otp_storage.pop(f"admin:{runtime_mobile}", None)
         otp_storage.pop(user_id, None)
         reset_failed_login(client_ip, user_id)
         logger.info(f"Successful admin login for {user_id} from IP: {client_ip}")
@@ -12773,6 +12786,7 @@ async def _next_advisor_id() -> str:
     return f"SA{max_n + 1}"
 
 @api_router.post("/agents/register")
+@api_router.post("/solar-advisor/signup")
 async def register_agent(agent: AgentRegistration):
     """Register a new Solar Advisor (creates a login account automatically)."""
     try:

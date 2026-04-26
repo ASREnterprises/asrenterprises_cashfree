@@ -4238,7 +4238,7 @@ async def admin_send_otp_smart(request: Request, data: Dict[str, Any]):
         "masked_recipient": masked_recipient,
         "expires_in": 300,  # seconds
         "max_attempts": 3,
-        "resend_in": 30,
+        "resend_in": OTP_COOLDOWN_SECONDS,
         "message": (
             f"OTP sent via {delivered_via.replace('+', ' + ')}. Valid for 5 minutes."
             + (" (auto-fallback used)" if delivered_extra else "")
@@ -4304,6 +4304,10 @@ async def admin_secure_otp_verify(request: Request, data: Dict[str, Any]):
     # The smart sender stores the SAME otp under both keys so verify accepts
     # either. Try email key first (most common), then mobile.
     ok = verify_login_otp(email_key, otp) or verify_login_otp(mobile_key, otp)
+    # Drop the parallel entry (verify_login_otp only deletes the one it matched)
+    if ok:
+        otp_storage.pop(email_key, None)
+        otp_storage.pop(mobile_key, None)
 
     audit = {
         "id": str(uuid.uuid4()),

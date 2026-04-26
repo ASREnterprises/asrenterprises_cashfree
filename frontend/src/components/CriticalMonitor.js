@@ -3,7 +3,8 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, Activity, AlertTriangle, MessageCircle, Mail, RefreshCw, Loader2,
-  CheckCircle2, XCircle, Send, Wallet, Bell, Search, ShieldAlert, Wrench, BarChart3,
+  CheckCircle2, XCircle, Send, Wallet, Search, ShieldAlert, Wrench, BarChart3,
+  Zap,
 } from "lucide-react";
 import DualOtpModal from "./DualOtpModal";
 
@@ -58,6 +59,22 @@ const ReasonChip = ({ reason }) => {
   return <span className={`text-xs px-2 py-1 rounded border ${cls} inline-block max-w-[260px] truncate`} title={reason}>{reason}</span>;
 };
 
+const Sparkline = ({ points, color = "#ef4444", height = 40 }) => {
+  if (!points || points.length === 0) return <div className="h-10 text-xs text-slate-400 flex items-center justify-center">No data</div>;
+  const max = Math.max(1, ...points.map(p => p.value));
+  const w = 280;
+  const dx = w / Math.max(1, points.length - 1);
+  const path = points.map((p, i) => `${i === 0 ? "M" : "L"} ${(i * dx).toFixed(1)} ${(height - (p.value / max) * (height - 4) - 2).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }}>
+      <path d={path} stroke={color} strokeWidth="2" fill="none" />
+      {points.map((p, i) => (
+        <circle key={i} cx={i * dx} cy={height - (p.value / max) * (height - 4) - 2} r={p.value > 0 ? 2.5 : 1.5} fill={color} />
+      ))}
+    </svg>
+  );
+};
+
 export const CriticalMonitor = () => {
   // Access gate — super admin only
   const isSuper = ((localStorage.getItem("asrAdminStaffId") || "").trim().toUpperCase() === "ASR1001")
@@ -67,11 +84,19 @@ export const CriticalMonitor = () => {
   const [health, setHealth] = useState(null);
   const [otpRows, setOtpRows] = useState([]);
   const [payRows, setPayRows] = useState([]);
+  const [trend, setTrend] = useState({ otp_failures: [], payment_failures: [] });
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState("");
   const [search, setSearch] = useState("");
+  const [errorTypeFilter, setErrorTypeFilter] = useState("all"); // all | user | system
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
+
+  // Entry gate — block UI until Super Admin verifies via Dual OTP
+  const [entryUnlocked, setEntryUnlocked] = useState(
+    sessionStorage.getItem("cm_entry_unlocked") === "1"
+  );
+  const [entryOtpOpen, setEntryOtpOpen] = useState(!entryUnlocked && isSuper);
 
   // Test tools state
   const [testOtpForm, setTestOtpForm] = useState({ channel: "auto" });
@@ -79,58 +104,72 @@ export const CriticalMonitor = () => {
   const [testOtpResult, setTestOtpResult] = useState(null);
   const [testPayResult, setTestPayResult] = useState(null);
 
-  // Mark-as-paid Dual-OTP gate
-  const [markPaidFor, setMarkPaidFor] = useState(null); // { invoice_id, customer_name, amount }
-  const [otpOpen, setOtpOpen] = useState(false);
+  // Mark-as-paid + Retry Dual-OTP gates
+  const [markPaidFor, setMarkPaidFor] = useState(null);
+  const [otpOpenMarkPaid, setOtpOpenMarkPaid] = useState(false);
+  const [retryRequest, setRetryRequest] = useState(null); // {channel}
+  const [otpOpenRetry, setOtpOpenRetry] = useState(false);
 
   const flashToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 3500); };
   const flashError = (msg) => { setError(msg); setTimeout(() => setError(""), 6000); };
 
   const loadAll = async () => {
-    if (!isSuper) return;
+    if (!isSuper || !entryUnlocked) return;
     setLoading(true); setError("");
     try {
-      const [h, o, p] = await Promise.all([
+      const [h, o, p, t] = await Promise.all([
         axios.get(`${API}/critical-monitor/health`, { headers: headers() }),
         axios.get(`${API}/critical-monitor/failures/otp?limit=80`, { headers: headers() }),
         axios.get(`${API}/critical-monitor/failures/payments?limit=80`, { headers: headers() }),
+        axios.get(`${API}/critical-monitor/trend?hours=24`, { headers: headers() }),
       ]);
       setHealth(h.data); setOtpRows(o.data?.items || []); setPayRows(p.data?.items || []);
+      setTrend(t.data || { otp_failures: [], payment_failures: [] });
     } catch (e) {
       flashError(e?.response?.data?.detail || "Could not load monitor data.");
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadAll(); /* eslint-disable-next-line */ }, [entryUnlocked]);
 
   // Auto refresh every 60s
   useEffect(() => {
-    if (!isSuper) return;
+    if (!isSuper || !entryUnlocked) return;
     const t = setInterval(loadAll, 60000);
     return () => clearInterval(t);
     // eslint-disable-next-line
-  }, [isSuper]);
+  }, [isSuper, entryUnlocked]);
 
   const filteredOtp = useMemo(() => {
+    let rows = otpRows;
+    if (errorTypeFilter !== "all") rows = rows.filter(r => (r.error_type || "system") === errorTypeFilter);
     const q = search.trim().toLowerCase();
-    if (!q) return otpRows;
-    return otpRows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
-  }, [otpRows, search]);
+    if (!q) return rows;
+    return rows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+  }, [otpRows, search, errorTypeFilter]);
   const filteredPay = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return payRows;
     return payRows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
   }, [payRows, search]);
 
-  const retryOtp = async (channel = "auto") => {
-    setBusy(`retry:${channel}`);
+  // Retry — requires Dual-OTP token (per spec section 10)
+  const requestRetry = (channel) => {
+    setRetryRequest({ channel });
+    setOtpOpenRetry(true);
+  };
+  const completeRetry = async (action_token) => {
+    setOtpOpenRetry(false);
+    setBusy(`retry:${retryRequest?.channel}`);
     try {
-      const r = await axios.post(`${API}/critical-monitor/otp/retry`, { channel }, { headers: headers() });
-      flashToast(`OTP re-issued via ${(r.data?.channel_used || channel).toUpperCase()}`);
+      const r = await axios.post(`${API}/critical-monitor/otp/retry`,
+        { channel: retryRequest?.channel, action_token },
+        { headers: headers() });
+      flashToast(`OTP re-issued via ${(r.data?.channel_used || retryRequest?.channel).toUpperCase()}`);
       loadAll();
     } catch (e) {
       flashError(e?.response?.data?.detail || "Retry failed");
-    } finally { setBusy(""); }
+    } finally { setBusy(""); setRetryRequest(null); }
   };
 
   const sendTestOtp = async () => {
@@ -166,7 +205,6 @@ export const CriticalMonitor = () => {
   };
 
   const retryPaymentLink = async (orderRow) => {
-    // We use cf_order_id to find a linked invoice
     const invoiceId = orderRow?.invoice_id || orderRow?.id || orderRow?.cf_order_id;
     if (!invoiceId) { flashError("No linked invoice id"); return; }
     setBusy(`retry_pay:${invoiceId}`);
@@ -185,21 +223,32 @@ export const CriticalMonitor = () => {
       customer_name: row?.customer_name || "—",
       amount: row?.amount || 0,
     });
-    setOtpOpen(true);
+    setOtpOpenMarkPaid(true);
   };
 
   const completeMarkPaid = async (action_token) => {
-    setOtpOpen(false);
+    setOtpOpenMarkPaid(false);
     setBusy("mark_paid");
     try {
       await axios.post(`${API}/critical-monitor/payment/mark-paid`, {
-        invoice_id: markPaidFor.invoice_id,
-        action_token,
+        invoice_id: markPaidFor.invoice_id, action_token,
       }, { headers: headers() });
       flashToast("Invoice marked PAID. Audit log updated.");
       setMarkPaidFor(null); loadAll();
     } catch (e) {
       flashError(e?.response?.data?.detail || "Mark-paid failed");
+    } finally { setBusy(""); }
+  };
+
+  const runAutoFix = async () => {
+    setBusy("auto_fix");
+    try {
+      const r = await axios.post(`${API}/critical-monitor/auto-fix`, {}, { headers: headers() });
+      const s = r.data?.summary || {};
+      flashToast(`Auto-Fix: OTP ${s.otp?.channel_used || "?"}, ${s.payments?.length || 0} payment reminder(s) re-sent.`);
+      loadAll();
+    } catch (e) {
+      flashError(e?.response?.data?.detail || "Auto-fix failed");
     } finally { setBusy(""); }
   };
 
@@ -212,6 +261,45 @@ export const CriticalMonitor = () => {
           <p className="text-sm text-slate-600">Critical System Monitor is restricted to ABHIJEET KUMAR (ASR1001).</p>
           <Link to="/admin/dashboard" className="inline-block mt-5 text-sm text-sky-700 hover:underline">← Back to Dashboard</Link>
         </div>
+      </div>
+    );
+  }
+
+  // Entry gate — block UI until Dual-OTP verified
+  if (!entryUnlocked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-amber-50 p-6">
+        <div className="max-w-md text-center bg-white rounded-2xl shadow-xl p-8 border border-amber-200">
+          <ShieldAlert className="w-14 h-14 text-amber-500 mx-auto mb-3" />
+          <h2 className="text-xl font-bold text-[#0a355e] mb-2">Critical Monitor — Locked</h2>
+          <p className="text-sm text-slate-600 mb-5">A Dual-OTP confirmation is required to view system failure data and recovery actions.</p>
+          <button
+            type="button"
+            onClick={() => setEntryOtpOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-[#071A2E] font-bold px-6 py-3 rounded-xl shadow-md flex items-center gap-2 mx-auto"
+            data-testid="cm-entry-unlock"
+          >
+            <ShieldAlert className="w-5 h-5" /> Unlock with Dual-OTP
+          </button>
+          <Link to="/admin/dashboard" className="inline-block mt-4 text-xs text-slate-500 hover:underline">← Back to Dashboard</Link>
+        </div>
+        <DualOtpModal
+          open={entryOtpOpen}
+          purpose="secure_action"
+          title="Critical Monitor Access"
+          description="Verify Dual-OTP to unlock the system failure dashboard and recovery actions."
+          onClose={() => setEntryOtpOpen(false)}
+          onVerified={async (action_token) => {
+            try {
+              await axios.post(`${API}/critical-monitor/entry/verify`, { action_token }, { headers: headers() });
+              sessionStorage.setItem("cm_entry_unlocked", "1");
+              setEntryOtpOpen(false);
+              setEntryUnlocked(true);
+            } catch (e) {
+              flashError(e?.response?.data?.detail || "Entry verification failed");
+            }
+          }}
+        />
       </div>
     );
   }
@@ -233,13 +321,21 @@ export const CriticalMonitor = () => {
               <p className="text-slate-500 text-sm">Super Admin Only · Real-time OTP & Payment failure recovery</p>
             </div>
           </div>
-          <button
-            type="button" onClick={loadAll} disabled={loading}
-            className="bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
-            data-testid="cm-refresh"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={runAutoFix} disabled={busy === "auto_fix"}
+                    className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 shadow"
+                    data-testid="cm-auto-fix">
+              {busy === "auto_fix" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              Auto-Fix Issues
+            </button>
+            <button
+              type="button" onClick={loadAll} disabled={loading}
+              className="bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+              data-testid="cm-refresh"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            </button>
+          </div>
         </div>
 
         {/* Toast / Error */}
@@ -308,23 +404,32 @@ export const CriticalMonitor = () => {
         {/* OTP Failures Tab */}
         {tab === "otp" && (
           <div className="bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden" data-testid="cm-panel-otp">
-            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
               <h3 className="font-bold text-[#0B3C5D]">OTP Failures · Last 80</h3>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => retryOtp("whatsapp")} disabled={busy.startsWith("retry")}
+              <div className="flex gap-2 items-center flex-wrap">
+                <select
+                  value={errorTypeFilter} onChange={(e) => setErrorTypeFilter(e.target.value)}
+                  className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+                  data-testid="cm-error-type-filter"
+                >
+                  <option value="all">All errors</option>
+                  <option value="user">User errors</option>
+                  <option value="system">System errors</option>
+                </select>
+                <button type="button" onClick={() => requestRetry("whatsapp")} disabled={busy.startsWith("retry")}
                         className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1"
                         data-testid="cm-retry-wa">
-                  <MessageCircle className="w-3.5 h-3.5" /> Retry WhatsApp
+                  <MessageCircle className="w-3.5 h-3.5" /> Retry WA
                 </button>
-                <button type="button" onClick={() => retryOtp("email")} disabled={busy.startsWith("retry")}
+                <button type="button" onClick={() => requestRetry("email")} disabled={busy.startsWith("retry")}
                         className="px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1"
                         data-testid="cm-retry-email">
-                  <Mail className="w-3.5 h-3.5" /> Send Email OTP
+                  <Mail className="w-3.5 h-3.5" /> Retry Email
                 </button>
-                <button type="button" onClick={() => retryOtp("auto")} disabled={busy.startsWith("retry")}
+                <button type="button" onClick={() => requestRetry("auto")} disabled={busy.startsWith("retry")}
                         className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-[#071A2E] text-xs font-semibold flex items-center gap-1"
                         data-testid="cm-retry-auto">
-                  <RefreshCw className="w-3.5 h-3.5" /> Auto-retry (best)
+                  <RefreshCw className="w-3.5 h-3.5" /> Auto-retry
                 </button>
               </div>
             </div>
@@ -336,22 +441,31 @@ export const CriticalMonitor = () => {
                     <th className="px-3 py-2 text-left">User</th>
                     <th className="px-3 py-2 text-left">Event</th>
                     <th className="px-3 py-2 text-left">Channel</th>
-                    <th className="px-3 py-2 text-left">Reason</th>
-                    <th className="px-3 py-2 text-left">Fix Hint</th>
+                    <th className="px-3 py-2 text-left">Type</th>
+                    <th className="px-3 py-2 text-left">Reason &amp; Suggestion</th>
                     <th className="px-3 py-2 text-left">IP</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOtp.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center text-slate-400 py-8">🎉 No OTP failures recorded.</td></tr>
+                    <tr><td colSpan={7} className="text-center text-slate-400 py-8">No OTP failures match the current filter.</td></tr>
                   ) : filteredOtp.map((r) => (
-                    <tr key={r.id} className="border-t border-slate-100 hover:bg-amber-50/40" data-testid={`cm-otp-row-${r.id}`}>
+                    <tr key={r.id} className="border-t border-slate-100 hover:bg-amber-50/40 align-top" data-testid={`cm-otp-row-${r.id}`}>
                       <td className="px-3 py-2 whitespace-nowrap text-slate-700">{fmtTs(r.ts)}</td>
                       <td className="px-3 py-2 text-slate-600">{r.actor || "—"}</td>
                       <td className="px-3 py-2"><span className={`px-2 py-0.5 text-xs rounded font-semibold ${r.event === "verify" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>{r.purpose || r.event || "—"}</span></td>
                       <td className="px-3 py-2 text-slate-600">{(r.channel_used || r.channel_requested || "—").toUpperCase()}{r.smart_fallback && <span className="ml-1 text-amber-600 text-xs">↳ fallback</span>}</td>
-                      <td className="px-3 py-2"><ReasonChip reason={r.reason} /></td>
-                      <td className="px-3 py-2 text-slate-500 text-xs max-w-[280px]">{r.fix_hint}</td>
+                      <td className="px-3 py-2">
+                        <span className={`text-xs font-bold px-2 py-1 rounded ${
+                          r.error_type === "user" ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-700"
+                        }`}>
+                          {(r.error_type || "system").toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 max-w-[420px]">
+                        <ReasonChip reason={r.reason} />
+                        <p className="text-xs text-slate-500 mt-1 leading-snug">{r.suggestion}</p>
+                      </td>
                       <td className="px-3 py-2 text-slate-400 font-mono text-xs">{r.ip || "—"}</td>
                     </tr>
                   ))}
@@ -505,27 +619,47 @@ export const CriticalMonitor = () => {
 
         {/* System Health tab */}
         {tab === "health" && health && (
-          <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5" data-testid="cm-panel-health">
-            <h3 className="font-bold text-[#0B3C5D] mb-3">System Health · 24h window</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <h4 className="font-bold mb-2 text-emerald-700">OTP Delivery</h4>
-                <ul className="space-y-1">
-                  <li>Total: <strong>{health.otp.total}</strong></li>
-                  <li>Success: <strong className="text-emerald-700">{health.otp.success}</strong> ({health.otp.success_rate}%)</li>
-                  <li>Failed: <strong className="text-red-600">{health.otp.failed}</strong> ({health.otp.failure_rate}%)</li>
-                </ul>
+          <div className="space-y-4" data-testid="cm-panel-health">
+            <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
+              <h3 className="font-bold text-[#0B3C5D] mb-3">System Health · 24h window</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <h4 className="font-bold mb-2 text-emerald-700">OTP Delivery</h4>
+                  <ul className="space-y-1">
+                    <li>Total: <strong>{health.otp.total}</strong></li>
+                    <li>Success: <strong className="text-emerald-700">{health.otp.success}</strong> ({health.otp.success_rate}%)</li>
+                    <li>Failed: <strong className="text-red-600">{health.otp.failed}</strong> ({health.otp.failure_rate}%)</li>
+                  </ul>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <h4 className="font-bold mb-2 text-blue-700">Payments</h4>
+                  <ul className="space-y-1">
+                    <li>Total: <strong>{health.payment.total}</strong></li>
+                    <li>Success: <strong className="text-emerald-700">{health.payment.success}</strong> ({health.payment.success_rate}%)</li>
+                    <li>Failed/Pending: <strong className="text-red-600">{health.payment.failed}</strong></li>
+                  </ul>
+                </div>
               </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                <h4 className="font-bold mb-2 text-blue-700">Payments</h4>
-                <ul className="space-y-1">
-                  <li>Total: <strong>{health.payment.total}</strong></li>
-                  <li>Success: <strong className="text-emerald-700">{health.payment.success}</strong> ({health.payment.success_rate}%)</li>
-                  <li>Failed/Pending: <strong className="text-red-600">{health.payment.failed}</strong></li>
-                </ul>
+              <p className="text-xs text-slate-500 mt-3">Last refreshed: {fmtTs(health.ts)} · Auto-refresh every 60 s.</p>
+            </div>
+
+            {/* Trend Sparklines */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="cm-trends">
+              <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-rose-600">OTP Failure Trend (24h)</h4>
+                  <span className="text-xs text-slate-400">{(trend.otp_failures || []).reduce((s, p) => s + p.value, 0)} total fails</span>
+                </div>
+                <Sparkline points={trend.otp_failures} color="#e11d48" height={60} />
+              </div>
+              <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-bold text-amber-600">Payment Failure Trend (24h)</h4>
+                  <span className="text-xs text-slate-400">{(trend.payment_failures || []).reduce((s, p) => s + p.value, 0)} total fails</span>
+                </div>
+                <Sparkline points={trend.payment_failures} color="#d97706" height={60} />
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-3">Last refreshed: {fmtTs(health.ts)} · Auto-refresh every 60 s.</p>
           </div>
         )}
       </div>
@@ -533,12 +667,24 @@ export const CriticalMonitor = () => {
       {/* Mark-as-paid Dual OTP gate */}
       {markPaidFor && (
         <DualOtpModal
-          open={otpOpen}
+          open={otpOpenMarkPaid}
           purpose="payment_update"
           title="Mark Invoice as Paid"
           description={`Force-mark invoice for ${markPaidFor.customer_name} (₹${Number(markPaidFor.amount || 0).toLocaleString("en-IN")}) as paid. Requires Dual-OTP verification.`}
-          onClose={() => { setOtpOpen(false); setMarkPaidFor(null); }}
+          onClose={() => { setOtpOpenMarkPaid(false); setMarkPaidFor(null); }}
           onVerified={completeMarkPaid}
+        />
+      )}
+
+      {/* OTP Retry Dual OTP gate */}
+      {retryRequest && (
+        <DualOtpModal
+          open={otpOpenRetry}
+          purpose="secure_action"
+          title="Verify before Retry"
+          description={`A Dual-OTP confirmation is required to re-issue an OTP via ${retryRequest.channel?.toUpperCase()}.`}
+          onClose={() => { setOtpOpenRetry(false); setRetryRequest(null); }}
+          onVerified={completeRetry}
         />
       )}
     </div>

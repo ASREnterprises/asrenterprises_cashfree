@@ -5376,6 +5376,88 @@ async def staff_send_otp(data: Dict[str, Any]):
         logger.info(f"Staff OTP generated for {staff_id} (email not configured)")
         return {"success": True, "message": "OTP has been sent to your registered email", "email_sent": False}
 
+@api_router.post("/staff/send-otp-smart")
+async def staff_send_otp_smart(data: Dict[str, Any]):
+    """Staff OTP delivery with channel choice (email | whatsapp).
+    Email uses Resend; WhatsApp uses the asr_otp template (with text fallback)."""
+    import asyncio
+    staff_id = (data.get("staff_id") or "").strip().upper()
+    channel = (data.get("channel") or "email").lower()
+    if channel not in ("email", "whatsapp"):
+        raise HTTPException(400, "channel must be 'email' or 'whatsapp'")
+
+    staff = await db.crm_staff_accounts.find_one(
+        {"staff_id": staff_id, "is_active": True}, {"_id": 0})
+    if not staff:
+        raise HTTPException(404, "Staff ID not found or account inactive")
+    if (staff.get("role") or "").lower() in {"super_admin", "admin"}:
+        raise HTTPException(403, "Admin account — please use the Admin Login page.")
+
+    email = (staff.get("email") or "").strip()
+    mobile_raw = re.sub(r"\D", "", str(staff.get("mobile") or ""))[-10:]
+
+    otp = generate_secure_otp()
+    store_otp(f"staff:{staff_id}", otp)
+
+    delivered_via = None
+    masked = ""
+    if channel == "email":
+        if not email:
+            raise HTTPException(400, "No email registered. Try WhatsApp OTP instead.")
+        ok = await send_otp_email(email, otp, f"Staff Portal · {staff_id}")
+        if ok:
+            delivered_via = "email"
+            masked = email[:3] + "***" + email[-10:] if len(email) > 13 else email
+    else:  # whatsapp
+        if len(mobile_raw) != 10:
+            raise HTTPException(400, "No valid mobile registered. Try Email OTP instead.")
+        try:
+            from routes.whatsapp import send_whatsapp_template, get_whatsapp_settings
+            settings = await get_whatsapp_settings()
+            token = (settings or {}).get("access_token", "").strip()
+            phone_id = (settings or {}).get("phone_number_id", "").strip()
+            if token and phone_id:
+                phone_e164 = "91" + mobile_raw
+                # Approved template first
+                for tpl in ("asr_otp", "authentication_otp", "otp_verification"):
+                    try:
+                        r = await asyncio.wait_for(
+                            send_whatsapp_template(phone=phone_e164, template_name=tpl,
+                                                   variables=[otp]),
+                            timeout=10.0)
+                        if r and r.get("success"):
+                            delivered_via = "whatsapp"; break
+                    except asyncio.TimeoutError:
+                        break
+                    except Exception:
+                        continue
+                # Plain-text fallback
+                if not delivered_via:
+                    import httpx
+                    try:
+                        async with httpx.AsyncClient(timeout=10.0) as c:
+                            resp = await c.post(
+                                f"https://graph.facebook.com/v20.0/{phone_id}/messages",
+                                headers={"Authorization": f"Bearer {token}",
+                                         "Content-Type": "application/json"},
+                                json={"messaging_product": "whatsapp", "to": phone_e164,
+                                      "type": "text",
+                                      "text": {"body": f"Your ASR Staff Portal OTP is: {otp}\nValid for 5 minutes."}})
+                            if resp.status_code in (200, 201):
+                                delivered_via = "whatsapp"
+                    except Exception:
+                        pass
+            if delivered_via:
+                masked = "+91 " + mobile_raw[:2] + "****" + mobile_raw[-2:]
+        except Exception as _e:
+            logger.warning(f"[staff send-otp-smart] WA error: {_e}")
+
+    if not delivered_via:
+        raise HTTPException(502, "Could not send OTP via the selected channel. Try the other one.")
+    return {"success": True, "channel_used": delivered_via,
+            "masked_recipient": masked, "expires_in": 300, "max_attempts": 3, "resend_in": 60}
+
+
 @api_router.post("/staff/verify-otp")
 async def staff_verify_otp(request: Request, data: Dict[str, Any]):
     """Verify staff OTP and login"""

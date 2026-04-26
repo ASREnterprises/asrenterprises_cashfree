@@ -47,12 +47,21 @@ router.dependencies.append(Depends(require_super_admin))
 # ──────────────────────────────────────────────────────────────────────────────
 def parse_otp_failure(audit_row: Dict[str, Any]) -> Dict[str, str]:
     """Map technical error tags written by /admin/send-otp-smart into a
-    plain-English reason + a fix hint the Super Admin can act on."""
+    plain-English reason + a fix hint the Super Admin can act on.
+
+    Also classifies error_type:
+      • 'user'   — user typed wrong code, expired, too many attempts
+      • 'system' — anything to do with config/template/keys/gateway/timeout
+    """
     event = (audit_row.get("event") or "send").lower()
     if event == "verify":
         # Verify-event failures mean the user typed the wrong / expired code.
-        return {"reason": "Wrong OTP entered or code already expired",
-                "fix": "Ask user to request a fresh OTP; expired after 5 min / 3 attempts"}
+        return {
+            "reason": "Wrong OTP entered or code already expired",
+            "error_type": "user",
+            "suggestion": "User entered an incorrect OTP — possibly delay, typo, or confusion. Ask them to request a fresh code; codes expire after 5 minutes or 3 wrong attempts.",
+            "fix": "Ask user to request a fresh OTP; expired after 5 min / 3 attempts",
+        }
 
     errors: List[str] = audit_row.get("errors") or []
     blob = " ".join(errors).lower()
@@ -62,44 +71,72 @@ def parse_otp_failure(audit_row: Dict[str, Any]) -> Dict[str, str]:
     if "not_configured" in blob:
         if "wa:" in blob:
             return {"reason": "WhatsApp API token / phone-id not configured",
+                    "error_type": "system",
+                    "suggestion": "Backend cannot reach Meta — credentials are missing. Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in /app/backend/.env then restart.",
                     "fix": "Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID in backend/.env"}
         if "em:" in blob:
             return {"reason": "Resend API key not configured",
+                    "error_type": "system",
+                    "suggestion": "Email OTP fallback is disabled because RESEND_API_KEY is empty. Generate a key at resend.com and add it to backend/.env.",
                     "fix": "Set RESEND_API_KEY in backend/.env to enable email OTP"}
     if "wa_tpl_" in blob and ("404" in blob or "not found" in blob or "name" in blob):
         return {"reason": "Template not approved on Meta",
+                "error_type": "system",
+                "suggestion": "WhatsApp template may not be approved in Meta — get `asr_otp` (or another OTP template) approved on Meta Business Manager.",
                 "fix": "Approve `asr_otp` (or another OTP template) on Meta Business Manager → WABA"}
     if "132000" in blob or "parameters does not match" in blob:
         return {"reason": "Template variable count mismatch",
+                "error_type": "system",
+                "suggestion": "Approved template body expects a different number of {{1}} {{2}} placeholders than backend is sending. Re-sync templates or fix the variables array.",
                 "fix": "Template body expects different number of variables than backend sends"}
     if "131056" in blob:
         return {"reason": "Pair rate limit exceeded (Meta)",
+                "error_type": "system",
+                "suggestion": "Meta is rate-limiting outbound messages to this customer. Wait a few minutes; consider batching campaigns to spread the load.",
                 "fix": "Throttle outbound WhatsApp; wait a few minutes before retry"}
     if "131000" in blob or "outside 24" in blob:
         return {"reason": "Recipient outside 24h window",
+                "error_type": "system",
+                "suggestion": "Plain-text WhatsApp can only go to users who chatted with us in the last 24h. Use an approved template (asr_otp) instead.",
                 "fix": "User must initiate a chat first OR send via approved template only"}
     if "401" in blob and ("wa" in blob or "whatsapp" in blob):
         return {"reason": "Invalid / expired WhatsApp access token",
+                "error_type": "system",
+                "suggestion": "Meta rejected the access token. Likely expired. Generate a fresh permanent token at Meta Business → System Users.",
                 "fix": "Refresh permanent token in Meta → Business Settings → System Users"}
     if "timeout" in blob:
         return {"reason": "Delivery timeout (10 seconds)",
+                "error_type": "system",
+                "suggestion": "Meta API did not respond within 10s — likely a transient outage. Auto-fallback to Email already attempted; check Meta API status page.",
                 "fix": "Auto-fallback to Email already attempted; retry or check Meta API status"}
     if "domain" in blob and ("verified" in blob or "verification" in blob):
         return {"reason": "Resend sender domain not verified",
+                "error_type": "system",
+                "suggestion": "Resend rejected the email because asrenterprises.in DNS records (SPF/DKIM/DMARC) are missing or wrong. Verify on the Resend dashboard.",
                 "fix": "Verify asrenterprises.in DNS records on Resend dashboard"}
     if "resend" in blob and "401" in blob:
         return {"reason": "Invalid Resend API key",
+                "error_type": "system",
+                "suggestion": "Resend rejected the API key. Generate a new one and update RESEND_API_KEY in backend/.env.",
                 "fix": "Regenerate key on resend.com and update RESEND_API_KEY"}
     if "rate" in blob and "limit" in blob:
         return {"reason": "Rate limit exceeded",
+                "error_type": "system",
+                "suggestion": "Either Meta or Resend throttled us. Cooldown for a few minutes; consider upgrading the plan if recurring.",
                 "fix": "Wait a few minutes; consider batching or upgrading plan"}
     if errors:
         return {"reason": errors[0][:140] if errors[0] else "Unknown API error",
+                "error_type": "system",
+                "suggestion": "Inspect /var/log/supervisor/backend.err.log for the full stack trace; this looks like a generic API failure.",
                 "fix": "Inspect backend.err.log for full stack trace"}
     if not channels:
         return {"reason": "No delivery channel attempted",
+                "error_type": "system",
+                "suggestion": "Backend never tried WhatsApp or Email — most likely WHATSAPP_ACCESS_TOKEN and RESEND_API_KEY are both missing.",
                 "fix": "Backend never tried WhatsApp or Email — config likely missing"}
     return {"reason": "Unknown delivery failure",
+            "error_type": "system",
+            "suggestion": f"Channels tried: {', '.join(channels)}. No matched signature — check backend logs.",
             "fix": f"Channels tried: {', '.join(channels)}; check backend logs"}
 
 
@@ -212,6 +249,8 @@ async def list_otp_failures(limit: int = 50):
             **r,
             "reason": diag["reason"],
             "fix_hint": diag["fix"],
+            "error_type": diag.get("error_type", "system"),
+            "suggestion": diag.get("suggestion", diag["fix"]),
         })
     return {"count": len(enriched), "items": enriched}
 
@@ -259,11 +298,34 @@ async def list_payment_failures(limit: int = 50):
 class OtpRetryReq(BaseModel):
     audit_id: Optional[str] = None
     channel: Optional[str] = "auto"   # whatsapp | email | auto
+    action_token: Optional[str] = None  # Required for retry per spec section 10
+
+
+def _consume_action_token(token: Optional[str], allowed_purposes: tuple) -> None:
+    """Verify a 5-min single-use action_token from /admin/secure-otp/verify.
+    Raises HTTPException on mismatch. Burns the token on success."""
+    from server import otp_storage  # type: ignore
+
+    if not token:
+        raise HTTPException(401, "Action token required. Verify Dual-OTP first.")
+    key = f"action_token:{token}"
+    rec = otp_storage.get(key)
+    if not rec:
+        raise HTTPException(401, "Invalid action token. Re-verify via Dual-OTP.")
+    if time.time() - rec.get("timestamp", 0) > 300:
+        otp_storage.pop(key, None)
+        raise HTTPException(410, "Action token expired. Request a fresh code.")
+    if (rec.get("purpose") or "").lower() not in allowed_purposes:
+        raise HTTPException(403, f"Token purpose mismatch ({rec.get('purpose')}).")
+    otp_storage.pop(key, None)
 
 
 @router.post("/otp/retry")
 async def retry_otp(body: OtpRetryReq, request: Request, _admin=Depends(require_super_admin)):
-    """Re-send an admin OTP via the chosen channel (auto = smart fallback)."""
+    """Re-send an admin OTP via the chosen channel (auto = smart fallback).
+    REQUIRES a Dual-OTP action_token per spec section 10."""
+    _consume_action_token(body.action_token,
+                          ("secure_action", "otp_retry", "payment_update"))
     from server import admin_send_otp_smart  # type: ignore
 
     payload = {"channel": (body.channel or "auto").lower(), "purpose": "manual_retry"}
@@ -392,18 +454,8 @@ class MarkPaidReq(BaseModel):
 async def mark_invoice_paid(body: MarkPaidReq, admin=Depends(require_super_admin)):
     """Force-mark an invoice as PAID. Requires a fresh Dual-OTP `action_token`
     minted by /api/admin/secure-otp/verify (5-min TTL, single-use)."""
-    # Validate action_token
-    from server import otp_storage  # type: ignore
-
-    key = f"action_token:{body.action_token}"
-    rec = otp_storage.get(key)
-    if not rec or rec.get("purpose") not in ("payment_update", "secure_action", "mark_paid"):
-        raise HTTPException(401, "Missing or invalid Dual-OTP action_token. Request a new code.")
-    if time.time() - rec.get("timestamp", 0) > 300:
-        otp_storage.pop(key, None)
-        raise HTTPException(410, "Action token expired. Request a new code.")
-    # Burn the token
-    otp_storage.pop(key, None)
+    _consume_action_token(body.action_token,
+                          ("payment_update", "secure_action", "mark_paid"))
 
     inv = await db.invoices.find_one({"id": body.invoice_id}, {"_id": 0})
     if not inv:
@@ -451,3 +503,135 @@ async def mark_invoice_paid(body: MarkPaidReq, admin=Depends(require_super_admin
     })
     return {"ok": True, "invoice_id": body.invoice_id, "payment_status": new_status,
             "amount_paid": new_paid, "due_amount": new_due, "entry": entry}
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  TREND ANALYTICS
+# ──────────────────────────────────────────────────────────────────────────────
+@router.get("/trend")
+async def failure_trend(hours: int = 24):
+    """Return hourly OTP-fail and Payment-fail counts for the last N hours.
+    Used by the dashboard sparkline charts."""
+    hours = max(1, min(int(hours or 24), 168))
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+    # OTP fails per hour (event=send only)
+    otp_cur = db.otp_audit.find(
+        {"ts": {"$gte": cutoff.isoformat()}, "event": {"$ne": "verify"}, "success": False},
+        {"_id": 0, "ts": 1},
+    ).limit(2000)
+    otp_rows = await otp_cur.to_list(length=2000)
+
+    pay_cur = db.cashfree_orders.find(
+        {"created_at": {"$gte": cutoff.isoformat()},
+         "payment_status": {"$nin": ["paid", "completed"]}},
+        {"_id": 0, "created_at": 1},
+    ).limit(2000)
+    pay_rows = await pay_cur.to_list(length=2000)
+
+    # Bucket by hour
+    def _bucketize(rows: List[Dict[str, Any]], ts_key: str) -> Dict[str, int]:
+        out: Dict[str, int] = {}
+        for r in rows:
+            iso = (r.get(ts_key) or "")[:13]  # YYYY-MM-DDTHH
+            out[iso] = out.get(iso, 0) + 1
+        return out
+
+    otp_b = _bucketize(otp_rows, "ts")
+    pay_b = _bucketize(pay_rows, "created_at")
+
+    series_otp: List[Dict[str, Any]] = []
+    series_pay: List[Dict[str, Any]] = []
+    for h in range(hours, -1, -1):
+        slot = (datetime.now(timezone.utc) - timedelta(hours=h)).strftime("%Y-%m-%dT%H")
+        series_otp.append({"hour": slot, "value": otp_b.get(slot, 0)})
+        series_pay.append({"hour": slot, "value": pay_b.get(slot, 0)})
+
+    return {
+        "window_hours": hours,
+        "otp_failures": series_otp,
+        "payment_failures": series_pay,
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  AUTO-FIX  (one-click bulk recovery)
+# ──────────────────────────────────────────────────────────────────────────────
+@router.post("/auto-fix")
+async def auto_fix(request: Request, admin=Depends(require_super_admin)):
+    """One-click recovery sweep:
+      1. Re-issue an admin OTP via Smart channel (auto = WA → Email).
+      2. Re-fire reminder for every unpaid invoice from the last 24h.
+      3. Return a per-step result so the UI can render exactly what changed.
+    Logged to guardian_logs for the audit trail."""
+    summary: Dict[str, Any] = {"otp": None, "payments": [], "errors": []}
+
+    # ── Step 1: Force a fresh admin OTP smart-send
+    try:
+        from server import admin_send_otp_smart  # type: ignore
+        summary["otp"] = await admin_send_otp_smart(
+            request, {"channel": "auto", "purpose": "auto_fix_sweep"},
+        )
+    except HTTPException as e:
+        summary["errors"].append(f"otp:{e.detail}")
+    except Exception as e:
+        summary["errors"].append(f"otp:{str(e)[:140]}")
+
+    # ── Step 2: Re-fire reminder for unpaid invoices created < 24h ago
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+    cur = db.invoices.find(
+        {"created_at": {"$gte": cutoff},
+         "payment_status": {"$in": ["unpaid", "partial"]},
+         "doc_type": {"$ne": "quotation"}},
+        {"_id": 0, "id": 1, "invoice_number": 1, "customer.name": 1},
+    ).limit(20)
+    todo = await cur.to_list(length=20)
+    for inv in todo:
+        try:
+            from routes.gst_reminders import send_invoice_reminder_now  # type: ignore
+            r = await send_invoice_reminder_now(inv["id"])
+            summary["payments"].append({"invoice_id": inv["id"],
+                                         "invoice": inv.get("invoice_number"),
+                                         "result": (r or {}).get("result", "ok")})
+        except Exception as e:
+            summary["payments"].append({"invoice_id": inv["id"],
+                                         "invoice": inv.get("invoice_number"),
+                                         "result": f"err:{str(e)[:120]}"})
+
+    await db.guardian_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "level": "info", "module": "critical_monitor",
+        "message": f"auto-fix sweep by {admin.get('name')} — payments_retried={len(summary['payments'])} errors={len(summary['errors'])}",
+        "actor": admin.get("name", "admin"),
+        "ts": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True, "summary": summary, "ts": datetime.now(timezone.utc).isoformat()}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  ENTRY GATE  (Dual-OTP token check before showing the page)
+# ──────────────────────────────────────────────────────────────────────────────
+class EntryGateReq(BaseModel):
+    action_token: str
+
+
+@router.post("/entry/verify")
+async def verify_entry(body: EntryGateReq, _admin=Depends(require_super_admin)):
+    """Validate a Dual-OTP action_token (purpose=secure_action / monitor_entry)
+    minted via /api/admin/secure-otp/verify. Lets the UI confirm Super Admin
+    has just verified before rendering sensitive failure data."""
+    from server import otp_storage  # type: ignore
+
+    key = f"action_token:{body.action_token}"
+    rec = otp_storage.get(key)
+    if not rec:
+        raise HTTPException(401, "Invalid or expired token. Re-authenticate via Dual-OTP.")
+    if time.time() - rec.get("timestamp", 0) > 300:
+        otp_storage.pop(key, None)
+        raise HTTPException(410, "Token expired. Request a fresh OTP.")
+    purpose = (rec.get("purpose") or "").lower()
+    if purpose not in ("secure_action", "monitor_entry", "payment_update"):
+        raise HTTPException(403, f"Token purpose mismatch ({purpose}).")
+    # Don't burn — entry is read-only, mark-paid will burn its own
+    return {"ok": True, "purpose": purpose, "expires_at": rec.get("timestamp", 0) + 300}

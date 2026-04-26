@@ -29,7 +29,7 @@ const AboutUsPage = lazy(() => import("@/components/AboutUs").then(m => ({ defau
 const ShopPage = lazy(() => import("@/components/Shop").then(m => ({ default: m.ShopPage })));
 // Admin Panel - Lazy load (heavy components)
 const AIMarketingHub = lazy(() => import("@/components/AIMarketing").then(m => ({ default: m.AIMarketingHub })));
-const AdminLogin = lazy(() => import("@/components/AdminLogin").then(m => ({ default: m.AdminLogin })));
+const AdminLogin = lazy(() => import("@/components/AdminLoginV2").then(m => ({ default: m.AdminLogin })));
 const AdminDashboard = lazy(() => import("@/components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const StaffManagement = lazy(() => import("@/components/StaffManagement").then(m => ({ default: m.StaffManagement })));
 const PhotosManagement = lazy(() => import("@/components/PhotosManagement").then(m => ({ default: m.PhotosManagement })));
@@ -70,7 +70,7 @@ const SolarServicesPage = lazy(() => import("@/components/SEOPages").then(m => (
 
 // CRM & Staff Portals - Heavy components (Lazy load critical for performance)
 const CRMDashboard = lazy(() => import("@/components/CRMDashboard").then(m => ({ default: m.CRMDashboard })));
-const StaffLogin = lazy(() => import("@/components/StaffLogin").then(m => ({ default: m.StaffLogin })));
+const StaffLogin = lazy(() => import("@/components/StaffLoginV2").then(m => ({ default: m.StaffLogin })));
 const StaffPortal = lazy(() => import("@/components/StaffPortal").then(m => ({ default: m.StaffPortal })));
 const BusinessDashboard = lazy(() => import("@/components/BusinessDashboard").then(m => ({ default: m.BusinessDashboard })));
 const StaffTraining = lazy(() => import("@/components/StaffTraining").then(m => ({ default: m.default })));

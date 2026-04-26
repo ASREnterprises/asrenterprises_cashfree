@@ -145,14 +145,6 @@ export const AdminDashboard = ({ onLogout }) => {
       count: "FB & IG"
     },
     {
-      title: "Testimonials",
-      description: "Generate & manage customer reviews",
-      icon: <Star className="w-10 h-10" />,
-      link: "/admin/testimonials",
-      color: "from-yellow-500 to-amber-600",
-      count: "Reviews"
-    },
-    {
       title: "Festival Posts",
       description: "Create festival wishes & announcements",
       icon: <Calendar className="w-10 h-10" />,
@@ -243,7 +235,6 @@ export const AdminDashboard = ({ onLogout }) => {
     "Leads Management",
     "Customer Portal",
     "Social Media",
-    "Testimonials",
     "Festival Posts",
     "WhatsApp API",
     "Solar Advisor",
@@ -283,7 +274,6 @@ export const AdminDashboard = ({ onLogout }) => {
     "AI Website Guardian",
     "Security Centre",
     "Social Media",
-    "Testimonials",
     "Festival Posts",
     "Trash",
   ];

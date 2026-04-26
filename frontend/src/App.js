@@ -3111,11 +3111,6 @@ export default function App() {
               <ReviewsManagement />
             </ProtectedRoute>
           } />
-          <Route path="/admin/testimonials" element={
-            <ProtectedRoute>
-              <ReviewsManagement />
-            </ProtectedRoute>
-          } />
           <Route path="/admin/festivals" element={
             <ProtectedRoute>
               <FestivalsManagement />

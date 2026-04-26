@@ -4695,8 +4695,13 @@ async def admin_login_password(request: Request, data: Dict[str, Any]):
         security_tracker.record_failed_attempt(client_ip, "Login lockout active")
         raise HTTPException(status_code=429, detail=message)
     
-    # STRICT CHECK: Only the registered owner email can access the admin panel
-    if user_id.lower() != OWNER_EMAIL.lower():
+    # STRICT CHECK: Only the registered owner can access the admin panel.
+    # Accept either the registered email OR the owner Staff ID (e.g. ASR1001) so
+    # Abhijeet can log in with the same Staff ID used elsewhere in the CRM.
+    user_id_norm = user_id.lower()
+    is_owner_email = user_id_norm == OWNER_EMAIL.lower()
+    is_owner_staff_id = user_id.strip().upper() == OWNER_STAFF_ID.upper()
+    if not (is_owner_email or is_owner_staff_id):
         record_failed_login(client_ip, user_id)
         logger.warning(f"Unauthorized admin login attempt with '{user_id}' from IP: {client_ip}")
         raise HTTPException(

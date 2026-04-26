@@ -17,14 +17,14 @@ import {
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const OWNER_EMAIL_DEFAULT = "asrenterprisespatna@gmail.com";
+const OWNER_STAFF_ID_DEFAULT = "ASR1001";
 
 export const AdminLogin = ({ onLogin }) => {
   const navigate = useNavigate();
   const [mode, setMode] = useState("password");          // password | otp
   const [otpChannel, setOtpChannel] = useState("email"); // email | whatsapp
 
-  const [userId, setUserId] = useState(OWNER_EMAIL_DEFAULT);
+  const [userId, setUserId] = useState(OWNER_STAFF_ID_DEFAULT);
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
 
@@ -46,7 +46,7 @@ export const AdminLogin = ({ onLogin }) => {
 
   const persistLogin = (data) => {
     // Persist the same keys the rest of the app reads from localStorage
-    const adminEmail = (data?.email || data?.user_id || OWNER_EMAIL_DEFAULT).toLowerCase();
+    const adminEmail = (data?.email || "asrenterprisespatna@gmail.com").toLowerCase();
     const adminName = data?.name || "ABHIJEET KUMAR";
     const adminRole = (data?.role || "admin").toLowerCase();
     const staffId = (data?.staff_id || "ASR1001").toUpperCase();
@@ -108,7 +108,7 @@ export const AdminLogin = ({ onLogin }) => {
     if (otp.length < 6) { setError("Enter the 6-digit OTP"); return; }
     setError(""); setLoading(true);
     try {
-      const r = await axios.post(`${API}/admin/verify-otp`, { email: OWNER_EMAIL_DEFAULT, otp });
+      const r = await axios.post(`${API}/admin/verify-otp`, { email: "asrenterprisespatna@gmail.com", otp });
       if (r.data?.success || r.data?.access_token || r.data?.token) {
         setSuccess("Verified. Redirecting…");
         setTimeout(() => persistLogin(r.data || {}), 250);
@@ -174,16 +174,19 @@ export const AdminLogin = ({ onLogin }) => {
           {mode === "password" ? (
             <form onSubmit={submitPassword} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Staff ID or Email</label>
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="email" value={userId} onChange={(e) => setUserId(e.target.value)}
-                    required placeholder="asrenterprisespatna@gmail.com"
+                    type="text" value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    required placeholder="ASR1001 or asrenterprisespatna@gmail.com"
+                    autoComplete="username"
                     className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     data-testid="admin-login-email"
                   />
                 </div>
+                <p className="text-[11px] text-gray-400 mt-1">Owner can sign in with Staff ID (ASR1001) or registered email.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>

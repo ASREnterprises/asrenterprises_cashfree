@@ -355,8 +355,12 @@ class CreateInvoiceRequest(BaseModel):
     cashfree_order_id: str = ""
     cashfree_payment_id: str = ""
     payment_method: str = ""
-    auto_send_whatsapp: bool = True
-    auto_send_email: bool = True
+    # Auto-send defaults are False per business policy (2026-04-26): admin
+    # sends invoices to customers / CA manually from the CRM. The ONLY
+    # exception is the Cashfree shop-order auto-issue path, which explicitly
+    # sets auto_send_whatsapp=True after a successful payment confirmation.
+    auto_send_whatsapp: bool = False
+    auto_send_email: bool = False
     doc_type: str = "invoice"
     scheme: str = ""  # "pm_surya_ghar" → default payment_mode ICICI
     invoice_date: Optional[str] = None   # Optional ISO 'YYYY-MM-DD' override
@@ -1169,6 +1173,19 @@ _BLENDED_GST_RATE = {
 
 
 async def _create_and_persist_invoice(req: CreateInvoiceRequest) -> dict:
+    # ---- PMSG GST override -----------------------------------------------
+    # PM Surya Ghar Yojana invoices ALWAYS use flat 5% GST.
+    # Detect PMSG scheme BEFORE build_line_items so the line-item split is
+    # correct (5% on the full taxable value, not the 90/10 5%+18% blend).
+    _scheme_hint = (req.scheme or "").strip().lower()
+    if not _scheme_hint:
+        _hint_text = f"{req.project_name or ''} {req.notes or ''}".lower()
+        if "pm surya ghar" in _hint_text or "pmsurya" in _hint_text or "surya ghar" in _hint_text:
+            _scheme_hint = "pm_surya_ghar"
+    if _scheme_hint == "pm_surya_ghar" and (req.project_type or "") in ("solar_project", "", None):
+        req.project_type = "solar_project_flat_5"
+        req.scheme = "pm_surya_ghar"
+
     # If the admin entered the total as GST-inclusive, reverse-compute the
     # pre-GST taxable amount before build_line_items runs. target_grand_total
     # is set so any residual drift is nudged out at the end.
@@ -1439,19 +1456,24 @@ async def edit_invoice(invoice_id: str, payload: EditInvoiceRequest):
     items_source: Optional[List[InvoiceLineItem]] = None
     if payload.line_items is not None:
         items_source = payload.line_items
-    elif payload.total_amount is not None and (doc.get("project_type") or "") == "solar_project":
-        # Re-split using the 90/10 Full EPC rule via build_line_items
+    elif payload.total_amount is not None and (doc.get("project_type") or "") in ("solar_project", "solar_project_flat_5"):
+        # PMSG invoices ALWAYS use flat 5% GST (overrides 90/10 even on edit).
+        # Non-PMSG solar projects continue to use the 90/10 Full EPC split.
+        is_pmsg_doc = (doc.get("scheme") or "").lower() == "pm_surya_ghar"
+        effective_pt = "solar_project_flat_5" if is_pmsg_doc else (doc.get("project_type") or "solar_project")
+        if is_pmsg_doc:
+            doc["project_type"] = effective_pt  # persist the override
         total_in = float(payload.total_amount)
         target_grand = None
         if payload.total_is_gst_inclusive and total_in > 0:
-            rate = _BLENDED_GST_RATE.get("solar_project", 0.063)
+            rate = _BLENDED_GST_RATE.get(effective_pt, 0.063)
             target_grand = total_in
             total_in = float(
                 Decimal(str(total_in / (1 + rate))).quantize(Decimal("0.01"), ROUND_HALF_UP)
             )
         synth_req = CreateInvoiceRequest(
             customer=InvoiceCustomer(**doc["customer"]),
-            project_type="solar_project",
+            project_type=effective_pt,
             total_amount=total_in,
             project_name=doc.get("_project_name") or "Solar Rooftop System",
         )
@@ -2128,11 +2150,10 @@ async def convert_quotation_to_invoice(quotation_id: str, payload: ConvertQuotat
     except Exception as _e:
         logger.warning(f"[gst-invoice] auto-create customer failed: {_e}")
 
-    # Fire WhatsApp + Email delivery for the brand-new invoice
-    import asyncio
-    asyncio.create_task(send_invoice_whatsapp(new_inv, new_inv["pdf_url"]))
-    asyncio.create_task(send_invoice_email(new_inv, pdf_bytes))
-
+    # NOTE: WhatsApp + Email delivery for the new invoice is intentionally
+    # NOT auto-fired. Per business policy (2026-04-26) admin / CA send
+    # invoices manually from the CRM after reviewing them. The "Send
+    # WhatsApp" / "Send Email" buttons on /admin/invoices remain available.
     new_inv.pop("_id", None)
     logger.info(f"[gst-invoice] quotation {quote.get('invoice_number')} converted → {inv_no} (paid={received}, due={due})")
     return {"success": True, "invoice": new_inv, "quotation_id": quotation_id}
@@ -2412,6 +2433,12 @@ async def invoice_auto_issue_from_payment(order: dict) -> Optional[dict]:
             payment_method=str(order.get("payment_method", "")),
             notes=f"Auto-generated on Cashfree PAYMENT_SUCCESS for order {cf_order_id}",
             doc_type="invoice",
+            # Per business policy, only Solar Hub shop_order invoices are
+            # auto-sent on Cashfree PAYMENT_SUCCESS. Other Cashfree-sourced
+            # invoices (service bookings, custom payments) wait for the admin
+            # to send them manually from the CRM.
+            auto_send_whatsapp=(project_type == "shop_order"),
+            auto_send_email=False,
         )
         doc = await _create_and_persist_invoice(req)
         logger.info(f"[gst-invoice] auto-issued {doc['invoice_number']} for cashfree order {cf_order_id}")

@@ -173,7 +173,14 @@ async def _ensure_invoice_for_customer(cust: dict) -> Optional[dict]:
             InvoiceCustomer,
         )
         is_pmsg = (cust.get("customer_type") or "").lower() == "residential"
-        WEIGHTED_RATE = 0.90 * 0.05 + 0.10 * 0.18  # solar_project split (Full EPC 90/10)
+        # PM Surya Ghar Yojana invoices ALWAYS use flat 5% GST.
+        # Non-PMSG (commercial) customers keep the 90/10 Full EPC split (6.3%).
+        if is_pmsg:
+            project_type_for_invoice = "solar_project_flat_5"
+            WEIGHTED_RATE = 0.05  # flat 5%
+        else:
+            project_type_for_invoice = "solar_project"
+            WEIGHTED_RATE = 0.90 * 0.05 + 0.10 * 0.18  # 6.3%
         pre_gst_total = round(total / (1 + WEIGHTED_RATE), 2)
         req = CreateInvoiceRequest(
             customer=InvoiceCustomer(
@@ -183,7 +190,7 @@ async def _ensure_invoice_for_customer(cust: dict) -> Optional[dict]:
                 state="Bihar",
                 state_code="10",
             ),
-            project_type="solar_project",
+            project_type=project_type_for_invoice,
             total_amount=pre_gst_total,
             project_name=(
                 f"{cust.get('system_capacity_kw') or ''} kW Solar Rooftop System"

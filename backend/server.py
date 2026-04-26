@@ -14186,7 +14186,9 @@ async def _auto_create_invoice_for_customer(doc: Dict[str, Any]) -> Optional[Dic
         )
         is_pmsg = (doc.get("customer_type") or "").lower() == "residential"
         gst_mode = (doc.get("gst_mode") or "").strip().lower()
-        use_flat_5 = gst_mode == "flat_5"
+        # PMSG customers ALWAYS use flat 5% GST (override the 90/10 default).
+        # Explicit `gst_mode == "flat_5"` continues to work for legacy compat.
+        use_flat_5 = (gst_mode == "flat_5") or is_pmsg
 
         # --- Pick the project type + reverse-compute pre-GST total ---
         if use_flat_5:

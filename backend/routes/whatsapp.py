@@ -169,14 +169,35 @@ async def send_whatsapp_template(
         }
     }
     
-    # Add variables if provided
+    # Add variables if provided. For OTP-style authentication templates the
+    # user has approved (e.g. `asr_otp`) Meta REQUIRES both a body component
+    # AND a button URL component carrying the same code — otherwise the API
+    # returns 200 OK ("accepted") but the message is silently dropped before
+    # delivery. We auto-detect OTP templates by name suffix and stamp the
+    # button parameter using the same first variable.
     if variables and len(variables) > 0:
-        payload["template"]["components"] = [
+        components: List[Dict[str, Any]] = [
             {
                 "type": "body",
                 "parameters": [{"type": "text", "text": var} for var in variables]
             }
         ]
+        # Heuristic: any template whose name contains "otp" / "auth" is treated
+        # as an Authentication-category template that needs the button param.
+        # The OTP code itself is the first variable.
+        _name_lc = (template_name or "").lower()
+        is_auth_otp_template = (
+            "otp" in _name_lc or "auth" in _name_lc
+            or (template is not None and (template.get("category") or "").upper() == "AUTHENTICATION")
+        )
+        if is_auth_otp_template:
+            components.append({
+                "type": "button",
+                "sub_type": "url",
+                "index": "0",
+                "parameters": [{"type": "text", "text": str(variables[0])}],
+            })
+        payload["template"]["components"] = components
     
     # Send request to Meta API
     api_url = f"{WHATSAPP_API_BASE}/{settings['phone_number_id']}/messages"

@@ -5473,17 +5473,20 @@ async def staff_send_otp_smart(data: Dict[str, Any]):
 
 @api_router.post("/staff/verify-otp")
 async def staff_verify_otp(request: Request, data: Dict[str, Any]):
-    """Verify staff OTP and login"""
+    """Verify staff OTP and login.
+
+    Rate-limit is applied ONLY to failed attempts so a legitimate user
+    isn't locked out by earlier failed password tries on the same page.
+    """
     client_ip = get_client_ip(request)
-    
-    if not check_login_rate_limit(client_ip):
-        raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
-    
+
     staff_id = data.get("staff_id", "").strip().upper()
     otp = data.get("otp", "").strip()
-    
-    # Verify OTP
+
+    # Verify OTP first; only count this attempt against the rate limit if it fails.
     if not verify_login_otp(f"staff:{staff_id}", otp):
+        if not check_login_rate_limit(client_ip):
+            raise HTTPException(status_code=429, detail="Too many login attempts. Please try again in 5 minutes.")
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
     
     # Get staff details

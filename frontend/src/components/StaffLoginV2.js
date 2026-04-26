@@ -66,7 +66,23 @@ export const StaffLogin = () => {
     localStorage.setItem("asrStaffEmail", staff?.email || "");
     if (token) localStorage.setItem("asrStaffToken", token);
     localStorage.setItem("asrStaffLastActivity", String(Date.now()));
-    navigate("/staff/dashboard");
+    // Per business policy, managers + admin-dept staff land on the Admin
+    // Dashboard; everyone else uses the Staff Portal.
+    const role = (staff?.role || "").toLowerCase();
+    const dept = (staff?.department || "").toLowerCase();
+    const isAdminMgr = role === "manager" && dept === "admin";
+    if (isAdminMgr || role === "admin") {
+      // Map onto Admin localStorage so ProtectedRoute admits them.
+      localStorage.setItem("asrAdminAuth", "true");
+      localStorage.setItem("asrAdminEmail", staff?.email || "");
+      localStorage.setItem("asrAdminName", staff?.name || "");
+      localStorage.setItem("asrAdminRole", role || "manager");
+      localStorage.setItem("asrAdminStaffId", (staff?.staff_id || "").toUpperCase());
+      localStorage.setItem("asrAdminLastActivity", String(Date.now()));
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/staff/portal");
+    }
   };
 
   const submitPassword = async (e) => {

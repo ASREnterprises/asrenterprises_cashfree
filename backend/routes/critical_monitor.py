@@ -613,7 +613,7 @@ async def auto_fix(request: Request, admin=Depends(require_super_admin)):
 #  ENTRY GATE  (Dual-OTP token check before showing the page)
 # ──────────────────────────────────────────────────────────────────────────────
 class EntryGateReq(BaseModel):
-    action_token: str
+    action_token: Optional[str] = None
 
 
 @router.post("/entry/verify")
@@ -623,6 +623,8 @@ async def verify_entry(body: EntryGateReq, _admin=Depends(require_super_admin)):
     has just verified before rendering sensitive failure data."""
     from server import otp_storage  # type: ignore
 
+    if not body.action_token:
+        raise HTTPException(401, "Action token required.")
     key = f"action_token:{body.action_token}"
     rec = otp_storage.get(key)
     if not rec:

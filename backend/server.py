@@ -5379,12 +5379,23 @@ async def staff_send_otp(data: Dict[str, Any]):
 @api_router.post("/staff/send-otp-smart")
 async def staff_send_otp_smart(data: Dict[str, Any]):
     """Staff OTP delivery with channel choice (email | whatsapp).
-    Email uses Resend; WhatsApp uses the asr_otp template (with text fallback)."""
+    Email uses Resend; WhatsApp uses the asr_otp template (with text fallback).
+
+    Per-staff_id 60-second cooldown to prevent enumeration / spam since this
+    endpoint is intentionally unauthenticated (the Staff Login page hits it
+    BEFORE the user has a session)."""
     import asyncio
     staff_id = (data.get("staff_id") or "").strip().upper()
     channel = (data.get("channel") or "email").lower()
     if channel not in ("email", "whatsapp"):
         raise HTTPException(400, "channel must be 'email' or 'whatsapp'")
+
+    # 60-second cooldown per staff_id (uses otp_storage with a special key)
+    cooldown_key = f"staff_otp_cooldown:{staff_id}"
+    last = otp_storage.get(cooldown_key)
+    if last and time.time() - last.get("timestamp", 0) < 60:
+        wait = int(60 - (time.time() - last.get("timestamp", 0)))
+        raise HTTPException(429, f"Please wait {wait} seconds before requesting another OTP.")
 
     staff = await db.crm_staff_accounts.find_one(
         {"staff_id": staff_id, "is_active": True}, {"_id": 0})
@@ -5454,6 +5465,8 @@ async def staff_send_otp_smart(data: Dict[str, Any]):
 
     if not delivered_via:
         raise HTTPException(502, "Could not send OTP via the selected channel. Try the other one.")
+    # Record cooldown stamp (for the 60s anti-spam guard above)
+    otp_storage[cooldown_key] = {"otp": "_", "timestamp": time.time(), "attempts": 0}
     return {"success": True, "channel_used": delivered_via,
             "masked_recipient": masked, "expires_in": 300, "max_attempts": 3, "resend_in": 60}
 

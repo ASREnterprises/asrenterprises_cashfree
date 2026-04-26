@@ -4061,6 +4061,146 @@ async def get_crm_quick_stats():
     return response
 
 # Admin OTP APIs
+@api_router.post("/admin/send-otp-smart")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def admin_send_otp_smart(request: Request, data: Dict[str, Any]):
+    """Dual-channel OTP delivery for Admin login + Guardian approvals.
+    Channels: 'auto' (WhatsApp first, fall back to Email), 'whatsapp', 'email'.
+    Writes to db.otp_audit collection: {actor, channel_attempted, channel_used, success, ip, ts}.
+    Reads owner preference from db.app_settings.admin_otp_pref ('whatsapp' | 'email' | 'auto')."""
+    client_ip = get_real_ip(request)
+    requested = (data.get("channel") or "").lower()
+    purpose = (data.get("purpose") or "login").lower()  # login | approval | unlock
+    log_security_event("ADMIN_LOGIN_ATTEMPT", client_ip, {"channel": requested, "purpose": purpose})
+
+    # Read persisted owner preference (default: auto)
+    pref_doc = await db.app_settings.find_one({"key": "admin_otp_pref"}, {"_id": 0}) or {}
+    preferred = (pref_doc.get("channel") or "auto").lower()
+    channel = requested or preferred  # 'auto' if neither set
+    email = "asrenterprisespatna@gmail.com"
+    mobile_full = OWNER_MOBILE  # 10-digit
+    masked_email = mask_sensitive_data(email)
+    masked_mobile = "+91 " + mobile_full[:2] + "XXXXXX" + mobile_full[-2:]
+
+    # Cooldown — single key for both channels (prevent OTP-bomb across channels)
+    can_send, cooldown_msg = can_send_otp(f"admin:{email}")
+    if not can_send:
+        raise HTTPException(status_code=429, detail=cooldown_msg)
+    allowed, lockout_msg = check_login_lockout(client_ip, email)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=lockout_msg)
+
+    # Generate ONE OTP shared across both channels, stored under multiple keys
+    otp = generate_secure_otp()
+    # Store under email + mobile keys so verify works regardless of channel later
+    store_otp(f"admin:{email}", otp)
+    store_otp(f"admin:{mobile_full}", otp)
+
+    audit = {
+        "id": str(uuid.uuid4()),
+        "actor": email, "channel_requested": channel, "purpose": purpose,
+        "ip": client_ip, "ts": datetime.now(timezone.utc).isoformat(),
+        "channels_tried": [], "channel_used": None, "success": False,
+    }
+
+    async def _try_whatsapp() -> bool:
+        try:
+            audit["channels_tried"].append("whatsapp")
+            from routes.whatsapp import send_whatsapp_template, send_whatsapp_text
+            body = (f"Your ASR Enterprises OTP is: {otp}\n"
+                    f"Valid for 5 minutes. Do not share with anyone.")
+            r = await send_whatsapp_text(mobile_full, body) if "send_whatsapp_text" in dir() else None
+            if r:
+                return True
+            # Fallback: try template if a generic OTP template exists
+            try:
+                tmpl = await send_whatsapp_template(mobile_full, "otp_verification", "en", body_params=[otp])
+                return bool(tmpl and tmpl.get("messages"))
+            except Exception:
+                return False
+        except Exception as e:
+            audit.setdefault("errors", []).append(f"wa:{str(e)[:120]}")
+            return False
+
+    async def _try_email() -> bool:
+        try:
+            audit["channels_tried"].append("email")
+            sent = await send_otp_email(email, otp, "Admin Secure Access")
+            return bool(sent)
+        except Exception as e:
+            audit.setdefault("errors", []).append(f"em:{str(e)[:120]}")
+            return False
+
+    delivered_via = None
+    if channel == "whatsapp":
+        if await _try_whatsapp(): delivered_via = "whatsapp"
+    elif channel == "email":
+        if await _try_email(): delivered_via = "email"
+    else:  # 'auto' — WhatsApp first, then Email
+        if await _try_whatsapp():
+            delivered_via = "whatsapp"
+        elif await _try_email():
+            delivered_via = "email"
+
+    audit["channel_used"] = delivered_via
+    audit["success"] = bool(delivered_via)
+    try:
+        await db.otp_audit.insert_one(audit.copy())
+    except Exception as _e:
+        logger.warning(f"[otp-audit] write failed: {_e}")
+
+    if not delivered_via:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not send OTP via any channel. Check WhatsApp credits + Resend domain status."
+        )
+
+    return {
+        "success": True,
+        "channel_used": delivered_via,
+        "channel_requested": channel,
+        "channels_tried": audit["channels_tried"],
+        "masked_recipient": masked_email if delivered_via == "email" else masked_mobile,
+        "expires_in": 300,  # seconds
+        "max_attempts": 3,
+        "message": (f"OTP sent to {'WhatsApp' if delivered_via == 'whatsapp' else 'Email'}. "
+                    f"Valid for 5 minutes."),
+    }
+
+
+@api_router.get("/admin/otp-preference")
+async def admin_get_otp_pref():
+    """Read persisted preferred OTP channel (default: auto)."""
+    doc = await db.app_settings.find_one({"key": "admin_otp_pref"}, {"_id": 0}) or {}
+    return {"channel": (doc.get("channel") or "auto").lower(),
+            "updated_at": doc.get("updated_at") or ""}
+
+
+@api_router.put("/admin/otp-preference")
+async def admin_set_otp_pref(data: Dict[str, Any]):
+    """Persist preferred OTP channel (whatsapp | email | auto). Auto is default."""
+    ch = (data.get("channel") or "").lower()
+    if ch not in ("whatsapp", "email", "auto"):
+        raise HTTPException(400, "channel must be 'whatsapp', 'email', or 'auto'")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.app_settings.update_one(
+        {"key": "admin_otp_pref"},
+        {"$set": {"channel": ch, "updated_at": now},
+         "$setOnInsert": {"key": "admin_otp_pref", "created_at": now}},
+        upsert=True,
+    )
+    return {"channel": ch, "updated_at": now}
+
+
+@api_router.get("/admin/otp-audit")
+async def admin_get_otp_audit(limit: int = 50):
+    """Last N OTP send attempts (admin only — read-only audit)."""
+    limit = max(1, min(int(limit or 50), 200))
+    cursor = db.otp_audit.find({}, {"_id": 0}).sort("ts", -1).limit(limit)
+    items = await cursor.to_list(length=limit)
+    return {"count": len(items), "items": items}
+
+
 @api_router.post("/admin/send-otp")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def send_otp(request: Request, data: Dict[str, Any]):

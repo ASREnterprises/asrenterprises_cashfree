@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText, Trash2, FileCheck2, ShieldCheck } from "lucide-react";
+import { Users, LogOut, ClipboardList, Star, Calendar, Newspaper, Shield, TrendingUp, Share2, LayoutDashboard, Loader2, RefreshCw, UserCog, ShoppingCart, Sun, MessageCircle, FileText, Trash2, FileCheck2, ShieldCheck, Activity } from "lucide-react";
 import axios from "axios";
 import { useAutoLogout } from "@/hooks/useAutoLogout";
 
@@ -199,6 +199,14 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/security-otp",
       color: "from-amber-600 to-orange-700",
       count: "OTP & Audit"
+    },
+    {
+      title: "Critical Monitor",
+      description: "OTP & Payment failures · health · recovery actions",
+      icon: <Activity className="w-10 h-10" />,
+      link: "/admin/critical-monitor",
+      color: "from-rose-600 to-red-700",
+      count: "Super Admin"
     }
   ];
 
@@ -254,7 +262,8 @@ export const AdminDashboard = ({ onLogout }) => {
     : modules
   ).filter(m =>
     (m.title !== "AI Website Guardian" || isSuperAdmin) &&
-    (m.title !== "Admin Security"     || isSuperAdmin)
+    (m.title !== "Admin Security"     || isSuperAdmin) &&
+    (m.title !== "Critical Monitor"   || isSuperAdmin)
   );
 
   return (

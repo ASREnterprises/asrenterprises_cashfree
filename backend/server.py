@@ -4130,9 +4130,11 @@ async def admin_send_otp_smart(request: Request, data: Dict[str, Any]):
                 f"Valid for 5 minutes. Do not share with anyone."
             )
 
-            # 1) Try the approved OTP template first (auth category templates
-            #    are the only WA way to deliver a code outside the 24h window).
-            for tpl in ("authentication_otp", "otp_verification", "website_otp"):
+            # 1) Try the approved OTP templates. Owner's WABA only has
+            #    `asr_otp` approved — try it FIRST so we don't waste 4 calls
+            #    on names that always 404. Keep the legacy fallbacks for
+            #    forwards-compat in case more templates get approved later.
+            for tpl in ("asr_otp", "authentication_otp", "otp_verification", "website_otp"):
                 try:
                     r = await asyncio.wait_for(
                         send_whatsapp_template(phone=phone_e164, template_name=tpl,
@@ -14296,6 +14298,10 @@ api_router.include_router(agreements_router)
 # ── AI Website Guardian — monitoring / approval / rollback / command console ──
 from routes.guardian import router as guardian_router
 api_router.include_router(guardian_router)
+
+# ── Critical System Monitor — Super-Admin failure dashboard ──
+from routes.critical_monitor import router as critical_monitor_router
+api_router.include_router(critical_monitor_router)
 
 app.include_router(api_router)
 

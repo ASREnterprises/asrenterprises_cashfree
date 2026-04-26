@@ -95,9 +95,9 @@ async def _send_otp_whatsapp(phone_e164: str, name: str, otp: str, purpose: str)
         if not token or not phone_id:
             return {"success": False, "error": "whatsapp not configured"}
 
-        # Option 1: Use an OTP template if one is approved on the account.
-        # Try the most common names; gracefully skip if none exist.
-        for tpl_name in ["otp_verification", "authentication_otp", "website_otp", "customer_otp"]:
+        # Owner's WABA has `asr_otp` approved — try it FIRST so we don't
+        # waste API calls on templates that always 404 on this account.
+        for tpl_name in ["asr_otp", "otp_verification", "authentication_otp", "website_otp", "customer_otp"]:
             try:
                 result = await send_whatsapp_template(
                     phone=phone_e164,

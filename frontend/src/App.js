@@ -80,6 +80,7 @@ const TrashManagement = lazy(() => import("@/components/TrashManagement").then(m
 const AgreementsManagement = lazy(() => import("@/components/AgreementsManagement").then(m => ({ default: m.AgreementsManagement })));
 const GuardianDashboard = lazy(() => import("@/components/GuardianDashboard").then(m => ({ default: m.GuardianDashboard })));
 const AdminSecuritySettings = lazy(() => import("@/components/AdminSecuritySettings").then(m => ({ default: m.AdminSecuritySettings })));
+const CriticalMonitor = lazy(() => import("@/components/CriticalMonitor").then(m => ({ default: m.CriticalMonitor })));
 const LoginSelector = lazy(() => import("@/components/LoginSelector").then(m => ({ default: m.LoginSelector })));
 const OrderTracking = lazy(() => import("@/components/OrderTracking").then(m => ({ default: m.OrderTrackingPage })));
 
@@ -3185,6 +3186,11 @@ export default function App() {
           <Route path="/admin/security-otp" element={
             <ProtectedRoute>
               <AdminSecuritySettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/critical-monitor" element={
+            <ProtectedRoute>
+              <CriticalMonitor />
             </ProtectedRoute>
           } />
           <Route path="/staff/training" element={

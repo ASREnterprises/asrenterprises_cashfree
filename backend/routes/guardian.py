@@ -75,7 +75,7 @@ async def _send_admin_whatsapp_otp(otp_code: str, approval: Dict) -> Dict:
         if len(phone_e164) == 10:
             phone_e164 = "91" + phone_e164
 
-        for tpl in ["authentication_otp", "otp_verification", "website_otp", "customer_otp"]:
+        for tpl in ["asr_otp", "authentication_otp", "otp_verification", "website_otp", "customer_otp"]:
             try:
                 r = await send_whatsapp_template(phone=phone_e164, template_name=tpl, variables=[otp_code])
                 if r.get("success"):

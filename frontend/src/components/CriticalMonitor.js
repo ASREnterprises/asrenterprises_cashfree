@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft, Activity, AlertTriangle, MessageCircle, Mail, RefreshCw, Loader2,
   CheckCircle2, XCircle, Send, Wallet, Search, ShieldAlert, Wrench, BarChart3,
-  Zap,
+  Zap, Settings, Sparkles, KeyRound,
 } from "lucide-react";
 import DualOtpModal from "./DualOtpModal";
 
@@ -59,6 +59,32 @@ const ReasonChip = ({ reason }) => {
   return <span className={`text-xs px-2 py-1 rounded border ${cls} inline-block max-w-[260px] truncate`} title={reason}>{reason}</span>;
 };
 
+const SettingGroup = ({ label, tone, children }) => {
+  const cls = ({
+    emerald: "from-emerald-50 to-emerald-100 border-emerald-200 text-emerald-800",
+    blue:    "from-blue-50    to-blue-100    border-blue-200    text-blue-800",
+    amber:   "from-amber-50   to-amber-100   border-amber-200   text-amber-800",
+  }[tone] || "from-slate-50 to-slate-100 border-slate-200 text-slate-700");
+  return (
+    <div className={`bg-gradient-to-br ${cls} border rounded-xl p-4`}>
+      <h4 className="text-sm font-bold mb-3">{label}</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{children}</div>
+    </div>
+  );
+};
+
+const SettingsField = ({ label, placeholder, onChange, testid, hot = false }) => (
+  <label className="block text-xs">
+    <span className="text-slate-600 font-medium flex items-center gap-1">
+      {label} {hot && <span className="text-emerald-700 text-[10px] font-bold bg-emerald-100 px-1.5 rounded">HOT</span>}
+    </span>
+    <input type="text" placeholder={placeholder}
+           onChange={(e) => onChange(e.target.value)}
+           className="mt-1 w-full px-3 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-300 outline-none text-sm font-mono"
+           data-testid={testid} autoComplete="off" />
+  </label>
+);
+
 const Sparkline = ({ points, color = "#ef4444", height = 40 }) => {
   if (!points || points.length === 0) return <div className="h-10 text-xs text-slate-400 flex items-center justify-center">No data</div>;
   const max = Math.max(1, ...points.map(p => p.value));
@@ -72,6 +98,140 @@ const Sparkline = ({ points, color = "#ef4444", height = 40 }) => {
         <circle key={i} cx={i * dx} cy={height - (p.value / max) * (height - 4) - 2} r={p.value > 0 ? 2.5 : 1.5} fill={color} />
       ))}
     </svg>
+  );
+};
+
+/**
+ * EntryGate — locks the Critical Monitor behind Dual-OTP verification.
+ * Falls back to a Master Recovery Code (issued via password challenge) when
+ * both OTP channels are broken.
+ */
+const EntryGate = ({ onUnlocked }) => {
+  const [mode, setMode] = useState("otp"); // 'otp' | 'recovery_request' | 'recovery_verify'
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [busy, setBusy] = useState(false);
+  // Recovery state
+  const [pw, setPw] = useState("");
+  const [recCode, setRecCode] = useState("");
+  const [delivered, setDelivered] = useState([]);
+
+  const requestRecovery = async () => {
+    setError(""); setInfo(""); setBusy(true);
+    try {
+      const r = await axios.post(`${API}/admin/recovery/issue`, { password: pw });
+      setDelivered(r.data?.delivered_via || []);
+      setInfo("Recovery code sent. Check your email + WhatsApp.");
+      setMode("recovery_verify");
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Could not issue recovery code");
+    } finally { setBusy(false); }
+  };
+
+  const verifyRecovery = async () => {
+    setError(""); setInfo(""); setBusy(true);
+    try {
+      const r = await axios.post(`${API}/admin/recovery/verify`, { code: recCode.trim().toUpperCase() });
+      const action_token = r.data?.action_token;
+      // Hand the token to the entry-verify so the audit log captures it
+      try {
+        await axios.post(`${API}/critical-monitor/entry/verify`, { action_token }, { headers: headers() });
+      } catch (_e) { /* not fatal — token already valid */ }
+      onUnlocked(action_token);
+    } catch (e) {
+      setError(e?.response?.data?.detail || "Invalid or expired recovery code");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-amber-50 p-6">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-amber-200" data-testid="cm-entry-gate">
+        <div className="text-center mb-5">
+          <ShieldAlert className="w-14 h-14 text-amber-500 mx-auto mb-3" />
+          <h2 className="text-xl font-bold text-[#0a355e]">Critical Monitor — Locked</h2>
+          <p className="text-sm text-slate-600 mt-1">Verify your identity to view system recovery tools.</p>
+        </div>
+
+        {error && (<div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-3" data-testid="cm-entry-error">{error}</div>)}
+        {info && (<div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm p-3 rounded-lg mb-3">{info}</div>)}
+
+        {mode === "otp" && (
+          <>
+            <button type="button" onClick={() => setOtpOpen(true)}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-[#071A2E] font-bold px-6 py-3 rounded-xl shadow-md flex items-center justify-center gap-2"
+                    data-testid="cm-entry-unlock">
+              <ShieldAlert className="w-5 h-5" /> Unlock with Dual-OTP
+            </button>
+            <button type="button" onClick={() => setMode("recovery_request")}
+                    className="w-full mt-3 text-xs text-slate-500 hover:text-amber-700 underline"
+                    data-testid="cm-entry-recovery-link">
+              Both OTP channels broken? Use Master Recovery Code →
+            </button>
+            <DualOtpModal
+              open={otpOpen} purpose="secure_action"
+              title="Critical Monitor Access"
+              description="Verify Dual-OTP to unlock the system failure dashboard and recovery actions."
+              onClose={() => setOtpOpen(false)}
+              onVerified={async (action_token) => {
+                try {
+                  await axios.post(`${API}/critical-monitor/entry/verify`, { action_token }, { headers: headers() });
+                  setOtpOpen(false);
+                  onUnlocked(action_token);
+                } catch (e) {
+                  setError(e?.response?.data?.detail || "Entry verification failed");
+                  setOtpOpen(false);
+                }
+              }}
+            />
+          </>
+        )}
+
+        {mode === "recovery_request" && (
+          <>
+            <p className="text-xs text-slate-600 mb-3">Enter your <strong>admin password</strong> to receive a one-time Master Recovery Code via Email + WhatsApp. The code is valid for 10 minutes.</p>
+            <input type="password" value={pw} onChange={(e) => setPw(e.target.value)}
+                   placeholder="Admin password" autoFocus
+                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-300 mb-3"
+                   data-testid="cm-recovery-pw" />
+            <button type="button" onClick={requestRecovery} disabled={busy || pw.length < 4}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-[#071A2E] font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+                    data-testid="cm-recovery-issue-btn">
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+              Send Recovery Code
+            </button>
+            <button type="button" onClick={() => setMode("otp")}
+                    className="w-full mt-3 text-xs text-slate-500 hover:text-amber-700 underline">
+              ← Back to OTP
+            </button>
+          </>
+        )}
+
+        {mode === "recovery_verify" && (
+          <>
+            <p className="text-xs text-slate-600 mb-1">Code sent via: <strong>{delivered.join(", ") || "logs"}</strong></p>
+            <p className="text-xs text-slate-500 mb-3">Enter the 12-character code (case-insensitive). Valid 10 minutes · max 3 attempts.</p>
+            <input type="text" value={recCode}
+                   onChange={(e) => setRecCode(e.target.value.toUpperCase().slice(0, 12))}
+                   placeholder="ABCD23EFGH45" maxLength={12} autoFocus
+                   className="w-full text-center text-xl tracking-[0.3em] font-mono px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-300 mb-3"
+                   data-testid="cm-recovery-code-input" />
+            <button type="button" onClick={verifyRecovery} disabled={busy || recCode.length < 12}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+                    data-testid="cm-recovery-verify-btn">
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Verify & Unlock
+            </button>
+            <button type="button" onClick={() => { setMode("recovery_request"); setRecCode(""); }}
+                    className="w-full mt-3 text-xs text-slate-500 hover:text-amber-700 underline">
+              ← Request a fresh code
+            </button>
+          </>
+        )}
+
+        <Link to="/admin/dashboard" className="block text-center mt-4 text-xs text-slate-400 hover:text-slate-600">← Back to Dashboard</Link>
+      </div>
+    </div>
   );
 };
 
@@ -103,6 +263,17 @@ export const CriticalMonitor = () => {
   const [testPayForm, setTestPayForm] = useState({ mobile: "", name: "Test Customer", email: "", amount: 1 });
   const [testOtpResult, setTestOtpResult] = useState(null);
   const [testPayResult, setTestPayResult] = useState(null);
+
+  // Settings tab state
+  const [settings, setSettings] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({});
+  const [settingsOtpOpen, setSettingsOtpOpen] = useState(false);
+
+  // AI Diagnose tab state
+  const [issueText, setIssueText] = useState("");
+  const [diagnosing, setDiagnosing] = useState(false);
+  const [diagnoseResult, setDiagnoseResult] = useState(null);
 
   // Mark-as-paid + Retry Dual-OTP gates
   const [markPaidFor, setMarkPaidFor] = useState(null);
@@ -252,6 +423,60 @@ export const CriticalMonitor = () => {
     } finally { setBusy(""); }
   };
 
+  // ── Settings tab handlers
+  const loadSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const r = await axios.get(`${API}/critical-monitor/settings`, { headers: headers() });
+      setSettings(r.data);
+    } catch (e) {
+      flashError(e?.response?.data?.detail || "Could not load settings");
+    } finally { setSettingsLoading(false); }
+  };
+
+  useEffect(() => {
+    if (tab === "settings" && !settings && entryUnlocked) loadSettings();
+    // eslint-disable-next-line
+  }, [tab, entryUnlocked]);
+
+  const submitSettings = (e) => {
+    e?.preventDefault?.();
+    const dirty = Object.entries(settingsForm).filter(([_, v]) => v && String(v).trim());
+    if (dirty.length === 0) { flashError("Nothing to save."); return; }
+    setSettingsOtpOpen(true);
+  };
+  const completeSettingsSave = async (action_token) => {
+    setSettingsOtpOpen(false);
+    setBusy("save_settings");
+    try {
+      const r = await axios.put(`${API}/critical-monitor/settings`,
+        { ...settingsForm, action_token }, { headers: headers() });
+      flashToast(r.data?.redeploy_needed
+        ? "Saved. Some changes need a redeploy to take full effect."
+        : "Settings saved and live.");
+      setSettingsForm({});
+      loadSettings();
+    } catch (e) {
+      flashError(e?.response?.data?.detail || "Save failed");
+    } finally { setBusy(""); }
+  };
+
+  // ── AI Diagnose handlers
+  const runDiagnose = async (autoRun = false) => {
+    if (!issueText.trim()) { flashError("Describe the issue first"); return; }
+    setDiagnosing(true);
+    setDiagnoseResult(null);
+    try {
+      const r = await axios.post(`${API}/critical-monitor/diagnose`,
+        { issue_text: issueText, auto_run: autoRun }, { headers: headers() });
+      setDiagnoseResult(r.data);
+      if (r.data?.executed?.length) flashToast("Auto-fix executed. See details below.");
+      loadAll();
+    } catch (e) {
+      flashError(e?.response?.data?.detail || "Diagnose failed");
+    } finally { setDiagnosing(false); }
+  };
+
   if (!isSuper) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6" data-testid="critical-monitor-blocked">
@@ -267,41 +492,11 @@ export const CriticalMonitor = () => {
 
   // Entry gate — block UI until Dual-OTP verified
   if (!entryUnlocked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-amber-50 p-6">
-        <div className="max-w-md text-center bg-white rounded-2xl shadow-xl p-8 border border-amber-200">
-          <ShieldAlert className="w-14 h-14 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-xl font-bold text-[#0a355e] mb-2">Critical Monitor — Locked</h2>
-          <p className="text-sm text-slate-600 mb-5">A Dual-OTP confirmation is required to view system failure data and recovery actions.</p>
-          <button
-            type="button"
-            onClick={() => setEntryOtpOpen(true)}
-            className="bg-amber-500 hover:bg-amber-600 text-[#071A2E] font-bold px-6 py-3 rounded-xl shadow-md flex items-center gap-2 mx-auto"
-            data-testid="cm-entry-unlock"
-          >
-            <ShieldAlert className="w-5 h-5" /> Unlock with Dual-OTP
-          </button>
-          <Link to="/admin/dashboard" className="inline-block mt-4 text-xs text-slate-500 hover:underline">← Back to Dashboard</Link>
-        </div>
-        <DualOtpModal
-          open={entryOtpOpen}
-          purpose="secure_action"
-          title="Critical Monitor Access"
-          description="Verify Dual-OTP to unlock the system failure dashboard and recovery actions."
-          onClose={() => setEntryOtpOpen(false)}
-          onVerified={async (action_token) => {
-            try {
-              await axios.post(`${API}/critical-monitor/entry/verify`, { action_token }, { headers: headers() });
-              sessionStorage.setItem("cm_entry_unlocked", "1");
-              setEntryOtpOpen(false);
-              setEntryUnlocked(true);
-            } catch (e) {
-              flashError(e?.response?.data?.detail || "Entry verification failed");
-            }
-          }}
-        />
-      </div>
-    );
+    return <EntryGate isSuper={isSuper} onUnlocked={(t) => {
+      sessionStorage.setItem("cm_entry_unlocked", "1");
+      setEntryUnlocked(true);
+      setEntryOtpOpen(false);
+    }} />;
   }
 
   return (
@@ -385,10 +580,12 @@ export const CriticalMonitor = () => {
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-4">
-          <Tab active={tab === "otp"}    onClick={() => setTab("otp")}    label="OTP Failures"     icon={<MessageCircle className="w-4 h-4" />} count={otpRows.length} testid="cm-tab-otp" />
-          <Tab active={tab === "pay"}    onClick={() => setTab("pay")}    label="Payment Failures" icon={<Wallet className="w-4 h-4" />}      count={payRows.length} testid="cm-tab-pay" />
-          <Tab active={tab === "tools"}  onClick={() => setTab("tools")}  label="Test Tools"       icon={<Wrench className="w-4 h-4" />}      testid="cm-tab-tools" />
-          <Tab active={tab === "health"} onClick={() => setTab("health")} label="System Health"    icon={<BarChart3 className="w-4 h-4" />}   testid="cm-tab-health" />
+          <Tab active={tab === "otp"}      onClick={() => setTab("otp")}      label="OTP Failures"     icon={<MessageCircle className="w-4 h-4" />} count={otpRows.length} testid="cm-tab-otp" />
+          <Tab active={tab === "pay"}      onClick={() => setTab("pay")}      label="Payment Failures" icon={<Wallet className="w-4 h-4" />}      count={payRows.length} testid="cm-tab-pay" />
+          <Tab active={tab === "tools"}    onClick={() => setTab("tools")}    label="Test Tools"       icon={<Wrench className="w-4 h-4" />}      testid="cm-tab-tools" />
+          <Tab active={tab === "diagnose"} onClick={() => setTab("diagnose")} label="AI Diagnose"      icon={<Sparkles className="w-4 h-4" />}    testid="cm-tab-diagnose" />
+          <Tab active={tab === "settings"} onClick={() => setTab("settings")} label="Settings"         icon={<Settings className="w-4 h-4" />}    testid="cm-tab-settings" />
+          <Tab active={tab === "health"}   onClick={() => setTab("health")}   label="System Health"    icon={<BarChart3 className="w-4 h-4" />}   testid="cm-tab-health" />
           <div className="flex-1" />
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -617,6 +814,129 @@ export const CriticalMonitor = () => {
           </div>
         )}
 
+        {/* AI Diagnose Tab */}
+        {tab === "diagnose" && (
+          <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5" data-testid="cm-panel-diagnose">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              <h3 className="font-bold text-[#0B3C5D]">Describe the issue — AI suggests fixes</h3>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">Type what's broken (e.g. "OTP via WhatsApp not arriving", "Cashfree payments timing out"). The AI picks safe recovery actions from the playbook. Click "Confirm & Run" to execute.</p>
+            <textarea
+              value={issueText} onChange={(e) => setIssueText(e.target.value)}
+              placeholder="Describe the issue you are facing…"
+              className="w-full min-h-[100px] border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-purple-300 outline-none mb-3"
+              data-testid="cm-diagnose-input"
+            />
+            <div className="flex gap-2 flex-wrap">
+              <button type="button" onClick={() => runDiagnose(false)} disabled={diagnosing || !issueText.trim()}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
+                      data-testid="cm-diagnose-suggest">
+                {diagnosing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                Suggest fixes
+              </button>
+              <button type="button" onClick={() => runDiagnose(true)} disabled={diagnosing || !issueText.trim()}
+                      className="bg-rose-500 hover:bg-rose-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2 disabled:opacity-50"
+                      data-testid="cm-diagnose-run">
+                <Zap className="w-4 h-4" /> Auto-run top fix
+              </button>
+            </div>
+
+            {diagnoseResult && (
+              <div className="mt-5 space-y-3" data-testid="cm-diagnose-result">
+                {diagnoseResult.rationale && (
+                  <div className="bg-purple-50 border border-purple-200 text-purple-900 text-sm p-3 rounded-lg">
+                    <strong>AI rationale:</strong> {diagnoseResult.rationale}
+                  </div>
+                )}
+                <div>
+                  <h4 className="text-sm font-bold text-slate-700 mb-2">Suggested actions</h4>
+                  <ul className="space-y-2">
+                    {(diagnoseResult.suggested_actions || []).map((a, i) => (
+                      <li key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5" />
+                        <div>
+                          <div className="font-semibold text-slate-700 text-sm">{a.label}</div>
+                          <div className="text-xs text-slate-500">key: <code>{a.key}</code> · endpoint: <code>{a.endpoint}</code></div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {(diagnoseResult.executed || []).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2">Executed</h4>
+                    <pre className="bg-slate-900 text-emerald-200 text-xs p-3 rounded-lg overflow-x-auto">{JSON.stringify(diagnoseResult.executed, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {tab === "settings" && (
+          <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-5" data-testid="cm-panel-settings">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-[#0B3C5D]">Critical Settings</h3>
+                <p className="text-xs text-slate-500">Update OTP credentials, templates &amp; gateway keys. Changes are Dual-OTP gated. Some fields require a redeploy.</p>
+              </div>
+              <button type="button" onClick={loadSettings} disabled={settingsLoading}
+                      className="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg flex items-center gap-1"
+                      data-testid="cm-settings-refresh">
+                <RefreshCw className={`w-3.5 h-3.5 ${settingsLoading ? "animate-spin" : ""}`} /> Refresh
+              </button>
+            </div>
+
+            {!settings ? (
+              <div className="text-sm text-slate-400 py-6 text-center">Loading…</div>
+            ) : (
+              <form onSubmit={submitSettings} className="space-y-4">
+                <SettingGroup label="WhatsApp" tone="emerald">
+                  <SettingsField label="Access Token" placeholder={settings.whatsapp.access_token_masked || "EAAS…"}
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, whatsapp_access_token: v }))}
+                                  testid="cm-set-wa-token" hot />
+                  <SettingsField label="Phone Number ID" placeholder={settings.whatsapp.phone_number_id}
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, whatsapp_phone_number_id: v }))}
+                                  testid="cm-set-wa-phone" hot />
+                  <SettingsField label="OTP Template Name" placeholder={settings.whatsapp.template_name}
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, whatsapp_otp_template_name: v }))}
+                                  testid="cm-set-wa-template" hot />
+                </SettingGroup>
+
+                <SettingGroup label="Email (Resend)" tone="blue">
+                  <SettingsField label="API Key" placeholder={settings.email.resend_key_masked || "re_…"}
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, resend_api_key: v }))}
+                                  testid="cm-set-resend-key" />
+                  <SettingsField label="Sender Email" placeholder={settings.email.sender}
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, resend_sender_email: v }))}
+                                  testid="cm-set-resend-sender" />
+                </SettingGroup>
+
+                <SettingGroup label="Cashfree" tone="amber">
+                  <SettingsField label="App ID" placeholder={settings.cashfree.app_id_masked || "1254…"}
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, cashfree_app_id: v }))}
+                                  testid="cm-set-cf-app-id" />
+                  <SettingsField label="Secret Key" placeholder="cfsk_…"
+                                  onChange={(v) => setSettingsForm(f => ({ ...f, cashfree_secret: v }))}
+                                  testid="cm-set-cf-secret" />
+                </SettingGroup>
+
+                <div className="flex gap-2 items-center pt-2 border-t border-slate-100">
+                  <button type="submit" disabled={busy === "save_settings"}
+                          className="bg-amber-500 hover:bg-amber-600 text-[#071A2E] font-bold px-5 py-2.5 rounded-lg flex items-center gap-2 disabled:opacity-50"
+                          data-testid="cm-settings-save">
+                    {busy === "save_settings" ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldAlert className="w-4 h-4" />}
+                    Save (Dual-OTP)
+                  </button>
+                  <p className="text-xs text-slate-400">Hot fields apply immediately · WhatsApp token / template hot · Resend & Cashfree need redeploy.</p>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
         {/* System Health tab */}
         {tab === "health" && health && (
           <div className="space-y-4" data-testid="cm-panel-health">
@@ -687,6 +1007,16 @@ export const CriticalMonitor = () => {
           onVerified={completeRetry}
         />
       )}
+
+      {/* Settings Save Dual OTP gate */}
+      <DualOtpModal
+        open={settingsOtpOpen}
+        purpose="settings_update"
+        title="Verify Settings Update"
+        description="A Dual-OTP confirmation is required to update credentials and templates."
+        onClose={() => setSettingsOtpOpen(false)}
+        onVerified={completeSettingsSave}
+      />
     </div>
   );
 };

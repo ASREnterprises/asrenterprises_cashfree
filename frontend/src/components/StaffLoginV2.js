@@ -160,7 +160,7 @@ export const StaffLogin = () => {
               </div>
             </Link>
             <h1 className="text-2xl font-bold text-gray-800">Staff Login</h1>
-            <p className="text-gray-500 text-sm mt-1">Enter your ASR Staff ID and credentials</p>
+            <p className="text-gray-500 text-sm mt-1">Sign in to your ASR Staff portal</p>
           </div>
 
           <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-lg">
@@ -197,7 +197,7 @@ export const StaffLogin = () => {
               <input
                 type="text" value={staffId} required
                 onChange={(e) => setStaffId(e.target.value.toUpperCase())}
-                placeholder="e.g. ASR1002"
+                placeholder="Staff ID"
                 className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 data-testid="staff-login-staffid"
               />

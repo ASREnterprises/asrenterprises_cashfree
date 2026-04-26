@@ -359,7 +359,23 @@ async def create_hr_employee(data: Dict[str, Any]):
     existing_staff = await db.crm_staff_accounts.find_one({"staff_id": employee.employee_id})
     if not existing_staff:
         await db.crm_staff_accounts.insert_one(staff_data)
-    
+
+    # Welcome email — best effort (do not block the API on Resend hiccups)
+    if employee.email:
+        try:
+            from server import send_welcome_email
+            await send_welcome_email(
+                email=employee.email, name=employee.name,
+                user_id=employee.employee_id,
+                role_label=(employee.role or "Staff").title(),
+                login_url="https://asrenterprises.in/staff/login",
+                temp_password=default_password,
+                extra_lines=["Update your phone, address and KYC details from the profile page after first login"],
+            )
+        except Exception as _welcome_err:
+            import logging
+            logging.getLogger(__name__).warning(f"[hr] welcome email failed for {employee.employee_id}: {_welcome_err}")
+
     return {
         "success": True,
         "employee": {k: v for k, v in doc.items() if k != "_id"},

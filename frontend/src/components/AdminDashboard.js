@@ -266,6 +266,33 @@ export const AdminDashboard = ({ onLogout }) => {
     (m.title !== "Critical Monitor"   || isSuperAdmin)
   );
 
+  // Super-Admin Dashboard tile order (per user spec). Anything not listed
+  // sinks to the bottom in declaration order.
+  const SUPER_ADMIN_ORDER = [
+    "CRM System",
+    "WhatsApp API",
+    "GST Invoices",
+    "Solar Agreements",
+    "Leads Management",
+    "HR Management",
+    "Shop Management",
+    "Customer Portal",
+    "Solar Advisor",
+    "Admin Security",
+    "Critical Monitor",
+    "AI Website Guardian",
+    "Security Centre",
+    "Social Media",
+    "Testimonials",
+    "Festival Posts",
+    "Trash",
+  ];
+  const orderIndex = (title) => {
+    const i = SUPER_ADMIN_ORDER.indexOf(title);
+    return i === -1 ? 999 : i;
+  };
+  visibleModules.sort((a, b) => orderIndex(a.title) - orderIndex(b.title));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100 py-8 px-4">
       <div className="max-w-7xl mx-auto">

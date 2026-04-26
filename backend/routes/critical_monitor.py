@@ -637,3 +637,192 @@ async def verify_entry(body: EntryGateReq, _admin=Depends(require_super_admin)):
         raise HTTPException(403, f"Token purpose mismatch ({purpose}).")
     # Don't burn — entry is read-only, mark-paid will burn its own
     return {"ok": True, "purpose": purpose, "expires_at": rec.get("timestamp", 0) + 300}
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  SETTINGS / CONFIG  — admin-pushed credential & template updates
+# ──────────────────────────────────────────────────────────────────────────────
+class SettingsUpdateReq(BaseModel):
+    whatsapp_access_token: Optional[str] = None
+    whatsapp_phone_number_id: Optional[str] = None
+    whatsapp_otp_template_name: Optional[str] = None
+    resend_api_key: Optional[str] = None
+    resend_sender_email: Optional[str] = None
+    cashfree_app_id: Optional[str] = None
+    cashfree_secret: Optional[str] = None
+    action_token: Optional[str] = None
+
+
+@router.get("/settings")
+async def get_critical_settings(_admin=Depends(require_super_admin)):
+    """Return effective config (with secrets masked)."""
+    import os as _os
+    wa = await db.whatsapp_settings.find_one({}, {"_id": 0}) or {}
+    app_settings = await db.app_settings.find_one({"name": "critical_monitor_settings"}, {"_id": 0}) or {}
+
+    def mask(v: Optional[str]) -> str:
+        if not v: return ""
+        v = str(v)
+        if len(v) <= 8: return "•" * len(v)
+        return v[:4] + "•" * (len(v) - 8) + v[-4:]
+
+    return {
+        "whatsapp": {
+            "access_token_masked": mask(wa.get("access_token") or _os.environ.get("WHATSAPP_ACCESS_TOKEN", "")),
+            "phone_number_id": wa.get("phone_number_id") or _os.environ.get("WHATSAPP_PHONE_NUMBER_ID", ""),
+            "template_name": app_settings.get("whatsapp_otp_template_name")
+                              or _os.environ.get("WHATSAPP_OTP_TEMPLATE_NAME", "asr_otp"),
+        },
+        "email": {
+            "resend_key_masked": mask(_os.environ.get("RESEND_API_KEY", "")),
+            "sender": _os.environ.get("SENDER_EMAIL", "support@asrenterprises.in"),
+        },
+        "cashfree": {
+            "app_id_masked": mask(app_settings.get("cashfree_app_id") or _os.environ.get("CASHFREE_APP_ID", "")),
+            "configured": bool(app_settings.get("cashfree_secret") or _os.environ.get("CASHFREE_SECRET_KEY", "")),
+        },
+        "redeploy_needed_for": ["resend_api_key", "cashfree_secret"],
+        "updated_at": app_settings.get("updated_at"),
+    }
+
+
+@router.put("/settings")
+async def update_critical_settings(body: SettingsUpdateReq, admin=Depends(require_super_admin)):
+    """Persist credential / template updates from the Critical Monitor.
+    Hot-effective: whatsapp_access_token, whatsapp_phone_number_id, whatsapp_otp_template_name.
+    Redeploy-needed: resend_api_key, cashfree_*  (read from env at boot)."""
+    _consume_action_token(body.action_token,
+                          ("secure_action", "settings_update", "payment_update"))
+
+    now = datetime.now(timezone.utc).isoformat()
+    wa_patch: Dict[str, Any] = {}
+    if body.whatsapp_access_token:
+        wa_patch["access_token"] = body.whatsapp_access_token.strip()
+    if body.whatsapp_phone_number_id:
+        wa_patch["phone_number_id"] = body.whatsapp_phone_number_id.strip()
+    if wa_patch:
+        wa_patch["updated_at"] = now
+        await db.whatsapp_settings.update_one({}, {"$set": wa_patch}, upsert=True)
+
+    app_patch: Dict[str, Any] = {"name": "critical_monitor_settings", "updated_at": now,
+                                  "updated_by": admin.get("name")}
+    for key in ("whatsapp_otp_template_name", "resend_api_key", "resend_sender_email",
+                "cashfree_app_id", "cashfree_secret"):
+        v = getattr(body, key, None)
+        if v is not None and str(v).strip() != "":
+            app_patch[key] = str(v).strip()
+    if len(app_patch) > 3:
+        await db.app_settings.update_one({"name": "critical_monitor_settings"},
+                                         {"$set": app_patch}, upsert=True)
+
+    await db.guardian_logs.insert_one({
+        "id": str(uuid.uuid4()), "level": "warn", "module": "critical_monitor",
+        "message": f"settings updated keys={[k for k in app_patch if k not in {'name','updated_at','updated_by'}]}",
+        "actor": admin.get("name", "admin"), "ts": now,
+    })
+    return {"ok": True, "hot_applied": bool(wa_patch),
+            "redeploy_needed": any(getattr(body, k) for k in ("resend_api_key", "cashfree_secret")),
+            "updated_at": now}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  AI AUTO-DIAGNOSE
+# ──────────────────────────────────────────────────────────────────────────────
+class DiagnoseReq(BaseModel):
+    issue_text: str
+    auto_run: bool = False
+
+
+_RECOVERY_PLAYBOOK: Dict[str, Dict[str, Any]] = {
+    "retry_otp_smart":         {"label": "Retry admin OTP via Smart channel (WA→Email)",
+                                  "endpoint": "auto-fix"},
+    "resend_payment_links":    {"label": "Re-fire payment reminders for unpaid invoices",
+                                  "endpoint": "auto-fix"},
+    "verify_resend_domain":    {"label": "Run a delivery test through Resend",
+                                  "endpoint": "test-otp", "args": {"channel": "email"}},
+    "test_whatsapp_template":  {"label": "Send a test OTP via WhatsApp (asr_otp template)",
+                                  "endpoint": "test-otp", "args": {"channel": "whatsapp"}},
+    "test_payment_gateway":    {"label": "Generate a ₹1 Cashfree test order",
+                                  "endpoint": "test-payment"},
+    "check_health":            {"label": "Pull live system-health snapshot",
+                                  "endpoint": "health"},
+}
+
+
+@router.post("/diagnose")
+async def diagnose_issue(body: DiagnoseReq, request: Request, admin=Depends(require_super_admin)):
+    """LLM picks safe playbook actions to run for the user's free-form issue."""
+    issue = (body.issue_text or "").strip()
+    if not issue:
+        raise HTTPException(400, "issue_text is required")
+
+    suggested: List[Dict[str, Any]] = []
+    rationale = ""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import os as _os
+        chat = LlmChat(
+            api_key=_os.environ.get("EMERGENT_LLM_KEY", ""),
+            session_id=f"cm-diagnose-{uuid.uuid4().hex[:8]}",
+            system_message=(
+                "You are the recovery agent for ASR Enterprises CRM. Given an admin's "
+                "issue description, pick AT MOST 3 actions from this playbook (key only):\n"
+                + "\n".join(f"- {k}: {v['label']}" for k, v in _RECOVERY_PLAYBOOK.items())
+                + '\n\nRespond as STRICT JSON: {"rationale":"...","actions":["key1","key2"]}'
+            ),
+        ).with_model("openai", "gpt-4o-mini")
+        resp = await chat.send_message(UserMessage(text=issue))
+        import json as _json, re as _re
+        m = _re.search(r"\{.*\}", resp or "", _re.S)
+        if m:
+            data = _json.loads(m.group(0))
+            rationale = data.get("rationale") or ""
+            for key in data.get("actions") or []:
+                if key in _RECOVERY_PLAYBOOK:
+                    suggested.append({"key": key, **_RECOVERY_PLAYBOOK[key]})
+    except Exception as e:
+        logger.warning(f"[cm-diagnose] LLM error, using keyword fallback: {e}")
+
+    # Keyword fallback
+    if not suggested:
+        low = issue.lower()
+        if any(k in low for k in ("otp", "code", "verify", "expired")):
+            suggested.append({"key": "retry_otp_smart", **_RECOVERY_PLAYBOOK["retry_otp_smart"]})
+            suggested.append({"key": "test_whatsapp_template", **_RECOVERY_PLAYBOOK["test_whatsapp_template"]})
+        if any(k in low for k in ("payment", "cashfree", "invoice", "upi")):
+            suggested.append({"key": "resend_payment_links", **_RECOVERY_PLAYBOOK["resend_payment_links"]})
+            suggested.append({"key": "test_payment_gateway", **_RECOVERY_PLAYBOOK["test_payment_gateway"]})
+        if any(k in low for k in ("email", "resend", "domain")):
+            suggested.append({"key": "verify_resend_domain", **_RECOVERY_PLAYBOOK["verify_resend_domain"]})
+        if not suggested:
+            suggested.append({"key": "check_health", **_RECOVERY_PLAYBOOK["check_health"]})
+        rationale = ("Auto-classified by keyword (LLM unavailable). "
+                     "Review the suggested actions before running.")
+
+    executed: List[Dict[str, Any]] = []
+    if body.auto_run and suggested:
+        top = suggested[0]
+        try:
+            if top["endpoint"] == "auto-fix":
+                executed.append({"key": top["key"],
+                                 "result": (await auto_fix(request=request, admin=admin))})
+            elif top["endpoint"] == "test-otp":
+                executed.append({"key": top["key"],
+                                 "result": (await test_otp(
+                                     TestOtpReq(channel=top.get("args", {}).get("channel", "auto"),
+                                                purpose="ai_auto_run"),
+                                     request=request, admin=admin))})
+            elif top["endpoint"] == "health":
+                executed.append({"key": top["key"], "result": (await health_summary())})
+        except Exception as e:
+            executed.append({"key": top.get("key", "?"), "error": str(e)[:200]})
+
+    await db.guardian_logs.insert_one({
+        "id": str(uuid.uuid4()), "level": "info", "module": "critical_monitor",
+        "message": f"AI diagnose: {issue[:140]} → {[s['key'] for s in suggested]}",
+        "actor": admin.get("name", "admin"),
+        "ts": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True, "rationale": rationale,
+            "suggested_actions": suggested, "executed": executed}

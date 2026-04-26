@@ -1421,6 +1421,91 @@ async def send_otp_email(email: str, otp: str, user_type: str = "Admin") -> bool
         logger.error(f"Failed to send OTP email to {email}: {e}")
         return False
 
+
+async def send_welcome_email(
+    *, email: str, name: str, user_id: str,
+    role_label: str, login_url: str,
+    temp_password: str = "", extra_lines: Optional[List[str]] = None,
+) -> bool:
+    """One-shot welcome email used by HR (new staff) and Solar Advisor signup.
+
+    Branded ASR HTML with the assigned User ID, role, login URL, and (when
+    applicable) the temporary password the user should change after first
+    login. Returns True on Resend success."""
+    if not RESEND_API_KEY:
+        logger.warning(f"[welcome-email] RESEND_API_KEY missing, skipping welcome email to {email}")
+        return False
+
+    safe_name = (name or "Team Member").strip()
+    safe_role = role_label or "Team"
+    extra_html = "".join(
+        f'<li style="margin:4px 0">{line}</li>'
+        for line in (extra_lines or [])
+    )
+    pw_block = ""
+    if temp_password:
+        pw_block = f"""
+        <div style="background:#fff7ed;border:1px solid #fdba74;padding:14px;
+                    border-radius:8px;margin:16px 0">
+          <p style="margin:0;font-size:14px;color:#9a3412">
+            <strong>Temporary password:</strong>
+            <code style="background:#fff;padding:3px 8px;border-radius:4px;
+                          font-family:'Courier New',monospace;letter-spacing:1px">
+              {temp_password}
+            </code><br>
+            <span style="font-size:12px">Please change this on first login.</span>
+          </p>
+        </div>
+        """
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1f2937">
+      <div style="text-align:center;margin-bottom:18px">
+        <h1 style="color:#0B3C5D;margin:0">Welcome to ASR Enterprises</h1>
+        <p style="color:#F5A623;margin:4px 0;font-weight:bold">Bihar's Trusted Solar Rooftop Company</p>
+      </div>
+      <p>Dear <strong>{safe_name}</strong>,</p>
+      <p>We are delighted to welcome you to the <strong>ASR Enterprises {safe_role}</strong> team.
+         Your account has been created and you can now access the ASR CRM.</p>
+
+      <div style="background:linear-gradient(135deg,#0B3C5D,#1e3a8a);color:#fff;
+                  padding:18px;border-radius:10px;margin:18px 0">
+        <p style="margin:0 0 6px 0;font-size:13px;opacity:0.85">YOUR USER ID</p>
+        <p style="margin:0;font-size:28px;font-weight:bold;letter-spacing:2px;
+                  font-family:'Courier New',monospace">{user_id}</p>
+      </div>
+
+      {pw_block}
+
+      <p><strong>Next steps:</strong></p>
+      <ol style="color:#4b5563;font-size:14px;line-height:1.7">
+        <li>Visit <a href="{login_url}" style="color:#F5A623;font-weight:bold">{login_url}</a></li>
+        <li>Enter your User ID <code>{user_id}</code> and the password above (or the OTP sent to your registered email/WhatsApp)</li>
+        <li>Update your profile and complete the onboarding</li>
+        {extra_html}
+      </ol>
+
+      <p style="font-size:13px;color:#6b7280">If you have any questions or face login issues, reply to this email or contact our admin team.</p>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:22px 0">
+      <p style="color:#9ca3af;font-size:11px;text-align:center;margin:0">
+        ASR Enterprises · Patna, Bihar · 9296389097 · support@asrenterprises.in<br>
+        This is an automated message — please don't reply directly.
+      </p>
+    </div>
+    """
+    try:
+        await asyncio.to_thread(resend.Emails.send, {
+            "from": SENDER_EMAIL,
+            "to": [email],
+            "subject": f"Welcome to ASR Enterprises · Your User ID is {user_id}",
+            "html": html,
+        })
+        logger.info(f"[welcome-email] sent to {email} (user_id={user_id})")
+        return True
+    except Exception as e:
+        logger.error(f"[welcome-email] failed for {email}: {e}")
+        return False
+
 def verify_login_otp(email: str, otp: str) -> bool:
     """Verify OTP with expiry and attempt checking"""
     if email not in otp_storage:
@@ -4343,6 +4428,160 @@ async def admin_secure_otp_verify(request: Request, data: Dict[str, Any]):
     }
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  MASTER RECOVERY CODE  — alternative to Dual-OTP for emergencies
+#  (use when both WhatsApp + Email OTP channels are broken)
+# ──────────────────────────────────────────────────────────────────────────────
+@api_router.post("/admin/recovery/issue")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def admin_recovery_issue(request: Request, data: Dict[str, Any]):
+    """Issue a Master Recovery Code AFTER verifying the admin password.
+
+    Sends a 12-character single-use code valid for 10 minutes via BOTH email
+    AND WhatsApp (and prints it to backend logs as last-resort). Safe because
+    the caller must already prove they know the admin password.
+    """
+    client_ip = get_real_ip(request)
+    password = (data.get("password") or "").strip()
+    if not password:
+        raise HTTPException(400, "Password required to issue recovery code")
+
+    # Verify admin password against the same hash used by /admin/login-password
+    admin_doc = await db.crm_staff_accounts.find_one(
+        {"staff_id": OWNER_STAFF_ID, "is_owner": True},
+        {"_id": 0, "password_hash": 1, "email": 1, "mobile": 1, "name": 1}
+    )
+    if not admin_doc or not admin_doc.get("password_hash"):
+        raise HTTPException(500, "Admin record missing — contact support.")
+    expected_hash = admin_doc["password_hash"]
+    given_hash = hashlib.sha256(password.encode()).hexdigest()
+    if not hmac.compare_digest(expected_hash, given_hash):
+        record_failed_login(client_ip, "recovery_code")
+        raise HTTPException(401, "Invalid admin password.")
+
+    # Generate the recovery code (12 alphanumeric, easy to type)
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no I/O/0/1 ambiguity
+    code = "".join(secrets.choice(alphabet) for _ in range(12))
+    rec_key = "admin_recovery_code"
+    otp_storage[rec_key] = {
+        "otp": hashlib.sha256(code.encode()).hexdigest(),
+        "timestamp": time.time(),
+        "attempts": 0,
+        "ttl": 600,  # 10 minutes
+    }
+
+    # Audit
+    await db.otp_audit.insert_one({
+        "id": str(uuid.uuid4()),
+        "actor": admin_doc.get("email", OWNER_EMAIL),
+        "purpose": "master_recovery_code_issued",
+        "event": "send",
+        "channel_used": "both",
+        "channels_tried": ["email", "whatsapp", "logs"],
+        "success": True,
+        "ip": client_ip,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "smart_fallback": False,
+    })
+
+    # Deliver to all channels — best-effort, don't fail if some fail
+    sent: List[str] = []
+    try:
+        # Inline Resend email — avoid extra abstractions for a single use
+        if RESEND_API_KEY:
+            html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px">
+              <h2 style="color:#dc2626">ASR Enterprises — Master Recovery Code</h2>
+              <p>You (or someone with admin password access) requested a Master Recovery Code.</p>
+              <div style="background:#fee2e2;color:#991b1b;font-size:28px;font-weight:bold;
+                          text-align:center;padding:16px;border-radius:8px;letter-spacing:4px;
+                          margin:18px 0;font-family:'Courier New',monospace">{code}</div>
+              <p>Valid for <strong>10 minutes</strong>. Do not share. If you didn't request this,
+                 change your admin password immediately.</p>
+              <p style="color:#666;font-size:12px">ASR Enterprises · Patna</p>
+            </div>"""
+            await asyncio.to_thread(resend.Emails.send, {
+                "from": SENDER_EMAIL,
+                "to": [admin_doc.get("email", OWNER_EMAIL)],
+                "subject": "ASR · Master Recovery Code (10 min) — DO NOT SHARE",
+                "html": html,
+            })
+            sent.append("email")
+    except Exception as e:
+        logger.warning(f"[recovery] email send failed: {e}")
+    try:
+        from routes.whatsapp import send_whatsapp_template, get_whatsapp_settings
+        s = await get_whatsapp_settings()
+        token = (s or {}).get("access_token", "").strip()
+        phone_id = (s or {}).get("phone_number_id", "").strip()
+        mobile = re.sub(r"\D", "", str(admin_doc.get("mobile") or OWNER_MOBILE))[-10:]
+        if token and phone_id and len(mobile) == 10:
+            r = await send_whatsapp_template(phone="91" + mobile, template_name="asr_otp",
+                                             variables=[code])
+            if r and r.get("success"):
+                sent.append("whatsapp")
+    except Exception as e:
+        logger.warning(f"[recovery] whatsapp send failed: {e}")
+
+    # Last-resort: print to logs so admin can SSH in and grab it
+    logger.warning(f"[ADMIN_RECOVERY_CODE] Issued for {admin_doc.get('email')} "
+                   f"valid 10 min — code={code}")
+
+    return {
+        "success": True,
+        "delivered_via": sent or ["logs"],
+        "expires_in": 600,
+        "message": ("Master Recovery Code sent. Check email + WhatsApp. "
+                    "If both channels are down, admin can read it from "
+                    "backend logs (sudo journalctl)."),
+    }
+
+
+@api_router.post("/admin/recovery/verify")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def admin_recovery_verify(request: Request, data: Dict[str, Any]):
+    """Verify a Master Recovery Code and mint a 5-min action_token."""
+    client_ip = get_real_ip(request)
+    code = (data.get("code") or "").strip().upper()
+    if not code:
+        raise HTTPException(400, "Recovery code required")
+
+    rec = otp_storage.get("admin_recovery_code")
+    if not rec:
+        raise HTTPException(401, "No recovery code in flight. Request one first.")
+    if time.time() - rec["timestamp"] > rec.get("ttl", 600):
+        otp_storage.pop("admin_recovery_code", None)
+        raise HTTPException(410, "Recovery code expired.")
+    if rec["attempts"] >= 3:
+        otp_storage.pop("admin_recovery_code", None)
+        raise HTTPException(429, "Too many attempts. Request a new code.")
+    rec["attempts"] += 1
+
+    if not hmac.compare_digest(rec["otp"], hashlib.sha256(code.encode()).hexdigest()):
+        record_failed_login(client_ip, "recovery_code")
+        raise HTTPException(401, "Invalid recovery code.")
+    # Burn on success
+    otp_storage.pop("admin_recovery_code", None)
+
+    # Mint a 5-min action_token compatible with /critical-monitor/entry/verify
+    token = secrets.token_urlsafe(24)
+    otp_storage[f"action_token:{token}"] = {
+        "otp": token, "timestamp": time.time(), "attempts": 0,
+        "purpose": "secure_action", "actor": OWNER_EMAIL,
+    }
+
+    await db.otp_audit.insert_one({
+        "id": str(uuid.uuid4()),
+        "actor": OWNER_EMAIL,
+        "purpose": "master_recovery_code_used",
+        "event": "verify",
+        "success": True,
+        "ip": client_ip,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"success": True, "action_token": token, "expires_in": 300}
+
+
 @api_router.post("/admin/send-otp")
 @limiter.limit(RATE_LIMIT_AUTH)
 async def send_otp(request: Request, data: Dict[str, Any]):
@@ -4406,9 +4645,17 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
         logger.warning(f"Unauthorized login attempt for email: {email} from IP: {client_ip}")
         raise HTTPException(status_code=403, detail="Access denied")
     
-    # Verify OTP
-    if verify_login_otp(user_id, otp):
-        reset_failed_login(client_ip, user_id)  # Reset on successful login
+    # Verify OTP — try modern prefixed keys first (admin:<email> /
+    # admin:<mobile>) then the legacy key (just <email>) so we accept codes
+    # issued by /admin/send-otp-smart AND the legacy /admin/send-otp.
+    if (verify_login_otp(f"admin:{user_id}", otp)
+            or verify_login_otp(f"admin:{OWNER_MOBILE}", otp)
+            or verify_login_otp(user_id, otp)):
+        # Burn any sibling key still hanging around so the OTP can't be reused
+        otp_storage.pop(f"admin:{user_id}", None)
+        otp_storage.pop(f"admin:{OWNER_MOBILE}", None)
+        otp_storage.pop(user_id, None)
+        reset_failed_login(client_ip, user_id)
         logger.info(f"Successful admin login for {user_id} from IP: {client_ip}")
         return {"success": True, "role": "admin", "email": email or user_id}
     
@@ -12573,6 +12820,22 @@ async def register_agent(agent: AgentRegistration):
         }
         await db.agents.insert_one(agent_doc)
         logger.info(f"New Solar Advisor registered: {agent_id} - {agent.name}")
+
+        # Welcome email to new advisor — best effort
+        if (agent.email or "").strip():
+            try:
+                await send_welcome_email(
+                    email=agent.email.strip(), name=agent.name,
+                    user_id=agent_id, role_label="Solar Advisor",
+                    login_url="https://asrenterprises.in/solar-advisor/login",
+                    temp_password=default_password,
+                    extra_lines=[
+                        "Your application is currently <strong>PENDING APPROVAL</strong> — admin will review and activate your account shortly",
+                        "Once approved, you can start onboarding solar customers and earn 5% commission on each successful installation",
+                    ],
+                )
+            except Exception as we:
+                logger.warning(f"[advisor-signup] welcome email failed: {we}")
 
         # Notify admin via WhatsApp link (non-blocking)
         try:

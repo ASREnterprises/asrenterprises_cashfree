@@ -19,6 +19,7 @@ import random
 import re
 import hashlib
 import hmac
+import secrets
 import time
 import asyncio
 from collections import defaultdict
@@ -1420,7 +1421,7 @@ async def send_otp_email(email: str, otp: str, user_type: str = "Admin") -> bool
         logger.error(f"Failed to send OTP email to {email}: {e}")
         return False
 
-def verify_otp(email: str, otp: str) -> bool:
+def verify_login_otp(email: str, otp: str) -> bool:
     """Verify OTP with expiry and attempt checking"""
     if email not in otp_storage:
         return False
@@ -4103,20 +4104,67 @@ async def admin_send_otp_smart(request: Request, data: Dict[str, Any]):
         "channels_tried": [], "channel_used": None, "success": False,
     }
 
+    # 10-second timeout on WhatsApp send so a slow Meta response triggers
+    # the email fallback automatically (smart fallback per spec).
+    WA_TIMEOUT_SECONDS = 10.0
+
     async def _try_whatsapp() -> bool:
         try:
             audit["channels_tried"].append("whatsapp")
-            from routes.whatsapp import send_whatsapp_template, send_whatsapp_text
-            body = (f"Your ASR Enterprises OTP is: {otp}\n"
-                    f"Valid for 5 minutes. Do not share with anyone.")
-            r = await send_whatsapp_text(mobile_full, body) if "send_whatsapp_text" in dir() else None
-            if r:
-                return True
-            # Fallback: try template if a generic OTP template exists
+            from routes.whatsapp import (
+                get_whatsapp_settings, send_whatsapp_template,
+            )
+            settings = await get_whatsapp_settings()
+            token = (settings or {}).get("access_token", "").strip()
+            phone_id = (settings or {}).get("phone_number_id", "").strip()
+            if not token or not phone_id:
+                audit.setdefault("errors", []).append("wa:not_configured")
+                return False
+
+            phone_e164 = mobile_full.lstrip("+")
+            if len(phone_e164) == 10:
+                phone_e164 = "91" + phone_e164
+
+            body = (
+                f"Your ASR Enterprises OTP is: {otp}\n"
+                f"Valid for 5 minutes. Do not share with anyone."
+            )
+
+            # 1) Try the approved OTP template first (auth category templates
+            #    are the only WA way to deliver a code outside the 24h window).
+            for tpl in ("authentication_otp", "otp_verification", "website_otp"):
+                try:
+                    r = await asyncio.wait_for(
+                        send_whatsapp_template(phone=phone_e164, template_name=tpl,
+                                               variables=[otp]),
+                        timeout=WA_TIMEOUT_SECONDS,
+                    )
+                    if r and r.get("success"):
+                        return True
+                except asyncio.TimeoutError:
+                    audit.setdefault("errors", []).append(f"wa_tpl_{tpl}:timeout_10s")
+                    return False  # bail to email fallback fast
+                except Exception:
+                    continue
+
+            # 2) Plain-text fallback (only works if user has an open 24h window)
+            import httpx
             try:
-                tmpl = await send_whatsapp_template(mobile_full, "otp_verification", "en", body_params=[otp])
-                return bool(tmpl and tmpl.get("messages"))
-            except Exception:
+                async with httpx.AsyncClient(timeout=WA_TIMEOUT_SECONDS) as c:
+                    resp = await c.post(
+                        f"https://graph.facebook.com/v20.0/{phone_id}/messages",
+                        headers={"Authorization": f"Bearer {token}",
+                                 "Content-Type": "application/json"},
+                        json={"messaging_product": "whatsapp", "to": phone_e164,
+                              "type": "text", "text": {"body": body}},
+                    )
+                    if resp.status_code in (200, 201):
+                        return True
+                    audit.setdefault("errors", []).append(
+                        f"wa_text_{resp.status_code}:{resp.text[:120]}")
+                    return False
+            except (httpx.TimeoutException, asyncio.TimeoutError):
+                audit.setdefault("errors", []).append("wa_text:timeout_10s")
                 return False
         except Exception as e:
             audit.setdefault("errors", []).append(f"wa:{str(e)[:120]}")
@@ -4132,17 +4180,38 @@ async def admin_send_otp_smart(request: Request, data: Dict[str, Any]):
             return False
 
     delivered_via = None
+    delivered_extra = []
     if channel == "whatsapp":
-        if await _try_whatsapp(): delivered_via = "whatsapp"
+        if await _try_whatsapp():
+            delivered_via = "whatsapp"
+        else:
+            # User asked WhatsApp but it failed within 10s — auto-fallback to
+            # email per "Smart Fallback System" (spec section 8) so the admin
+            # is never locked out of a single channel.
+            if await _try_email():
+                delivered_via = "email"
+                delivered_extra.append("auto_fallback_from_whatsapp")
     elif channel == "email":
-        if await _try_email(): delivered_via = "email"
-    else:  # 'auto' — WhatsApp first, then Email
+        if await _try_email():
+            delivered_via = "email"
+    elif channel == "both":
+        # Send via BOTH channels in parallel — accept whichever delivers first.
+        wa_ok, em_ok = await asyncio.gather(_try_whatsapp(), _try_email())
+        if wa_ok and em_ok:
+            delivered_via = "whatsapp+email"
+        elif wa_ok:
+            delivered_via = "whatsapp"
+        elif em_ok:
+            delivered_via = "email"
+    else:  # 'auto' — WhatsApp first (10s smart fallback), then Email
         if await _try_whatsapp():
             delivered_via = "whatsapp"
         elif await _try_email():
             delivered_via = "email"
+            delivered_extra.append("auto_fallback_from_whatsapp")
 
     audit["channel_used"] = delivered_via
+    audit["smart_fallback"] = bool(delivered_extra)
     audit["success"] = bool(delivered_via)
     try:
         await db.otp_audit.insert_one(audit.copy())
@@ -4155,16 +4224,25 @@ async def admin_send_otp_smart(request: Request, data: Dict[str, Any]):
             detail="Could not send OTP via any channel. Check WhatsApp credits + Resend domain status."
         )
 
+    masked_recipient = (
+        masked_email if delivered_via == "email"
+        else masked_mobile if delivered_via == "whatsapp"
+        else f"{masked_mobile} + {masked_email}"
+    )
     return {
         "success": True,
         "channel_used": delivered_via,
         "channel_requested": channel,
         "channels_tried": audit["channels_tried"],
-        "masked_recipient": masked_email if delivered_via == "email" else masked_mobile,
+        "smart_fallback": bool(delivered_extra),
+        "masked_recipient": masked_recipient,
         "expires_in": 300,  # seconds
         "max_attempts": 3,
-        "message": (f"OTP sent to {'WhatsApp' if delivered_via == 'whatsapp' else 'Email'}. "
-                    f"Valid for 5 minutes."),
+        "resend_in": 30,
+        "message": (
+            f"OTP sent via {delivered_via.replace('+', ' + ')}. Valid for 5 minutes."
+            + (" (auto-fallback used)" if delivered_extra else "")
+        ),
     }
 
 
@@ -4178,10 +4256,10 @@ async def admin_get_otp_pref():
 
 @api_router.put("/admin/otp-preference")
 async def admin_set_otp_pref(data: Dict[str, Any]):
-    """Persist preferred OTP channel (whatsapp | email | auto). Auto is default."""
+    """Persist preferred OTP channel (whatsapp | email | auto | both). Auto is default."""
     ch = (data.get("channel") or "").lower()
-    if ch not in ("whatsapp", "email", "auto"):
-        raise HTTPException(400, "channel must be 'whatsapp', 'email', or 'auto'")
+    if ch not in ("whatsapp", "email", "auto", "both"):
+        raise HTTPException(400, "channel must be 'whatsapp', 'email', 'auto', or 'both'")
     now = datetime.now(timezone.utc).isoformat()
     await db.app_settings.update_one(
         {"key": "admin_otp_pref"},
@@ -4199,6 +4277,64 @@ async def admin_get_otp_audit(limit: int = 50):
     cursor = db.otp_audit.find({}, {"_id": 0}).sort("ts", -1).limit(limit)
     items = await cursor.to_list(length=limit)
     return {"count": len(items), "items": items}
+
+
+@api_router.post("/admin/secure-otp/verify")
+@limiter.limit(RATE_LIMIT_AUTH)
+async def admin_secure_otp_verify(request: Request, data: Dict[str, Any]):
+    """Verify the OTP issued by `/admin/send-otp-smart` for sensitive admin
+    actions (payment update, customer status change, session unlock).
+
+    On success → audit-logs the verification (with purpose) and returns a
+    short-lived single-use action token the caller can hand back to the
+    privileged endpoint. Enforces 3 attempts max + 5 min validity (handled
+    inside the shared `verify_otp` helper).
+    """
+    client_ip = get_real_ip(request)
+    otp = (data.get("otp") or "").strip()
+    purpose = (data.get("purpose") or "secure_action").lower()
+    actor = (data.get("actor") or "asrenterprisespatna@gmail.com").lower().strip()
+
+    if not otp:
+        raise HTTPException(400, "OTP is required")
+
+    email_key = f"admin:{actor}"
+    mobile_key = f"admin:{OWNER_MOBILE}"
+
+    # The smart sender stores the SAME otp under both keys so verify accepts
+    # either. Try email key first (most common), then mobile.
+    ok = verify_login_otp(email_key, otp) or verify_login_otp(mobile_key, otp)
+
+    audit = {
+        "id": str(uuid.uuid4()),
+        "actor": actor,
+        "purpose": purpose,
+        "event": "verify",
+        "success": bool(ok),
+        "ip": client_ip,
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        await db.otp_audit.insert_one(audit.copy())
+    except Exception as _e:
+        logger.warning(f"[otp-audit] verify-write failed: {_e}")
+
+    if not ok:
+        raise HTTPException(401, "Invalid or expired OTP. Please request a new one.")
+
+    # Short-lived single-use action token (5 min). Stored on the same
+    # in-memory otp_storage dict for parity with the rest of the OTP layer.
+    token = secrets.token_urlsafe(24)
+    otp_storage[f"action_token:{token}"] = {
+        "otp": token, "timestamp": time.time(), "attempts": 0,
+        "purpose": purpose, "actor": actor,
+    }
+    return {
+        "success": True,
+        "action_token": token,
+        "purpose": purpose,
+        "expires_in": 300,
+    }
 
 
 @api_router.post("/admin/send-otp")
@@ -4265,7 +4401,7 @@ async def verify_otp_endpoint(request: Request, data: Dict[str, Any]):
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Verify OTP
-    if verify_otp(user_id, otp):
+    if verify_login_otp(user_id, otp):
         reset_failed_login(client_ip, user_id)  # Reset on successful login
         logger.info(f"Successful admin login for {user_id} from IP: {client_ip}")
         return {"success": True, "role": "admin", "email": email or user_id}
@@ -5246,7 +5382,7 @@ async def staff_verify_otp(request: Request, data: Dict[str, Any]):
     otp = data.get("otp", "").strip()
     
     # Verify OTP
-    if not verify_otp(f"staff:{staff_id}", otp):
+    if not verify_login_otp(f"staff:{staff_id}", otp):
         raise HTTPException(status_code=401, detail="Invalid or expired OTP")
     
     # Get staff details

@@ -191,6 +191,14 @@ export const AdminDashboard = ({ onLogout }) => {
       link: "/admin/trash",
       color: "from-slate-600 to-slate-800",
       count: "Recycle Bin"
+    },
+    {
+      title: "Admin Security",
+      description: "Dual OTP settings · audit log · session policy",
+      icon: <ShieldCheck className="w-10 h-10" />,
+      link: "/admin/security-otp",
+      color: "from-amber-600 to-orange-700",
+      count: "OTP & Audit"
     }
   ];
 
@@ -244,7 +252,10 @@ export const AdminDashboard = ({ onLogout }) => {
   const visibleModules = (isAdminManager
     ? modules.filter(m => ALLOWED_FOR_MANAGER.includes(m.title))
     : modules
-  ).filter(m => m.title !== "AI Website Guardian" || isSuperAdmin);
+  ).filter(m =>
+    (m.title !== "AI Website Guardian" || isSuperAdmin) &&
+    (m.title !== "Admin Security"     || isSuperAdmin)
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sky-100 py-8 px-4">

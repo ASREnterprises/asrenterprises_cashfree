@@ -8,6 +8,7 @@ import {
   UserCog, MessageCircle, Save
 } from "lucide-react";
 import { confirm } from "../utils/confirm";
+import DualOtpModal from "./DualOtpModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1589,13 +1590,14 @@ const RecordPaymentModal = ({ invoice, onClose, onSaved }) => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [otpOpen, setOtpOpen] = useState(false);
 
-  const submit = async (e) => {
-    e.preventDefault();
-    setError("");
+  const _superAdmin = (
+    (localStorage.getItem("asrAdminStaffId") || "").trim().toUpperCase() === "ASR1001"
+  );
+
+  const performSubmit = async () => {
     const amt = parseFloat(form.amount);
-    if (!amt || amt <= 0) { setError("Enter a valid amount."); return; }
-    if (amt > due + 0.01) { setError(`Amount exceeds due (₹${due.toFixed(2)}).`); return; }
     setSubmitting(true);
     try {
       const res = await axios.post(`${API}/gst/invoices/${invoice.id}/payments`, {
@@ -1611,6 +1613,20 @@ const RecordPaymentModal = ({ invoice, onClose, onSaved }) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    const amt = parseFloat(form.amount);
+    if (!amt || amt <= 0) { setError("Enter a valid amount."); return; }
+    if (amt > due + 0.01) { setError(`Amount exceeds due (₹${due.toFixed(2)}).`); return; }
+    // Super Admin must verify via Dual OTP before recording payment.
+    if (_superAdmin) {
+      setOtpOpen(true);
+      return;
+    }
+    await performSubmit();
   };
 
   return (
@@ -1723,6 +1739,14 @@ const RecordPaymentModal = ({ invoice, onClose, onSaved }) => {
           </div>
         </form>
       </div>
+      <DualOtpModal
+        open={otpOpen}
+        purpose="payment_update"
+        title="Verify Payment Recording"
+        description={`A Dual-OTP confirmation is required to record this payment of ₹${parseFloat(form.amount || 0).toFixed(2)} on invoice ${invoice.invoice_number}.`}
+        onClose={() => setOtpOpen(false)}
+        onVerified={async () => { setOtpOpen(false); await performSubmit(); }}
+      />
     </div>
   );
 };

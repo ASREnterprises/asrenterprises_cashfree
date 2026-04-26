@@ -6,6 +6,7 @@ import {
   ChevronDown, ChevronUp, Settings, FileText, Bell, ArrowLeft, Lock, Unlock
 } from "lucide-react";
 import { confirm } from "../utils/confirm";
+import DualOtpModal from "./DualOtpModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -154,21 +155,13 @@ export const CustomerManagement = () => {
   // Activate / Deactivate — blocks portal login when inactive.
   // Calls Guardian's safe-update which takes a snapshot (rollback-able).
   const [togglingStatus, setTogglingStatus] = useState(null);
-  const handleStatusToggle = async (c) => {
-    const current = (c.customer_status || "active").toLowerCase();
-    const next = current === "inactive" ? "active" : "inactive";
-    const verb = next === "inactive" ? "Deactivate" : "Activate";
-    const ok = await confirm({
-      title: `${verb} ${c.name}?`,
-      message: next === "inactive"
-        ? `+91 ${c.mobile}\n\nDeactivating blocks Customer Portal login and stops all reminders. Fully reversible.`
-        : `+91 ${c.mobile}\n\nCustomer will regain access to Customer Portal login.`,
-      confirmText: verb,
-      cancelText: "Cancel",
-      tone: next === "inactive" ? "warning" : "info",
-    });
-    if (!ok) return;
-    // Optimistic status flip — reverts on error.
+  const [pendingStatusToggle, setPendingStatusToggle] = useState(null); // { customer, next }
+
+  const _isSuperAdmin = (
+    (localStorage.getItem("asrAdminStaffId") || "").trim().toUpperCase() === "ASR1001"
+  );
+
+  const _commitStatusToggle = async (c, next) => {
     const before = customers;
     setCustomers(before.map(x => x.id === c.id ? { ...x, customer_status: next } : x));
     setTogglingStatus(c.id);
@@ -187,6 +180,28 @@ export const CustomerManagement = () => {
       setError(`${msg} (HTTP ${e?.response?.status || "?"})`);
       setTimeout(() => setError(""), 6000);
     } finally { setTogglingStatus(null); }
+  };
+
+  const handleStatusToggle = async (c) => {
+    const current = (c.customer_status || "active").toLowerCase();
+    const next = current === "inactive" ? "active" : "inactive";
+    const verb = next === "inactive" ? "Deactivate" : "Activate";
+    const ok = await confirm({
+      title: `${verb} ${c.name}?`,
+      message: next === "inactive"
+        ? `+91 ${c.mobile}\n\nDeactivating blocks Customer Portal login and stops all reminders. Fully reversible.`
+        : `+91 ${c.mobile}\n\nCustomer will regain access to Customer Portal login.`,
+      confirmText: verb,
+      cancelText: "Cancel",
+      tone: next === "inactive" ? "warning" : "info",
+    });
+    if (!ok) return;
+    // Super Admin must verify via Dual OTP before changing status.
+    if (_isSuperAdmin) {
+      setPendingStatusToggle({ customer: c, next });
+      return;
+    }
+    await _commitStatusToggle(c, next);
   };
 
   const savePortalSettings = async () => {
@@ -604,6 +619,21 @@ export const CustomerManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {pendingStatusToggle && (
+        <DualOtpModal
+          open={!!pendingStatusToggle}
+          purpose="customer_status"
+          title="Verify Customer Status Change"
+          description={`A Dual-OTP confirmation is required to ${pendingStatusToggle.next === "inactive" ? "DEACTIVATE" : "ACTIVATE"} ${pendingStatusToggle.customer?.name} (+91 ${pendingStatusToggle.customer?.mobile}).`}
+          onClose={() => setPendingStatusToggle(null)}
+          onVerified={async () => {
+            const p = pendingStatusToggle;
+            setPendingStatusToggle(null);
+            await _commitStatusToggle(p.customer, p.next);
+          }}
+        />
       )}
     </div>
   );

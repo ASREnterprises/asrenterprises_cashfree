@@ -899,6 +899,18 @@ export const AdminLogin = ({ onLogin }) => {
                     onClick={async () => {
                       setError(""); setOtpLoading(true);
                       try {
+                        // Try Smart Dual-OTP first (WhatsApp + Email auto-fallback).
+                        // Falls back to legacy /admin/send-otp on any failure so
+                        // existing 131993 dev flows keep working.
+                        try {
+                          const sm = await axios.post(`${API}/admin/send-otp-smart`, { channel: "auto", purpose: "login" });
+                          if (sm.data?.success) {
+                            setEmailOtpStep("otp"); setResendTimer(60);
+                            const ch = (sm.data.channel_used || "email").toUpperCase();
+                            setSuccess(`OTP delivered via ${ch.replace("+", " + ")}. Valid 5 min.`);
+                            return;
+                          }
+                        } catch (_smartErr) { /* fall through */ }
                         await axios.post(`${API}/admin/send-otp`, { email: emailOtpEmail });
                         setEmailOtpStep("otp"); setResendTimer(60);
                         setSuccess("OTP emailed. Check your inbox.");

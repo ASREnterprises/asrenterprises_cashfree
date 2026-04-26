@@ -28,7 +28,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from db_client import get_db
@@ -262,21 +262,15 @@ class OtpRetryReq(BaseModel):
 
 
 @router.post("/otp/retry")
-async def retry_otp(body: OtpRetryReq, _admin=Depends(require_super_admin)):
+async def retry_otp(body: OtpRetryReq, request: Request, _admin=Depends(require_super_admin)):
     """Re-send an admin OTP via the chosen channel (auto = smart fallback)."""
-    # Re-use the existing smart sender so retries go through the same audit path
     from server import admin_send_otp_smart  # type: ignore
-    from fastapi import Request
-
-    # Build a stub request (admin_send_otp_smart only needs client.host for IP)
-    class _Stub:
-        client = type("c", (), {"host": "127.0.0.1"})()
-        scope = {"client": ("127.0.0.1", 0), "headers": []}
-        headers: Dict[str, str] = {}
 
     payload = {"channel": (body.channel or "auto").lower(), "purpose": "manual_retry"}
     try:
-        return await admin_send_otp_smart(_Stub(), payload)  # type: ignore
+        return await admin_send_otp_smart(request, payload)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(502, f"Retry failed: {e}")
 
@@ -288,22 +282,19 @@ class TestOtpReq(BaseModel):
 
 
 @router.post("/test-otp")
-async def test_otp(body: TestOtpReq, admin=Depends(require_super_admin)):
+async def test_otp(body: TestOtpReq, request: Request, admin=Depends(require_super_admin)):
     """Issue a no-op OTP just to verify deliverability. Result is written to
     `db.otp_audit` with purpose='test' so the audit trail proves it landed."""
     from server import admin_send_otp_smart  # type: ignore
 
-    class _Stub:
-        client = type("c", (), {"host": "127.0.0.1"})()
-        scope = {"client": ("127.0.0.1", 0), "headers": []}
-        headers: Dict[str, str] = {}
-
     payload = {"channel": body.channel.lower(), "purpose": body.purpose or "test"}
     try:
-        result = await admin_send_otp_smart(_Stub(), payload)
+        result = await admin_send_otp_smart(request, payload)
         return {"ok": True, "delivery": result, "tested_by": admin.get("name")}
     except HTTPException as e:
         return {"ok": False, "error": e.detail}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:300]}
 
 
 class TestPaymentReq(BaseModel):
@@ -321,26 +312,28 @@ async def test_payment_link(body: TestPaymentReq, _admin=Depends(require_super_a
     if len(mobile) != 10:
         raise HTTPException(400, "Invalid 10-digit mobile")
     try:
-        from routes.cashfree_orders import create_cashfree_order  # type: ignore
-    except Exception:
-        # Fallback path used by website checkout
-        try:
-            from server import _create_cashfree_order  # type: ignore
-            create_cashfree_order = _create_cashfree_order  # type: ignore
-        except Exception as e:
-            raise HTTPException(500, f"Cashfree integration not available: {e}")
+        from routes.cashfree_orders import _create_cashfree_order_impl, CreateOrderRequest
+    except Exception as e:
+        raise HTTPException(500, f"Cashfree integration not available: {e}")
 
-    test_order = {
-        "customer_name": body.name or "Test Customer",
-        "customer_phone": mobile,
-        "customer_email": body.email or "test@asrenterprises.in",
-        "amount": max(1, int(body.amount or 1)),
-        "purpose": "critical_monitor_test",
-        "payment_type": "test",
-    }
     try:
-        result = await create_cashfree_order(test_order)
+        payload = CreateOrderRequest(
+            customer_name=body.name or "Test Customer",
+            customer_phone=mobile,
+            customer_email=body.email or "test@asrenterprises.in",
+            amount=max(1, int(body.amount or 1)),
+            booking_type="critical_monitor_test",
+            payment_type="test",
+        )
+    except Exception as e:
+        # If the model has different required fields, fall back to dict-style
+        return {"ok": False, "error": f"Could not build CreateOrderRequest: {e}"}
+
+    try:
+        result = await _create_cashfree_order_impl(payload)
         return {"ok": True, "order": result}
+    except HTTPException as e:
+        return {"ok": False, "error": e.detail}
     except Exception as e:
         return {"ok": False, "error": str(e)[:300]}
 

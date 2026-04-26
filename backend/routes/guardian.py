@@ -129,12 +129,13 @@ def require_super_admin(
 ) -> Dict[str, str]:
     sid = (x_staff_id or "").strip().upper()
     nm = (x_admin_name or "").strip().upper()
-    if sid != OWNER_STAFF_ID.upper() and nm != OWNER_NAME.upper():
-        raise HTTPException(status_code=403, detail="Access Denied — Guardian is restricted to Super Admin.")
-    # Defence-in-depth: BOTH must match if both provided
-    if sid and sid != OWNER_STAFF_ID.upper():
+    # STRICT: BOTH headers must be present AND match (defence-in-depth).
+    # Spec for Critical Monitor: 403 if EITHER staff-id or admin-name is wrong.
+    if not sid or not nm:
+        raise HTTPException(status_code=403, detail="Access Denied — Super Admin headers required.")
+    if sid != OWNER_STAFF_ID.upper():
         raise HTTPException(status_code=403, detail="Access Denied — staff id mismatch.")
-    if nm and nm != OWNER_NAME.upper():
+    if nm != OWNER_NAME.upper():
         raise HTTPException(status_code=403, detail="Access Denied — admin name mismatch.")
     return {"staff_id": OWNER_STAFF_ID, "name": OWNER_NAME}
 
